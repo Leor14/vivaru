@@ -205,7 +205,7 @@ export function ReservationsCalendar({
                   isSelected
                     ? "bg-[var(--on-fill)]/20 text-[var(--on-fill)]"
                     : isToday
-                      ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
+                      ? "bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                       : "text-[var(--slate-900)]",
                 )}
               >

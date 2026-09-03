@@ -772,7 +772,7 @@ export default function AdminReservationsPage() {
                     <button
                       type="button"
                       onClick={() => setPendingPhotos((prev) => prev.filter((_, j) => j !== i))}
-                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--danger-500)] text-xs leading-none text-[var(--on-fill)]"
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--relleno-peligro)] text-xs leading-none text-[var(--on-fill)]"
                     >
                       ×
                     </button>

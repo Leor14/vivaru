@@ -556,7 +556,7 @@ function AdminReportsPageContent() {
                 onClick={() => setPeriodKey(opt.key)}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   periodKey === opt.key
-                    ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                    ? "border-[var(--brand-700)] bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                     : "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-600)] hover:bg-[var(--slate-50)]"
                 }`}
               >

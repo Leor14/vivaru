@@ -127,7 +127,7 @@ export function DuplicateUnitsPanel({ tenantId, units, people }: Props) {
                   <div className="mt-2 flex gap-2">
                     <Button
                       size="sm"
-                      className="bg-[var(--amber-600)] text-[var(--on-fill)] hover:bg-[var(--amber-700)]"
+                      className="bg-[var(--relleno-aviso)] text-[var(--on-fill)] hover:bg-[var(--relleno-aviso-hover)]"
                       disabled={isBusy}
                       onClick={() => void handleMerge(key, groupUnits)}
                     >

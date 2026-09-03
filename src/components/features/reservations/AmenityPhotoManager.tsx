@@ -143,7 +143,7 @@ export function AmenityPhotoManager({
                 className="aspect-video w-full object-cover"
               />
               {index === 0 && (
-                <span className="absolute left-1.5 top-1.5 rounded-full bg-[var(--brand-700)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--on-fill)]">
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-[var(--relleno-marca)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--on-fill)]">
                   Portada
                 </span>
               )}
@@ -172,7 +172,7 @@ export function AmenityPhotoManager({
                 aria-label="Eliminar foto"
                 disabled={deletingId === photo.id}
                 onClick={() => void handleDelete(photo)}
-                className="absolute bottom-1 right-1 rounded-md bg-[var(--danger-600)] p-0.5 text-[var(--on-fill)] shadow opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                className="absolute bottom-1 right-1 rounded-md bg-[var(--relleno-peligro)] p-0.5 text-[var(--on-fill)] shadow opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
               >
                 {deletingId === photo.id ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

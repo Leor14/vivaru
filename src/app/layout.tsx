@@ -4,6 +4,7 @@ import { Manrope, Playfair_Display } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { EnvironmentBanner } from "@/components/shared/environment-banner";
 import { isProduction } from "@/lib/env";
+import { GUION_ANTI_DESTELLO } from "@/lib/ui/tema";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -35,7 +36,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    // `suppressHydrationWarning` porque el guion de abajo pone `data-tema` ANTES
+    // de que React hidrate: el servidor no puede saber que tema tiene este
+    // navegador, asi que el atributo diverge a proposito y solo en la raiz.
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Bloqueante y antes de pintar. Lee el espejo de `localStorage` para que
+            el PRIMER fotograma ya salga en el tema correcto. En la primera visita
+            desde un dispositivo el espejo esta vacio y se pinta claro: eso no es
+            un defecto, es la unica secuencia posible — el tema canonico vive en
+            Firestore y no se puede leer antes de resolver la sesion. */}
+        <script dangerouslySetInnerHTML={{ __html: GUION_ANTI_DESTELLO }} />
+      </head>
       <body className={`${manrope.variable} ${playfairDisplay.variable} antialiased`}>
         <EnvironmentBanner />
         <Providers>{children}</Providers>

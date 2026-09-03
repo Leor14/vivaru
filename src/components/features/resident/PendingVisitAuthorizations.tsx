@@ -143,7 +143,7 @@ export function PendingVisitAuthorizations({ tenantId, unitId }: { tenantId?: st
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button
-                  className="w-full bg-[var(--success-600)] text-[var(--on-fill)] hover:bg-[var(--success-700)]"
+                  className="w-full bg-[var(--relleno-exito)] text-[var(--on-fill)] hover:bg-[var(--relleno-exito-hover)]"
                   disabled={resolviendo === pase.id}
                   onClick={() => void decidir(pase, "autorizar")}
                 >

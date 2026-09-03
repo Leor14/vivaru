@@ -169,7 +169,7 @@ function StepIndicator({ step }: { step: WizardStep }) {
               i < current
                 ? "bg-[var(--success-100)] text-[var(--success-700)]"
                 : i === current
-                  ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
+                  ? "bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                   : "bg-[var(--slate-100)] text-[var(--slate-400)]"
             }`}
           >
@@ -774,15 +774,15 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             </p>
             <ol className="mt-2 space-y-2">
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-[var(--on-fill)]">1</span>
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--relleno-marca)] text-[9px] font-bold text-[var(--on-fill)]">1</span>
                 <span>Cierra este panel. Las unidades ya están disponibles en la tabla.</span>
               </li>
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-[var(--on-fill)]">2</span>
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--relleno-marca)] text-[9px] font-bold text-[var(--on-fill)]">2</span>
                 <span>En la sección <strong>Personas asociadas</strong>, usa <strong>“Crear persona”</strong> para agregar al propietario o inquilino de cada unidad.</span>
               </li>
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-[var(--on-fill)]">3</span>
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--relleno-marca)] text-[9px] font-bold text-[var(--on-fill)]">3</span>
                 <span>Selecciona la unidad correspondiente en el formulario. Repite por cada unidad que tenga residente activo.</span>
               </li>
             </ol>

@@ -373,7 +373,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               type="button"
                               onClick={() => handleApproveAndRegister(receipt)}
                               disabled={isBusy || isRejecting}
-                              className="inline-flex items-center gap-1 bg-[var(--success-600)] text-[var(--on-fill)] hover:bg-[var(--success-700)]"
+                              className="inline-flex items-center gap-1 bg-[var(--relleno-exito)] text-[var(--on-fill)] hover:bg-[var(--relleno-exito-hover)]"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                               Aprobar y registrar
@@ -404,7 +404,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                           type="button"
                           onClick={() => handleApprove(receipt)}
                           disabled={isBusy || isRejecting}
-                          className="inline-flex items-center gap-1 bg-[var(--success-600)] text-[var(--on-fill)] hover:bg-[var(--success-700)]"
+                          className="inline-flex items-center gap-1 bg-[var(--relleno-exito)] text-[var(--on-fill)] hover:bg-[var(--relleno-exito-hover)]"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                           Aprobar
@@ -451,7 +451,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                         type="button"
                         onClick={() => handleConfirmReject(receipt)}
                         disabled={isBusy || rejectionReason.trim().length === 0}
-                        className="bg-[var(--danger-600)] text-[var(--on-fill)] hover:bg-[var(--danger-700)]"
+                        className="bg-[var(--relleno-peligro)] text-[var(--on-fill)] hover:bg-[var(--relleno-peligro-hover)]"
                       >
                         Confirmar rechazo
                       </Button>

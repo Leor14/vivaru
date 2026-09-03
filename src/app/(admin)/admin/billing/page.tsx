@@ -1475,14 +1475,14 @@ function AdminBillingPageContent() {
               <button
                 type="button"
                 onClick={() => setChargeMode("individual")}
-                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "individual" ? "bg-[var(--slate-900)] text-[var(--on-fill)]" : "text-[var(--slate-600)]"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "individual" ? "bg-[var(--relleno-neutro)] text-[var(--on-fill)]" : "text-[var(--slate-600)]"}`}
               >
                 Una unidad
               </button>
               <button
                 type="button"
                 onClick={() => setChargeMode("batch")}
-                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "batch" ? "bg-[var(--slate-900)] text-[var(--on-fill)]" : "text-[var(--slate-600)]"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "batch" ? "bg-[var(--relleno-neutro)] text-[var(--on-fill)]" : "text-[var(--slate-600)]"}`}
               >
                 Lote (varias)
               </button>
@@ -1738,7 +1738,7 @@ function AdminBillingPageContent() {
           </p>
           <ol className="flex flex-col gap-3">
             <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-[var(--on-fill)]">1</span>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--relleno-marca)] text-[10px] font-bold text-[var(--on-fill)]">1</span>
               <div>
                 <p className="text-sm font-medium text-[var(--slate-800)]">Descarga la plantilla y complétala</p>
                 <p className="text-xs text-[var(--slate-500)]">Una fila por cobro: unidad, período, valor y abono.</p>
@@ -1749,7 +1749,7 @@ function AdminBillingPageContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-[var(--on-fill)]">2</span>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--relleno-marca)] text-[10px] font-bold text-[var(--on-fill)]">2</span>
               <div>
                 <p className="text-sm font-medium text-[var(--slate-800)]">Sube el archivo completado</p>
                 <p className="text-xs text-[var(--slate-500)]">Aceptamos .xlsx y .csv.</p>

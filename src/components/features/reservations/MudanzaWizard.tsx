@@ -41,7 +41,7 @@ function StepIndicator({ current }: { current: Step }) {
               className={cn(
                 "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
                 isActive
-                  ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
+                  ? "bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                   : isDone
                     ? "bg-[var(--brand-200)] text-[var(--brand-900)]"
                     : "bg-[var(--slate-200)] text-[var(--slate-700)]",

@@ -87,7 +87,7 @@ export function VariantOptionPicker({
               <div className="flex items-start justify-between gap-2">
                 <span className="text-sm font-semibold text-[var(--slate-900)]">{opt.label}</span>
                 {selected ? (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--brand-700)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--on-fill)]">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--relleno-marca)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--on-fill)]">
                     <Check className="h-3 w-3" />
                     {context === "edit" ? "Activo" : "Elegido"}
                   </span>

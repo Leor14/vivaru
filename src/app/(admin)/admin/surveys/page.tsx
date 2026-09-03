@@ -717,7 +717,7 @@ export default function AdminSurveysPage() {
                 onClick={() => setFilterStatus(value)}
                 className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
                   filterStatus === value
-                    ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
+                    ? "bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                     : "border border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]"
                 }`}
               >

@@ -38,14 +38,14 @@ const ESTILO = {
   segmented: {
     lista: "inline-flex flex-wrap rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] p-0.5",
     base: "rounded-lg px-3 py-1.5 text-sm transition-colors",
-    activo: "bg-[var(--slate-900)] text-[var(--on-fill)]",
+    activo: "bg-[var(--relleno-neutro)] text-[var(--on-fill)]",
     inactivo: "text-[var(--slate-600)] hover:text-[var(--slate-900)]",
   },
   /** Ancho completo y repartido: el del portal del residente, que es móvil. */
   pill: {
     lista: "flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-1 shadow-sm",
     base: "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-    activo: "bg-[var(--brand-700)] text-[var(--on-fill)]",
+    activo: "bg-[var(--relleno-marca)] text-[var(--on-fill)]",
     inactivo: "text-[var(--slate-700)] hover:bg-[var(--slate-100)]",
   },
 } as const;

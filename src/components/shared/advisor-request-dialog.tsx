@@ -153,7 +153,7 @@ export function AdvisorRequestDialog({
         sent ? undefined : (
           <div className="flex min-w-0 items-start gap-3">
             <span
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--brand-700)] text-[var(--on-fill)]"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--relleno-marca)] text-[var(--on-fill)]"
               aria-hidden
             >
               <Sparkles className="h-5 w-5" />

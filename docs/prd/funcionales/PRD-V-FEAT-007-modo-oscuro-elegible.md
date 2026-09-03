@@ -9,7 +9,7 @@
 | **Módulo** | Transversal a la interfaz. Sin módulo de negocio propio, sin entrada en la navegación |
 | **Usuario principal** | `resident` (móvil, uso nocturno) · **secundario** `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **En desarrollo — entrega 1 construida** (3 sep 2026). Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
+| **Estado** | **En desarrollo — entregas 1 y 2 construidas** (3 sep 2026). Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
 | **Dependencias** | Ninguna bloqueante. **Resuelve la decisión abierta de `UX-005`** (preferencia por usuario), que queda desbloqueada por esta ficha |
 | **Riesgo** | **Medio.** Cero riesgo de dinero, de datos personales y de permisos. El riesgo es de **regresión visual en 145 ficheros** y de **contraste ilegible** |
 | **Reversibilidad** | **Total y en un solo interruptor.** La bandera `producto-modo-oscuro` apagada deja el producto exactamente como está hoy. La migración de color a tokens es inerte en claro por construcción — ver `RN-01` |
@@ -608,6 +608,74 @@ un token enrojece con el número delante.
   anterior a esta entrega** —Turbopack rechaza los selectores `.2xl\:max-w-*` de `globals.css`, que
   empiezan por dígito; el build de producción sí los tolera—, así que la verificación se hizo con
   `next start` sobre el build.
+
+---
+
+## Bitácora · Entrega 2 — el mecanismo (3 de septiembre de 2026)
+
+**Construida. El producto se ve en oscuro; todavía no hay interruptor** —eso es la entrega 3—, así
+que el tema solo se activa poniendo el atributo a mano o el espejo en el navegador.
+
+### Qué quedó hecho
+
+| | Resultado |
+|---|---|
+| Variante | `@custom-variant dark` **por atributo** (`data-tema="oscuro"` en `<html>`) |
+| Paleta oscura | **119 tokens**, generados por regla y no a ojo |
+| `prefers-color-scheme` en el CSS servido | **21 → 0**, que es el control de `CA16` |
+| Sin destello | Guion **bloqueante** en `<head>` + espejo en `localStorage` |
+| Guardián | `tests/tema-oscuro.test.ts`, **66 casos**, falsado cuatro veces |
+| Bancos | `npm test` **1660** |
+
+### Las cuatro decisiones de diseño, y por qué no son de gusto
+
+1. **La rampa se INVIERTE en luminosidad conservando el tono**, y la L objetivo se fija **por número
+   de paso, no por posición**. La primera versión espaciaba por posición y **deformaba las rampas con
+   huecos**: `--info-*` solo tiene cinco pasos, y su `100` salió tan claro que `info-700` encima daba
+   **3,58:1**. Con la L por número de paso, 8,33:1.
+2. **`--on-fill` y `--overlay` NO giran.** Son el texto sobre relleno saturado y el velo de los
+   modales. Si giraran, el texto de cada botón y el de cada modal desaparecería. Hay guardián.
+3. **Los rellenos viven en una ventana estrecha, calculada.** Un botón tiene que sostener el blanco
+   (**4,5:1**) y a la vez distinguirse de la tarjeta (**3:1**): eso deja **L\* entre 45 y 49,8**.
+   Salen a 4,8:1 y 3,34:1. **El hover OSCURECE, como en claro** — aclararlo bajaba el blanco a 3,89:1.
+4. **`--brand-700` hacía dos trabajos incompatibles**: 85 usos como texto y 25 como fondo de botón.
+   En oscuro el texto tiene que aclararse y el relleno no puede. **Separados en `--relleno-*`**
+   (5 colores + 5 hover), 44 usos migrados. En claro valen lo mismo: **cero cambio de pixel**.
+
+### `RN-07` se cumple con una línea, no duplicando tokens
+
+El bloque oscuro va dentro de **`@media screen`**. Al imprimir no aplica, y mandan los valores claros
+de `:root`. Así **el informe del consejo sale en claro elijas lo que elijas**, y lo mismo cualquier
+otra impresión, sin repetir un solo token. Verificado en el CSSOM del navegador: la regla
+`[data-tema="oscuro"]` aparece con `media: "screen"`.
+
+### Dos defectos vivos más, de la misma familia que el `--destructive`
+
+- **`--surface` no estaba declarado** y `admin/finanzas/conciliacion` lo usaba: ese campo se pintaba
+  **sin fondo**. Los encontró un barrido nuevo —cada `var(--x)` que el producto pide y nadie
+  declara—, no la lectura del código.
+- Y el barrido dejó **cero** pendientes: los `--ia-*` sí se declaran, en línea, en su componente.
+
+### Deuda de contraste que este frente NO introdujo, medida y con suelo
+
+| Token | En claro | Qué es |
+|---|---|---|
+| `--slate-400` sobre la tarjeta | **2,83:1** | El escalón de pista: marcador de posición, texto de apoyo, iconos de acción. **78 usos** |
+| Blanco sobre `--relleno-exito` | **3,65:1** | Botones «Aprobar» y compañía |
+| Blanco sobre `--relleno-aviso` | **3,61:1** | Botón de marcar |
+
+**Los tres estaban así antes**, y la entrega 1 los copió tal cual porque la regla era no mover un
+pixel. **En OSCURO los tres cumplen** —`--slate-400` da 4,72:1—, porque ahí el valor lo decide este
+frente. Arreglarlos en claro **se ve**, así que es decisión de David, como lo fue el grupo B.
+Mientras tanto **el suelo está fijado en la prueba y solo puede subir**.
+
+### La falsación que enseñó algo
+
+Falsar `RN-07` **pasó en verde dos veces seguidas**, y por dos causas distintas. La primera, mala
+falsación: cambié la primera de las dos apariciones de `@media screen` del fichero, que no era la que
+envuelve el bloque. La segunda, **hueco real: la prueba buscaba las palabras «@media screen» y las
+encontraba dentro del COMENTARIO que explica la regla**. El guardián se defendía con su propia
+documentación. Ahora mira sobre el CSS sin comentarios, y enrojece.
 
 ---
 

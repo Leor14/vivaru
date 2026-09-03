@@ -18,6 +18,23 @@
    ESTE fichero, asi que explicarla escribiendola la resucita. Fue lo ultimo
    que quedaba emitiendose, y la fuente eran los comentarios que la explicaban. */
 @source not "../../docs";
+/* ── EL TEMA ─────────────────────────────────────────────────────────────────
+ * `PRD-V-FEAT-007` entrega 2. La variante `dark:` se declara POR ATRIBUTO y no
+ * por media query, y eso es una decision, no un detalle: David decidio que el
+ * tema NO siga al sistema operativo.
+ *
+ * Consecuencia MEDIDA y querida: sin esta linea, Tailwind 4 hace que `dark:` sea
+ * `@media (prefers-color-scheme: dark)`, y el CSS de produccion tenia 21 reglas
+ * asi —verificadas en grupovivaru.com— que venian de tres componentes de
+ * marketing. Con el sistema en oscuro, un boton del landing se pintaba con un
+ * fondo pensado para oscuro sobre una pagina clara. Al pasar a atributo esas 21
+ * dejan de dispararse solas, que es exactamente lo que se busca.
+ *
+ * Un ATRIBUTO y no una clase: no choca con ninguna utilidad, no se lo puede
+ * pisar un `className`, y no compite en especificidad con `.admin-shell` ni con
+ * `.marketing-theme`, que ya juegan a eso. */
+@custom-variant dark (&:where([data-tema="oscuro"], [data-tema="oscuro"] *));
+
 @plugin "@tailwindcss/typography";
 
 :root {
@@ -49,6 +66,11 @@
   --foreground: #0f1c2b;
   --surface-strong: #ffffff;
   --surface-soft: #f7fafc;
+  /* Alias de `--surface-strong`. Existia UN uso de `var(--surface)` —el campo de
+     la pantalla de conciliacion— y el token no estaba declarado, asi que ese
+     campo se pintaba SIN fondo. Mismo defecto que `--destructive`, encontrado
+     con el mismo barrido. */
+  --surface: #ffffff;
   --brand-50: #e7f1fb;
   /* Pasos que faltaban de la escala de marca: se usaban (9 y 2 veces) sin
      estar declarados, con el mismo fallo que los slate — los fondos no se
@@ -189,6 +211,28 @@
   --info-700: #0069a8;
   --info-800: #00598a;
 
+  /* ── Rellenos saturados que llevan texto claro encima ─────────────────────
+     `PRD-V-FEAT-007` entrega 2. Un mismo token NO puede ser las dos cosas: en
+     oscuro, un color de TEXTO tiene que aclararse para leerse sobre el fondo, y
+     un color de RELLENO no puede, o el blanco de encima deja de leerse.
+     `--brand-700` estaba haciendo las dos —85 usos como texto y 25 como fondo de
+     boton—, y con un solo valor una de las dos se rompe. Medido: son 33 rellenos
+     en seis colores.
+     En claro valen EXACTAMENTE lo que valian, asi que separarlos no mueve un
+     pixel; lo que compran es poder divergir en oscuro. */
+  --relleno-marca: #0b3c5d;
+  --relleno-neutro: #152536;
+  --relleno-exito: #009966;
+  --relleno-peligro: #b42318;
+  --relleno-aviso: #c67133;
+  /* Y sus estados de hover, por lo mismo: `hover:bg-[var(--brand-800)]` sobre un
+     boton de marca haria que en oscuro el boton se ACLARARA al pasar el raton,
+     con el texto blanco encima. */
+  --relleno-marca-hover: #092f49;
+  --relleno-exito-hover: #007a55;
+  --relleno-peligro-hover: #8e1c13;
+  --relleno-aviso-hover: #b45309;
+
   /* ── Texto y brillo SOBRE un relleno saturado ─────────────────────────────
      `text-white` y `bg-white` parecen el mismo color y son papeles OPUESTOS: los
      53 `text-white` del alcance van todos sobre `bg-[var(--brand-700)]`,
@@ -255,6 +299,181 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   /* iOS-like drawer curve (from Ionic). Use for drawers and sheets. */
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ── LA PALETA OSCURA ────────────────────────────────────────────────────────
+ * Va dentro de `@media screen` A PROPOSITO, y esa es la linea que cumple
+ * `RN-07`: al imprimir, este bloque NO aplica y mandan los valores claros de
+ * `:root`. Asi el informe del consejo —que se imprime con `window.print()` sobre
+ * el DOM vivo, y es el UNICO exportable que hereda el tema— sale en claro
+ * elijas lo que elijas, sin duplicar un solo token.
+ *
+ * Como se generaron los valores, porque a ojo no se acierta: cada rampa se
+ * INVIERTE en luminosidad conservando su tono —el paso 50 pasa a ser superficie
+ * oscura y el 900 texto claro—, con la L objetivo fijada POR NUMERO DE PASO y no
+ * por posicion; espaciar por posicion deformaba las rampas con huecos, y dejaba
+ * `info-700` sobre `info-100` en 3,58:1. Vigilado en `tests/color-por-token.test.ts`,
+ * que calcula el contraste de los dos temas leyendo este fichero. */
+@media screen {
+  [data-tema="oscuro"] {
+    color-scheme: dark;
+    /* Base: la tarjeta va POR ENCIMA de la pagina, igual que en claro. La
+       elevacion es 1,13:1 y en claro es 1,14:1 — la misma, medida. */
+    /* superficies y tinta */
+    --background: #0e1620;
+    --foreground: #e7eef7;
+    --surface-strong: #18222e;
+    --surface: #18222e;
+    --surface-soft: #131c26;
+    --surface-tint: #1d2836;
+
+    /* NO se invierten: `--on-fill` es el texto que va sobre un relleno
+       saturado y el velo sigue siendo negro. Si estos giraran, el texto de cada
+       boton y el de los modales desaparecerian. */
+    /* lo que NO gira */
+    --on-fill: #ffffff;
+    --overlay: #000000;
+
+    /* Los rellenos viven en una ventana ESTRECHA, calculada: han de sostener
+       el blanco (4,5:1) y a la vez distinguirse de la tarjeta (3:1). Eso deja
+       L* entre 45 y 49,8. Salen a 4,8:1 y 3,34:1. El hover OSCURECE, como en
+       claro: aclararlo bajaba el blanco a 3,89:1. */
+    /* rellenos saturados */
+    --relleno-marca: #557596;
+    --relleno-neutro: #61748a;
+    --relleno-exito: #008356;
+    --relleno-peligro: #c74633;
+    --relleno-aviso: #a95f29;
+    --relleno-marca-hover: #466686;
+    --relleno-neutro-hover: #53657b;
+    --relleno-exito-hover: #007348;
+    --relleno-peligro-hover: #b53525;
+    --relleno-aviso-hover: #98501a;
+
+    /* rampa slate — invertida en luminosidad, mismo tono */
+    --slate-50: #1d2126;
+    --slate-100: #272b32;
+    --slate-200: #363c43;
+    --slate-300: #49515b;
+    --slate-400: #828c9a;
+    --slate-500: #99a4b3;
+    --slate-600: #acb7c7;
+    --slate-700: #bcc7d7;
+    --slate-800: #d0d9e7;
+    --slate-900: #dfe7f3;
+    --slate-950: #eef4fd;
+
+    /* rampa brand — invertida en luminosidad, mismo tono */
+    --brand-50: #19212a;
+    --brand-100: #232c37;
+    --brand-200: #313c4a;
+    --brand-300: #425163;
+    --brand-400: #7a8da5;
+    --brand-500: #90a5bf;
+    --brand-600: #a2b8d4;
+    --brand-700: #b3c9e4;
+    --brand-800: #c7daf3;
+    --brand-900: #d9e8fc;
+
+    /* rampa danger — invertida en luminosidad, mismo tono */
+    --danger-50: #38170f;
+    --danger-100: #471f18;
+    --danger-200: #5e2d23;
+    --danger-300: #7e3d31;
+    --danger-400: #cc7360;
+    --danger-500: #ea8974;
+    --danger-600: #ff9b84;
+    --danger-700: #ffac96;
+    --danger-800: #ffc2ad;
+
+    /* rampa amber — invertida en luminosidad, mismo tono */
+    --amber-50: #331a08;
+    --amber-100: #412412;
+    --amber-200: #56331d;
+    --amber-300: #734528;
+    --amber-400: #bd7c55;
+    --amber-500: #da9267;
+    --amber-600: #f1a577;
+    --amber-700: #ffb588;
+    --amber-800: #ffcaa1;
+    --amber-900: #ffdab8;
+
+    /* rampa success — invertida en luminosidad, mismo tono */
+    --success-50: #0c2519;
+    --success-100: #133023;
+    --success-200: #1e4231;
+    --success-300: #295942;
+    --success-500: #6db18f;
+    --success-600: #7ec5a0;
+    --success-700: #90d5b1;
+    --success-800: #a9e6c6;
+
+    /* rampa info — invertida en luminosidad, mismo tono */
+    --info-50: #152130;
+    --info-100: #1d2c3e;
+    --info-500: #84a6d1;
+    --info-700: #a8c9f6;
+    --info-800: #bfdbff;
+
+    /* acentos de categoria */
+    --categoria-blue-50: #1e1c42;
+    --categoria-blue-100: #282552;
+    --categoria-blue-200: #38356c;
+    --categoria-blue-600: #b4a8ff;
+    --categoria-blue-700: #c6b9ff;
+    --categoria-blue-800: #daccff;
+    --categoria-orange-50: #3a1700;
+    --categoria-orange-500: #ed8953;
+    --categoria-orange-700: #ffac74;
+    --categoria-indigo-100: #302351;
+    --categoria-indigo-700: #d7b3ff;
+    --categoria-indigo-800: #e9c7ff;
+    --categoria-violet-100: #36214e;
+    --categoria-violet-800: #f6c4ff;
+    --categoria-teal-100: #1c2e2d;
+    --categoria-teal-800: #b9e0dc;
+    --categoria-cyan-100: #1d2d34;
+    --categoria-cyan-800: #bcdeee;
+
+    /* pares de icono */
+    --icon-sky-muted-bg: #272a2f;
+    --icon-sky-muted-fg: #aac3e3;
+    --icon-sky-active-bg: #2d3844;
+    --icon-sky-active-fg: #c0d9ff;
+    --icon-mint-muted-bg: #262b29;
+    --icon-mint-muted-fg: #a0c9bf;
+    --icon-mint-active-bg: #2c3a35;
+    --icon-mint-active-fg: #b3e0d6;
+    --icon-peach-muted-bg: #2e2925;
+    --icon-peach-muted-fg: #ddbaa6;
+    --icon-peach-active-bg: #43342a;
+    --icon-peach-active-fg: #ffcdb4;
+    --icon-sand-muted-bg: #2d2a23;
+    --icon-sand-muted-fg: #d1bfa3;
+    --icon-sand-active-bg: #3d3625;
+    --icon-sand-active-fg: #e8d4b8;
+    --icon-lavender-muted-bg: #2a292f;
+    --icon-lavender-muted-fg: #c3bce5;
+    --icon-lavender-active-bg: #383545;
+    --icon-lavender-active-fg: #dbd1ff;
+
+    /* tintes sueltos */
+    --mint-50: #252b2a;
+    --sky-50: #262a2e;
+    --peach-50: #2d2927;
+    --sand-50: #2c2a25;
+    --rdp-accent-background-color: #30353a;
+    --rangepicker-rango-fg: #b9d4ff;
+    --rangepicker-extremo-bg: #557596;
+
+    /* Una sombra oscura sobre fondo oscuro no se ve: lo que cambia no es solo
+       el tinte, es la opacidad. */
+    /* sombras */
+    --sombra-panel: 0 12px 34px rgba(0, 0, 0, 0.55);
+    --sombra-panel-hover: 0 18px 34px rgba(0, 0, 0, 0.65);
+    --sombra-menu: 0 4px 16px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.5);
+    --sombra-tarjeta-hover: 0 10px 24px rgba(0, 0, 0, 0.55);
+  }
 }
 
 @theme inline {

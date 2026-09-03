@@ -967,7 +967,7 @@ export default function ResidentReservationsPage() {
                               }}
                               className={`rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
                                 isSelected
-                                  ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                                  ? "border-[var(--brand-700)] bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                                   : slot.available
                                     ? "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-800)] hover:border-[var(--brand-300)] hover:bg-[var(--brand-50)]"
                                     : "cursor-not-allowed border-[var(--slate-100)] bg-[var(--slate-50)] text-[var(--slate-400)]"
@@ -1139,7 +1139,7 @@ export default function ResidentReservationsPage() {
                   const visualClass = !cell.inCurrentMonth
                     ? "border-transparent bg-transparent text-[var(--slate-300)]"
                     : isSelected
-                      ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                      ? "border-[var(--brand-700)] bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                       : isWeekdayBlocked
                         ? "border-transparent bg-transparent text-[var(--slate-400)] opacity-30 cursor-not-allowed pointer-events-none"
                         : availability.selectable

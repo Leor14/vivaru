@@ -161,7 +161,7 @@ function StepIndicator({ step }: { step: WizardStep }) {
     <div className="flex items-center gap-1 border-b border-[var(--slate-200)] pb-4">
       {steps.map((s, i) => (
         <div key={s.key} className="flex items-center gap-1">
-          <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${i < current ? "bg-[var(--success-100)] text-[var(--success-700)]" : i === current ? "bg-[var(--brand-700)] text-[var(--on-fill)]" : "bg-[var(--slate-100)] text-[var(--slate-400)]"}`}>
+          <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${i < current ? "bg-[var(--success-100)] text-[var(--success-700)]" : i === current ? "bg-[var(--relleno-marca)] text-[var(--on-fill)]" : "bg-[var(--slate-100)] text-[var(--slate-400)]"}`}>
             {i < current ? "✓" : i + 1}
           </div>
           <span className={`text-xs ${i === current ? "font-medium text-[var(--slate-900)]" : "text-[var(--slate-400)]"}`}>{s.label}</span>

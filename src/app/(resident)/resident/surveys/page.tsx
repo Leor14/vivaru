@@ -291,7 +291,7 @@ export default function ResidentSurveysPage() {
                             className={[
                               "flex flex-1 items-center justify-center rounded-xl border py-2.5 text-sm font-semibold transition-colors",
                               selected
-                                ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                                ? "border-[var(--brand-700)] bg-[var(--relleno-marca)] text-[var(--on-fill)]"
                                 : "border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]",
                             ].join(" ")}
                           >

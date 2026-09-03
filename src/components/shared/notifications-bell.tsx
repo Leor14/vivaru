@@ -163,7 +163,7 @@ export function NotificationsBell() {
       >
           <Bell className="h-5 w-5 text-current" />
           {unreadLabel ? (
-            <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--danger-600)] px-1 text-[10px] font-semibold text-[var(--on-fill)]">
+            <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--relleno-peligro)] px-1 text-[10px] font-semibold text-[var(--on-fill)]">
               {unreadLabel}
             </span>
           ) : null}

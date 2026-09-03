@@ -324,7 +324,7 @@ function CompletionIndicator({ done }: { done: boolean }) {
   if (done) {
     return (
       <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--success-50)] py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-[var(--success-700)]">
-        <span className="grid h-4 w-4 place-items-center rounded-full bg-[var(--success-600)] text-[var(--on-fill)]">
+        <span className="grid h-4 w-4 place-items-center rounded-full bg-[var(--relleno-exito)] text-[var(--on-fill)]">
           <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />
         </span>
         Listo
