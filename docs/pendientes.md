@@ -6,26 +6,37 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` construida)
 
-> # LA ENTREGA 1 DE `PRD-V-FLOW-007`: FUNCTIONS EN LOS DOS AMBIENTES. **EL FRONT DE PRODUCCIÓN, NO.**
+> # LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ EN PRODUCCIÓN, ENTERA. **FALTA MIRARLA CON OJOS.**
 >
-> Árbol limpio. `npm test` **1714** · functions **799** · los dos typechecks en 0.
-> **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
+> Árbol limpio, `master` y `develop` en el mismo commit. `npm test` **1714** · functions **799** ·
+> los dos typechecks en 0. **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
 >
-> | Pieza | Dónde está | Qué falta |
+> | Pieza | Estado | Cómo se comprobó |
 > |---|---|---|
-> | **`functions` en staging** | ✅ desplegadas el 3 sep 22:02 UTC | — |
-> | **`functions` en producción** | ✅ desplegadas el 3 sep 22:11 UTC | — |
-> | **Front en staging** | ✅ `build-2026-09-03-036` **READY**, sirviendo `85ca459` | — |
-> | **Front en producción** | ❌ `master` sin mover | **el push a `master`, que es de David** |
+> | **`functions` en staging** | ✅ 3 sep 22:02 UTC | 90 desplegadas, **0 sin moverse**, 0 del código sin desplegar, 0 fuera de `ACTIVE` |
+> | **`functions` en producción** | ✅ 3 sep 22:11 UTC | lo mismo, medido igual |
+> | **Front en staging** | ✅ `build-2026-09-03-036` READY | `traffic.current`, esperado **por nombre** |
+> | **Front en producción** | ✅ `build-2026-09-03-020` READY, sirviendo `bb75f7e` | ídem, ~9 min de cola |
 >
-> **Con eso, `monthlyFinancialArchive` ya NO reimplementa el resumen en producción:** la
-> unificación que cierra la causa de `R12` y `R16` está desplegada donde corre el archivo del día
-> 1. Se verificó **midiendo, no leyendo «Deploy complete»**: 90 functions en cada proyecto,
-> **0 sin moverse**, **0 del código sin desplegar**, **0 fuera de `ACTIVE`**.
+> **`monthlyFinancialArchive` ya NO reimplementa el resumen en producción**: la unificación que
+> cierra la causa de `R12` y `R16` está desplegada donde corre el archivo del día 1. Se verificó
+> **midiendo, no leyendo «Deploy complete»** — que en este repositorio ya mintió una vez.
 >
-> **Lo único que falta para cerrar la entrega es el front de producción**, y ahí el efecto es la
-> corrección del aviso falso de «Fondo insuficiente» — que **no va detrás de bandera**, a
-> propósito.
+> ### LO QUE FALTA, Y ES LO PRIMERO AL ABRIR
+>
+> **Mirar `/admin/finanzas` de `Conjunto Residencial Santa Maria` con una sesión de
+> administrador.** Es el único criterio de la entrega que **ninguna suite prueba**: el conjunto
+> tiene **5.000.000** de saldo inicial registrado y hasta hoy recibía «Fondo insuficiente… evita
+> registrar nuevos egresos» en cuanto el mes cerraba en negativo.
+>
+> **No se pudo hacer en esta sesión:** la sesión abierta en Chrome entra con un rol **sin acceso a
+> `/admin`** —responde «No tienes permisos para abrir esta sección»—, y validar por el navegador
+> solo alcanza al rol que tenga la sesión. **David la cambia si se le pide.**
+>
+> Lo que hay que ver, en orden: (1) que **no** aparece el aviso rojo; (2) que el saldo de fondos
+> incluye los cinco millones; (3) en un conjunto **sin** saldo registrado —Bromelias, El Nogal,
+> Las Palmas— que sale «Sin saldo bancario de apertura» y **no «$0»**; (4) que el Excel del estado
+> trae las cuatro filas nuevas.
 >
 > **La bandera `producto-informe-mensual` está en `false` en los DOS proyectos** —nueve conjuntos
 > en producción, diez en staging—, medido **resolviendo con `functions/lib/feature-flags.js`
@@ -229,7 +240,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | Ficha | Qué es | Estado | ¿Se puede construir? |
 > |---|---|---|---|
-> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1: functions en los DOS ambientes, front solo en staging**; entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
+> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1 EN PRODUCCIÓN** (`bb75f7e`), pendiente de mirarla con ojos; entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
 > | **`PRD-V-FLOW-006`** — interés de mora legal y convenio de pago (Ecuador) | Candidato `B5`, fusionado con el convenio porque **la ley los encadena** | Discovery, `c973a89` | ❌ **NO.** Espera dos cosas de David |
 >
 > **`G5` es lo que las separa, y la lección se aplica a la siguiente ficha que escribas:** en
