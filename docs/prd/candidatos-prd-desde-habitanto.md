@@ -262,12 +262,18 @@ dónde caer.
 
 **108 candidatos** en 14 categorías.
 
+> **Recontado el 3 de septiembre de 2026 SOBRE LAS FILAS, no sobre esta tabla.** La tabla decía
+> `15 · 41 · 40 · 12` y llevaba meses sin actualizarse: **`G7` y `H1` se construyeron** y quedaron
+> tachados con `—`, y dos filas más bajaron de P1 a P2. **Las filas mandan sobre el resumen**, y este
+> resumen ya coincide con ellas.
+
 | Prioridad | Cuántos | Qué significa |
 |---|---|---|
-| **P0** | 15 | Desbloquean otras cosas o corrigen una debilidad estructural |
-| **P1** | 41 | Valor alto y directo |
-| **P2** | 40 | Valor real, sin urgencia |
+| **P0** | **14** | Desbloquean otras cosas o corrigen una debilidad estructural |
+| **P1** | **38** | Valor alto y directo |
+| **P2** | **42** | Valor real, sin urgencia |
 | **P3** | 12 | Anotados para no perderlos |
+| **Ya construidos** | **2** | `G7` (bandeja de notificaciones) y `H1` (compuerta de morosos), tachados en su fila |
 
 | Categoría | Total | P0 | P1 | P2 | P3 |
 |---|---|---|---|---|---|
@@ -277,8 +283,8 @@ dónde caer.
 | D · Conciliación | 6 | 4 | 1 | 1 | — |
 | E · Egresos y contabilidad | 10 | 1 | 5 | 3 | 1 |
 | F · Medición de servicios | 4 | — | 3 | 1 | — |
-| G · Comunicaciones | 14 | 1 | 8 | 4 | 1 |
-| H · Reservas | 7 | 1 | 3 | 2 | 1 |
+| G · Comunicaciones | 14 | 1 | **6** | **5** | 1 | *(+1 construido: `G7`)* |
+| H · Reservas | 7 | **—** | **2** | **3** | 1 | *(+1 construido: `H1`)* |
 | I · Seguridad y portería | 9 | — | 1 | 6 | 2 |
 | J · Novedades | 3 | 1 | 2 | — | — |
 | K · Gobierno | 5 | — | 2 | 3 | — |
@@ -286,7 +292,7 @@ dónde caer.
 | M · Multi-conjunto y comercial | 8 | — | 3 | 2 | 3 |
 | N · Soporte y adopción | 3 | — | 1 | 1 | 1 |
 
-### Los 15 P0, en orden de dependencia
+### Los P0, en orden de dependencia — **quedan 14: `H1` ya se construyó**
 
 1. **A1 · Alícuota por unidad** — de aquí cuelgan B1, B2, K5 y el certificado de expensas
 2. **A2 · Expensa y seguro por unidad** — el importe que la generación masiva necesita leer
