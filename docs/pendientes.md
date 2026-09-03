@@ -6,13 +6,33 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` construida)
 
-> # LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ CONSTRUIDA Y COMMITEADA. **NO ESTÁ EMPUJADA.**
+> # LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ EN STAGING. **PRODUCCIÓN NO, Y FUNCTIONS TAMPOCO.**
 >
-> Commit **`0b234b1`**, árbol limpio. `npm test` **1714** · functions **799** · los dos typechecks
-> en 0. **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
+> Árbol limpio. `npm test` **1714** · functions **799** · los dos typechecks en 0.
+> **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
 >
-> **Lo primero: decidir el push.** Empujar despliega en los dos ambientes. `develop` va a staging;
-> **`master` va a producción y ese lo pide David**.
+> | Pieza | Dónde está | Qué falta |
+> |---|---|---|
+> | **Front en staging** | ✅ `build-2026-09-03-036` **READY**, sirviendo `85ca459` | — |
+> | **Front en producción** | ❌ `master` sin mover | **el push a `master`, que es de David** |
+> | **`functions`** | ❌ **compilado y sin desplegar** | `firebase deploy --only functions` |
+>
+> > **El push NO despliega functions, y esto importa aquí más que de costumbre.**
+> > `monthlyFinancialArchive` está modificada y **corre en producción cada día 1 a las 06:00
+> > UTC**. Mientras no se despliegue, **el archivo mensual sigue con la aritmética vieja**: el
+> > commit une las dos implementaciones *en el repositorio*, no todavía en producción. Con la
+> > bandera apagada produce exactamente lo de hoy (`R1`), así que no corre prisa — pero hasta que
+> > se despliegue, la unificación no está en producción y decir que sí lo está sería falso.
+>
+> **La bandera `producto-informe-mensual` está en `false` en los DOS proyectos** —nueve conjuntos
+> en producción, diez en staging—, medido **resolviendo con `functions/lib/feature-flags.js`
+> compilado**, no leyendo documentos: **no tiene documento en ninguno de los dos**, y «sin
+> documento» no es «apagada», manda el default del catálogo. Por eso el front nuevo entra sin
+> cambiar una cifra de lo que nadie ve hoy, y encenderla es un acto aparte y **por conjunto**.
+>
+> **El rollout se esperó POR NOMBRE** (`rollout-2026-09-03-036`), no mirando la primera página de
+> la lista: son 710 rollouts sin ordenar y esa vía ya dio un falso «servido» antes. Tardó ~3½
+> minutos en pasar de `QUEUED` a servir.
 >
 > ### Qué se construyó, en una línea cada cosa
 >
@@ -29,12 +49,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > - **NO se tocaron las reglas ni el modelo de datos.** La entrega 1 no las necesita:
 >   `bankAccountBalances` ya concede lectura al administrador y la consulta por `tenantId` pasa.
-> - **`monthlyFinancialArchive` está modificada y NO desplegada.** Corre en producción cada día 1
->   a las 06:00 UTC. Desplegar functions es `firebase deploy --only functions` **recompilando
->   antes** — `functions/lib` está versionado y ya está recompilado en el commit.
-> - **La bandera nace APAGADA en los nueve.** Con ella apagada el archivo mensual produce
->   exactamente lo de hoy (`R1`), así que desplegar es seguro; encenderla es un acto aparte y va
->   **por conjunto**, empezando por el canario.
+> - **`monthlyFinancialArchive` está modificada y NO desplegada** — ver la tabla de arriba.
+>   `functions/lib` está versionado y ya recompilado en el commit, así que solo falta
+>   `firebase deploy --only functions`.
+> - **La bandera está apagada en los nueve, medido.** Encenderla es un acto aparte y va **por
+>   conjunto**, empezando por el canario.
 > - **Lo que NO revierte la bandera:** el saldo inicial en la pantalla de Finanzas. Es la
 >   corrección del aviso falso y va sin bandera a propósito — volver atrás sería volver a mentirle
 >   al administrador.
@@ -203,7 +222,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | Ficha | Qué es | Estado | ¿Se puede construir? |
 > |---|---|---|---|
-> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1 CONSTRUIDA** (`0b234b1`, sin empujar); entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
+> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1 EN STAGING** (`85ca459`); producción y functions sin desplegar; entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
 > | **`PRD-V-FLOW-006`** — interés de mora legal y convenio de pago (Ecuador) | Candidato `B5`, fusionado con el convenio porque **la ley los encadena** | Discovery, `c973a89` | ❌ **NO.** Espera dos cosas de David |
 >
 > **`G5` es lo que las separa, y la lección se aplica a la siguiente ficha que escribas:** en
