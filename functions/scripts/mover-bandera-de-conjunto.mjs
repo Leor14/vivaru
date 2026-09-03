@@ -62,6 +62,7 @@ const CLAVES = [
   // canario: encenderla en Santa María antes que en los nueve. Es el olvido que
   // ya pasó el 25 ago con otra bandera.
   "producto-puerta-de-buzones",
+  "producto-modo-oscuro",
   "operacion-app-check-monitor",
 ];
 

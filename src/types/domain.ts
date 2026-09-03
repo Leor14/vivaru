@@ -186,6 +186,13 @@ export interface SessionUser {
   mustChangePassword?: boolean;
   temporaryPassword?: boolean;
   passwordStatus?: "temporary" | "updated";
+  /**
+   * Tema elegido por esta persona (`PRD-V-FEAT-007`). Ausente NO es error: es el
+   * estado de todos los usuarios de hoy y se pinta claro. Se deja distinto de
+   * `"claro"` a proposito, para que el dia que exista «seguir al sistema»
+   * ausente pueda significar eso sin pisar a quien eligio claro queriendo.
+   */
+  tema?: "claro" | "oscuro";
   status: "active" | "inactive";
 }
 

@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { SelectorDeTema } from "@/components/shared/selector-de-tema";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -331,6 +332,14 @@ export default function AdminSettingsPage() {
             </Button>
           </div>
         </form>
+      </Card>
+
+      {/* `PRD-V-FEAT-007`. Se pinta solo con la bandera encendida; el propio
+          componente lo decide, asi que aqui no hay condicional que olvidar. */}
+      <Card>
+        <CardTitle help="El tema solo cambia cómo ves tú la aplicación. No lo ve nadie más, no afecta al conjunto, y lo que descargues o imprimas sale siempre en claro.">Apariencia</CardTitle>
+        <CardDescription className="mt-1">Elige cómo quieres ver el panel.</CardDescription>
+        <SelectorDeTema className="mt-4" />
       </Card>
 
       <Card>

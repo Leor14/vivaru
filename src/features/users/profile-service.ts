@@ -3,6 +3,7 @@ import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, db } from "@/lib/firebase/client";
+import { TEMAS, type Tema } from "@/lib/ui/tema";
 
 type PrimitiveProfilePatch = {
   fullName?: string;
@@ -11,6 +12,7 @@ type PrimitiveProfilePatch = {
   avatarId?: string;
   phone?: string;
   preferredContactMethod?: string;
+  tema?: string;
 };
 
 export type UserProfilePatch = {
@@ -18,6 +20,7 @@ export type UserProfilePatch = {
   avatarId?: string;
   phone?: string;
   preferredContactMethod?: string;
+  tema?: Tema;
 };
 
 function debugLog(message: string, payload?: Record<string, unknown>) {
@@ -49,6 +52,11 @@ export function sanitizeUserProfilePatch(input: PrimitiveProfilePatch): UserProf
       ? { preferredContactMethod: pickNonEmptyString(input.preferredContactMethod) }
       : {}),
   };
+
+  // `PRD-V-FEAT-007`. Un valor desconocido NO se escribe: se cae del parche y el
+  // documento se queda como estaba. La regla de Firestore lo vuelve a rechazar
+  // desde el servidor — el cliente no es el guardian.
+  if (TEMAS.includes(input.tema as Tema)) sanitized.tema = input.tema as Tema;
 
   return sanitized;
 }

@@ -2829,6 +2829,83 @@ describe("documentos · el residente no alcanza los archivos financieros", () =>
  * Que se pueda escribir a mano es correcto **siempre que escribirlo no conceda
  * nada**, y eso es exactamente lo que se mide aquí.
  */
+
+/**
+ * **`PRD-V-FEAT-007` · el tema es del dueño y de nadie más.**
+ *
+ * Tres cosas, y las tres son criterios de la ficha:
+ *
+ *  · `CA17` — la regla nueva valida el enum **y no rompe** el camino que ya
+ *    existía. Las dos mitades, porque una restricción que solo se prueba por su
+ *    lado positivo puede estar denegando ediciones de perfil corrientes.
+ *  · `CA4` — el `tenant_admin` LEE el documento de un usuario de su conjunto
+ *    (eso ya era así y no lo abre esta ficha), pero **no puede escribirle** el
+ *    tema. La preferencia es de presentación y es de su dueño.
+ *  · `CA8` — con el conjunto **suspendido** el tema se sigue pudiendo cambiar.
+ *    Es excepción declarada a `tenantOperable`, con el precedente escrito de
+ *    `pushTokens`: a quien tiene el conjunto suspendido solo le queda mirar, y
+ *    no vamos a impedirle además elegir cómo lo mira.
+ */
+describe("FEAT-007 · el tema del usuario", () => {
+  const dueno = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+
+  it("CA17 · el dueño guarda un tema válido", async () => {
+    await assertSucceeds(updateDoc(doc(dueno().firestore(), "users", "admin-1"), { tema: "oscuro" }));
+    await assertSucceeds(updateDoc(doc(dueno().firestore(), "users", "admin-1"), { tema: "claro" }));
+  });
+
+  it("CA17 · DEBE FALLAR: un valor fuera del enum se rechaza", async () => {
+    await assertFails(updateDoc(doc(dueno().firestore(), "users", "admin-1"), { tema: "banana" }));
+    await assertFails(updateDoc(doc(dueno().firestore(), "users", "admin-1"), { tema: "sistema" }));
+    await assertFails(updateDoc(doc(dueno().firestore(), "users", "admin-1"), { tema: 7 }));
+  });
+
+  it("CA17 · la OTRA mitad: una edición de perfil corriente sigue pasando", async () => {
+    // Si la regla nueva estuviera mal escrita, esto se caería y el producto se
+    // quedaría sin poder cambiar el nombre visible.
+    await assertSucceeds(
+      updateDoc(doc(dueno().firestore(), "users", "admin-1"), { fullName: "Admin Uno Editado" }),
+    );
+  });
+
+  it("CA4 · DEBE FALLAR: el tenant_admin no escribe el tema de un residente suyo", async () => {
+    await assertFails(
+      updateDoc(doc(dueno().firestore(), "users", "resident-3"), { tema: "oscuro" }),
+    );
+  });
+
+  it("CA4 · ni el propio residente puede escribírselo a otro", async () => {
+    const residente = testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(residente.firestore(), "users", "admin-1"), { tema: "oscuro" }),
+    );
+  });
+
+  it("CA8 · con el conjunto SUSPENDIDO el tema se sigue cambiando", async () => {
+    // Excepción declarada a `tenantOperable`. La regla de `users/{uid}` no lo
+    // invoca, y esta prueba es lo que impide que alguien lo «arregle» añadiéndolo.
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "users", "admin-susp"), {
+        uid: "admin-susp",
+        tenantId: "tenant-susp",
+        role: "tenant_admin",
+        email: "admin-susp@hogaru.test",
+        status: "active",
+      });
+    });
+    const suspendido = testEnv.authenticatedContext("admin-susp", { role: "tenant_admin", tenantId: "tenant-susp" });
+    await assertSucceeds(
+      updateDoc(doc(suspendido.firestore(), "users", "admin-susp"), { tema: "oscuro" }),
+    );
+  });
+
+  it("no se puede colar un cambio de rol junto al tema", async () => {
+    await assertFails(
+      updateDoc(doc(dueno().firestore(), "users", "admin-1"), { tema: "oscuro", role: "superadmin" }),
+    );
+  });
+});
+
 describe("PLAT-002 · el último conjunto usado no es una autorización", () => {
   const adminA = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
 

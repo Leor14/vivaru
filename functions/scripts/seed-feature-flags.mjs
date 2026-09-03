@@ -182,6 +182,13 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-modo-oscuro",
+    area: "producto",
+    label: "Modo oscuro elegible por el usuario",
+    origen: "PRD-V-FEAT-007 §11",
+    enabled: false,
+  },
+  {
     key: "producto-puerta-de-buzones",
     area: "producto",
     label: "Puerta de buzones en conjuntos sin cliente",

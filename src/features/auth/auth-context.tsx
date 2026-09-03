@@ -28,6 +28,8 @@ import type { AppRole } from "@/lib/constants/roles";
 import { isFirebaseConfigured, missingFirebaseEnvKeys } from "@/lib/firebase/config";
 import { completeResidentPasswordChangeCallable, switchActiveTenantCallable } from "@/lib/firebase/callables";
 import type { SessionUser, TenantMembership } from "@/types/domain";
+import { aplicarTema, borrarEspejo, TEMA_POR_DEFECTO } from "@/lib/ui/tema";
+
 export type { SessionUser } from "@/types/domain";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "misconfigured" | "profile_error";
@@ -49,6 +51,8 @@ interface SessionProfile {
   unitId?: string;
   unitLabel?: string;
   memberships: TenantMembership[];
+  /** `PRD-V-FEAT-007`. Ausente = sin elegir; se pinta claro. */
+  tema?: "claro" | "oscuro";
 }
 
 export interface AuthSession {
@@ -124,6 +128,7 @@ function toSessionUser(profile: SessionProfile): SessionUser {
     temporaryPassword: profile.temporaryPassword,
     passwordStatus: profile.passwordStatus,
     status: profile.status,
+    tema: profile.tema,
   };
 }
 
@@ -227,6 +232,12 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
     // también se corta el acceso si quedara una sesión viva o un doc inactivo.
     throw new Error("Tu cuenta está inactiva. Contacta al administrador del conjunto.");
   }
+  // Un valor desconocido se trata como ausente y NO se corrige desde el cliente:
+  // corregirlo en silencio esconderia el defecto que lo escribio (RN-03).
+  const temaDelPerfil =
+    userProfileData.tema === "oscuro" || userProfileData.tema === "claro"
+      ? (userProfileData.tema as "claro" | "oscuro")
+      : undefined;
   mustChangePassword = userProfileData.mustChangePassword === true;
   temporaryPassword = userProfileData.temporaryPassword === true;
   passwordStatus = userProfileData.passwordStatus === "temporary" ? "temporary" : "updated";
@@ -437,6 +448,7 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
     unitLabel,
     status: profileStatus,
     memberships,
+    tema: temaDelPerfil,
   };
 
   debugAuth("[auth.profile] resolved", {
@@ -920,6 +932,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // El espejo del tema se borra AQUI y no cuando la sesion pasa a
+    // «unauthenticated»: la pantalla de acceso no puede delatar el tema del
+    // ultimo usuario del dispositivo, pero borrarlo en todo estado sin sesion
+    // mataria el pintado sin destello, que es justo para lo que existe.
+    borrarEspejo();
+    aplicarTema(TEMA_POR_DEFECTO);
     clearSession();
     setUser(null);
     setSession(null);

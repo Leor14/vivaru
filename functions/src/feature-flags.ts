@@ -67,6 +67,7 @@ export type FeatureFlagKey =
   | "producto-padron-sin-duplicados"
   | "producto-visita-no-anunciada"
   | "producto-puerta-de-buzones"
+  | "producto-modo-oscuro"
   | "operacion-app-check-monitor";
 
 /**
@@ -123,6 +124,9 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-padron-sin-duplicados": false,
   // Apagada = portería no captura visitas no anunciadas. Ver el catálogo en `src/`.
   "producto-visita-no-anunciada": false,
+  // Apagada = no se pinta el interruptor y todos ven claro. El servidor NO la
+  // comprueba: el tema no toca ningun dato de negocio. Ver el catálogo en `src/`.
+  "producto-modo-oscuro": false,
   "operacion-app-check-monitor": true,
 };
 

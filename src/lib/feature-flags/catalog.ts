@@ -79,6 +79,7 @@ export type FeatureFlagKey =
   | "producto-padron-sin-duplicados"
   | "producto-visita-no-anunciada"
   | "producto-puerta-de-buzones"
+  | "producto-modo-oscuro"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -190,6 +191,23 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-004 §11.4 — el expediente de conciliación",
     alApagar:
       "Las líneas vuelven a verse en una sola lista, sin agrupar. Se conservan el aviso de «no cuadra» en cada fila, los candidatos filtrados y el motivo del descarte: eso no es la bandeja, es el expediente, y no se apaga.",
+  },
+  "producto-modo-oscuro": {
+    key: "producto-modo-oscuro",
+    area: "producto",
+    label: "Modo oscuro elegible por el usuario",
+    description:
+      "Deja que cada persona elija entre tema claro y oscuro desde su perfil. La elección es SUYA y no la ve ni la cambia nadie más, ni siquiera el administrador del conjunto.",
+    // Nace APAGADA: capacidad nueva. **No gobierna el servidor** —no hay callable
+    // ni regla que dependa de ella—, así que lo único que apaga es la interfaz.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-007 §11 — modo oscuro elegible por el usuario",
+    // Nace APAGADA. **No gobierna el servidor**: no hay callable ni regla que
+    // dependa de ella. Lo único que hace es pintar el interruptor y dejar que la
+    // sesión lea el campo; con la bandera apagada, quien ya tuviera `tema`
+    // guardado ve CLARO, y ese es el criterio que prueba que gobierna algo.
+    alApagar:
+      "Desaparece el interruptor de las dos pantallas y todo el mundo ve el tema claro. El campo `tema` de cada usuario NO se borra: al volver a encenderla, cada quien recupera lo que había elegido.",
   },
   "producto-padron-sin-duplicados": {
     key: "producto-padron-sin-duplicados",

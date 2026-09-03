@@ -279,7 +279,16 @@ service cloud.firestore {
         (!('temporaryPassword' in resource.data) || request.resource.data.temporaryPassword == resource.data.temporaryPassword) &&
         (!('passwordStatus' in resource.data) || request.resource.data.passwordStatus == resource.data.passwordStatus) &&
         (!('temporaryPasswordUpdatedAt' in resource.data) || request.resource.data.temporaryPasswordUpdatedAt == resource.data.temporaryPasswordUpdatedAt) &&
-        (!('passwordChangedAt' in resource.data) || request.resource.data.passwordChangedAt == resource.data.passwordChangedAt);
+        (!('passwordChangedAt' in resource.data) || request.resource.data.passwordChangedAt == resource.data.passwordChangedAt) &&
+        // `PRD-V-FEAT-007`. El tema es preferencia de presentacion del propio
+        // usuario, asi que se escribe directo — no hay callable que valga aqui.
+        // Esta linea NO cierra ningun agujero: la regla de arriba no lista los
+        // campos permitidos, asi que el dueño ya podia escribir lo que quisiera
+        // en su documento, y eso es ANTERIOR a esta ficha. Lo que hace es que el
+        // dato no se ensucie. Solo condiciona `tema` y solo si esta presente:
+        // una edicion de perfil corriente no la toca.
+        (!('tema' in request.resource.data) ||
+          request.resource.data.tema in ['claro', 'oscuro']);
 
       allow create, delete: if false;
     }

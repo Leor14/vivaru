@@ -50,6 +50,19 @@ export function borrarEspejo(): void {
   }
 }
 
+/**
+ * Que tema se pinta, dados la bandera y lo que el usuario tenga guardado.
+ *
+ * Vive aqui y no dentro del proveedor para que se pueda probar de verdad: es la
+ * regla `RN-11` —con la bandera apagada NO se lee el campo, asi que quien tenga
+ * `oscuro` guardado ve claro— y el criterio `CA2`, que es el que demuestra que
+ * la bandera gobierna algo y no es un boton.
+ */
+export function temaEfectivo(input: { banderaEncendida: boolean; temaDelUsuario?: unknown }): Tema {
+  if (!input.banderaEncendida) return TEMA_POR_DEFECTO;
+  return normalizarTema(input.temaDelUsuario);
+}
+
 export function aplicarTema(tema: Tema): void {
   const raiz = document.documentElement;
   if (tema === TEMA_POR_DEFECTO) raiz.removeAttribute(ATRIBUTO);
