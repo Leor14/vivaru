@@ -7,7 +7,7 @@ import { ResidentPushDevicesCard } from "../../../../../components/features/resi
 import { useAuth } from "@/features/auth/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
-import { SelectorDeTema } from "@/components/shared/selector-de-tema";
+import { TarjetaDeApariencia } from "@/components/shared/selector-de-tema";
 
 export default function ResidentProfilePage() {
   const { profile: user, loading, error, refetch } = useResidentProfile();
@@ -64,13 +64,9 @@ export default function ResidentProfilePage() {
   return (
     <section className="space-y-4">
       <ResidentProfileCard user={user} onProfileUpdated={handleProfileUpdated} />
-      {/* `PRD-V-FEAT-007`. El residente es quien mas lo pide: el portal es movil
-          y se abre de noche. Se pinta solo con la bandera encendida. */}
-      <Card>
-        <CardTitle>Apariencia</CardTitle>
-        <CardDescription className="mt-1">Elige cómo quieres ver la aplicación.</CardDescription>
-        <SelectorDeTema className="mt-4" />
-      </Card>
+      {/* `PRD-V-FEAT-007`. El residente es quien más lo pide: el portal es móvil
+          y se abre de noche. La tarjeta entera va detrás de la bandera. */}
+      <TarjetaDeApariencia descripcion="Elige cómo quieres ver la aplicación." />
       <ResidentPushDevicesCard />
       <ResidentSecuritySection uid={user.uid} onPasswordUpdated={handleProfileUpdated} />
     </section>

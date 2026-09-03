@@ -14,7 +14,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { SelectorDeTema } from "@/components/shared/selector-de-tema";
+import { TarjetaDeApariencia } from "@/components/shared/selector-de-tema";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -334,13 +334,9 @@ export default function AdminSettingsPage() {
         </form>
       </Card>
 
-      {/* `PRD-V-FEAT-007`. Se pinta solo con la bandera encendida; el propio
-          componente lo decide, asi que aqui no hay condicional que olvidar. */}
-      <Card>
-        <CardTitle help="El tema solo cambia cómo ves tú la aplicación. No lo ve nadie más, no afecta al conjunto, y lo que descargues o imprimas sale siempre en claro.">Apariencia</CardTitle>
-        <CardDescription className="mt-1">Elige cómo quieres ver el panel.</CardDescription>
-        <SelectorDeTema className="mt-4" />
-      </Card>
+      {/* `PRD-V-FEAT-007`. La tarjeta ENTERA se pinta solo con la bandera
+          encendida: la condición vive en un sitio, no partida en dos. */}
+      <TarjetaDeApariencia descripcion="Elige cómo quieres ver el panel." />
 
       <Card>
         <CardTitle help="Renueva tu contraseña de acceso al panel. Te recomendamos actualizarla periódicamente y usar una combinación que no repitas en otros servicios, especialmente si gestionas datos sensibles de la comunidad.">Seguridad</CardTitle>

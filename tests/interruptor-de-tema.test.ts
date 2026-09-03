@@ -126,3 +126,28 @@ describe("PRD-V-FEAT-007 · nadie escribe el tema de otro (RN-04)", () => {
     }
   });
 });
+
+describe("PRD-V-FEAT-007 · con la bandera apagada no queda una tarjeta vacia", () => {
+  /**
+   * Lo destapo APAGAR la bandera en staging y mirar: la condicion estaba dentro
+   * del selector y la tarjeta fuera, asi que quedaba un titulo «Apariencia» sin
+   * nada debajo. Una condicion partida en dos sitios se cumple a medias.
+   */
+  it("la tarjeta y el interruptor son UNA pieza detras de la misma condicion", () => {
+    const comp = readFileSync("src/components/shared/selector-de-tema.tsx", "utf8");
+    const tarjeta = comp.slice(comp.indexOf("export function TarjetaDeApariencia"));
+    expect(tarjeta).toContain("if (!disponible) return null;");
+    expect(tarjeta).toContain("<SelectorDeTema");
+  });
+
+  it("y ninguna pantalla monta el selector suelto dentro de una Card propia", () => {
+    for (const f of [
+      "src/app/(admin)/admin/settings/page.tsx",
+      "src/app/(resident)/resident/profile/page.tsx",
+    ]) {
+      const src = readFileSync(f, "utf8");
+      expect(src, `${f} monta el selector suelto`).not.toContain("<SelectorDeTema");
+      expect(src).toContain("<TarjetaDeApariencia");
+    }
+  });
+});

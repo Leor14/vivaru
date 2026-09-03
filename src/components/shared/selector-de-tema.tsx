@@ -3,6 +3,7 @@
 import { Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useTema } from "@/features/tema/tema-context";
 import { TEMAS, type Tema } from "@/lib/ui/tema";
 import { cn } from "@/lib/utils/cn";
@@ -74,6 +75,30 @@ export function SelectorDeTema({ className }: { className?: string }) {
         })}
       </div>
     </div>
+  );
+}
+
+
+/**
+ * La tarjeta entera, para que **desaparezca entera** con la bandera apagada.
+ *
+ * Antes eran dos piezas —la tarjeta en la pantalla y la condicion dentro del
+ * selector— y con la bandera apagada quedaba una tarjeta titulada «Apariencia»
+ * sin nada dentro. Lo destapo APAGAR la bandera en staging y mirar, que es el
+ * criterio `CA2`: una condicion partida en dos sitios se cumple a medias.
+ */
+export function TarjetaDeApariencia({ descripcion }: { descripcion: string }) {
+  const { disponible } = useTema();
+  if (!disponible) return null;
+
+  return (
+    <Card>
+      <CardTitle help="El tema solo cambia cómo ves tú la aplicación. No lo ve nadie más, no afecta al conjunto, y lo que descargues o imprimas sale siempre en claro.">
+        Apariencia
+      </CardTitle>
+      <CardDescription className="mt-1">{descripcion}</CardDescription>
+      <SelectorDeTema className="mt-4" />
+    </Card>
   );
 }
 
