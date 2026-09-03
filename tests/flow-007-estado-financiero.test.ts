@@ -163,6 +163,25 @@ describe("CA9 · el aviso de «Fondo insuficiente» — la regresión del defect
     expect(pagina).toContain("computeFundPosition(entries, cuotaIncome, saldoInicial)");
   });
 
+  /**
+   * **La tarjeta tampoco puede afirmar un saldo que nadie registró.**
+   *
+   * Se descubrió MIRANDO staging con la sesión del administrador, no en una
+   * suite: el Excel de esa misma pantalla ya decía «Sin saldo bancario de
+   * apertura» mientras la tarjeta de encima decía «Saldo de fondos $0». El
+   * arreglo estaba a medias dentro de sí mismo.
+   */
+  it("la tarjeta cambia de rótulo cuando no hay saldo de apertura", () => {
+    const pagina = fs.readFileSync(
+      path.resolve("src/app/(admin)/admin/finanzas/page.tsx"),
+      "utf8",
+    );
+    expect(pagina).toContain('haySaldoInicial ? "Saldo de fondos" : "Movimientos acumulados"');
+    // Y el rojo, que afirma «en números rojos», tampoco se pinta sin el dato.
+    expect(pagina).toContain("haySaldoInicial && fundPosition.balance < 0");
+    expect(pagina).not.toContain('${fundPosition.balance < 0 ? "text-[var(--tinte-rojo-texto-1)]"');
+  });
+
   it("y el informe del consejo tampoco pasa un cero literal", () => {
     const informe = fs.readFileSync(
       path.resolve("src/features/reports/use-committee-report.ts"),

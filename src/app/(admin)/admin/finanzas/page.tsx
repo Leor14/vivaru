@@ -456,15 +456,34 @@ function AdminFinanzasLibroPageContent() {
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div
           className={
-            fundPosition.balance < 0
+            // El rojo afirma «este fondo está en números rojos», y eso solo se
+            // puede afirmar con saldo de apertura registrado — la misma razón
+            // que gobierna el aviso de arriba.
+            haySaldoInicial && fundPosition.balance < 0
               ? "rounded-xl border border-[var(--tinte-rojo-borde-2)] bg-[var(--tinte-neutro-fondo-2)] p-3"
               : "rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3"
           }
         >
-          <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Saldo de fondos</p>
-          <p className={`mt-1 text-lg font-semibold ${fundPosition.balance < 0 ? "text-[var(--tinte-rojo-texto-1)]" : "text-[var(--tinte-azul-texto-1)]"}`}>
+          {/*
+            **El rótulo cambia con el dato, y no es cosmético.** Sin saldo de
+            apertura, esta cifra son los movimientos acumulados y nada más;
+            llamarla «Saldo de fondos» afirma cuánto dinero tiene el conjunto,
+            que es justo lo que nadie registró. Era una incoherencia dentro del
+            propio arreglo: el Excel de esta misma pantalla ya decía «Sin saldo
+            bancario de apertura» mientras la tarjeta de encima decía «$0».
+            Visto en staging el 3 de septiembre de 2026, mirando la pantalla.
+          */}
+          <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">
+            {haySaldoInicial ? "Saldo de fondos" : "Movimientos acumulados"}
+          </p>
+          <p className={`mt-1 text-lg font-semibold ${haySaldoInicial && fundPosition.balance < 0 ? "text-[var(--tinte-rojo-texto-1)]" : "text-[var(--tinte-azul-texto-1)]"}`}>
             {formatAmount(fundPosition.balance)}
           </p>
+          {!haySaldoInicial ? (
+            <p className="mt-1 text-xs text-[var(--slate-500)]">
+              Sin saldo bancario de apertura. Regístralo en la cuenta del conjunto para ver el saldo real.
+            </p>
+          ) : null}
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Ingresos por cuotas</p>
