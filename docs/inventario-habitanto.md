@@ -5,6 +5,12 @@
 >
 > **Todo lo que sigue está visto en pantalla.** Donde algo no se pudo ver, lo dice.
 >
+> ⚠️ **Y lo que se ve en pantalla no es todo.** Dos días antes, el 19 de agosto, la
+> administradora que opera Habitanto explicó en sesión su cuello de botella, sus obligaciones
+> legales y lo que hace por fuera del producto. **Nada de eso entró aquí** — incluido el detalle
+> de la **cuenta por pagar** que la §9 de esta misma pasada declara no haber visto. Ver
+> [`sesion-administradora-habitanto.md`](sesion-administradora-habitanto.md).
+>
 > **Sin datos personales.** El condominio de trabajo tiene residentes reales; aquí se
 > registra estructura y funcionamiento, nunca nombres, cédulas, teléfonos ni saldos
 > individuales.

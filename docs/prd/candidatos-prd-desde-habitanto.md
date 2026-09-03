@@ -2,6 +2,13 @@
 
 > Escrito el 21 de agosto de 2026. Fuente: `docs/inventario-habitanto.md`.
 >
+> ⚠️ **ESTA LISTA NO VIO LA SESIÓN CON LA ADMINISTRADORA.** Su fuente es el inventario, y el
+> inventario se levantó **navegando la aplicación**. Lo que la administradora de Habitanto DIJO
+> el 19 de agosto —su cuello de botella, sus obligaciones legales y sus rodeos manuales— no entró
+> por esta cadena. **Diez huecos verificados** están en
+> [`../sesion-administradora-habitanto.md`](../sesion-administradora-habitanto.md), y hay que
+> leerlo junto con esta lista.
+>
 > **Cada hueco está verificado en los dos lados.** Lo de Habitanto está visto en pantalla; lo
 > de Vivaru está **leído del código** (`src/types/domain.ts`, `src/features/**`,
 > `functions/src/index.ts`), no de sus documentos.
