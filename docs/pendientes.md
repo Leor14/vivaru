@@ -4,7 +4,120 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de las dos fichas de Habitanto)
+
+> # HAY DOS FICHAS ESCRITAS Y SOLO UNA SE PUEDE CONSTRUIR. NO ELIJAS FRENTE: EMPIEZA POR ESA.
+>
+> El frente volvió a Habitanto y se eligieron **dos bloques**, los dos ya con PRD. **La diferencia
+> entre ellas es `G5`, y decide por dónde se empieza.**
+>
+> | Ficha | Qué es | Estado | ¿Se puede construir? |
+> |---|---|---|---|
+> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | Discovery, `14ef836` | ✅ **SÍ. Las entregas 1 y 2 no esperan a nadie** |
+> | **`PRD-V-FLOW-006`** — interés de mora legal y convenio de pago (Ecuador) | Candidato `B5`, fusionado con el convenio porque **la ley los encadena** | Discovery, `c973a89` | ❌ **NO.** Espera dos cosas de David |
+>
+> **`G5` es lo que las separa, y la lección se aplica a la siguiente ficha que escribas:** en
+> `FLOW-007` el dueño de la operación **ya existe** —el administrador emite ese informe a mano cada
+> mes—; en `FLOW-006` **nadie tiene asignado registrar la tasa del BCE**, y sin tasa no se devenga
+> nada. **La misma puerta, dos respuestas opuestas, y lo que las separa es si la persona ya hace la
+> tarea.**
+>
+> ### Antes de escribir una línea de `FLOW-007`: contar `TBD-M1`
+>
+> **Cuántos de los nueve conjuntos tienen `openingBalance` registrado** en `bankAccountBalances`.
+> No se pudo medir: **la ADC está caducada** (`invalid_rapt`, ejercitada y confirmada muerta el 3 de
+> septiembre). Se arregla con `gcloud auth application-default login`, y **el mismo login destraba
+> comprobar el rollout de producción** (`estado-de-apphosting.mjs` la necesita).
+>
+> **Por qué bloquea:** si el saldo inicial está en cero en los nueve, **anclar al banco no cambia una
+> sola cifra** y la entrega 1 se leería como un no-op — el error que este repositorio ya cometió con
+> tres capacidades encendidas sobre tablas vacías.
+>
+> ### Un DEFECTO VIVO encontrado y deliberadamente NO arreglado
+>
+> **`/admin/finanzas` avisa «Fondo insuficiente. El saldo de fondos es negativo… evita registrar
+> nuevos egresos» a un conjunto que tiene dinero en el banco.** Los **tres** consumidores pasan
+> `openingBalance = 0` aunque el administrador lo haya registrado en la pantalla de conciliación:
+>
+> - `src/app/(admin)/admin/finanzas/page.tsx:154` — `computeFundPosition(entries, cuotaIncome)`, **sin tercer argumento**
+> - `src/app/(admin)/admin/finanzas/page.tsx:164` — `buildFinancialStatement(…, 0, planInformes)`
+> - `src/features/reports/use-committee-report.ts:573` — lo mismo, `0` literal
+>
+> **No se arregló a propósito: es exactamente la entrega 1 de `FLOW-007`**, y arreglarlo suelto
+> dejaría la ficha sin su guardián de regresión (`CA9`). **El parámetro existe, el dato existe, y el
+> cable no está puesto** — por eso la administradora dice que el nuestro es un tablero de indicadores
+> y el suyo un estado de caja.
+>
+> ### Lo que `FLOW-007` destapó y hay que saber antes de tocarla
+>
+> 1. **`functions/` NO tiene módulo de estado financiero.** `monthlyFinancialArchive`
+>    (`functions/src/index.ts:3802`, `0 6 1 * *`, **`ACTIVE` en producción**) **reimplementa** el
+>    resumen en línea. **Ya se desvió DOS veces** —`R12`/`R13` el 23 de agosto y `R16` el 24—, y está
+>    registrado en los comentarios de `payments.ts:267` y `:324`. Ahora ese documento tiene sanción
+>    legal detrás.
+> 2. **La publicación al residente no está pendiente: está DENEGADA por una regla desplegada.** El
+>    informe se archiva como `financiero` y `reporte`, las dos solo-administración. Por eso la ficha
+>    crea una **categoría nueva**: abrir las existentes publicaría también comprobantes y expedientes.
+> 3. **Cuatro de las seis partes de la columna vertebral YA se calculan.** `buildFinancialStatement`
+>    ordena por el código del plan, `bankAccountBalances.openingBalance` existe desde `FLOW-002`, y el
+>    saldo final es `fundBalance` — **buscar `closingBalance` da cero porque el nombre es otro**.
+> 4. **`firma` (403) y `signature` (273) existen y son otra cosa**: `signedBy` es el uid del residente
+>    que **acepta** un acuerdo del consejo. **No hay esquema de firmas de un informe.**
+>
+> ### Lo que espera a David, y sin esto `FLOW-006` no arranca
+>
+> 1. **`G5` de `FLOW-006`: quién registra la tasa del BCE cada mes.** Sin tasa no se devenga nada.
+> 2. **Las cinco preguntas al abogado ecuatoriano** (`TBD-L1`–`L5`): segmento del BCE, prorrateo
+>    lineal, si se citan artículos, qué ve el consejo, y si el orden de imputación admite pacto en
+>    contrario. **La misma respuesta gobierna la entrega 3 de `FLOW-007`**, que abre datos
+>    financieros a los residentes.
+> 3. **Aceptar `G1` vacía** en las dos fichas, como en `FEAT-006` y `FEAT-007`. Producción tiene cero
+>    clientes: no hay adopción que medir.
+> 4. Lo de siempre, sin cambios: tope de gasto de IA en consola · `dann…@outlook.com` para
+>    `PLAT-006` · `DECISIONES-A-006` a Albert · corpus real de padrones · `CA4` de `PH-003`.
+>
+> ### Lo que sigue DESPUÉS, y entonces sí toca elegir
+>
+> - **`FIX-001` entrega 2** — política de reserva **por área**. Lo único que le falta al lote: van
+>   **10 de 11**.
+> - **Los ocho huecos restantes** de `docs/sesion-administradora-habitanto.md`. Su §5 trae un orden
+>   propio: hechos el 1 (investigación legal), el 2 (`B5`) y el 5 (este informe). **El siguiente de
+>   esa lista es «cuentas por pagar con calendario de cuotas»** (§3.2), y luego **la foto del medidor**
+>   (§3.5), que es su cuello de botella declarado y **terreno virgen medido: `medidor` = 0**.
+> - **38 P1, 42 P2 y 12 P3** de los 108 candidatos (`docs/prd/candidatos-prd-desde-habitanto.md`).
+> - **`PRD-V-PLAT-004`** (alcance del rol Consejo) **nunca se escribió**, y ya lo piden dos fichas:
+>   `K1`, `K2` y el total de anticipos del consejo. Hoy `committee` **solo llega a
+>   `/admin/documents`**.
+>
+> ### Estado de git y ambientes
+>
+> **`master` y `develop` en `14ef836`**, los dos verificados con `git rev-parse` después de empujar.
+> Árbol limpio. El commit es **solo documentación** —`docs/prd/README.md`,
+> `docs/roadmap-producto.md` y la ficha nueva—, así que el rollout de producción despliega el mismo
+> comportamiento con otro sha. **No se pudo comprobar ese rollout**: hace falta la ADC.
+>
+> Bancos: **`npm test` 1693 en verde**, sin emulador. Los de reglas **siguen sin poder correr en este
+> equipo: no hay Java** — afecta a `CA4`, `CA8` y `CA17` de `FEAT-007` y a seis criterios de
+> `FLOW-007`.
+>
+> ### Método, lo que salió de esta jornada
+>
+> 1. **Buscar por nombre miente en las DOS direcciones al dimensionar una ficha.** Tres casos el
+>    mismo día: `agreement` (341 aciertos, ninguno es un convenio), `firma` (403, ninguno es la firma
+>    de un informe) y `closingBalance` (0, pero el saldo final sí se calcula). Los dos primeros
+>    habrían dado por construido lo que no existe; el tercero, por inexistente lo que sí.
+>    **Abrir un acierto y leerlo**; para lo que dé cero, **buscar el concepto por su cálculo**.
+> 2. **Una lista ordenada de prioridades envejece por dentro.** El §5 de la sesión con la
+>    administradora daba un orden, y **la investigación legal ascendió su punto 5 por encima del 3**
+>    sin que nadie reescribiera la lista. Antes de seguir un orden escrito, mirar qué se supo después.
+> 3. **`G5` es la puerta que decide por dónde se empieza**, no un trámite de cierre: dos fichas del
+>    mismo día, una construible y otra no, y la diferencia es si alguien ya hace la tarea.
+> 4. **Un defecto encontrado dentro del alcance de una ficha se deja dentro de la ficha.** Arreglar
+>    el aviso falso de «Fondo insuficiente» por libre habría dejado la entrega 1 sin guardián.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+## LA JORNADA DE LA FICHA DEL MODO OSCURO — 3 DE SEPTIEMBRE — histórico
 
 > # EL PASO PREVIO ESTÁ HECHO. EL FRENTE VUELVE A LOS BLOQUES DE HABITANTO.
 >
