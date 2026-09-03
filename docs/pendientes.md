@@ -20,10 +20,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **AVISO: `master` tiene las tres entregas (`70e4f97`) pero NO la corrección del lienzo.** Lo que
-> hay en producción **pinta el fondo claro con las tarjetas oscuras** si alguien enciende la
-> bandera. Está apagada, así que no se ve — pero **no la enciendas en producción hasta empujar
-> `develop`** (`32b9678`).
+> **LA BANDERA SE ENCENDIÓ EN PRODUCCIÓN DESDE LA CONSOLA, Y AHORA ESTÁ APAGADA OTRA VEZ.** El
+> documento `featureFlags/producto-modo-oscuro` de `hogaru-1` estaba en `enabled: true`, escrito el
+> **3 sep 05:10Z** por un **uid** — y es la ÚNICA bandera de producción escrita así: **todas las
+> demás llevan `mover-bandera:` o `seed-features:`**. Esa firma es la de la consola de superadmin,
+> no la de un script. **Yo la apagué** al encontrarla, porque en ese momento producción servía
+> `70e4f97`, que es **anterior a la corrección del lienzo**: quien la encendiera vio exactamente el
+> fondo claro con las tarjetas oscuras de la captura.
+>
+> **Ahora la corrección SÍ está en producción** (`863e43a`, `build-2026-09-03-006`), y verificada:
+> poniendo el atributo a mano sobre producción, el **portal del residente da CERO ilegibles**.
+> **Encenderla otra vez es decisión tuya**, y mejor con canario:
+> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 producto-modo-oscuro <conjunto> true`
 >
 > **LA CORRECCIÓN GENERAL (David la vio en una captura, y ninguna prueba la veía).** El lienzo de
 > `app-shell` —que comparten los TRES portales— se pintaba con un degradado de hexadecimales dentro
