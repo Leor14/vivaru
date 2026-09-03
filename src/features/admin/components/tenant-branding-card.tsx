@@ -230,7 +230,7 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
                 aria-label="Color en formato hexadecimal"
                 className="w-[110px]"
                 style={{
-                  borderColor: hexError ? "var(--danger-500, #dc2626)" : undefined,
+                  borderColor: hexError ? "var(--danger-500)" : undefined,
                   transition: "border-color 200ms ease",
                 }}
               />
@@ -240,7 +240,7 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
               <p
                 role="status"
                 className="flex items-center gap-1.5 text-xs"
-                style={{ color: "var(--amber-700, #b45309)" }}
+                style={{ color: "var(--amber-700)" }}
               >
                 <span aria-hidden="true">⚠</span>
                 El texto blanco puede ser difícil de leer con este color

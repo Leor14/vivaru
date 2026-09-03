@@ -196,3 +196,46 @@ describe("PRD-V-FEAT-007 · las insignias de estado cumplen AA", () => {
     expect(culpables, `Usa --amber-800 sobre el 100:\n${culpables.join("\n")}`).toEqual([]);
   });
 });
+
+/**
+ * QUINTA forma de color literal, y la que rompio el modo oscuro de verdad: el
+ * hexadecimal DENTRO de un valor arbitrario compuesto.
+ *
+ * `bg-[radial-gradient(...#ffffff...)]` no lo cazaba el patron de `bg-[#hex]`,
+ * asi que el lienzo de `app-shell` —el que comparten los TRES portales— seguia
+ * pintandose claro mientras las tarjetas oscurecian, y el titulo de la pagina
+ * quedaba en texto claro sobre fondo claro. No lo vio ninguna prueba: lo vio
+ * David en una captura.
+ *
+ * Tambien cubre `var(--token, #respaldo)` —color literal escondido en el
+ * respaldo— y `color-mix(..., white)`, que en oscuro produce un fondo CLARO.
+ */
+const ARBITRARIO_CON_COLOR = new RegExp(
+  `\\b[a-z-]+-\\[[^\\]]*(?:#[0-9a-fA-F]{3,8}|rgba?\\(|hsla?\\(|\\bwhite\\b|\\bblack\\b)[^\\]]*\\]`,
+  "g",
+);
+
+/** El QR tiene que seguir siendo negro sobre blanco o deja de escanearse. */
+const NO_SE_TEMATIZA = ["src/app/(resident)/resident/visitors/[id]/qr/page.tsx"];
+
+describe("PRD-V-FEAT-007 · nada de color literal dentro de un valor arbitrario", () => {
+  it("ni degradados, ni sombras en linea, ni respaldos de var()", () => {
+    const culpables: string[] = [];
+    for (const f of TODOS) {
+      if (NO_SE_TEMATIZA.some((x) => f === x)) continue;
+      const hits = readFileSync(f, "utf8").match(ARBITRARIO_CON_COLOR);
+      if (hits) culpables.push(`${f} → ${[...new Set(hits)].join(", ")}`);
+    }
+    expect(
+      culpables,
+      `Un degradado o una sombra tambien son color, y el tema no los alcanza:\n${culpables.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("y el QR se queda claro A PROPOSITO, con su color literal", () => {
+    // Al reves de lo habitual: si alguien lo "arregla", el codigo deja de leerse.
+    for (const f of NO_SE_TEMATIZA) {
+      expect(readFileSync(f, "utf8"), `${f} perdio su fondo claro`).toMatch(ARBITRARIO_CON_COLOR);
+    }
+  });
+});

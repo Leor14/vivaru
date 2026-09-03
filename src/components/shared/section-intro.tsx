@@ -80,7 +80,7 @@ export function SectionIntro({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]",
+        "rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[var(--sombra-baja-1)]",
         className,
       )}
     >

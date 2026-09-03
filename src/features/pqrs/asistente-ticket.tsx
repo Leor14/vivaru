@@ -52,8 +52,8 @@ import {
 /** El morado de marca, reservado a lo asistido por IA — igual que en comunicaciones. */
 const IA_TOKENS = {
   "--ia-tinta": "var(--color-brand-purple-deep)",
-  "--ia-borde": "color-mix(in srgb, var(--color-brand-purple-deep) 22%, white)",
-  "--ia-fondo": "color-mix(in srgb, var(--color-brand-purple-deep) 5%, white)",
+  "--ia-borde": "color-mix(in srgb, var(--color-brand-purple-deep) 22%, var(--surface-strong))",
+  "--ia-fondo": "color-mix(in srgb, var(--color-brand-purple-deep) 5%, var(--surface-strong))",
 } as React.CSSProperties;
 
 /**
@@ -195,7 +195,7 @@ export function AsistenteTicket({
           className={
             abierto
               ? "inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[var(--ia-tinta)]"
-              : "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--ia-borde)] bg-[var(--ia-fondo)] px-4 py-2.5 text-sm font-semibold text-[var(--ia-tinta)] hover:bg-[color-mix(in_srgb,var(--color-brand-purple-deep)_10%,white)]"
+              : "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--ia-borde)] bg-[var(--ia-fondo)] px-4 py-2.5 text-sm font-semibold text-[var(--ia-tinta)] hover:bg-[color-mix(in_srgb,var(--color-brand-purple-deep)_10%,var(--surface-strong))]"
           }
         >
           <Sparkles className="h-4 w-4" aria-hidden="true" />

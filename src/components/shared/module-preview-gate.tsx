@@ -39,7 +39,7 @@ export function ModulePreviewGate({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[var(--brand-200,#bcd9f2)] bg-[var(--brand-50,#E6F1FB)] p-5">
+      <div className="rounded-2xl border border-[var(--brand-200)] bg-[var(--brand-50)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-[var(--tinte-azul-texto-2)]">
@@ -64,7 +64,7 @@ export function ModulePreviewGate({
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
-            className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--relleno-marca)] px-4 py-2 text-sm font-semibold text-[var(--on-fill)] shadow-[0_4px_12px_rgba(11,60,93,0.22)] [transition:background-color_180ms_var(--ease-out),transform_140ms_var(--ease-out),box-shadow_180ms_var(--ease-out)] hover:bg-[var(--relleno-marca-hover)] hover:shadow-[0_6px_18px_rgba(11,60,93,0.28)] active:scale-[0.97] motion-reduce:transform-none"
+            className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--relleno-marca)] px-4 py-2 text-sm font-semibold text-[var(--on-fill)] shadow-[var(--sombra-marca-baja-1)] [transition:background-color_180ms_var(--ease-out),transform_140ms_var(--ease-out),box-shadow_180ms_var(--ease-out)] hover:bg-[var(--relleno-marca-hover)] hover:shadow-[var(--sombra-marca-media-1)] active:scale-[0.97] motion-reduce:transform-none"
           >
             <Sparkles className="h-4 w-4" aria-hidden />
             Inicia tu suscripción

@@ -201,7 +201,7 @@ function BillingTrendTooltip({
   const gap = Math.max(charged - settled, 0);
 
   return (
-    <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
+    <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-3 shadow-[var(--sombra-media-1)]">
       <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Período"}</p>
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">

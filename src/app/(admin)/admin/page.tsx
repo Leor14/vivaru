@@ -193,7 +193,7 @@ function BillingTrendTooltip({
   const gap = Math.max(charged - settled, 0);
 
   return (
-    <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
+    <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-3 shadow-[var(--sombra-media-1)]">
       <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Período"}</p>
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
@@ -740,7 +740,7 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <Card className="soft-panel border-[var(--tinte-neutro-borde-3)] bg-[linear-gradient(120deg,#f8fbff_0%,#edf4fb_45%,#f7fbff_100%)] p-5">
+        <Card className="soft-panel border-[var(--tinte-neutro-borde-3)] bg-[var(--degradado-hero)] p-5">
           <div className="flex flex-col gap-4">
             <div>
               {/* Era un `h1` con el nombre del conjunto y un rótulo «Centro de
@@ -818,7 +818,7 @@ export default function AdminDashboardPage() {
                       onClick={() => setDashboardPeriod(key)}
                       className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                         dashboardPeriod === key
-                          ? "bg-[var(--surface-strong)] font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
+                          ? "bg-[var(--surface-strong)] font-medium text-[var(--brand-700)] shadow-[var(--sombra-plana-2)]"
                           : "text-[var(--slate-600)] hover:text-[var(--slate-900)]"
                       }`}
                     >

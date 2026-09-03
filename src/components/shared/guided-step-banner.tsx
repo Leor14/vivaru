@@ -101,7 +101,7 @@ function GuidedStepBannerInner({ step, track }: { step: OnboardingStep; track: O
   return (
     <section
       aria-label={`Guía: ${step.title}`}
-      className="mb-4 rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]"
+      className="mb-4 rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[var(--sombra-baja-1)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">

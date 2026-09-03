@@ -379,6 +379,46 @@
   --tono-success-punto: #378b6d;
   --tono-success-texto: #2f725b;
 
+
+  /* ── Degradados y sombras que estaban escritos DENTRO de la clase ─────────
+     `PRD-V-FEAT-007`. QUINTA forma de color literal, y la que rompio el modo
+     oscuro de verdad: `bg-[radial-gradient(...#ffffff...)]`. El patron cazaba
+     `bg-[#hex]` pero no un hex DENTRO de un valor arbitrario compuesto, asi
+     que el lienzo de `app-shell` —el que comparten los tres portales— seguia
+     pintandose claro mientras las tarjetas oscurecian. El titulo de la pagina
+     quedaba en texto claro sobre fondo claro.
+     Las sombras van enteras en el token, no solo su color: en oscuro no basta
+     con teñirlas, hay que subirles la opacidad o no se ven. */
+  --degradado-lienzo: radial-gradient(circle at top left, #ffffff 4%, #edf4fb 42%, #e4ecf6 100%);
+  --degradado-hero: linear-gradient(120deg, #f8fbff 0%, #edf4fb 45%, #f7fbff 100%);
+  --degradado-metrica-sky: linear-gradient(180deg, #f9fdff 0%, var(--sky-50) 100%);
+  --degradado-metrica-mint: linear-gradient(180deg, #f6fffc 0%, var(--mint-50) 100%);
+  --degradado-metrica-peach: linear-gradient(180deg, #fffdfb 0%, var(--peach-50) 100%);
+  --degradado-metrica-sand: linear-gradient(180deg, #fffef8 0%, var(--sand-50) 100%);
+  --degradado-metrica-vencido: linear-gradient(180deg, #fff9f9 0%, #fef2f2 100%);
+  --degradado-metrica-pendiente: linear-gradient(180deg, #fffdf5 0%, #fffbeb 100%);
+  --degradado-metrica-aldia: linear-gradient(180deg, #f6fffe 0%, #ecfdf5 100%);
+  --halo-marca: radial-gradient(circle, rgba(11, 60, 93, 0.14) 0%, rgba(11, 60, 93, 0) 68%);
+  --halo-exito: radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0) 68%);
+  --sombra-plana-1: 0 1px 2px rgba(15,23,42,0.06);
+  --sombra-media-1: 0 14px 28px rgba(13,38,59,0.16);
+  --sombra-plana-2: 0 1px 2px rgba(12,33,53,0.08);
+  --sombra-media-2: 0 10px 25px rgba(8,36,58,0.07);
+  --sombra-alta-1: 0 10px 30px rgba(0,0,0,0.08);
+  --sombra-invertida-baja-1: 0 -4px 16px rgba(15,23,42,0.06);
+  --sombra-marca-baja-1: 0 4px 12px rgba(11,60,93,0.22);
+  --sombra-marca-media-1: 0 6px 18px rgba(11,60,93,0.28);
+  --sombra-baja-1: 0 4px 16px rgba(12,33,53,0.05);
+  --sombra-media-3: 0 10px 20px rgba(10,38,62,0.06);
+  --sombra-media-4: 0 8px 20px rgba(10,40,70,0.06);
+  --sombra-media-5: 0 12px 24px rgba(12,33,53,0.08);
+  --sombra-media-6: 0 6px 20px rgba(12,33,53,0.10);
+  --sombra-baja-2: 0 4px 14px rgba(12,33,53,0.06);
+  --sombra-media-7: 0 8px 22px rgba(12,33,53,0.08);
+  --sombra-alta-2: 0 12px 32px rgba(12,33,53,0.14);
+  --sombra-invertida-alta-1: 0 -8px 32px rgba(10,40,70,0.12);
+  --sombra-alta-3: 0 18px 40px rgba(10,40,70,0.12);
+
   /* ── Custom easing curves ── */
   /* Strong ease-out: immediate movement, decelerates to stop. Use for entering elements. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -641,6 +681,37 @@
     --tono-success-punto: #57927a;
     --tono-success-texto: #a6cfbe;
 
+    /* degradados y sombras — el lienzo de los tres portales incluido */
+    --degradado-lienzo: radial-gradient(circle at top left, #17222f 4%, #111b26 42%, #0b131c 100%);
+    --degradado-hero: linear-gradient(120deg, #17222f 0%, #121c27 45%, #16212d 100%);
+    --degradado-metrica-sky: linear-gradient(180deg, #16222f 0%, var(--sky-50) 100%);
+    --degradado-metrica-mint: linear-gradient(180deg, #132420 0%, var(--mint-50) 100%);
+    --degradado-metrica-peach: linear-gradient(180deg, #241d18 0%, var(--peach-50) 100%);
+    --degradado-metrica-sand: linear-gradient(180deg, #221f16 0%, var(--sand-50) 100%);
+    --degradado-metrica-vencido: linear-gradient(180deg, #2b1a17 0%, #331d19 100%);
+    --degradado-metrica-pendiente: linear-gradient(180deg, #29200f 0%, #322612 100%);
+    --degradado-metrica-aldia: linear-gradient(180deg, #10241b 0%, #123020 100%);
+    --halo-marca: radial-gradient(circle, rgba(133, 179, 214, 0.16) 0%, rgba(133, 179, 214, 0) 68%);
+    --halo-exito: radial-gradient(circle, rgba(120, 214, 173, 0.16) 0%, rgba(120, 214, 173, 0) 68%);
+    --sombra-plana-1: 0 1px 2px rgba(0, 0, 0, 0.47);
+    --sombra-media-1: 0 14px 28px rgba(0, 0, 0, 0.75);
+    --sombra-plana-2: 0 1px 2px rgba(0, 0, 0, 0.54);
+    --sombra-media-2: 0 10px 25px rgba(0, 0, 0, 0.5);
+    --sombra-alta-1: 0 10px 30px rgba(0, 0, 0, 0.54);
+    --sombra-invertida-baja-1: 0 -4px 16px rgba(0, 0, 0, 0.47);
+    --sombra-marca-baja-1: 0 4px 12px rgba(0, 0, 0, 0.75);
+    --sombra-marca-media-1: 0 6px 18px rgba(0, 0, 0, 0.75);
+    --sombra-baja-1: 0 4px 16px rgba(0, 0, 0, 0.44);
+    --sombra-media-3: 0 10px 20px rgba(0, 0, 0, 0.47);
+    --sombra-media-4: 0 8px 20px rgba(0, 0, 0, 0.47);
+    --sombra-media-5: 0 12px 24px rgba(0, 0, 0, 0.54);
+    --sombra-media-6: 0 6px 20px rgba(0, 0, 0, 0.6);
+    --sombra-baja-2: 0 4px 14px rgba(0, 0, 0, 0.47);
+    --sombra-media-7: 0 8px 22px rgba(0, 0, 0, 0.54);
+    --sombra-alta-2: 0 12px 32px rgba(0, 0, 0, 0.73);
+    --sombra-invertida-alta-1: 0 -8px 32px rgba(0, 0, 0, 0.66);
+    --sombra-alta-3: 0 18px 40px rgba(0, 0, 0, 0.66);
+
   }
 }
 
@@ -891,7 +962,7 @@ svg tspan {
 @media (hover: hover) and (pointer: fine) {
   .premium-card-hover:hover {
     transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--brand-700) 28%, white);
+    border-color: color-mix(in srgb, var(--brand-700) 28%, var(--surface-strong));
     box-shadow: var(--sombra-panel-hover);
   }
 }

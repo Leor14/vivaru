@@ -70,7 +70,7 @@ export function RouteTransitionVeil() {
         </svg>
         {/* Disco sólido bajo el logo: sin él la marca se mezcla con el contenido
             difuminado de fondo y el logotipo se vuelve ilegible. */}
-        <span className="grid h-[86px] w-[86px] place-items-center rounded-full bg-[var(--surface-strong)] shadow-[0_6px_20px_rgba(12,33,53,0.10)]">
+        <span className="grid h-[86px] w-[86px] place-items-center rounded-full bg-[var(--surface-strong)] shadow-[var(--sombra-media-6)]">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local: next/image
               no optimiza SVG sin dangerouslyAllowSVG, y aquí no aporta nada. */}
           <img src="/brand/vivaru-logo.svg" alt="" className="h-14 w-14 object-contain" aria-hidden />

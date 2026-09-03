@@ -42,7 +42,7 @@ export function ResidentBottomNav() {
       aria-label="Navegación principal"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-stretch border-t border-[var(--slate-200)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
+      <div className="flex items-stretch border-t border-[var(--slate-200)] shadow-[var(--sombra-invertida-baja-1)]">
         {ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = item.href === activeHref;
@@ -67,7 +67,7 @@ export function ResidentBottomNav() {
                   "absolute top-1.5 h-8 w-12 rounded-full",
                   "transition-all duration-200 motion-reduce:transition-none",
                   isActive
-                    ? "bg-[var(--brand-50,#eff6ff)] opacity-100 scale-100"
+                    ? "bg-[var(--brand-50)] opacity-100 scale-100"
                     : "opacity-0 scale-75",
                 )}
                 aria-hidden="true"

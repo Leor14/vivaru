@@ -819,8 +819,8 @@ export default function ResidentReservationsPage() {
             </a>
           </div>
         ) : null}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(11,60,93,0.14)_0%,rgba(11,60,93,0)_68%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.14)_0%,rgba(16,185,129,0)_68%)]" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[var(--halo-marca)]" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-[var(--halo-exito)]" />
 
         <div className="relative p-5 sm:p-6 lg:p-7">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -837,7 +837,7 @@ export default function ResidentReservationsPage() {
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-            <section className="order-2 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-1 sm:p-5">
+            <section className="order-2 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]/85 p-4 shadow-[var(--sombra-media-2)] lg:order-1 sm:p-5">
               <h4 className="text-sm font-semibold text-[var(--slate-900)]">Formulario de reserva</h4>
 
               <div className="mt-4 space-y-4">
@@ -1085,7 +1085,7 @@ export default function ResidentReservationsPage() {
               </div>
             </section>
 
-            <section className="order-1 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-2 sm:p-5">
+            <section className="order-1 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]/85 p-4 shadow-[var(--sombra-media-2)] lg:order-2 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-sm font-semibold text-[var(--slate-900)]">Disponibilidad</h4>
                 <div className="flex items-center gap-1">
@@ -1231,7 +1231,7 @@ export default function ResidentReservationsPage() {
               return (
                 <article
                   key={reservation.id}
-                  className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[0_10px_20px_rgba(10,38,62,0.06)]"
+                  className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[var(--sombra-media-3)]"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="line-clamp-2 font-medium text-[var(--slate-900)]">{reservation.amenity}</p>

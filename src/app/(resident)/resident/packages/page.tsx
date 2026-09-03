@@ -105,7 +105,7 @@ export default function ResidentPackagesPage() {
           />
         ) : null}
         {items.map((item) => (
-          <article key={item.id} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[0_8px_20px_rgba(10,40,70,0.06)]">
+          <article key={item.id} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[var(--sombra-media-4)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-[var(--slate-500)]">Código</p>

@@ -81,7 +81,7 @@ export default function RegistroPage() {
       <div className="absolute inset-0 bg-[var(--surface-strong)]/60 backdrop-blur-[1.5px]" aria-hidden />
 
       <div className="relative z-10 flex min-h-full items-center justify-center overflow-y-auto p-4 sm:p-6">
-        <Card className="soft-panel w-full max-w-[520px] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-7 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-9">
+        <Card className="soft-panel w-full max-w-[520px] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-7 shadow-[var(--sombra-alta-1)] sm:p-9">
           {step === "listo" ? (
             <div className="text-center">
               <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[var(--success-50)] text-[var(--success-600)]">
@@ -106,7 +106,7 @@ export default function RegistroPage() {
           ) : (
             <>
               <div className="mb-6 text-center">
-                <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--brand-50,#E6F1FB)] text-[var(--brand-700,#0C447C)]">
+                <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--brand-50)] text-[var(--brand-700)]">
                   <Building2 className="h-5 w-5" />
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight text-[var(--slate-900)]">
@@ -119,12 +119,12 @@ export default function RegistroPage() {
 
               {/* Progreso: dos pasos, para que se vea corto. */}
               <div className="mb-5 flex items-center gap-2 text-xs font-medium">
-                <span className={step === "contacto" ? "text-[var(--brand-700,#0C447C)]" : "text-[var(--success-600)]"}>
+                <span className={step === "contacto" ? "text-[var(--brand-700)]" : "text-[var(--success-600)]"}>
                   {step === "conjunto" ? <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" /> : null}
                   1. Tus datos
                 </span>
                 <span className="h-px flex-1 bg-[var(--slate-200)]" />
-                <span className={step === "conjunto" ? "text-[var(--brand-700,#0C447C)]" : "text-[var(--slate-400)]"}>
+                <span className={step === "conjunto" ? "text-[var(--brand-700)]" : "text-[var(--slate-400)]"}>
                   2. Tu conjunto
                 </span>
               </div>
@@ -198,7 +198,7 @@ export default function RegistroPage() {
 
               <p className="mt-5 text-center text-xs text-[var(--slate-500)]">
                 ¿Prefieres que te acompañemos?{" "}
-                <a href="mailto:comercial@qintilab.com?subject=Quiero%20una%20demo%20de%20Vivaru" className="font-medium text-[var(--brand-700,#0C447C)] hover:underline">
+                <a href="mailto:comercial@qintilab.com?subject=Quiero%20una%20demo%20de%20Vivaru" className="font-medium text-[var(--brand-700)] hover:underline">
                   Habla con un asesor
                 </a>
               </p>

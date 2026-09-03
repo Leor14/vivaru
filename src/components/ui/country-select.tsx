@@ -113,7 +113,7 @@ export function CountrySelect({
       </button>
 
       {open ? (
-        <div className="absolute z-30 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_12px_32px_rgba(12,33,53,0.14)]">
+        <div className="absolute z-30 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[var(--sombra-alta-2)]">
           <div className="flex items-center gap-2 border-b border-[var(--slate-100)] px-3">
             <Search className="h-4 w-4 shrink-0 text-[var(--slate-500)]" aria-hidden />
             <input

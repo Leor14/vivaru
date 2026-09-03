@@ -18,16 +18,16 @@ type Semantic = "overdue" | "pending" | "clear";
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
 const TONE_BG: Record<Tone, string> = {
-  sky:   "bg-[linear-gradient(180deg,#f9fdff_0%,var(--sky-50)_100%)]",
-  mint:  "bg-[linear-gradient(180deg,#f6fffc_0%,var(--mint-50)_100%)]",
-  peach: "bg-[linear-gradient(180deg,#fffdfb_0%,var(--peach-50)_100%)]",
-  sand:  "bg-[linear-gradient(180deg,#fffef8_0%,var(--sand-50)_100%)]",
+  sky:   "bg-[var(--degradado-metrica-sky)]",
+  mint:  "bg-[var(--degradado-metrica-mint)]",
+  peach: "bg-[var(--degradado-metrica-peach)]",
+  sand:  "bg-[var(--degradado-metrica-sand)]",
 };
 
 const SEMANTIC_BG: Record<Semantic, string> = {
-  overdue: "bg-[linear-gradient(180deg,#fff9f9_0%,#fef2f2_100%)] !border-[var(--danger-200)]",
-  pending: "bg-[linear-gradient(180deg,#fffdf5_0%,#fffbeb_100%)] !border-[var(--amber-200)]",
-  clear:   "bg-[linear-gradient(180deg,#f6fffe_0%,#ecfdf5_100%)] !border-[var(--success-200)]",
+  overdue: "bg-[var(--degradado-metrica-vencido)] !border-[var(--danger-200)]",
+  pending: "bg-[var(--degradado-metrica-pendiente)] !border-[var(--amber-200)]",
+  clear:   "bg-[var(--degradado-metrica-aldia)] !border-[var(--success-200)]",
 };
 
 const SEMANTIC_VALUE_COLOR: Record<Semantic, string> = {

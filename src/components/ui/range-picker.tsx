@@ -192,7 +192,7 @@ export function RangePicker({
               <div
                 role="dialog"
                 aria-label="Seleccionar rango de fechas"
-                className="vivaru-rangepicker absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_-8px_32px_rgba(10,40,70,0.12)]"
+                className="vivaru-rangepicker absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[var(--sombra-invertida-alta-1)]"
               >
                 <div className="px-3 pt-4">
                   <div className="mb-1 flex items-center justify-between">
@@ -268,7 +268,7 @@ export function RangePicker({
             <div
               role="dialog"
               aria-label="Seleccionar rango de fechas"
-              className="vivaru-rangepicker absolute right-0 z-40 mt-2 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_18px_40px_rgba(10,40,70,0.12)]"
+              className="vivaru-rangepicker absolute right-0 z-40 mt-2 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[var(--sombra-alta-3)]"
               style={{ minWidth: 620 }}
             >
               <div className="flex">

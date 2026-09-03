@@ -151,7 +151,7 @@ export default function ResidentServicesPage() {
           return (
             <article
               key={item.id}
-              className="service-card service-card-stagger group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+              className="service-card service-card-stagger group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[var(--sombra-plana-1)]"
               style={{ animationDelay: `${Math.min(index * 50, 200)}ms` }}
             >
               {/* Image */}

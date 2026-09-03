@@ -54,7 +54,7 @@ export function TrialBanner({ trial }: { trial: TenantTrialState }) {
       <button
         type="button"
         onClick={() => setDialogOpen(true)}
-        className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--relleno-marca)] px-4 py-2 text-xs font-semibold text-[var(--on-fill)] shadow-[0_4px_12px_rgba(11,60,93,0.22)] [transition:background-color_180ms_var(--ease-out),transform_140ms_var(--ease-out),box-shadow_180ms_var(--ease-out)] hover:bg-[var(--relleno-marca-hover)] hover:shadow-[0_6px_18px_rgba(11,60,93,0.28)] active:scale-[0.97] motion-reduce:transform-none"
+        className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--relleno-marca)] px-4 py-2 text-xs font-semibold text-[var(--on-fill)] shadow-[var(--sombra-marca-baja-1)] [transition:background-color_180ms_var(--ease-out),transform_140ms_var(--ease-out),box-shadow_180ms_var(--ease-out)] hover:bg-[var(--relleno-marca-hover)] hover:shadow-[var(--sombra-marca-media-1)] active:scale-[0.97] motion-reduce:transform-none"
       >
         <Sparkles className="h-3.5 w-3.5" aria-hidden />
         Inicia tu suscripción

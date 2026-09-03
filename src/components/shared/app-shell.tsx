@@ -298,7 +298,7 @@ export function AppShell({
   const pageTitle = pageIdentity?.title ?? shellTitle;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffffff_4%,#edf4fb_42%,#e4ecf6_100%)]">
+    <div className="min-h-screen bg-[var(--degradado-lienzo)]">
       {!isAdminRole && (shellRole === "tenant_admin" || shellRole === "admin_tenant") ? (
         <div className="border-b border-[var(--on-fill)]/10" style={{ backgroundColor: brandingReady ? branding?.brandColor ?? DEFAULT_BRAND_COLOR : DEFAULT_BRAND_COLOR }}>
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-[var(--on-fill)] md:px-8">

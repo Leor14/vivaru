@@ -136,7 +136,7 @@ export default function ResidentVisitorsQrPage() {
         {error ? <p className="text-sm text-[var(--danger-700)]">{error}</p> : null}
 
         {!loading && !error && invitation ? (
-          <div className="mx-auto w-full max-w-[36rem] rounded-2xl border border-[var(--brand-200)] bg-[linear-gradient(180deg,#ffffff,#f6fbff)] p-4 text-center shadow-[0_12px_24px_rgba(12,33,53,0.08)]">
+          <div className="mx-auto w-full max-w-[36rem] rounded-2xl border border-[var(--brand-200)] bg-[linear-gradient(180deg,#ffffff,#f6fbff)] p-4 text-center shadow-[var(--sombra-media-5)]">
             <p className="text-sm font-medium text-[var(--slate-700)]">Visitante</p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--slate-900)]">{invitation.visitorName}</h2>
             <p className="mt-1 text-sm text-[var(--slate-600)]">ID: {invitation.visitorIdentification}</p>

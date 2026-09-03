@@ -229,7 +229,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
           cy="32"
           r={radius}
           fill="none"
-          stroke={complete ? "var(--color-brand-green-succ, #16a34a)" : "var(--brand-700)"}
+          stroke={complete ? "var(--color-brand-green-succ)" : "var(--brand-700)"}
           strokeWidth="5"
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -278,7 +278,7 @@ function ChecklistRow({
           "active:scale-[0.99]",
           done
             ? "border-transparent bg-[var(--surface-strong)]/40"
-            : "border-[var(--slate-200)]/70 hover:border-[var(--brand-200)] hover:bg-[var(--surface-strong)] hover:shadow-[0_4px_14px_rgba(12,33,53,0.06)]",
+            : "border-[var(--slate-200)]/70 hover:border-[var(--brand-200)] hover:bg-[var(--surface-strong)] hover:shadow-[var(--sombra-baja-2)]",
         )}
       >
         <span

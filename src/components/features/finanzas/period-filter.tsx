@@ -20,7 +20,7 @@ const chipClass = (active: boolean) =>
   cn(
     "rounded-lg px-3 py-1.5 text-sm transition-colors",
     active
-      ? "bg-[var(--surface-strong)] font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
+      ? "bg-[var(--surface-strong)] font-medium text-[var(--brand-700)] shadow-[var(--sombra-plana-2)]"
       : "text-[var(--slate-600)] hover:text-[var(--slate-900)]",
   );
 

@@ -112,7 +112,7 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
     return (
       <Card className="soft-panel">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-5 w-5 text-[var(--success-600,#1D9E75)]" aria-hidden />
+          <CheckCircle2 className="h-5 w-5 text-[var(--success-600)]" aria-hidden />
           <CardTitle>El padrón está limpio</CardTitle>
         </div>
         <CardDescription className="mt-1">
