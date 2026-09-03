@@ -701,6 +701,19 @@ arreglo destapó un límite del mecanismo: **Recharts pinta el color en atributo
 token **en ejecución** (`useColoresDeGrafica`), con un observador que relee cuando cambia el atributo
 del tema. El resto queda con **techo en el guardián**.
 
+### El cierre, medido en staging con sesión real
+
+| | |
+|---|---|
+| Elementos ilegibles en el panel, **antes** de tokenizar los tintes | **19** (texto a 1,55:1) |
+| Después | **7** |
+| Los mismos 7 **en tema CLARO** | **7**, con el contraste idéntico |
+
+Los siete son rótulos de la barra lateral —`COMUNIDAD`, `OPERATIVO`…, a 3,35:1, y el nombre del
+conjunto a 3,62:1— sobre un azul que es **el mismo en los dos temas**. Comprobado cambiando el tema y
+volviendo a medir, no supuesto: **el tema oscuro no añade ni un fallo de contraste.** Esos siete son
+deuda de la barra lateral, anterior y ajena a este frente.
+
 ### La falsación que enseñó algo
 
 Falsar `RN-07` **pasó en verde dos veces seguidas**, y por dos causas distintas. La primera, mala

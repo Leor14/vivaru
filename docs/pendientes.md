@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # ENTREGA 1 DEL MODO OSCURO, CONSTRUIDA Y EN STAGING. LO SIGUIENTE ES LA ENTREGA 2 — EL MECANISMO.
+> # ENTREGAS 1 Y 2 DEL MODO OSCURO, EN STAGING. LO SIGUIENTE ES LA 3 — EL INTERRUPTOR.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,24 +20,46 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **ENTREGA 1 HECHA** (`430c860`, en `develop` y **sirviéndose en staging**; `master` sigue en
-> `8d3ba81` y **el push a producción lo pides tú**). **832 usos de color literal → 0** en 150
-> ficheros, 48 tokens nuevos, y `npm test` **1594**. Guardián `tests/color-por-token.test.ts`,
-> 15 casos, **falsado seis veces**.
+> **ENTREGAS 1 Y 2 HECHAS** (`109a8c9`, en `develop` y **sirviéndose en staging**; `master` sigue en
+> `8d3ba81` y **el push a producción lo pides tú**). El producto **se ve en oscuro**: poniendo
+> `localStorage['vivaru.tema']='oscuro'` y recargando, staging entero cambia de tema.
 >
-> **Lo siguiente es la ENTREGA 2 — el mecanismo:** `@custom-variant dark` por atributo, la paleta
-> oscura de los ~25 semánticos, el script del `<head>` contra el destello, y `RN-07` (el informe del
-> consejo siempre en claro). Y después la 3, el interruptor.
+> **Entrega 1** — 832 literales de paleta → 0 en 150 ficheros, 48 tokens.
+> **Entrega 2** — variante por **atributo** (`data-tema`), **119 tokens** de paleta oscura generados
+> por regla, guion anti-destello, y `RN-07` cumplida con una línea: el bloque oscuro va dentro de
+> `@media screen`, así que **al imprimir no aplica** y el informe del consejo sale en claro sin
+> duplicar un token. `prefers-color-scheme` en el CSS servido: **21 → 0**.
+> Más los **138 tintes a medida**, que en oscuro no quedaban sin tematizar sino **rotos**.
 >
-> **DOS COSAS TUYAS ANTES O DURANTE LA 2:**
+> **Bancos: `npm test` 1664.** Guardianes: `color-por-token` (15 casos) y `tema-oscuro` (68),
+> falsados diez veces entre los dos.
 >
-> 1. **Los 140 hexadecimales en clase arbitraria** (`bg-[#fff6f4]`), 81 colores en 20 ficheros. Son
->    mapas de tono a medida con casi-duplicados entre ficheros —tarjetas del panel, pastillas de
->    estado—. Unificarlos es **diseñar un sistema de tonos y SE VE**: misma clase de decisión que el
->    grupo B. **Vigilados con techo en el guardián**, no anotados en un comentario.
-> 2. **`npm run dev` NO ARRANCA en este repositorio, y es ANTERIOR a esta entrega.** Turbopack
->    rechaza los selectores `.2xl\:max-w-*` de `globals.css`, que empiezan por dígito; el build de
->    producción sí los tolera, y por eso nadie se había enterado. Se verifica con `next start`.
+> **Medido al cerrar:** el panel pasó de **19 elementos ilegibles a 7**, y esos 7 salen **idénticos
+> en tema claro** — son deuda de la barra lateral, anterior y ajena. **El tema oscuro no añade ni un
+> fallo de contraste.**
+>
+> **LO SIGUIENTE ES LA ENTREGA 3 — EL INTERRUPTOR:** campo `tema` en `users/{uid}`, la regla, las dos
+> pantallas (`/admin/settings` y `/resident/profile`), la bandera `producto-modo-oscuro` en los
+> **cinco** sitios del catálogo, y el borrado del espejo al cerrar sesión.
+>
+> **TRES COSAS TUYAS, TODAS DE CONTRASTE Y TODAS ANTERIORES A ESTE FRENTE.** Están medidas, con
+> suelo en las pruebas, y **arreglarlas SE VE**, así que son decisión tuya como lo fue el grupo B:
+>
+> | Qué | En claro | Qué es |
+> |---|---|---|
+> | `--slate-400` sobre la tarjeta | **2,83:1** | Pistas, marcadores de posición, iconos. **78 usos** |
+> | Blanco sobre `--relleno-exito` | **3,65:1** | Botones «Aprobar» |
+> | Blanco sobre `--relleno-aviso` | **3,61:1** | Botón de marcar |
+>
+> **En OSCURO los tres cumplen**, porque ahí el valor lo decide este frente. Y aparte, los siete
+> rótulos de la barra lateral (3,35–4,10:1), iguales en los dos temas.
+>
+> **Y una cuarta forma de color literal, medida y acotada:** el hexadecimal en propiedad de JS o
+> atributo JSX (`stroke="#335f88"`). **344 en 33 ficheros**, con techo en el guardián. **No todos
+> deben migrarse**: la marca del conjunto la elige el cliente y el QR tiene que seguir siendo negro
+> sobre blanco — el guardián los protege al revés, enrojece si se quedan SIN color. En oscuro casi
+> todos sobreviven; los dos que no eran del panel y ya están arreglados leyendo el token **en
+> ejecución**, porque en un atributo de SVG `var()` no vale.
 >
 > **MEDIR ANTES CAMBIÓ LA FICHA EN CUATRO SITIOS, y ninguno se deducía leyendo:**
 >
