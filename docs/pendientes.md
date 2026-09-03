@@ -53,7 +53,13 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | 1 | Que **no** aparece el aviso rojo en Santa María, con 5.000.000 registrados | ❌ **pide sesión de administrador en PRODUCCIÓN** |
 > | 2 | Que el saldo de fondos incluye esos cinco millones | ❌ ídem |
 > | 3 | Que un conjunto **sin** saldo no dice «Saldo de fondos $0» | ✅ **VISTO en staging el 3 sep**, ya desplegado: la tarjeta dice «MOVIMIENTOS ACUMULADOS $0» y debajo «Sin saldo bancario de apertura. Regístralo en la cuenta del conjunto para ver el saldo real.» |
-> | 4 | Que el Excel del estado trae las cuatro filas nuevas | ❌ sin comprobar — se puede en staging aunque salgan en cero, que es precisamente `CA8` |
+> | 4 | Que el Excel del estado trae las cuatro filas nuevas | ✅ **VISTO en staging el 3 sep**, descargando el fichero: `Saldo inicial registrado` → **«Sin saldo bancario de apertura»** (`CA4`: no dice «$0»), y `Saldo final del fondo`, `Cuentas pendientes de cobro` y `Deuda a proveedores` **presentes valiendo cero** (`CA8`) |
+>
+> > **Y los ceros se contrastaron, porque un cero puede ser la respuesta correcta o un cable
+> > suelto.** Staging tiene **171 cargos y 78 egresos** repartidos entre sus conjuntos, y **Santa
+> > María tiene 0 de cada uno**: el cero del informe es el dato, no un fallo de carga. Sin ese
+> > contraste, «0» y «no se está leyendo la colección» son indistinguibles — el defecto que este
+> > repositorio ya tuvo con tres capacidades encendidas sobre tablas vacías.
 >
 > **La bandera `producto-informe-mensual` está en `false` en los DOS proyectos** —nueve conjuntos
 > en producción, diez en staging—, medido **resolviendo con `functions/lib/feature-flags.js`
