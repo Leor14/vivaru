@@ -718,15 +718,14 @@ service cloud.firestore {
     match /expenses/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
 
-      // **Alta**: nace sin nada de lo que sella el servidor. Un egreso con plan
-      // tampoco puede nacer `pagado`: su estado es DERIVADO de las cuotas
-      // (`RN-04`), y nacer pagado sin haber pagado ninguna bajaría la deuda del
-      // conjunto sin que nadie pagara nada.
+      // **Alta**: nace sin nada de lo que sella el servidor **y SIN PLAN**. El
+      // calendario se declara después, por `saveExpensePlan` — ver el bloque de
+      // abajo. Un egreso nace siempre como lo que siempre fue: un importe.
       allow create: if tenantOperable(request.resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
         && previewModuleWritable(request.resource.data.tenantId)
         && egresoSinSellosDelServidor(request.resource.data)
-        && (!egresoConPlan(request.resource.data) || request.resource.data.status != 'pagado');
+        && !egresoConPlan(request.resource.data);
 
       // **Edición**: `paidAmount` y los sellos de anulación **no se mueven desde el
       // cliente**, y **con plan el ESTADO tampoco**: lo deriva el servidor al pagar
@@ -736,6 +735,17 @@ service cloud.firestore {
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
         && previewModuleWritable(request.resource.data.tenantId)
         && request.resource.data.get('paidAmount', 0) == resource.data.get('paidAmount', 0)
+        // **`R8` · el calendario NO se escribe desde el cliente, ni una coma.**
+        // Desde la entrega 2 la deuda del conjunto se deriva de las cuotas vivas,
+        // así que este array sostiene un invariante — y un campo escribible desde
+        // el cliente no puede sostenerlo. Lo escribe `saveExpensePlan`, con Admin
+        // SDK, que no evalúa estas reglas.
+        //
+        // **Esto es lo que las reglas SÍ saben hacer.** Comprobar cuota por cuota
+        // que ninguna venga marcada `pagada` con un asiento inventado **no se
+        // puede: el lenguaje no itera listas**. Congelar el array entero sí, y
+        // cierra el mismo agujero por el otro lado.
+        && request.resource.data.get('installments', null) == resource.data.get('installments', null)
         // **`affectedKeys()` y NO `changedKeys()`, y la diferencia es todo.**
         // `changedKeys()` son las claves que están en los DOS mapas con valor
         // distinto: **una clave AÑADIDA no aparece**. Con `changedKeys` esta
@@ -759,21 +769,18 @@ service cloud.firestore {
         && resource.data.get('paidAmount', 0) == 0;
     }
 
-    // ⚠️ **LO QUE ESTA REGLA NO PUEDE HACER, y hay que saberlo.**
+    // ✅ **`R8` CERRADO (4 sep 2026, decisión de David).**
     //
-    // **El lenguaje de reglas NO itera listas.** No hay `map` ni `filter` sobre los
-    // elementos de un array, así que **no se puede comprobar cuota por cuota** que
-    // ninguna venga marcada `pagada` con un asiento inventado. Lo que sí se cierra
-    // es `paidAmount`, y eso deja cualquier manipulación **detectable**: dejaría de
-    // cuadrar con la suma de las cuotas `pagada`.
+    // La primera versión de este bloque dejaba `installments` en manos del cliente
+    // y anotaba la limitación: *el lenguaje de reglas no itera listas*, así que no
+    // se podía comprobar cuota por cuota. Cerrar `paidAmount` dejaba la
+    // manipulación **detectable, no impedida** — y eso llegó a morder de verdad,
+    // aunque por la vía mundana: **el propio formulario deshacía un pago al editar
+    // la descripción**, porque reenviaba el array sin lo que sella el servidor.
     //
-    // **La consecuencia de diseño, y es de David:** desde la entrega 2 la deuda del
-    // conjunto **se deriva de las cuotas vivas**, así que el array `installments`
-    // pasó a sostener un invariante — y por la regla de este repositorio, *un campo
-    // escribible desde el cliente no puede sostener un invariante*. El cierre
-    // completo es **mover la edición del plan a una callable**, que es un cambio de
-    // §11 de la ficha y por tanto una decisión, no un detalle. Queda anotado como
-    // `R8`.
+    // **La edición del plan pasó a `saveExpensePlan`**, y entonces la regla puede
+    // hacer lo que sí sabe: **congelar el array entero**. No hace falta iterar para
+    // decir «esto no lo escribes tú».
 
     // Registro de proveedores y beneficiarios (PRD-V-FEAT-003). Mismo patrón
     // que expenses: SOLO administración lee — los datos bancarios de un

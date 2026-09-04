@@ -91,9 +91,11 @@ import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
 import {
   anularCuota,
   anularEgresoConCuotas,
+  guardarPlan,
   pagarCuota,
   type AnularCuotaInput,
   type AnularEgresoInput,
+  type GuardarPlanInput,
   type PagarCuotaInput,
 } from "./egresos-en-cuotas";
 import {
@@ -5225,6 +5227,51 @@ export const voidExpenseWithInstallments = onCall<AnularEgresoInput>(
         cuotasConservadas: r.cuotasConservadas,
       });
     }
+    return r;
+  },
+);
+
+/**
+ * `PRD-V-FLOW-008` · **`R8` · declarar y editar el calendario de pagos.**
+ *
+ * **Esto era escritura directa hasta el 4 de septiembre de 2026, y se movió aquí
+ * por una consecuencia de la entrega 2:** al pasar la deuda a derivarse de las
+ * **cuotas vivas**, el array `installments` pasó a sostener la deuda del conjunto
+ * — y *un campo escribible desde el cliente no puede sostener un invariante*.
+ *
+ * Las reglas **no podían cerrarlo: no iteran listas.** Ahora sí pueden hacer lo
+ * que sí saben — **congelar `installments` frente al cliente**— porque el único
+ * camino que lo escribe es éste.
+ *
+ * **La bandera SÍ se comprueba**: sin ella no hay planes que declarar.
+ */
+export const saveExpensePlan = onCall<GuardarPlanInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto o el egreso.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+    await assertTenantContratado(tenantId);
+    await assertFeatureEnabled("producto-egresos-en-cuotas", tenantId);
+
+    const r = await guardarPlan(
+      { tenantId, expenseId: normalizeText(d.expenseId), installments: d.installments },
+      uid,
+    );
+
+    await writeAuditLog(tenantId, uid, "save_expense_plan", {
+      expenseId: normalizeText(d.expenseId),
+      cuotas: r.cuotas,
+      paidAmount: r.paidAmount,
+      expenseStatus: r.expenseStatus,
+    });
     return r;
   },
 );

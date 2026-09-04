@@ -6,7 +6,6 @@ import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { codigoDeCategoriaDeEgreso } from "@/lib/finanzas/conceptos-de-cargo";
 
-import { fundirPlan } from "./cuotas-del-egreso";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense } from "@/types/domain";
 
@@ -90,31 +89,14 @@ function normalizeExpensePayload(values: ExpenseFormValues) {
     paymentMethod: values.paymentMethod ? values.paymentMethod : null,
     checkNumber: values.paymentMethod === "cheque" ? values.checkNumber?.trim() || null : null,
     bankAccountId: values.bankAccountId?.trim() || null,
-    /**
-     * `PRD-V-FLOW-008` · el plan.
-     *
-     * **`null` cuando no hay cuotas, y no un array vacío**: es la diferencia
-     * entre «esta factura se paga de una vez» y «tiene un plan sin cuotas», y el
-     * resto del producto lee la ausencia como lo primero.
-     *
-     * **Las cuotas nacen `pendiente` y sin nada del pago.** El estado, el asiento
-     * y `paidAt` los escribe el SERVIDOR en la entrega 2; si viajaran desde aquí,
-     * marcar una cuota como pagada sería editar un campo y la deuda del conjunto
-     * bajaría sin que nadie pagase.
-     */
-    installments:
-      values.installments && values.installments.length > 0
-        ? values.installments.map((c) => ({
-            number: c.number,
-            dueDate: c.dueDate,
-            amount: c.amount,
-            status: "pendiente" as const,
-          }))
-        : null,
+    // **`PRD-V-FLOW-008` · el plan NO se escribe aquí (`R8`).** Lo guarda
+    // `saveExpensePlan`, y la regla de `expenses` congela `installments` frente
+    // al cliente: desde la entrega 2 la deuda del conjunto deriva de las cuotas
+    // vivas, así que este array sostiene un invariante.
   };
 }
 
-export async function createExpense(tenantId: string, userId: string, values: ExpenseFormValues) {
+export async function createExpense(tenantId: string, userId: string, values: ExpenseFormValues): Promise<string> {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
@@ -142,20 +124,15 @@ export async function createExpense(tenantId: string, userId: string, values: Ex
     });
     await updateDoc(doc(db, "expenses", ref.id), { ledgerEntryId: ledgerId });
   }
+  // `FLOW-008` · lo devuelve para que el plan pueda guardarse a continuación.
+  return ref.id;
 }
 
 export async function updateExpense(prev: Expense, userId: string, values: ExpenseFormValues) {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
-  const payload = {
-    ...normalizeExpensePayload(values),
-    // **`PRD-V-FLOW-008` · el plan se FUNDE, no se sobrescribe.** El formulario
-    // solo trae número, fecha e importe; guardar el array tal cual devolvía una
-    // cuota `pagada` a `pendiente` y dejaba su asiento huérfano en el libro.
-    // Ver `fundirPlan`.
-    installments: fundirPlan(prev.installments, values.installments),
-  };
+  const payload = normalizeExpensePayload(values);
   const paidAt = payload.status === "pagado" ? today() : null;
 
   await updateDoc(doc(db, "expenses", prev.id), {

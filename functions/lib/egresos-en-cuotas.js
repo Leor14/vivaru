@@ -1,12 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sumarPagado = sumarPagado;
-exports.estadoDerivado = estadoDerivado;
+exports.sumarPagado = exports.estadoDerivado = void 0;
 exports.pagarCuota = pagarCuota;
 exports.anularCuota = anularCuota;
 exports.anularEgresoConCuotas = anularEgresoConCuotas;
+exports.guardarPlan = guardarPlan;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const nucleo_estado_financiero_1 = require("./nucleo-estado-financiero");
+Object.defineProperty(exports, "estadoDerivado", { enumerable: true, get: function () { return nucleo_estado_financiero_1.estadoDerivadoDelPlan; } });
+Object.defineProperty(exports, "sumarPagado", { enumerable: true, get: function () { return nucleo_estado_financiero_1.sumarPagadoDelPlan; } });
 /**
  * `PRD-V-FLOW-008`, entrega 2 — pagar y anular una cuota.
  *
@@ -44,21 +47,6 @@ const https_1 = require("firebase-functions/v2/https");
  * su cuota.
  */
 const db = () => (0, firestore_1.getFirestore)();
-/** Lo pagado de una factura: **derivado de las cuotas**, nunca acumulado a mano. */
-function sumarPagado(cuotas) {
-    const total = cuotas.reduce((a, c) => (c.status === "pagada" ? a + (c.amount ?? 0) : a), 0);
-    return Math.round(total * 100) / 100;
-}
-/**
- * El estado que le corresponde al egreso, **derivado de sus cuotas** (`RN-04`).
- *
- * `pagado` cuando **ninguna queda pendiente**. Nadie lo pone a mano: si se
- * pudiera, la deuda del conjunto bajaría sin que nadie pagara nada — y esa cifra
- * es la que el consejo lee en el informe mensual.
- */
-function estadoDerivado(cuotas) {
-    return cuotas.some((c) => c.status === "pendiente") ? "registrado" : "pagado";
-}
 function leerEgreso(snap, tenantId) {
     if (!snap.exists)
         throw new https_1.HttpsError("not-found", "Ese egreso no existe.");
@@ -106,8 +94,8 @@ async function pagarCuota(input, uid) {
             return {
                 ok: true,
                 ledgerEntryId: cuota.ledgerEntryId ?? "",
-                paidAmount: sumarPagado(cuotas),
-                expenseStatus: estadoDerivado(cuotas),
+                paidAmount: (0, nucleo_estado_financiero_1.sumarPagadoDelPlan)(cuotas),
+                expenseStatus: (0, nucleo_estado_financiero_1.estadoDerivadoDelPlan)(cuotas),
                 yaPagada: true,
             };
         }
@@ -118,7 +106,7 @@ async function pagarCuota(input, uid) {
         // validado esto no puede darse, y se comprueba igual: es el invariante que
         // sostiene la deuda del conjunto, y las validaciones de forma viven en el
         // cliente — donde no protegen de una llamada directa.
-        const pagadoTrasEste = sumarPagado(cuotas) + (cuota.amount ?? 0);
+        const pagadoTrasEste = (0, nucleo_estado_financiero_1.sumarPagadoDelPlan)(cuotas) + (cuota.amount ?? 0);
         if (pagadoTrasEste > (egreso.amount ?? 0) + 0.005) {
             throw new https_1.HttpsError("failed-precondition", "Pagar esa cuota haría que lo pagado superase el total de la factura.");
         }
@@ -152,8 +140,8 @@ async function pagarCuota(input, uid) {
             bankAccountId: input.bankAccountId || null,
             ledgerEntryId: asientoRef.id,
         };
-        const paidAmount = sumarPagado(actualizadas);
-        const expenseStatus = estadoDerivado(actualizadas);
+        const paidAmount = (0, nucleo_estado_financiero_1.sumarPagadoDelPlan)(actualizadas);
+        const expenseStatus = (0, nucleo_estado_financiero_1.estadoDerivadoDelPlan)(actualizadas);
         tx.update(ref, {
             installments: actualizadas,
             paidAmount,
@@ -188,19 +176,19 @@ async function anularCuota(input, uid) {
             throw new https_1.HttpsError("not-found", `Ese egreso no tiene una cuota ${input.installmentNumber}.`);
         const cuota = cuotas[i];
         if (cuota.status === "anulada") {
-            return { ok: true, yaAnulada: true, expenseStatus: estadoDerivado(cuotas) };
+            return { ok: true, yaAnulada: true, expenseStatus: (0, nucleo_estado_financiero_1.estadoDerivadoDelPlan)(cuotas) };
         }
         if (cuota.status === "pagada") {
             throw new https_1.HttpsError("failed-precondition", "Esa cuota ya está pagada y dejó un asiento en el libro: para retirarla hay que anular el asiento.");
         }
         const actualizadas = [...cuotas];
         actualizadas[i] = { ...cuota, status: "anulada", voidReason: motivo };
-        const expenseStatus = estadoDerivado(actualizadas);
+        const expenseStatus = (0, nucleo_estado_financiero_1.estadoDerivadoDelPlan)(actualizadas);
         tx.update(ref, {
             installments: actualizadas,
             // Se recalcula igualmente: anular no cambia lo pagado, pero dejar el campo
             // sin tocar hace depender su exactitud de que nadie se equivoque después.
-            paidAmount: sumarPagado(actualizadas),
+            paidAmount: (0, nucleo_estado_financiero_1.sumarPagadoDelPlan)(actualizadas),
             status: expenseStatus,
             updatedBy: uid,
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -232,7 +220,7 @@ async function anularEgresoConCuotas(input, uid) {
         const anuladas = cuotas.filter((c) => c.status === "pendiente").length;
         const conservadas = cuotas.filter((c) => c.status === "pagada").length;
         tx.update(ref, {
-            ...(cuotas.length > 0 ? { installments: actualizadas, paidAmount: sumarPagado(actualizadas) } : {}),
+            ...(cuotas.length > 0 ? { installments: actualizadas, paidAmount: (0, nucleo_estado_financiero_1.sumarPagadoDelPlan)(actualizadas) } : {}),
             status: "anulado",
             voidReason: motivo,
             voidedBy: uid,
@@ -241,5 +229,82 @@ async function anularEgresoConCuotas(input, uid) {
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         });
         return { ok: true, yaAnulado: false, cuotasAnuladas: anuladas, cuotasConservadas: conservadas };
+    });
+}
+/**
+ * Declara o edita el calendario de pagos de una factura. **`PRD-V-FLOW-008`, `R8`.**
+ *
+ * ## Por qué esto dejó de ser escritura directa
+ *
+ * §11 de la ficha decidió que declarar el plan fuera escritura directa, y era
+ * correcto **cuando la deuda salía de `paidAmount`**: las validaciones del plan
+ * eran de forma y las reglas podían con ellas.
+ *
+ * **La entrega 2 cambió eso sin querer.** Al corregir la deuda para que derive de
+ * las **cuotas vivas** —porque `amount − paidAmount` contaba de más en cuanto se
+ * anulaba una cuota—, el array `installments` pasó a **sostener la deuda del
+ * conjunto**. Y por la regla de este repositorio, *un campo escribible desde el
+ * cliente no puede sostener un invariante*.
+ *
+ * Las reglas de Firestore **no podían cerrarlo: no iteran listas**, así que no hay
+ * forma de comprobar cuota por cuota que ninguna venga marcada `pagada` con un
+ * asiento inventado. Por eso el plan entero pasa por aquí, y la regla se limita a
+ * **congelar `installments` frente al cliente**, que sí sabe hacer.
+ *
+ * ## Lo que este camino garantiza y la escritura directa no
+ *
+ *   1. **El plan se valida en el SERVIDOR** con la misma función que el
+ *      formulario, la del núcleo. Un plan que no cuadra descuadra la deuda para
+ *      siempre, y el formulario es una sugerencia para quien llama por HTTP.
+ *   2. **Solo entran número, fecha e importe.** El estado, el asiento y las
+ *      marcas de pago **no viajan**: se conservan de lo guardado.
+ *   3. **`paidAmount` y el estado se RECALCULAN** de las cuotas resultantes.
+ */
+async function guardarPlan(input, uid) {
+    const firestore = db();
+    const ref = firestore.collection("expenses").doc(input.expenseId);
+    return firestore.runTransaction(async (tx) => {
+        const egreso = leerEgreso(await tx.get(ref), input.tenantId);
+        if (egreso.status === "anulado") {
+            throw new https_1.HttpsError("failed-precondition", "Ese egreso está anulado: su plan ya no se edita.");
+        }
+        // **Solo se admiten los tres campos de captura.**
+        //
+        // **Esto es defensa en profundidad, NO la guarda**, y conviene saberlo antes
+        // de tocarlo: quitar este filtro **no rompe nada**, porque `fundirPlan`
+        // reconstruye cada cuota campo a campo y fuerza `pendiente`. Lo dijo una
+        // falsación que pasó EN VERDE — rompí el sitio equivocado. La guarda de
+        // verdad está en el núcleo; si algún día se toca aquella, esto no salva.
+        const entrantes = (input.installments ?? []).map((c) => ({
+            number: Number(c.number),
+            dueDate: String(c.dueDate ?? ""),
+            amount: Number(c.amount),
+        }));
+        const fundidas = (0, nucleo_estado_financiero_1.fundirPlan)(egreso.installments, entrantes);
+        if (fundidas && fundidas.length > 0) {
+            // **La validación corre en el servidor, con la MISMA función del núcleo que
+            // usa el formulario.** No es una segunda comprobación: es la única que
+            // manda.
+            const problemas = (0, nucleo_estado_financiero_1.validarPlan)(fundidas, egreso.amount ?? 0);
+            if (problemas.length > 0) {
+                const texto = problemas
+                    .map((p) => (0, nucleo_estado_financiero_1.explicarProblemaDelPlan)(p, (n) => Math.round(n).toLocaleString("es-CO")))
+                    .join(" ");
+                throw new https_1.HttpsError("invalid-argument", texto);
+            }
+        }
+        const cuotas = fundidas ?? [];
+        const paidAmount = (0, nucleo_estado_financiero_1.sumarPagadoDelPlan)(cuotas);
+        const expenseStatus = cuotas.length > 0 ? (0, nucleo_estado_financiero_1.estadoDerivadoDelPlan)(cuotas) : egreso.status;
+        tx.update(ref, {
+            installments: fundidas,
+            paidAmount,
+            // Con plan el estado es derivado; sin plan se deja el que tuviera, que lo
+            // gobierna el camino de siempre.
+            ...(cuotas.length > 0 ? { status: expenseStatus } : {}),
+            updatedBy: uid,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+        return { ok: true, cuotas: cuotas.length, paidAmount, expenseStatus };
     });
 }

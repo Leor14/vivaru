@@ -123,16 +123,61 @@ describe("FLOW-008 · los egresos SIN plan no notan la regla nueva", () => {
     await assertSucceeds(deleteDoc(doc(admin(), "expenses", "sin-plan")));
   });
 
-  it("y se crean CON plan sin problema: declarar el calendario es escritura directa", async () => {
-    await assertSucceeds(setDoc(doc(admin(), "expenses", "otro-plan"), conPlan()));
+});
+
+/**
+ * **`R8` · el calendario NO lo escribe el cliente, ni al crear ni al editar.**
+ *
+ * Era escritura directa hasta el 4 de septiembre de 2026. Se cerró porque la
+ * entrega 2 hizo que la deuda del conjunto derive de las **cuotas vivas**, y
+ * entonces el array pasó a sostener un invariante.
+ *
+ * **Comprobar cuota por cuota no se puede —las reglas no iteran listas—, pero
+ * congelar el array entero sí**, y cierra el mismo agujero por el otro lado.
+ */
+describe("FLOW-008 · `R8` · el array `installments` está congelado", () => {
+  it("un egreso NO puede nacer con un plan por delante", async () => {
+    await assertFails(setDoc(doc(admin(), "expenses", "otro-plan"), conPlan()));
   });
 
-  it("las cuotas NO pagadas se editan: corregir el plan es lo que sustituye al pago parcial", async () => {
-    await assertSucceeds(
+  it("nacer SIN plan sigue siendo lo normal", async () => {
+    await assertSucceeds(setDoc(doc(admin(), "expenses", "otro-normal"), sinPlan()));
+  });
+
+  it("editar las cuotas desde el cliente: RECHAZADO, aunque sean las pendientes", async () => {
+    await assertFails(
       updateDoc(doc(admin(), "expenses", "con-plan"), {
-        installments: once.map((c) => ({ ...c, amount: 100, dueDate: `2026-${String(c.number).padStart(2, "0")}-20` })),
+        installments: once.map((c) => ({ ...c, dueDate: `2026-${String(c.number).padStart(2, "0")}-20` })),
       }),
     );
+  });
+
+  it("marcar una cuota `pagada` a mano: RECHAZADO — era el agujero de `R8`", async () => {
+    // Sin este veto, un cliente manipulado bajaba la deuda del conjunto sin pasar
+    // por el servidor y sin dejar un asiento en el libro.
+    await assertFails(
+      updateDoc(doc(admin(), "expenses", "con-plan"), {
+        installments: once.map((c) => ({ ...c, status: "pagada", ledgerEntryId: "inventado" })),
+      }),
+    );
+  });
+
+  it("anularlas todas para dejar la deuda en cero: RECHAZADO", async () => {
+    await assertFails(
+      updateDoc(doc(admin(), "expenses", "con-plan"), {
+        installments: once.map((c) => ({ ...c, status: "anulada" })),
+      }),
+    );
+  });
+
+  it("quitar el plan entero: RECHAZADO", async () => {
+    await assertFails(updateDoc(doc(admin(), "expenses", "con-plan"), { installments: null }));
+  });
+
+  it("pero editar OTRA cosa de una factura con plan SÍ se puede", async () => {
+    // Es lo que hace la pantalla al guardar: el egreso por escritura directa y el
+    // plan por la callable. Si esto fallara, no se podría ni corregir un texto.
+    await assertSucceeds(updateDoc(doc(admin(), "expenses", "con-plan"), { description: "Póliza (corregida)" }));
   });
 });
 

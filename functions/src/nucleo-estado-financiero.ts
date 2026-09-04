@@ -510,3 +510,180 @@ export function pendienteDelEgreso(
   const pendiente = importe - pagado;
   return pendiente > 0 ? pendiente : 0;
 }
+
+// ── El calendario de cuotas ───────────────────────────────────────────────────
+//
+// `PRD-V-FLOW-008`. **Vive aquí porque lo necesitan LOS DOS LADOS**: el cliente,
+// para no dejar teclear un plan que no cuadra, y el servidor, que es quien de
+// verdad lo guarda desde que la edición del plan pasó a callable (`R8`). Tener la
+// misma regla escrita dos veces es exactamente cómo nacieron `R12` y `R16`.
+//
+// Los tipos son **laxos a propósito**, como el resto del núcleo: en `src/` llega
+// un `Installment` y en el servidor lo que salga de `doc.data()`, que no está
+// tipado. Exigir el tipo del cliente obligaría a importarlo, y eso rompe la regla
+// que hace posible el espejo byte a byte.
+
+export type CuotaDelNucleo = {
+  number: number;
+  dueDate: string;
+  amount: number;
+  status: "pendiente" | "pagada" | "anulada";
+};
+
+/** Cuánto suman las cuotas que todavía cuentan — las anuladas no. */
+export function sumaDelPlan(
+  cuotas: ReadonlyArray<{ amount?: number; status?: string }>,
+): number {
+  let total = 0;
+  for (const c of cuotas) {
+    if (c.status === "anulada") continue;
+    total += c.amount ?? 0;
+  }
+  return aCentimos(total);
+}
+
+export type ProblemaDelPlan =
+  | { tipo: "vacio" }
+  | { tipo: "sin_vencimiento"; numeros: number[] }
+  | { tipo: "numeracion" }
+  | { tipo: "importe_no_positivo"; numeros: number[] }
+  | { tipo: "no_cuadra"; diferencia: number };
+
+/**
+ * Comprueba el plan contra el total de la factura (`RN-01`–`RN-03`).
+ *
+ * Devuelve **todos** los problemas, no el primero: quien está tecleando once
+ * filas prefiere verlos juntos a descubrirlos de uno en uno.
+ */
+export function validarPlan(
+  cuotas: ReadonlyArray<{ number?: number; dueDate?: string; amount?: number; status?: string }>,
+  totalFactura: number,
+): ProblemaDelPlan[] {
+  const problemas: ProblemaDelPlan[] = [];
+
+  // Un plan vacío no es un plan. Va PRIMERO porque sobre cero cuotas todo lo
+  // demás «cuadra» y devolvería un verde vacío — el error de la puerta que se
+  // abre sobre un conjunto sin datos.
+  if (cuotas.length === 0) return [{ tipo: "vacio" }];
+
+  const sinFecha = cuotas.filter((c) => !c.dueDate).map((c) => c.number ?? 0);
+  if (sinFecha.length > 0) problemas.push({ tipo: "sin_vencimiento", numeros: sinFecha });
+
+  // Consecutivos desde 1 y sin repetir. Con huecos o duplicados, «la cuota 3»
+  // deja de identificar una cuota — y es como se la nombra al pagarla.
+  const numeros = cuotas.map((c) => c.number ?? 0).sort((a, b) => a - b);
+  const bien = numeros.length === new Set(numeros).size && numeros.every((n, i) => n === i + 1);
+  if (!bien) problemas.push({ tipo: "numeracion" });
+
+  const noPositivos = cuotas.filter((c) => !((c.amount ?? 0) > 0)).map((c) => c.number ?? 0);
+  if (noPositivos.length > 0) problemas.push({ tipo: "importe_no_positivo", numeros: noPositivos });
+
+  // **Se compara en céntimos y no sobre los flotantes crudos**: once cuotas de
+  // 100,01 arrastran residuo, y rechazar un plan correcto por un 0,0000001 es
+  // peor que no validar. Es el mismo residuo que hizo fallar `CA3` en `FLOW-007`.
+  const diferencia = aCentimos(aCentimos(totalFactura) - sumaDelPlan(cuotas));
+  if (diferencia !== 0) problemas.push({ tipo: "no_cuadra", diferencia });
+
+  return problemas;
+}
+
+/**
+ * El problema, dicho para una persona. **Nombra la diferencia**, que es lo que
+ * `CA1` pide: «no cuadra» obliga a sacar la calculadora; «faltan $11» no.
+ *
+ * El formateador se **inyecta** en vez de importarse: el núcleo no importa nada,
+ * y así el cliente pone la moneda del conjunto y el servidor la suya.
+ */
+export function explicarProblemaDelPlan(
+  p: ProblemaDelPlan,
+  formatear: (n: number) => string,
+): string {
+  switch (p.tipo) {
+    case "vacio":
+      return "Un plan de pagos necesita al menos una cuota.";
+    case "sin_vencimiento":
+      return `Falta la fecha de vencimiento de la cuota ${p.numeros.join(", ")}. Cada cuota necesita la suya.`;
+    case "numeracion":
+      return "Las cuotas deben ir numeradas desde 1, sin saltos ni repetidas.";
+    case "importe_no_positivo":
+      return `El importe debe ser mayor que cero: cuota ${p.numeros.join(", ")}.`;
+    case "no_cuadra":
+      return p.diferencia > 0
+        ? `Las cuotas no suman el total de la factura: faltan ${formatear(p.diferencia)}.`
+        : `Las cuotas suman más que el total de la factura: sobran ${formatear(-p.diferencia)}.`;
+  }
+}
+
+/**
+ * Funde el plan que llega con el que está guardado.
+ *
+ * **Existe por un defecto que costó dinero de mentira y podría haberlo costado de
+ * verdad**: editar la descripción de una factura **deshacía sus pagos**, porque el
+ * formulario reenvía las cuotas sin lo que sella el servidor. Medido en staging:
+ * `paidAmount` en 100, **cero cuotas pagadas**, y su asiento huérfano en el libro.
+ *
+ * **Una cuota que no está `pendiente` se conserva ENTERA** —importe y fecha
+ * incluidos (`RN-07`)— y **sobrevive aunque el plan que llega ya no la traiga**:
+ * no se borra una cuota que dejó un asiento en el libro.
+ */
+export function fundirPlan<T extends CuotaDelNucleo>(
+  guardadas: ReadonlyArray<T> | undefined,
+  entrantes: ReadonlyArray<{ number: number; dueDate: string; amount: number }> | undefined,
+): T[] | null {
+  const previas = guardadas ?? [];
+  const selladas = previas.filter((c) => c.status !== "pendiente");
+
+  if (!entrantes || entrantes.length === 0) {
+    // Quitar el plan solo se puede si no había nada pagado ni anulado.
+    return selladas.length > 0 ? [...selladas] : null;
+  }
+
+  const porNumero = new Map(previas.map((c) => [c.number, c]));
+  const fundidas: T[] = [];
+  for (const nueva of entrantes) {
+    const previa = porNumero.get(nueva.number);
+    if (previa && previa.status !== "pendiente") {
+      fundidas.push(previa);
+      continue;
+    }
+    // **Se RECONSTRUYE la cuota campo a campo, y esto ES la guarda.** Un
+    // `...nueva` traería lo que viniera dentro —un `status: "pagada"`, un
+    // `ledgerEntryId` inventado— y bajaría la deuda del conjunto sin que nadie
+    // pagara nada. Lo confirmó una falsación: al cambiarlo por un esparcido,
+    // enrojecen las dos pruebas que vigilan justo eso.
+    fundidas.push({
+      ...(previa ?? ({} as T)),
+      number: nueva.number,
+      dueDate: nueva.dueDate,
+      amount: nueva.amount,
+      status: "pendiente",
+    } as T);
+  }
+
+  // Las selladas que el plan entrante ya no trae vuelven a la lista: no se borran.
+  for (const c of selladas) {
+    if (!fundidas.some((f) => f.number === c.number)) fundidas.push(c);
+  }
+  return fundidas.sort((a, b) => a.number - b.number);
+}
+
+/** Lo ya pagado de una factura con plan. **Derivado de las cuotas, nunca acumulado.** */
+export function sumarPagadoDelPlan(
+  cuotas: ReadonlyArray<{ amount?: number; status?: string }>,
+): number {
+  let total = 0;
+  for (const c of cuotas) {
+    if (c.status === "pagada") total += c.amount ?? 0;
+  }
+  return aCentimos(total);
+}
+
+/**
+ * El estado que le corresponde al egreso, **derivado de sus cuotas** (`RN-04`).
+ * `pagado` cuando ninguna queda pendiente. Nadie lo pone a mano.
+ */
+export function estadoDerivadoDelPlan(
+  cuotas: ReadonlyArray<{ status?: string }>,
+): "registrado" | "pagado" {
+  return cuotas.some((c) => c.status === "pendiente") ? "registrado" : "pagado";
+}

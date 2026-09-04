@@ -10,6 +10,7 @@ import {
   anularCuota,
   anularEgresoConCuotas,
   estadoDerivado,
+  guardarPlan,
   pagarCuota,
   sumarPagado,
 } from "../src/egresos-en-cuotas";
@@ -283,5 +284,96 @@ describe("FLOW-008 · las guardas que no dependen del conjunto", () => {
     await expect(
       pagarCuota({ tenantId: T, expenseId: ID, installmentNumber: 99, paidAt: "2026-01-16" }, ADMIN),
     ).rejects.toThrow(/no tiene una cuota 99/i);
+  });
+});
+
+/**
+ * `PRD-V-FLOW-008` · **`R8`** — declarar y editar el plan, ahora en el servidor.
+ *
+ * Lo que este camino garantiza y la escritura directa no:
+ *   1. **el plan se valida aquí**, con la misma función del núcleo que el formulario;
+ *   2. **solo entran número, fecha e importe**;
+ *   3. **`paidAmount` y el estado se recalculan** de las cuotas resultantes.
+ */
+describe("FLOW-008 · `R8` · `guardarPlan`", () => {
+  beforeEach(async () => {
+    await db.collection("expenses").doc(ID).set({
+      tenantId: T, description: "Póliza", category: "seguros", accountCode: "5.7",
+      amount: 1_100, issueDate: "2026-01-02", status: "registrado",
+    });
+  });
+
+  const plan = once.map((c) => ({ number: c.number, dueDate: c.dueDate, amount: c.amount }));
+
+  it("declara el plan y recalcula lo pagado y el estado", async () => {
+    const r = await guardarPlan({ tenantId: T, expenseId: ID, installments: plan }, ADMIN);
+    expect(r).toMatchObject({ cuotas: 11, paidAmount: 0, expenseStatus: "registrado" });
+    const e = await leer();
+    expect(e.installments).toHaveLength(11);
+    expect(e.installments.every((c) => c.status === "pendiente")).toBe(true);
+  });
+
+  it("**el plan se valida EN EL SERVIDOR**, no solo en el formulario", async () => {
+    // Once cuotas de 99 sobre una factura de 1.100: faltan 11.
+    await expect(
+      guardarPlan({ tenantId: T, expenseId: ID, installments: plan.map((c) => ({ ...c, amount: 99 })) }, ADMIN),
+    ).rejects.toThrow(/faltan 11/i);
+  });
+
+  it("y rechaza la numeración rota y la fecha ausente, con su motivo", async () => {
+    await expect(
+      guardarPlan({ tenantId: T, expenseId: ID, installments: [{ number: 2, dueDate: "2026-01-15", amount: 1_100 }] }, ADMIN),
+    ).rejects.toThrow(/numeradas desde 1/i);
+    await expect(
+      guardarPlan({ tenantId: T, expenseId: ID, installments: [{ number: 1, dueDate: "", amount: 1_100 }] }, ADMIN),
+    ).rejects.toThrow(/fecha de vencimiento/i);
+  });
+
+  /**
+   * **El agujero de `R8`, cerrado.** Aunque alguien mande el estado y un asiento
+   * inventado por HTTP, **no viajan**: el servidor toma solo los tres campos de
+   * captura y conserva lo suyo de lo que ya había.
+   */
+  it("un `status` o un `ledgerEntryId` que lleguen desde fuera se IGNORAN", async () => {
+    await guardarPlan(
+      {
+        tenantId: T, expenseId: ID,
+        installments: plan.map((c) => ({ ...c, status: "pagada", ledgerEntryId: "inventado" })) as never,
+      },
+      ADMIN,
+    );
+    const e = await leer();
+    expect(e.installments.every((c) => c.status === "pendiente")).toBe(true);
+    expect(e.installments.every((c) => !c.ledgerEntryId)).toBe(true);
+    expect(e.paidAmount).toBe(0);
+  });
+
+  it("editar el plan CONSERVA las cuotas ya pagadas y su asiento", async () => {
+    await guardarPlan({ tenantId: T, expenseId: ID, installments: plan }, ADMIN);
+    await pagarCuota({ tenantId: T, expenseId: ID, installmentNumber: 1, paidAt: "2026-01-16" }, ADMIN);
+
+    // El formulario reenvía el plan sin lo que sella el servidor: es exactamente
+    // lo que deshacía el pago antes de `fundirPlan`.
+    await guardarPlan({ tenantId: T, expenseId: ID, installments: plan }, ADMIN);
+
+    const e = await leer();
+    const pagada = e.installments.find((c) => c.number === 1)!;
+    expect(pagada.status).toBe("pagada");
+    expect(pagada.ledgerEntryId).toBeTruthy();
+    expect(e.paidAmount).toBe(100);
+  });
+
+  it("un egreso ANULADO ya no admite cambios de plan", async () => {
+    await guardarPlan({ tenantId: T, expenseId: ID, installments: plan }, ADMIN);
+    await anularEgresoConCuotas({ tenantId: T, expenseId: ID, reason: "mal emitida" }, ADMIN);
+    await expect(
+      guardarPlan({ tenantId: T, expenseId: ID, installments: plan }, ADMIN),
+    ).rejects.toThrow(/está anulado/i);
+  });
+
+  it("un egreso de OTRO conjunto no se toca", async () => {
+    await expect(
+      guardarPlan({ tenantId: "otro", expenseId: ID, installments: plan }, ADMIN),
+    ).rejects.toThrow(/no pertenece a este conjunto/i);
   });
 });

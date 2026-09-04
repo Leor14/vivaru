@@ -1721,3 +1721,32 @@ export async function voidExpenseWithInstallmentsCallable(input: VoidExpenseWith
   >(functions, "voidExpenseWithInstallments");
   return executeCallable(callable, input, "No fue posible anular el egreso.");
 }
+
+export type SaveExpensePlanInput = {
+  tenantId: string;
+  expenseId: string;
+  /** Solo número, fecha e importe. **Vacío o ausente = quitar el plan.** */
+  installments?: { number: number; dueDate: string; amount: number }[];
+};
+
+/**
+ * `PRD-V-FLOW-008` · **`R8`** — declara o edita el calendario de pagos.
+ *
+ * **Era escritura directa hasta el 4 de septiembre de 2026.** Se movió a callable
+ * porque la entrega 2 hizo que la deuda del conjunto derive de las **cuotas
+ * vivas**, y entonces el array pasó a sostener un invariante. La regla de
+ * `expenses` **congela `installments`** frente al cliente: este es el único camino.
+ *
+ * **De aquí solo salen número, fecha e importe.** El estado, el asiento y las
+ * marcas de pago las conserva el servidor de lo que ya había.
+ */
+export async function saveExpensePlanCallable(input: SaveExpensePlanInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<
+    SaveExpensePlanInput,
+    { ok: true; cuotas: number; paidAmount: number; expenseStatus: "registrado" | "pagado" }
+  >(functions, "saveExpensePlan");
+  return executeCallable(callable, input, "No fue posible guardar el plan de cuotas.");
+}

@@ -39,6 +39,7 @@ import { PlanDeCuotasField } from "@/components/features/finanzas/PlanDeCuotasFi
 import { pagadoDelEgreso, proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
 import { pendienteDelEgreso } from "@/lib/finanzas/nucleo-estado-financiero";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
+import { saveExpensePlanCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
 
@@ -195,11 +196,40 @@ export default function AdminEgresosPage() {
     setSubmitting(true);
     setErrorMessage(null);
     try {
+      /**
+       * **`PRD-V-FLOW-008` · `R8` · el plan va SIEMPRE por la callable.**
+       *
+       * El egreso se guarda como toda la vida —escritura directa, que las reglas
+       * protegen— y el calendario después, por `saveExpensePlan`. Son dos pasos
+       * porque el array sostiene la deuda del conjunto y **un campo escribible
+       * desde el cliente no puede sostener un invariante**.
+       *
+       * **Si el segundo paso fallara**, queda un egreso sin su plan: se ve, se
+       * edita y se vuelve a intentar. Es el orden que menos duele — al revés
+       * habría un plan sin factura, que no se puede ni mirar.
+       */
+      const conPlan = egresosEnCuotas && (values.installments?.length ?? 0) > 0;
+      const teniaPlan = (editingItem?.installments?.length ?? 0) > 0;
+
       if (editingItem) {
         await updateExpense(editingItem, user.uid, values);
+        if (conPlan || teniaPlan) {
+          await saveExpensePlanCallable({
+            tenantId: user.tenantId,
+            expenseId: editingItem.id,
+            installments: values.installments,
+          });
+        }
         toast.success("Egreso actualizado.");
       } else {
-        await createExpense(user.tenantId, user.uid, values);
+        const nuevoId = await createExpense(user.tenantId, user.uid, values);
+        if (conPlan) {
+          await saveExpensePlanCallable({
+            tenantId: user.tenantId,
+            expenseId: nuevoId,
+            installments: values.installments,
+          });
+        }
         toast.success("Egreso registrado.");
       }
       setCreateOpen(false);

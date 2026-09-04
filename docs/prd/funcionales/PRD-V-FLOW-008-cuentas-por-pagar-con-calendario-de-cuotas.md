@@ -363,8 +363,33 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 
 | Operación | Cómo | Por qué |
 |---|---|---|
-| **Declarar y editar el plan** (nada pagado) | **Directa desde el cliente**, con reglas | Es captura de datos sobre una colección que **ya se escribe así** y que las reglas protegen entera. `RN-01`–`RN-03` son validaciones de forma que una regla puede comprobar |
+| **Declarar y editar el plan** | ~~Directa desde el cliente~~ → **CALLABLE** (`R8`, 4 sep 2026) | Ver el recuadro de abajo: **cambió durante la construcción** |
 | **Pagar una cuota** · **anular una cuota** · **anular el egreso** | **CALLABLE** | Escribe en **dos sitios** —la cuota y el libro—, mueve dinero, y **sella `paidAmount`, que sostiene la deuda del conjunto**. Si el cliente lo escribiera, bajar la deuda sería editar un número |
+
+> ### 🔴 ESTA DECISIÓN CAMBIÓ AL CONSTRUIR, Y LA CORRIGIÓ DAVID (`R8`, 4 sep 2026)
+>
+> **Declarar el plan iba por escritura directa, y era correcto cuando se escribió**: la deuda salía
+> de `paidAmount` —sellado por el servidor— y las reglas del plan eran de forma.
+>
+> **La entrega 2 lo invalidó sin querer.** Al corregir la deuda para que derive de las **cuotas
+> vivas** —porque `amount − paidAmount` contaba de más en cuanto se anulaba una cuota—, el array
+> `installments` pasó a **sostener la deuda del conjunto**. Y por la regla de este repositorio, *un
+> campo escribible desde el cliente no puede sostener un invariante*.
+>
+> **Las reglas no podían cerrarlo: no iteran listas.** Y la brecha llegó a morder de verdad, aunque
+> por la vía mundana: **el propio formulario deshacía un pago** al editar la descripción.
+>
+> **Ahora el plan pasa por `saveExpensePlan`**, y entonces la regla puede hacer lo que sí sabe:
+> **congelar `installments` frente al cliente**. No hace falta iterar para decir «esto no lo
+> escribes tú».
+>
+> **Lo que se gana, y no es solo el veto:** el plan **se valida en el SERVIDOR** con la misma
+> función del núcleo que usa el formulario; **solo entran número, fecha e importe**; y `paidAmount`
+> y el estado **se recalculan** de las cuotas resultantes.
+>
+> **El coste, dicho:** crear una factura con plan son **dos pasos** —el egreso y luego el plan—. Si
+> el segundo fallara, queda un egreso sin su calendario: se ve, se edita y se reintenta. Es el orden
+> que menos duele; al revés habría un plan sin factura.
 
 > **Esto CAMBIA el patrón de hoy**, y se dice: actualmente marcar un egreso como pagado es escritura
 > directa y **el propio navegador crea el asiento**. Con una sola fecha y un solo importe eso era
@@ -412,7 +437,7 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 | `R5` | **Nadie usa el plan** porque capturar once filas a mano es tedioso | Contar egresos con plan | Aceptado en el MVP. La generación automática está en §4 como exclusión **con su porqué**, y es lo primero que entra si el dato lo pide |
 | `R6` | **La cifra de deuda cambia el día que se enciende** y alguien lo lee como un error | La comparación antes/después en el canario | Con la bandera apagada **no cambia nada** (`RN-12`). Al encender, la deuda **baja** solo donde haya cuotas pagadas — y esa bajada es la corrección, no una pérdida |
 | `R7` | **Endurecer la regla de `expenses` deja fuera una escritura legítima** que hoy funciona | El banco de reglas, y la pantalla de Egresos | La regla se despliega **después** de que el front deje de escribir esos campos. Ver §13. **Seis pruebas del banco existen solo para esto** |
-| `R8` | 🔴 **NUEVO (4 sep) · el array `installments` sostiene un invariante y lo escribe el CLIENTE.** Desde la entrega 2 la deuda se deriva de las cuotas vivas, así que un cliente manipulado podría marcarlas `pagada` o `anulada` y bajar la deuda **sin pasar por el servidor**. **Las reglas no pueden impedirlo: no iteran listas** | `paidAmount` dejaría de cuadrar con la suma de las cuotas `pagada` — **detectable, no impedido** | **DECISIÓN PENDIENTE DE DAVID.** El cierre completo es **mover la edición del plan a una callable**, lo que cambia §11 (que decidió escritura directa cuando la deuda venía de `paidAmount`, no de las cuotas). No se hizo por libre: es un cambio de alcance |
+| `R8` | ✅ **CERRADO (4 sep, decisión de David) · el array `installments` sostenía un invariante y lo escribía el CLIENTE.** Desde la entrega 2 la deuda se deriva de las cuotas vivas, así que un cliente manipulado podría marcarlas `pagada` o `anulada` y bajar la deuda **sin pasar por el servidor**. **Las reglas no pueden impedirlo: no iteran listas** | `paidAmount` dejaría de cuadrar con la suma de las cuotas `pagada` — **detectable, no impedido** | **CERRADO: la edición del plan pasó a `saveExpensePlan`**, y la regla **congela `installments`** frente al cliente. Ya no hace falta iterar para vetarlo. §11 actualizado |
 
 ---
 
@@ -433,8 +458,8 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 
 | # | Qué | Reversible |
 |---|---|---|
-| **1** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
-| **2** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
+| **1** | ✅ **CONSTRUIDA (4 sep 2026), en staging.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
+| **2** | ✅ **CONSTRUIDA (4 sep 2026), en staging.** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
 | **3** | ✅ **CONSTRUIDA (4 sep 2026).** Reglas de `expenses` endurecidas: `paidAmount` y los sellos de anulación son del servidor, con plan el estado no lo mueve el cliente, y una factura con cuotas pagadas no se borra | **No con bandera**: se revierte redesplegando las reglas anteriores |
 
 ### Rollback

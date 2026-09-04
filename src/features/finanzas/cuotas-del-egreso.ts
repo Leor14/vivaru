@@ -1,3 +1,19 @@
+/**
+ * **Estas cinco viven en el NÚCLEO y aquí solo se reexportan**, no se copian: las
+ * necesitan el cliente —para no dejar teclear un plan que no cuadra— y el
+ * servidor, que es quien de verdad lo guarda desde que la edición del plan pasó a
+ * callable (`R8`). El núcleo tiene que ser autocontenido para espejarse byte a
+ * byte en `functions/`, así que reexportar deja **una sola definición**. Es lo
+ * mismo que hace `codigo-de-cuenta.ts` con `compararCodigos`.
+ */
+export {
+  explicarProblemaDelPlan as explicarProblema,
+  fundirPlan,
+  sumaDelPlan,
+  validarPlan,
+  type ProblemaDelPlan,
+} from "@/lib/finanzas/nucleo-estado-financiero";
+
 import { aCentimos } from "@/lib/finanzas/nucleo-estado-financiero";
 import type { Expense, Installment } from "@/types/domain";
 
@@ -21,82 +37,6 @@ import type { Expense, Installment } from "@/types/domain";
  * pago es la entrega 2 y va **por callable**, porque escribe en dos sitios y
  * sella `paidAmount`.
  */
-
-/** Cuánto suman las cuotas que todavía cuentan — las anuladas no. */
-export function sumaDelPlan(cuotas: ReadonlyArray<Pick<Installment, "amount" | "status">>): number {
-  return aCentimos(
-    cuotas.reduce((total, c) => (c.status === "anulada" ? total : total + (c.amount ?? 0)), 0),
-  );
-}
-
-export type ProblemaDelPlan =
-  | { tipo: "vacio" }
-  | { tipo: "sin_vencimiento"; numeros: number[] }
-  | { tipo: "numeracion" }
-  | { tipo: "importe_no_positivo"; numeros: number[] }
-  | { tipo: "no_cuadra"; diferencia: number };
-
-/**
- * Comprueba el plan contra el total de la factura (`RN-01`, `RN-02`, `RN-03`).
- *
- * Devuelve **todos** los problemas, no el primero: quien está tecleando once
- * filas prefiere verlos juntos a descubrirlos de uno en uno.
- */
-export function validarPlan(
-  cuotas: ReadonlyArray<Pick<Installment, "number" | "dueDate" | "amount" | "status">>,
-  totalFactura: number,
-): ProblemaDelPlan[] {
-  const problemas: ProblemaDelPlan[] = [];
-
-  // `RN-02` · un plan vacío no es un plan. Se comprueba primero porque sobre
-  // cero cuotas todo lo demás «cuadra» y devolvería un verde vacío — el mismo
-  // error que una puerta que se abre sobre un conjunto sin datos.
-  if (cuotas.length === 0) return [{ tipo: "vacio" }];
-
-  // `RN-03` · sin fecha no hay calendario, y sin calendario esto es un egreso
-  // normal con pasos de más.
-  const sinFecha = cuotas.filter((c) => !c.dueDate).map((c) => c.number);
-  if (sinFecha.length > 0) problemas.push({ tipo: "sin_vencimiento", numeros: sinFecha });
-
-  // `RN-02` · consecutivos desde 1 y sin repetir. Con huecos o duplicados, «la
-  // cuota 3» deja de identificar una cuota, y es como se la nombra al pagarla.
-  const numeros = cuotas.map((c) => c.number).sort((a, b) => a - b);
-  const esperados = numeros.length === new Set(numeros).size
-    && numeros.every((n, i) => n === i + 1);
-  if (!esperados) problemas.push({ tipo: "numeracion" });
-
-  const noPositivos = cuotas.filter((c) => !((c.amount ?? 0) > 0)).map((c) => c.number);
-  if (noPositivos.length > 0) problemas.push({ tipo: "importe_no_positivo", numeros: noPositivos });
-
-  // `RN-01` · la suma es el total, al céntimo. **Se compara en céntimos y no con
-  // `===` sobre los flotantes crudos**: once cuotas de 100,01 arrastran residuo,
-  // y rechazar un plan correcto por un 0,0000001 es peor que no validar.
-  const diferencia = aCentimos(aCentimos(totalFactura) - sumaDelPlan(cuotas));
-  if (diferencia !== 0) problemas.push({ tipo: "no_cuadra", diferencia });
-
-  return problemas;
-}
-
-/**
- * El problema, dicho para una persona. **Nombra la diferencia**, que es lo que
- * `CA1` pide: «no cuadra» obliga a sacar la calculadora; «faltan $11» no.
- */
-export function explicarProblema(p: ProblemaDelPlan, formatear: (n: number) => string): string {
-  switch (p.tipo) {
-    case "vacio":
-      return "Un plan de pagos necesita al menos una cuota.";
-    case "sin_vencimiento":
-      return `Falta la fecha de vencimiento de la cuota ${p.numeros.join(", ")}. Cada cuota necesita la suya.`;
-    case "numeracion":
-      return "Las cuotas deben ir numeradas desde 1, sin saltos ni repetidas.";
-    case "importe_no_positivo":
-      return `El importe debe ser mayor que cero: cuota ${p.numeros.join(", ")}.`;
-    case "no_cuadra":
-      return p.diferencia > 0
-        ? `Las cuotas no suman el total de la factura: faltan ${formatear(p.diferencia)}.`
-        : `Las cuotas suman más que el total de la factura: sobran ${formatear(-p.diferencia)}.`;
-  }
-}
 
 // ── El envejecimiento ────────────────────────────────────────────────────────
 
@@ -176,52 +116,3 @@ export function pagadoDelEgreso(
   return egreso.status === "pagado" ? (egreso.amount ?? 0) : 0;
 }
 
-/**
- * **Funde el plan que viene del formulario con el que está guardado.**
- *
- * Existe por un defecto que cazó recorrer staging: **editar la descripción de una
- * factura DESHACÍA sus pagos**. El formulario carga las cuotas quedándose solo con
- * número, fecha e importe —no reenvía lo que sella el servidor—, así que al
- * guardar sobrescribía el array entero y una cuota `pagada` volvía a `pendiente`.
- * `paidAmount` sí quedaba a salvo, protegido por la regla, y por eso el destrozo
- * se veía: **100 pagados y ninguna cuota pagada**, con su asiento huérfano en el
- * libro.
- *
- * La regla de Firestore **no podía impedirlo**: no itera listas. Así que el
- * cuidado tiene que estar aquí, donde sí se conoce lo que había.
- *
- * **Una cuota que no está `pendiente` se conserva ENTERA** —importe y fecha
- * incluidos (`RN-07`)— y **sobrevive aunque el formulario ya no la traiga**: no se
- * borra una cuota que dejó un asiento en el libro.
- */
-export function fundirPlan(
-  guardadas: ReadonlyArray<Installment> | undefined,
-  delFormulario: ReadonlyArray<CuotaDelFormulario> | undefined,
-): Installment[] | null {
-  const previas = guardadas ?? [];
-  const selladas = previas.filter((c) => c.status !== "pendiente");
-
-  if (!delFormulario || delFormulario.length === 0) {
-    // Quitar el plan solo se puede si no había nada pagado ni anulado.
-    return selladas.length > 0 ? [...selladas] : null;
-  }
-
-  const porNumero = new Map(previas.map((c) => [c.number, c]));
-  const fundidas: Installment[] = [];
-  for (const nueva of delFormulario) {
-    const previa = porNumero.get(nueva.number);
-    if (previa && previa.status !== "pendiente") {
-      fundidas.push(previa);
-      continue;
-    }
-    fundidas.push({ number: nueva.number, dueDate: nueva.dueDate, amount: nueva.amount, status: "pendiente" });
-  }
-
-  // Las selladas que el formulario ya no trae vuelven a la lista: no se borran.
-  for (const c of selladas) {
-    if (!fundidas.some((f) => f.number === c.number)) fundidas.push(c);
-  }
-  return fundidas.sort((a, b) => a.number - b.number);
-}
-
-export type CuotaDelFormulario = { number: number; dueDate: string; amount: number };

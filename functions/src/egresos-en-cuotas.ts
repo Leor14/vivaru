@@ -1,6 +1,14 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import {
+  estadoDerivadoDelPlan as estadoDerivado,
+  explicarProblemaDelPlan,
+  fundirPlan,
+  sumarPagadoDelPlan as sumarPagado,
+  validarPlan,
+} from "./nucleo-estado-financiero";
+
 /**
  * `PRD-V-FLOW-008`, entrega 2 — pagar y anular una cuota.
  *
@@ -67,22 +75,15 @@ type EgresoGuardado = {
   installments?: CuotaGuardada[];
 };
 
-/** Lo pagado de una factura: **derivado de las cuotas**, nunca acumulado a mano. */
-export function sumarPagado(cuotas: ReadonlyArray<CuotaGuardada>): number {
-  const total = cuotas.reduce((a, c) => (c.status === "pagada" ? a + (c.amount ?? 0) : a), 0);
-  return Math.round(total * 100) / 100;
-}
-
 /**
- * El estado que le corresponde al egreso, **derivado de sus cuotas** (`RN-04`).
+ * **Lo pagado y el estado derivado viven en el NÚCLEO desde que la edición del
+ * plan pasó a callable (`R8`)**, y aquí solo se reexportan.
  *
- * `pagado` cuando **ninguna queda pendiente**. Nadie lo pone a mano: si se
- * pudiera, la deuda del conjunto bajaría sin que nadie pagara nada — y esa cifra
- * es la que el consejo lee en el informe mensual.
+ * Nacieron aquí en la entrega 2 y se quedaron duplicados el rato que tardó el
+ * núcleo en heredarlos. Dos implementaciones de «cuánto se ha pagado» es
+ * exactamente cómo nacieron `R12` y `R16`, así que se retiran en cuanto se ven.
  */
-export function estadoDerivado(cuotas: ReadonlyArray<CuotaGuardada>): "registrado" | "pagado" {
-  return cuotas.some((c) => c.status === "pendiente") ? "registrado" : "pagado";
-}
+export { estadoDerivado, sumarPagado };
 
 function leerEgreso(snap: FirebaseFirestore.DocumentSnapshot, tenantId: string): EgresoGuardado {
   if (!snap.exists) throw new HttpsError("not-found", "Ese egreso no existe.");
@@ -339,3 +340,109 @@ export async function anularEgresoConCuotas(
     return { ok: true as const, yaAnulado: false, cuotasAnuladas: anuladas, cuotasConservadas: conservadas };
   });
 }
+
+// ── Guardar el plan · `R8` ───────────────────────────────────────────────────
+
+export type GuardarPlanInput = {
+  tenantId: string;
+  expenseId: string;
+  /** El calendario que llega. **Vacío o ausente = quitar el plan.** */
+  installments?: { number: number; dueDate: string; amount: number }[];
+};
+
+export type GuardarPlanResultado = {
+  ok: true;
+  cuotas: number;
+  paidAmount: number;
+  expenseStatus: "registrado" | "pagado";
+};
+
+/**
+ * Declara o edita el calendario de pagos de una factura. **`PRD-V-FLOW-008`, `R8`.**
+ *
+ * ## Por qué esto dejó de ser escritura directa
+ *
+ * §11 de la ficha decidió que declarar el plan fuera escritura directa, y era
+ * correcto **cuando la deuda salía de `paidAmount`**: las validaciones del plan
+ * eran de forma y las reglas podían con ellas.
+ *
+ * **La entrega 2 cambió eso sin querer.** Al corregir la deuda para que derive de
+ * las **cuotas vivas** —porque `amount − paidAmount` contaba de más en cuanto se
+ * anulaba una cuota—, el array `installments` pasó a **sostener la deuda del
+ * conjunto**. Y por la regla de este repositorio, *un campo escribible desde el
+ * cliente no puede sostener un invariante*.
+ *
+ * Las reglas de Firestore **no podían cerrarlo: no iteran listas**, así que no hay
+ * forma de comprobar cuota por cuota que ninguna venga marcada `pagada` con un
+ * asiento inventado. Por eso el plan entero pasa por aquí, y la regla se limita a
+ * **congelar `installments` frente al cliente**, que sí sabe hacer.
+ *
+ * ## Lo que este camino garantiza y la escritura directa no
+ *
+ *   1. **El plan se valida en el SERVIDOR** con la misma función que el
+ *      formulario, la del núcleo. Un plan que no cuadra descuadra la deuda para
+ *      siempre, y el formulario es una sugerencia para quien llama por HTTP.
+ *   2. **Solo entran número, fecha e importe.** El estado, el asiento y las
+ *      marcas de pago **no viajan**: se conservan de lo guardado.
+ *   3. **`paidAmount` y el estado se RECALCULAN** de las cuotas resultantes.
+ */
+export async function guardarPlan(
+  input: GuardarPlanInput,
+  uid: string,
+): Promise<GuardarPlanResultado> {
+  const firestore = db();
+  const ref = firestore.collection("expenses").doc(input.expenseId);
+
+  return firestore.runTransaction(async (tx) => {
+    const egreso = leerEgreso(await tx.get(ref), input.tenantId);
+    if (egreso.status === "anulado") {
+      throw new HttpsError("failed-precondition", "Ese egreso está anulado: su plan ya no se edita.");
+    }
+
+    // **Solo se admiten los tres campos de captura.**
+    //
+    // **Esto es defensa en profundidad, NO la guarda**, y conviene saberlo antes
+    // de tocarlo: quitar este filtro **no rompe nada**, porque `fundirPlan`
+    // reconstruye cada cuota campo a campo y fuerza `pendiente`. Lo dijo una
+    // falsación que pasó EN VERDE — rompí el sitio equivocado. La guarda de
+    // verdad está en el núcleo; si algún día se toca aquella, esto no salva.
+    const entrantes = (input.installments ?? []).map((c) => ({
+      number: Number(c.number),
+      dueDate: String(c.dueDate ?? ""),
+      amount: Number(c.amount),
+    }));
+
+    const fundidas = fundirPlan(egreso.installments as CuotaGuardadaDelPlan[] | undefined, entrantes);
+
+    if (fundidas && fundidas.length > 0) {
+      // **La validación corre en el servidor, con la MISMA función del núcleo que
+      // usa el formulario.** No es una segunda comprobación: es la única que
+      // manda.
+      const problemas = validarPlan(fundidas, egreso.amount ?? 0);
+      if (problemas.length > 0) {
+        const texto = problemas
+          .map((p) => explicarProblemaDelPlan(p, (n) => Math.round(n).toLocaleString("es-CO")))
+          .join(" ");
+        throw new HttpsError("invalid-argument", texto);
+      }
+    }
+
+    const cuotas = fundidas ?? [];
+    const paidAmount = sumarPagado(cuotas);
+    const expenseStatus = cuotas.length > 0 ? estadoDerivado(cuotas) : (egreso.status as "registrado" | "pagado");
+
+    tx.update(ref, {
+      installments: fundidas,
+      paidAmount,
+      // Con plan el estado es derivado; sin plan se deja el que tuviera, que lo
+      // gobierna el camino de siempre.
+      ...(cuotas.length > 0 ? { status: expenseStatus } : {}),
+      updatedBy: uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return { ok: true as const, cuotas: cuotas.length, paidAmount, expenseStatus };
+  });
+}
+
+type CuotaGuardadaDelPlan = CuotaGuardada & { status: "pendiente" | "pagada" | "anulada" };
