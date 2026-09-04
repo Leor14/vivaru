@@ -695,11 +695,85 @@ service cloud.firestore {
 
     // ── Finanzas (módulo contable PH, F1) ──────────────────────
     // Back-office financiero: solo admin del tenant (residente no lee).
+    // ─── `PRD-V-FLOW-008` · el egreso y su calendario de cuotas ───────────────
+    //
+    // **Un egreso CON PLAN no es lo mismo que uno sin él**, y esta regla es la que
+    // lo separa. Declarar y editar el plan sigue siendo escritura directa —es
+    // captura de datos—, pero **pagar y anular pasan por callable**, y hay campos
+    // que solo el servidor escribe.
+    //
+    // ⚠️ **`installments` se guarda como `null` cuando no hay plan**, así que
+    // `'installments' in d` es CIERTO para los 52 egresos de producción. Preguntarlo
+    // así bloquearía el flujo de siempre; por eso se comprueba el VALOR.
+    function egresoConPlan(d) {
+      return d.get('installments', null) != null && d.installments.size() > 0;
+    }
+
+    // Lo que el servidor sella y el cliente no escribe nunca.
+    function egresoSinSellosDelServidor(d) {
+      return d.get('paidAmount', 0) == 0
+        && !('voidReason' in d) && !('voidedBy' in d) && !('voidedAt' in d);
+    }
+
     match /expenses/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
-      allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
+
+      // **Alta**: nace sin nada de lo que sella el servidor. Un egreso con plan
+      // tampoco puede nacer `pagado`: su estado es DERIVADO de las cuotas
+      // (`RN-04`), y nacer pagado sin haber pagado ninguna bajaría la deuda del
+      // conjunto sin que nadie pagara nada.
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && previewModuleWritable(request.resource.data.tenantId)
+        && egresoSinSellosDelServidor(request.resource.data)
+        && (!egresoConPlan(request.resource.data) || request.resource.data.status != 'pagado');
+
+      // **Edición**: `paidAmount` y los sellos de anulación **no se mueven desde el
+      // cliente**, y **con plan el ESTADO tampoco**: lo deriva el servidor al pagar
+      // o al anular. Sin plan, el estado se cambia como siempre — los 52 egresos de
+      // producción no notan esta regla.
+      allow update: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && previewModuleWritable(request.resource.data.tenantId)
+        && request.resource.data.get('paidAmount', 0) == resource.data.get('paidAmount', 0)
+        // **`affectedKeys()` y NO `changedKeys()`, y la diferencia es todo.**
+        // `changedKeys()` son las claves que están en los DOS mapas con valor
+        // distinto: **una clave AÑADIDA no aparece**. Con `changedKeys` esta
+        // línea dejaba pasar `voidReason` en un documento que no lo tenía, que es
+        // justo el caso que viene a bloquear. Medido con una sonda contra el
+        // emulador, no razonado. `affectedKeys()` = añadidas + borradas + cambiadas.
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['voidReason', 'voidedBy', 'voidedAt'])
+        && (
+          !egresoConPlan(request.resource.data)
+          || request.resource.data.status == resource.data.status
+        );
+
+      // **Borrar**: un egreso con cuotas PAGADAS no se borra desde el cliente.
+      // Cada cuota pagada dejó un asiento en el libro, y puede estar conciliado
+      // contra una línea del banco: borrar la factura dejaría el libro hablando de
+      // una cuenta por pagar que ya no existe. Lo que corresponde es anularla, que
+      // conserva lo pagado (`RN-08`).
+      allow delete: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && previewModuleWritable(resource.data.tenantId)
+        && resource.data.get('paidAmount', 0) == 0;
     }
+
+    // ⚠️ **LO QUE ESTA REGLA NO PUEDE HACER, y hay que saberlo.**
+    //
+    // **El lenguaje de reglas NO itera listas.** No hay `map` ni `filter` sobre los
+    // elementos de un array, así que **no se puede comprobar cuota por cuota** que
+    // ninguna venga marcada `pagada` con un asiento inventado. Lo que sí se cierra
+    // es `paidAmount`, y eso deja cualquier manipulación **detectable**: dejaría de
+    // cuadrar con la suma de las cuotas `pagada`.
+    //
+    // **La consecuencia de diseño, y es de David:** desde la entrega 2 la deuda del
+    // conjunto **se deriva de las cuotas vivas**, así que el array `installments`
+    // pasó a sostener un invariante — y por la regla de este repositorio, *un campo
+    // escribible desde el cliente no puede sostener un invariante*. El cierre
+    // completo es **mover la edición del plan a una callable**, que es un cambio de
+    // §11 de la ficha y por tanto una decisión, no un detalle. Queda anotado como
+    // `R8`.
 
     // Registro de proveedores y beneficiarios (PRD-V-FEAT-003). Mismo patrón
     // que expenses: SOLO administración lee — los datos bancarios de un
