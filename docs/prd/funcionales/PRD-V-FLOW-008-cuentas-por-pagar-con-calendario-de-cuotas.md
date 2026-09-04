@@ -460,7 +460,7 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 |---|---|---|
 | **1** | ✅ **CONSTRUIDA (4 sep 2026), en staging.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
 | **2** | ✅ **CONSTRUIDA (4 sep 2026), en staging.** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
-| **3** | ✅ **CONSTRUIDA (4 sep 2026).** Reglas de `expenses` endurecidas: `paidAmount` y los sellos de anulación son del servidor, con plan el estado no lo mueve el cliente, y una factura con cuotas pagadas no se borra | **No con bandera**: se revierte redesplegando las reglas anteriores |
+| **3** | ✅ **CONSTRUIDA Y EN STAGING (4 sep 2026), con `R8` cerrado.** Reglas de `expenses` endurecidas: `paidAmount` y los sellos de anulación son del servidor, con plan el estado no lo mueve el cliente, y una factura con cuotas pagadas no se borra | **No con bandera**: se revierte redesplegando las reglas anteriores |
 
 ### Rollback
 
@@ -632,6 +632,31 @@ restricciones concretas—, así que el deny por defecto no las satisface.
 > itera listas**, así que no se puede comprobar cuota por cuota. Cerrar `paidAmount` deja cualquier
 > manipulación **detectable** —dejaría de cuadrar con la suma de las cuotas `pagada`— pero no
 > impedida. **La consecuencia de diseño es de David y está en `R8`.**
+
+---
+
+## 13 quinquies · `R8` verificado en staging con ojos — 4 de septiembre de 2026
+
+Orden seguido, **el invertido**: **functions → front → reglas**. La callable primero porque el
+front nuevo la llama, y la regla la última porque **congela lo que el front viejo todavía escribía**.
+Ruleset vivo **idéntico al repo**, comprobado por la API de Rules.
+
+**Recorrido entero:** se registró «Mantenimiento del ascensor 2026», $900, con un plan de **tres
+cuotas de 300**. La fila quedó en **`2026-10-15 · cuota 1 de 3`**, el documento con sus tres cuotas
+`pendiente`, y la **auditoría registra `saveExpensePlan`** con `cuotas: 3` y `paidAmount: 0`. **El
+camino de dos pasos funciona.**
+
+> **Y dos veces estuve a punto de reportar un defecto que no existía.** Primero, el modal «no abría»:
+> era **mi clic sintético**, no el producto — un `.click()` nativo lo abre y el diálogo está en el
+> DOM con su contenido. Después, la fila salió **sin plan** justo tras guardar: era **haber leído
+> antes de que el segundo paso terminara**; el documento y la auditoría lo desmintieron.
+>
+> **La lección, que es la de siempre con otra cara:** cuando el instrumento es la automatización del
+> navegador, **el instrumento también necesita control**. Y una lectura hecha **antes de que la
+> operación termine** no es una medición: es una carrera.
+
+**Dato de prueba retirado de staging:** el egreso que quedó incoherente por el defecto corregido hoy
+—`paidAmount` 100 con **cero** cuotas pagadas— y su asiento huérfano. Se borraron los dos.
 
 ---
 
