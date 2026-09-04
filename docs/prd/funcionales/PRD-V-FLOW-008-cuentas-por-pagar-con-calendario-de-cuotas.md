@@ -9,7 +9,7 @@
 | **Módulo** | Finanzas · Egresos y cuentas por pagar |
 | **Usuario principal** | `tenant_admin`. **Sin usuarios secundarios**: el consejo ve el total en el informe mensual, no el detalle |
 | **Responsable** | David |
-| **Estado** | 🟢 **LISTA PARA DESARROLLO** (4 sep 2026). Escrita tras medir el código y los datos de producción; **David cerró las dos preguntas abiertas y aceptó `G1` vacía el mismo día**. Ver §14 |
+| **Estado** | 🟢 **LAS TRES ENTREGAS EN PRODUCCIÓN** (4 sep 2026, `3f0de0a`), con la bandera **APAGADA en los nueve**: el código está desplegado y es **inerte**. `R8` cerrado. Escrita tras medir el código y los datos de producción; **David cerró las dos preguntas abiertas y aceptó `G1` vacía el mismo día**. Ver §14 |
 | **Dependencias** | `FEAT-003` (proveedores, **en producción con 0 filas**) · `PLAT-003` (plan de cuentas, **sembrado: 189 cuentas**) · `FLOW-004` (conciliación, **en producción**) · **`FLOW-007` no es dependencia: es CONSECUENCIA — esta ficha rompe su cifra de deuda a proveedores si no la corrige. Ver §11** |
 | **Riesgo** | 🔴 **ALTO.** Cambia el modelo de un documento que **crea asientos en el libro**, y esos asientos son lo que concilia `FLOW-004`. No toca `aplicarPago` ni la cartera |
 | **Reversibilidad** | Bandera `producto-egresos-en-cuotas`. **Lo que no se revierte solo** son las cuotas ya pagadas: cada una dejó su asiento, y un asiento conciliado no se retira sin soltar antes la conciliación. Ver §13 |
@@ -458,9 +458,9 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 
 | # | Qué | Reversible |
 |---|---|---|
-| **1** | ✅ **CONSTRUIDA (4 sep 2026), en staging.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
-| **2** | ✅ **CONSTRUIDA (4 sep 2026), en staging.** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
-| **3** | ✅ **CONSTRUIDA Y EN STAGING (4 sep 2026), con `R8` cerrado.** Reglas de `expenses` endurecidas: `paidAmount` y los sellos de anulación son del servidor, con plan el estado no lo mueve el cliente, y una factura con cuotas pagadas no se borra | **No con bandera**: se revierte redesplegando las reglas anteriores |
+| **1** | ✅ **EN PRODUCCIÓN (4 sep 2026).** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
+| **2** | ✅ **EN PRODUCCIÓN (4 sep 2026).** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
+| **3** | ✅ **EN PRODUCCIÓN (4 sep 2026), con `R8` cerrado.** Reglas de `expenses` endurecidas: `paidAmount` y los sellos de anulación son del servidor, con plan el estado no lo mueve el cliente, y una factura con cuotas pagadas no se borra | **No con bandera**: se revierte redesplegando las reglas anteriores |
 
 ### Rollback
 
@@ -657,6 +657,31 @@ camino de dos pasos funciona.**
 
 **Dato de prueba retirado de staging:** el egreso que quedó incoherente por el defecto corregido hoy
 —`paidAmount` 100 con **cero** cuotas pagadas— y su asiento huérfano. Se borraron los dos.
+
+---
+
+## 13 sexies · EN PRODUCCIÓN — 4 de septiembre de 2026 (`3f0de0a`)
+
+Orden seguido, **el invertido que la ficha anunciaba**: **functions → front → reglas**. La regla va
+la última porque **restringe**, y desplegarla primero habría roto la pantalla de Egresos durante
+toda la ventana.
+
+| Pieza | Cómo se comprobó — que no es lo mismo que desplegarla |
+|---|---|
+| **Functions** | **98 en el código, 98 desplegadas, todas `ACTIVE` y todas movidas.** Ninguna del código sin desplegar. El log solo confirmó **9 de 98** operaciones: contar es lo único que lo dice |
+| Las cuatro callables | Existen y **responden en producción con el mensaje del código nuevo** |
+| **Reglas** | Ruleset **vivo** por la API de Rules: **cero líneas de diff** contra el repositorio. Antes de subir, el único delta eran **60 líneas, todas añadidas** — sin deriva |
+| **Front** | Rollout esperado por nombre hasta ver `traffic.current` en `3f0de0a` |
+| **Bandera** | **0 de 9**, resuelta con la precedencia del servidor |
+
+**El código está en producción y es INERTE**: sin bandera no hay casilla de cuotas, no se puede
+declarar un plan, y `paidAmount` es cero en los 52 egresos, así que la deuda a proveedores es
+**exactamente la de siempre**.
+
+> **Una corrección de última hora, antes de subir:** el comentario de cabecera de la regla decía que
+> «declarar y editar el plan sigue siendo escritura directa», y **había dejado de ser cierto el mismo
+> día** al cerrar `R8`. Un comentario que miente en un fichero de reglas es peor que no tenerlo: se
+> lee como la intención vigente.
 
 ---
 
