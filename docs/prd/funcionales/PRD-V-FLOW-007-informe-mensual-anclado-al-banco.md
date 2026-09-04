@@ -353,7 +353,29 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 > **Y una falsación mintió antes de acertar:** F1 pareció dejar el banco de `src/` en verde. No era
 > el banco, era el `grep` con el que se leyó la salida. **El instrumento también necesita control.**
 
-### Estado tras la entrega 2 — 3 de septiembre de 2026
+### Estado tras la entrega 2 — 3–4 de septiembre de 2026
+
+> ## LA ENTREGA 2 ESTÁ EN PRODUCCIÓN (`66042e5`), Y APAGADA
+>
+> Orden seguido, el normal, porque la regla **amplía**: **reglas → índices → functions → front**.
+>
+> | Pieza | Cómo se comprobó, que no es lo mismo que desplegarla |
+> |---|---|
+> | **Reglas** | El ruleset **vivo** leído por la API de Rules: **cero líneas de diff** contra el repositorio. Antes de desplegar, el único delta contra producción era **exactamente el bloque nuevo** — sin deriva |
+> | **Índices** | Los dos de `monthlyReports`, desplegados |
+> | **Functions** | **94 en el código, 94 en producción, todas `ACTIVE`, todas con `updateTime` de hoy, ninguna del código sin desplegar** |
+> | **Front** | Rollout esperado **por nombre** hasta ver `traffic.current` sirviendo el commit |
+> | **Bandera** | **0 de 9**, resuelta con la precedencia del servidor (kill switches → override → global → default), no leyendo un campo |
+>
+> > **EL DESPLIEGUE DE FUNCTIONS VOLVIÓ A MENTIR, y por eso se mide.** Salió con **código 0**, el
+> > log **truncado** y **sin la línea «Deploy complete»** — la firma exacta de lo que este
+> > repositorio ya pagó una vez. Al medir: **`registrarImportacion` se había quedado en el bundle
+> > del día anterior** (fallo de Cloud Build `INTERNAL_ERROR`, el mismo que había flaqueado en
+> > staging). Se redesplegó sola y quedó alineada. **Nada de esto lo dice el log: lo dice contar.**
+>
+> **Lo único que falta de la ficha es la entrega 3**, bloqueada por el abogado.
+
+### Estado tras la entrega 2 — detalle de construcción
 
 > ### 🔴 LO PRIMERO: **«no hay Java» ERA FALSO, y por eso los seis criterios de reglas SÍ se corrieron**
 >
@@ -522,7 +544,7 @@ una colección), así que el orden normal aplica. *(Si en alguna entrega una reg
 | # | Qué | Reversible |
 |---|---|---|
 | **1** | ✅ **CONSTRUIDA (3 sep 2026).** Cálculo compartido, saldo inicial real, cuentas pendientes de cobro y deuda a proveedores, y el aviso de fondo insuficiente corregido. **Sin cambiar el modelo de datos ni tocar reglas** | Sí, bandera `producto-informe-mensual` |
-| **2** | ✅ **CONSTRUIDA (3 sep 2026).** `monthlyReports` con sus cuatro estados, las cuatro callables (regenerar, emitir, firmar, anular), PDF con logo y bloque de firmas, archivado en categoría propia, y las reglas de la colección | Sí, bandera |
+| **2** | ✅ **EN PRODUCCIÓN (3–4 sep 2026, `66042e5`).** `monthlyReports` con sus cuatro estados, las cuatro callables (regenerar, emitir, firmar, anular), PDF con logo y bloque de firmas, archivado en categoría propia, reglas e índices. **Bandera APAGADA en los nueve**, así que es inerte hasta que alguien la encienda por conjunto | Sí, bandera |
 | **3** | **Publicación.** Categoría nueva, regla del residente, `K2` por conjunto, y la ruta del consejo | Sí, **y además el interruptor `K2`** |
 
 ### Rollback

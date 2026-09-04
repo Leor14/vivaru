@@ -4,38 +4,32 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 2 de `FLOW-007` cerrada)
+## LO PRIMERO AL ABRIR SESIÓN — 4 de septiembre de 2026, corte (entrega 2 EN PRODUCCIÓN)
 
-> # LO SIGUIENTE ES LA **ENTREGA 3 DE `PRD-V-FLOW-007`**… PERO ESTÁ BLOQUEADA POR EL ABOGADO.
+> # `FLOW-007` TIENE LAS ENTREGAS 1 Y 2 EN PRODUCCIÓN. LA 3 ESTÁ BLOQUEADA POR EL ABOGADO.
 >
-> Las entregas **1 y 2 están construidas**. La 1 en producción; **la 2 EN STAGING, encendida,
-> recorrida entera con ojos y con sus 18 criterios cerrados salvo los de la entrega 3**. La 3
-> —publicar al residente— **espera las cinco preguntas al abogado ecuatoriano** (`TBD-L1`–`L5`), que
-> son de David. Así que **al abrir, lo primero es preguntarle si ya hay respuesta**; si no la hay,
-> toca **elegir frente** (ver más abajo).
+> **No queda nada que construir de esta ficha.** La entrega 3 —publicar el informe al residente—
+> **espera las cinco preguntas al abogado ecuatoriano** (`TBD-L1`–`L5`), que son **de David**.
 >
-> > **LO ÚNICO QUE FALTA DE LA ENTREGA 2 ES SUBIRLA A PRODUCCIÓN, Y ESO LO PIDE DAVID.** Reglas →
-> > índices → functions → push a `master`. **Ojo: el proyecto por defecto del CLI es `hogaru-1`,
-> > o sea PRODUCCIÓN**, así que un `firebase deploy --only firestore:rules` sin `--project` la toca.
+> **Así que lo primero al abrir es preguntarle si ya hay respuesta.** Si no la hay, **toca ELEGIR
+> FRENTE**, y esta vez de verdad: no hay ninguna ficha escrita a medias.
 >
-> **Estado:** leer los remotos con `git ls-remote`, **no de aquí**.
-> **Bancos:** `npm test` **1732** · functions **824** · reglas **371** · emulador **301**
-> (con **dos rojos PREEXISTENTES** en `payments.emulator.test.ts` — medidos también sobre el árbol
-> limpio, así que no son de esta jornada; ver abajo).
+> **Estado:** `master` y `develop` en el mismo commit. **Leerlos con `git ls-remote`, no de aquí.**
+> **Bancos:** `npm test` **1732** · functions **826** · reglas **371** · emulador **301**
+> (dos rojos **PREEXISTENTES** en `payments.emulator.test.ts` — medidos también sobre el árbol
+> limpio, así que no son de esta jornada).
 >
 > ---
 >
 > ## 🔴 LA CORRECCIÓN QUE MÁS LEJOS LLEGA: **SÍ HAY JAVA, Y LLEVABA SEMANAS DICIÉNDOSE QUE NO**
 >
-> Esta cabecera, la ficha de `FLOW-007`, la de `FEAT-007` y el traspaso de la sesión anterior
-> afirmaban que **este equipo no puede correr el banco de reglas «porque no hay Java»**. Es falso, y
-> comprobarlo costó treinta segundos:
+> Cuatro documentos afirmaban que **este equipo no puede correr el banco de reglas «porque no hay
+> Java»**. Es falso, y comprobarlo costó treinta segundos:
 >
 > - **`/usr/bin/java` es el stub de macOS.** Responde «Unable to locate a Java Runtime», que es
 >   exactamente lo que se lee como «aquí no hay Java».
-> - **El JDK está instalado local al usuario en `~/.local/jdk`** (Temurin 21 LTS, arm64), y
->   **`CLAUDE.md` lo documenta con el `export` exacto** desde el 26 de agosto. Levanta el emulador de
->   Firestore y Storage sin una queja.
+> - **El JDK está en `~/.local/jdk`** (Temurin 21 LTS, arm64), **documentado en `CLAUDE.md`** desde
+>   el 26 de agosto, y levanta el emulador de Firestore y Storage sin una queja.
 >
 > ```bash
 > export JAVA_HOME="$HOME/.local/jdk/jdk-21.0.12.1+1/Contents/Home"
@@ -43,108 +37,91 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > firebase emulators:start --only firestore,storage --project hogaru-1-test
 > ```
 >
-> **Es el mismo error que `invalid_rapt` con la ADC en la entrega 1: dar algo por muerto sin
-> ejercitarlo.** Con la diferencia de que este se propagó **por escrito a cuatro documentos** y
-> dejó **seis criterios de `FLOW-007` y cuatro de `FEAT-007`** declarados inverificables durante
-> semanas. **Los seis de `FLOW-007` ya se corrieron.** Los cuatro de `FEAT-007` siguen sin correr, y
-> ahora se sabe que **se puede**.
+> Dejaba **diez criterios** declarados inverificables. **Los seis de `FLOW-007` ya se corrieron.**
+> **Los cuatro de `FEAT-007` siguen sin correr, y ahora se sabe que SE PUEDE** — es deuda de
+> aquella ficha, no una limitación del equipo.
 >
-> > **La regla, otra vez: una credencial —o una herramienta— solo está viva o muerta si algo la
-> > EJERCITÓ.** Y cuando un documento diga «aquí no se puede», el coste de comprobarlo es casi
-> > siempre menor que el de creerlo.
+> > **La regla: una credencial —o una herramienta— solo está viva o muerta si algo la EJERCITÓ.**
+> > Igual que `invalid_rapt` con la ADC, pero peor: **esto se propagó por escrito** y cada documento
+> > nuevo lo copió del anterior sin volver a medirlo.
 >
 > ---
 >
-> ### Lo que la entrega 2 dejó hecho
+> ### La entrega 2, desplegada y COMPROBADA
 >
-> | Pieza | Dónde |
+> Orden **reglas → índices → functions → front**, el normal, porque la regla **amplía**.
+>
+> | Pieza | Cómo se comprobó — que no es lo mismo que desplegarla |
 > |---|---|
-> | El cálculo del informe, **pure y único**, que usan la corrida programada **y** las callables | `functions/src/informe-mensual.ts` |
-> | Las **cuatro callables**: regenerar · emitir · firmar · anular | `functions/src/index.ts` |
-> | El PDF con **logo y bloque de firmas** | `buildInformeMensualPdf`, `functions/src/pdf-resumen.ts` |
-> | Las **reglas de `monthlyReports`** — lectura por rol, **escritura cerrada al cliente entera** | `firestore.rules` |
-> | La pantalla del administrador, **detrás de la bandera** | `src/components/features/finanzas/InformeMensualCard.tsx`, montada en `/admin/reports` |
-> | Los **dos índices** (`tenantId+period`, `tenantId+status+period`) | `firestore.indexes.json` |
+> | Reglas | Ruleset **vivo** por la API de Rules: **0 líneas de diff** contra el repositorio, en los **dos** ambientes. Hay script: `functions/scripts/verificar-reglas-desplegadas.mjs` |
+> | Índices | Los dos de `monthlyReports` |
+> | Functions | **94 en el código, 94 en producción, todas `ACTIVE`, todas con `updateTime` de hoy** |
+> | Front | Rollout esperado **por nombre** hasta ver `traffic.current` con el commit |
+> | Bandera | **0 de 9**, resuelta con la precedencia del servidor, no leyendo un campo |
 >
-> **Categoría nueva `informe_mensual`, y nace SOLO-ADMINISTRACIÓN.** La ficha la listaba en la
-> entrega 3; se crea ya para que el PDF emitido no vaya a `financiero` ni a `reporte` —que llevan
-> detalle por unidad— y la 3 **no tenga que migrar documentos**. La 3 solo la mueve de lista, **y
-> tiene que tocar la regla y la lista de la consulta A LA VEZ**.
+> > ⚠️ **EL DESPLIEGUE DE FUNCTIONS VOLVIÓ A MENTIR.** Salida **0**, log **truncado**, y **sin la
+> > línea «Deploy complete»**. Al contar: **`registrarImportacion` se había quedado en el bundle del
+> > día anterior** por un `INTERNAL_ERROR` de Cloud Build — **el mismo que había flaqueado antes en
+> > staging**, así que es un fallo recurrente de ESA función, no del despliegue. Se redesplegó sola.
+> > **Contar es lo único que lo dice.**
 >
-> ### Lo que la entrega 2 NO hizo, y por qué
+> ### Lo que está ENCENDIDO y lo que no
 >
-> - **El correo al consejo de §9 no se construyó.** No existe hoy ningún camino de correo al
->   `committee`, y sobre todo: **el consejo no llega al informe hasta la entrega 3**, que es la que
->   abre su ruta. Avisarle por correo de que revise y firme algo que no puede abrir sería mandarlo a
->   una puerta cerrada. **Va con la entrega 3.**
-> - **Publicar y despublicar** son la entrega 3, y `publicado` ya existe en el tipo y en las guardas.
+> - **Producción: la bandera `producto-informe-mensual` está APAGADA en los nueve.** El código está
+>   desplegado y es **inerte**: sin bandera no hay tarjeta, no se generan borradores y el archivo
+>   mensual del día 1 produce **exactamente lo de siempre**.
+> - **Ya se miró un informe generado con ella —era la condición para encenderla—**, así que
+>   encenderla es legítimo cuando David quiera. **Por conjunto**, con
+>   `mover-bandera-de-conjunto.mjs`; **NO la global**.
+> - **Staging: encendida en `conjunto-las-playas` y `tenant-santa-maria`**, con un informe de prueba
+>   emitido, firmado y **anulado a propósito** en Santa María (`2026-08`), y un `logoUrl` puesto al
+>   conjunto de Las Playas para poder observar `CA13`. Todo eso es dato de prueba: bórralo si estorba.
 >
-> ### Lo que NO hay que hacer
+> ### Lo que se vio CON OJOS antes de subir
 >
-> - **NO encender `producto-informe-mensual`.** Sigue apagada en los nueve, y así hasta que alguien
->   **mire un informe generado con ella**; y entonces, **por conjunto**.
-> - **No reabrir `FLOW-006`** (`G5` y el abogado, las dos de David), ni `RN-13`/`RN-14`, ni las
->   decisiones de `FEAT-007` ni su `G1` vacía.
+> Recorrido entero por la pantalla real con la sesión de un administrador y las callables
+> desplegadas: **Generar → Emitir → Firmar → Anular**. `CA4` dice **«Sin saldo de apertura»** y no
+> «$0»; el PDF **se archiva** con la categoría nueva y **se descarga**; la firma lleva el nombre que
+> **pone el servidor**; el anulado **sigue en pantalla con su motivo** y conserva cifras y firma.
 >
-> ### Lo que YA se hizo en staging, y lo que falta
->
-> **DESPLEGADO Y OBSERVADO EN STAGING (3 sep 2026):** reglas (ruleset vivo **idéntico al repo**,
-> leído por la API de Rules, no por «Deploy complete»), índices, las cuatro callables, y el front
-> (`build-2026-09-03-045`). Bandera encendida en **`conjunto-las-playas`** y **`tenant-santa-maria`**.
->
-> **Recorrido entero con la sesión de un administrador: Generar → Emitir → Firmar → Anular.** El PDF
-> se archiva en `documents` con la categoría nueva y se descarga; el nombre de la firma **lo pone el
-> servidor**; el anulado conserva cifras, firma y motivo. Detalle en «Lo que se vio con ojos» de la
-> ficha.
->
-> **Lo que falta:**
->
-> 1. **PRODUCCIÓN.** Orden: **reglas → índices → functions → push a `master`** (la regla **amplía**,
->    así que el orden normal aplica). Recompilar functions antes: **no hay predeploy build**.
->    **El push a `master` lo pide David.**
-> 2. **La entrega 3**, cuando conteste el abogado.
->
-> **Y una decisión que queda para quien suba a producción:** la bandera sigue **APAGADA en los
-> nueve** de `hogaru-1`. Ya se ha mirado un informe generado con ella —era la condición—, así que
-> encenderla es legítimo; hazlo **por conjunto**, con `mover-bandera-de-conjunto.mjs`, no la global.
->
-> ### Las OCHO cosas que enseñó construir la entrega 2
+> ### Las ocho cosas que enseñó construirla
 >
 > 1. **«No hay Java» era falso** — arriba, y es la que más lejos llega.
 > 2. **UNA PRUEBA DE DENEGACIÓN PASA IGUAL SIN NINGUNA REGLA.** Borrar el bloque entero de
 >    `monthlyReports` dejó **las trece pruebas de escritura en verde** —las satisface el deny por
->    defecto— y solo enrojecieron las cuatro de lectura. **Trece verdes no probaban que mi regla
->    existiera.** Al escribir reglas, la falsación obligatoria es **borrar el bloque**, no solo
->    aflojarlo.
+>    defecto— y solo enrojecieron las cuatro de lectura. **Al escribir reglas, la falsación
+>    obligatoria es BORRAR EL BLOQUE, no aflojarlo.**
 > 3. **Una prueba mía nació sin poder fallar.** El caso principal de `CA5` es cierto **por
->    construcción** mientras el informe sea una instantánea guardada: ninguna de las ocho
->    falsaciones lo tocó. Se le añadió el control que le faltaba —comprobar que **recalcular hoy SÍ
->    daría otro número**—. Sin él, «no se movió» no afirma nada.
-> 4. **Un guardián se queda ciego ante el primer caso que se sale de su expresión regular.** El de la
->    taxonomía de documentos leía `/"([a-z]+)"/g`, **sin guion bajo**, así que `informe_mensual` no
->    existía para él: con la categoría **sin clasificar**, once pruebas en verde. Es `UX-004` otra
->    vez, con otro nombre.
-> 5. **`StatusBadge` no conocía `emitido` ni `anulado`** —sí `borrador` y `publicado`—. En castellano
->    la clave cruda **se lee casi bien**, y por eso este fallo dura: se disimula a sí mismo.
+>    construcción** mientras el informe sea una instantánea guardada: ninguna de las nueve
+>    falsaciones lo tocó. Se le añadió el control que le faltaba — comprobar que **recalcular hoy
+>    daría otro número**.
+> 4. **Un guardián se queda ciego ante el primer caso que se sale de su expresión regular.** El de
+>    la taxonomía leía `/"([a-z]+)"/g`, **sin guion bajo**: con `informe_mensual` sin clasificar,
+>    **once pruebas en verde**.
+> 5. **`StatusBadge` no conocía `emitido` ni `anulado`.** En castellano la clave cruda **se lee casi
+>    bien**, y por eso este fallo dura: se disimula a sí mismo.
 > 6. **El asiento es CASTELLANO (`ingreso`/`egreso`)** y el núcleo **no lanza** ante un tipo que no
 >    conoce: no acumula, y la cifra sale en cero con pinta de dato. Lo cometí **dentro del banco que
->    venía a vigilarlo**, dos horas después de leer la lección en esta misma cabecera.
+>    venía a vigilarlo**.
 > 7. **MIRAR EL PAPEL ENCONTRÓ LO QUE 824 PRUEBAS EN VERDE NO VEÍAN.** El PDF pintaba **`ˆ`** donde
 >    iba un menos: el rótulo llevaba `−` (U+2212) y **`pdfkit` va en WinAnsi**, que no lo tiene —
->    sustituye el glifo **sin lanzar y sin avisar**. Y lo que lo hace durar: **las tildes y la `ñ` SÍ
->    están**, así que «Nómina» y «período» salen perfectos y uno da el resto por bueno. **Al generar
->    un documento, mirarlo: ninguna suite lee el papel.**
+>    sustituye el glifo **sin lanzar y sin avisar**. Y dura porque **las tildes y la `ñ` SÍ están**:
+>    «Nómina» sale perfecto y uno da el resto por bueno. **Ninguna suite lee el papel.**
 > 8. **Una aserción mía era falsa y pasaba por suerte del fixture:** «el PDF con firmas es más
->    largo». Medido contra el informe real, **el SIN firmar es más grande** — «Este informe todavía
->    no ha sido firmado.» ocupa más que dos nombres. **El tamaño de un artefacto no prueba que algo
+>    largo». Medido, **el SIN firmar es más grande**. **El tamaño de un artefacto no prueba que algo
 >    se pintó dentro.**
 >
 > ### Dos rojos que NO son de esta jornada
 >
 > `payments.emulator.test.ts` falla en `CA12 · deshacer un cruce…` y `D-B · revertir un pago
-> repartido…`, las dos con `expected 'overdue' to be 'pending'`. **Medido sobre el árbol limpio
-> antes de tocar nada: ya fallaban** (y allí eran tres). Huele a dependencia de la fecha del día.
-> **No se investigaron: quedan fuera del alcance de esta ficha.**
+> repartido…`, las dos con `expected 'overdue' to be 'pending'`. **Ya fallaban sobre el árbol
+> limpio** antes de tocar nada. Huele a dependencia de la fecha del día. **Fuera del alcance de esta
+> ficha, y sin investigar.**
+>
+> ### Una trampa nueva del entorno, y muerde
+>
+> **El proyecto por defecto del CLI de Firebase es `hogaru-1`, o sea PRODUCCIÓN.** Un
+> `firebase deploy --only firestore:rules` **sin `--project` toca producción**. Ponerlo siempre.
 
 ## EL CONTEXTO DE HABITANTO, CONSOLIDADO
 >
