@@ -765,7 +765,14 @@ prueban.
 
 ### Lo que NO se pudo ejecutar, y por qué importa
 
-**Las 7 pruebas de reglas están escritas y sin correr: no hay Java en esta máquina**, así que el
+> 🔴 **«NO HAY JAVA EN ESTA MÁQUINA» ES FALSO, medido el 3 de septiembre de 2026.**
+> `/usr/bin/java` es el **stub de macOS** y responde «Unable to locate a Java Runtime» —de ahí el
+> error—, pero el JDK está en `~/.local/jdk` (Temurin 21 LTS) y **`CLAUDE.md` lo documenta con el
+> `export` exacto**. El emulador arranca, y `PRD-V-FLOW-007` entrega 2 corrió con él sus seis
+> criterios de reglas. **Estas 7 pruebas SÍ se pueden ejecutar; están sin ejecutar, que no es lo
+> mismo que inejecutables.** Es deuda de esta ficha, no una limitación del equipo.
+
+~~**Las 7 pruebas de reglas están escritas y sin correr: no hay Java en esta máquina**~~, así que el
 emulador de Firestore no arranca. Eso explica además el «293 vs 347» de esta mañana — **el banco de
 reglas no estaba apagado: no se puede correr aquí**. Declara **354** casos.
 

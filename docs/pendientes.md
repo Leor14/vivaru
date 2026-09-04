@@ -221,7 +221,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > preámbulo de este documento dice que ya tuvo dos veces. **Un sha escrito a mano en un sitio que no
 > se reescribe entero siempre acaba mintiendo.**
 >
-> **Los bancos de reglas siguen sin poder correr en este equipo: no hay Java** — afecta a cuatro
+> ~~**Los bancos de reglas siguen sin poder correr en este equipo: no hay Java**~~ — **FALSO, y
+> corregido el 3 de septiembre: SÍ se pueden correr** (ver la cabecera). Afectaba a cuatro
 > criterios de `FEAT-007` y a **seis** de `FLOW-007`, que se quedan sin verificar aquí.
 >
 > **`FEAT-007` (modo oscuro) está EN PRODUCCIÓN y ENCENDIDA EN LOS NUEVE**, por el valor global y sin
