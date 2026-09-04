@@ -374,9 +374,9 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 | `CA5` | ✅ **Cumplido, y falsado** | `functions/tests/flow-007-emision.emulator.test.ts`. Emitido el informe, se corrige un asiento del período y las cifras **no se mueven** — con el control de que recalcular hoy SÍ daría otro número |
 | `CA6` | ✅ **Cumplido en el banco de reglas** | `tests/informe-mensual.rules.test.ts`. La escritura está cerrada al cliente **entera**: `update`, `setDoc`, cambio de estado, creación y borrado, y **tampoco el superadmin** |
 | `CA10` `CA11` `CA12` | ✅ **Cumplidos, y DEBEN FALLAR — fallan** | El residente no lee `monthlyReports` en ningún estado, ni de su conjunto ni de otro. No es la interfaz: es que **no hay rama de residente** hasta la entrega 3 |
-| `CA13` | 🟡 **Construido; falta MIRARLO** | El PDF lleva logo, período, secciones y bloque de firmas —vacío y **no omitido** cuando nadie ha firmado—. `functions/tests/flow-007-pdf-informe.test.ts` vigila que se construya; **que se VEA bien es de ojos, en staging** |
+| `CA13` | ✅ **CUMPLIDO, y MIRADO en staging** | Ver el bloque «Lo que se vio con ojos» de abajo. El PDF lleva logo, período, estado, las cuatro secciones con sus totales y el bloque de firmas con **nombre, cargo y fecha**; sin firmas el bloque **aparece y no se omite**. **Mirarlo destapó un defecto que 824 pruebas en verde no veían** |
 | `CA14` | 🟡 **La mitad del servidor, sí** | `issueMonthlyReport` lleva `assertTenantOperable` + `assertTenantContratado`, que es lo que de verdad frena: **la regla no protege lo que escribe una callable**. La mitad de reglas está cubierta por el cierre total de escritura |
-| `CA15` | ✅ **Cumplido** | Un anulado conserva sus cifras, su motivo y su lectura. `anulado` es **terminal**: ni se reemite, ni se firma, ni lo resucita la corrida del día 1 |
+| `CA15` | ✅ **Cumplido, y MIRADO en staging** | Un anulado conserva sus cifras, su firma, su motivo y su lectura. `anulado` es **terminal**: ni se reemite, ni se firma, ni lo resucita la corrida del día 1 |
 | `CA16` | ✅ **Cumplido en el SERVIDOR** | `anularInforme` exige motivo y **recorta antes de mirarlo**, así que un motivo en blanco tampoco cuela. El formulario solo evita el viaje |
 
 **Bancos: `npm test` 1732 · functions 824 · reglas 371 · emulador 301** (con dos rojos
@@ -410,6 +410,39 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 > los cuatro estados se habrían pintado en tono neutro con la clave cruda en minúscula. En
 > castellano eso **se lee casi bien**, que es lo que hace que dure: el mismo fallo que se disimula a
 > sí mismo de las diez claves sin traducir de `UX-003`.
+
+> ### Lo que se vio CON OJOS en staging (3 sep 2026)
+>
+> Recorrido entero por la pantalla real, con la sesión de un administrador y **las callables
+> desplegadas** — no con un guion: **Generar → Emitir → Firmar → Anular**.
+>
+> | Lo que se comprobó | Resultado |
+> |---|---|
+> | La tarjeta aparece **solo con la bandera encendida** | Sí, y por conjunto |
+> | `CA4` **en la cara de la pantalla** | Dice **«Sin saldo de apertura»**, no «$0» |
+> | Emitir congela y sella | `issuedBy` con el uid real, `issuedAt`, y estado `emitido` |
+> | El PDF se **archiva** | `documents/informe_tenant-santa-maria_2026-08`, categoría **`informe_mensual`**, en `tenants/…/monthly-reports/`, y **se descarga** (200, `%PDF-`) |
+> | El id es **determinista** | Reintentar no duplica: mismo documento, misma ruta de Storage |
+> | Firmar | «Carlos Ramirez · Administración», **con el nombre puesto por el SERVIDOR**; el botón pasa a «Ya firmaste» |
+> | `CA16` en el formulario | «Anular informe» **nace deshabilitado** sin motivo (y el servidor lo exige igualmente) |
+> | `CA15` | El anulado **sigue en pantalla**, en rojo, **con su motivo y su fecha**, y conserva cifras y firma |
+>
+> **Y el PDF, con datos reales de `conjunto-las-playas`** (85.000 de apertura, 24.000 de ingresos,
+> 61.400 de egresos, 47.600 de saldo final, cinco unidades con deuda y cuatro proveedores): logo
+> arriba, período, estado, las cuatro secciones ordenadas **por el código del plan**, y el bloque de
+> firmas. La identidad de `RN-03` **cuadra** contra datos de verdad.
+>
+> > 🔴 **MIRAR EL PAPEL ENCONTRÓ UN DEFECTO QUE 824 PRUEBAS EN VERDE NO VEÍAN.** El rótulo de
+> > `RN-03` salía **«(inicial + ingresos ˆ egresos)»**: llevaba un menos de verdad (`−`, U+2212) y
+> > **las fuentes estándar de `pdfkit` van en WinAnsi**, que no lo tiene — lo sustituye por otro
+> > glifo **sin lanzar y sin avisar**. De la peor familia, porque las tildes y la `ñ` **sí** están en
+> > WinAnsi: «Nómina» y «período» salen perfectos y uno da por bueno el resto. Corregido, con un
+> > guardián que recorre **el texto que de verdad va al PDF** y falsado reintroduciendo el carácter.
+>
+> **Y una aserción mía era falsa:** «el PDF con firmas es más largo». Medido contra el informe real,
+> **el SIN firmar es más grande** (25.266 contra 25.220), porque «Este informe todavía no ha sido
+> firmado.» ocupa más que dos nombres. Pasaba **por suerte del fixture**. El tamaño de un PDF no
+> dice que algo se pintó.
 
 > **Y un tropiezo propio que el banco cazó en el acto:** los casos de `construirInstantanea` nacieron
 > con `type: "expense"` / `"income"`. **El asiento es castellano —`egreso` / `ingreso`—**, y el

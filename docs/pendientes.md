@@ -8,10 +8,15 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > # LO SIGUIENTE ES LA **ENTREGA 3 DE `PRD-V-FLOW-007`**… PERO ESTÁ BLOQUEADA POR EL ABOGADO.
 >
-> Las entregas **1 y 2 están construidas**; la 1 en producción y observada, la 2 **construida y sin
-> desplegar**. La 3 —publicar al residente— **espera las cinco preguntas al abogado ecuatoriano**
-> (`TBD-L1`–`L5`), que son de David. Así que **al abrir, lo primero es preguntarle si ya hay
-> respuesta**; si no la hay, toca **elegir frente** (ver más abajo).
+> Las entregas **1 y 2 están construidas**. La 1 en producción; **la 2 EN STAGING, encendida,
+> recorrida entera con ojos y con sus 18 criterios cerrados salvo los de la entrega 3**. La 3
+> —publicar al residente— **espera las cinco preguntas al abogado ecuatoriano** (`TBD-L1`–`L5`), que
+> son de David. Así que **al abrir, lo primero es preguntarle si ya hay respuesta**; si no la hay,
+> toca **elegir frente** (ver más abajo).
+>
+> > **LO ÚNICO QUE FALTA DE LA ENTREGA 2 ES SUBIRLA A PRODUCCIÓN, Y ESO LO PIDE DAVID.** Reglas →
+> > índices → functions → push a `master`. **Ojo: el proyecto por defecto del CLI es `hogaru-1`,
+> > o sea PRODUCCIÓN**, así que un `firebase deploy --only firestore:rules` sin `--project` la toca.
 >
 > **Estado:** leer los remotos con `git ls-remote`, **no de aquí**.
 > **Bancos:** `npm test` **1732** · functions **824** · reglas **371** · emulador **301**
@@ -81,18 +86,29 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > - **No reabrir `FLOW-006`** (`G5` y el abogado, las dos de David), ni `RN-13`/`RN-14`, ni las
 >   decisiones de `FEAT-007` ni su `G1` vacía.
 >
-> ### Lo que falta de `FLOW-007`, en orden
+> ### Lo que YA se hizo en staging, y lo que falta
 >
-> 1. **Desplegar la entrega 2.** El orden es **reglas → functions → front**, porque aquí la regla
->    **amplía**. `firebase deploy --only firestore:rules`, luego `--only firestore:indexes`, luego
->    `firebase deploy --only functions` (recompilar antes: **no hay predeploy build**), y el front al
->    empujar. **El push a `master` lo pide David.**
-> 2. **`CA13` con OJOS, en staging.** Es lo único de la entrega 2 que no se puede cerrar aquí: que el
->    logo se vea y el bloque de firmas se lea. Hay que **encender la bandera en un conjunto de
->    staging**, generar, emitir y **abrir el PDF**.
-> 3. **La entrega 3**, cuando conteste el abogado.
+> **DESPLEGADO Y OBSERVADO EN STAGING (3 sep 2026):** reglas (ruleset vivo **idéntico al repo**,
+> leído por la API de Rules, no por «Deploy complete»), índices, las cuatro callables, y el front
+> (`build-2026-09-03-045`). Bandera encendida en **`conjunto-las-playas`** y **`tenant-santa-maria`**.
 >
-> ### Las seis cosas que enseñó construir la entrega 2
+> **Recorrido entero con la sesión de un administrador: Generar → Emitir → Firmar → Anular.** El PDF
+> se archiva en `documents` con la categoría nueva y se descarga; el nombre de la firma **lo pone el
+> servidor**; el anulado conserva cifras, firma y motivo. Detalle en «Lo que se vio con ojos» de la
+> ficha.
+>
+> **Lo que falta:**
+>
+> 1. **PRODUCCIÓN.** Orden: **reglas → índices → functions → push a `master`** (la regla **amplía**,
+>    así que el orden normal aplica). Recompilar functions antes: **no hay predeploy build**.
+>    **El push a `master` lo pide David.**
+> 2. **La entrega 3**, cuando conteste el abogado.
+>
+> **Y una decisión que queda para quien suba a producción:** la bandera sigue **APAGADA en los
+> nueve** de `hogaru-1`. Ya se ha mirado un informe generado con ella —era la condición—, así que
+> encenderla es legítimo; hazlo **por conjunto**, con `mover-bandera-de-conjunto.mjs`, no la global.
+>
+> ### Las OCHO cosas que enseñó construir la entrega 2
 >
 > 1. **«No hay Java» era falso** — arriba, y es la que más lejos llega.
 > 2. **UNA PRUEBA DE DENEGACIÓN PASA IGUAL SIN NINGUNA REGLA.** Borrar el bloque entero de
@@ -113,6 +129,15 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 6. **El asiento es CASTELLANO (`ingreso`/`egreso`)** y el núcleo **no lanza** ante un tipo que no
 >    conoce: no acumula, y la cifra sale en cero con pinta de dato. Lo cometí **dentro del banco que
 >    venía a vigilarlo**, dos horas después de leer la lección en esta misma cabecera.
+> 7. **MIRAR EL PAPEL ENCONTRÓ LO QUE 824 PRUEBAS EN VERDE NO VEÍAN.** El PDF pintaba **`ˆ`** donde
+>    iba un menos: el rótulo llevaba `−` (U+2212) y **`pdfkit` va en WinAnsi**, que no lo tiene —
+>    sustituye el glifo **sin lanzar y sin avisar**. Y lo que lo hace durar: **las tildes y la `ñ` SÍ
+>    están**, así que «Nómina» y «período» salen perfectos y uno da el resto por bueno. **Al generar
+>    un documento, mirarlo: ninguna suite lee el papel.**
+> 8. **Una aserción mía era falsa y pasaba por suerte del fixture:** «el PDF con firmas es más
+>    largo». Medido contra el informe real, **el SIN firmar es más grande** — «Este informe todavía
+>    no ha sido firmado.» ocupa más que dos nombres. **El tamaño de un artefacto no prueba que algo
+>    se pintó dentro.**
 >
 > ### Dos rojos que NO son de esta jornada
 >
