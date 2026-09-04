@@ -67,12 +67,20 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### Lo que está ENCENDIDO y lo que no
 >
-> - **Producción: la bandera `producto-informe-mensual` está APAGADA en los nueve.** El código está
->   desplegado y es **inerte**: sin bandera no hay tarjeta, no se generan borradores y el archivo
->   mensual del día 1 produce **exactamente lo de siempre**.
-> - **Ya se miró un informe generado con ella —era la condición para encenderla—**, así que
->   encenderla es legítimo cuando David quiera. **Por conjunto**, con
->   `mover-bandera-de-conjunto.mjs`; **NO la global**.
+> - **Producción: ENCENDIDA EN 1 DE 9 — el canario es `tenant-santa-maria`** (4 sep 2026). Medido
+>   resolviendo el valor **efectivo** con la precedencia del servidor: resuelve por
+>   **`override_conjunto`**, y los otros ocho por `default_catalogo` (la global **no tiene
+>   documento**). La tarjeta **se ve en producción**, en `/admin/reports`.
+> - **Lo que cambia de verdad al encenderla:** aparece la tarjeta, se pueden generar y emitir
+>   informes, y **la corrida del día 1 de octubre creará el borrador de Santa María y añadirá las
+>   cuatro filas nuevas a su archivo mensual**. En los otros ocho, nada.
+> - **PARA APAGARLA, quitar la OVERRIDE, no tocar la global.** Con la override puesta, Santa María
+>   resuelve por ella: un `enabled: false` global **apagaría ocho y dejaría este encendido**. Es la
+>   lección que ya pagó `FEAT-007`. Para apagar de emergencia en los nueve, el **kill switch**, que
+>   va por encima de cualquier override.
+> - **Ampliar el canario:** el siguiente candidato natural es **`conjunto-las-playas`**, porque es
+>   el único de producción con **egresos en `registrado`** (4) y por tanto el único donde la fila
+>   «Deuda a proveedores» sale **distinta de cero**. Santa María la enseña en cero calculado.
 > - **Staging: encendida en `conjunto-las-playas` y `tenant-santa-maria`**, con un informe de prueba
 >   emitido, firmado y **anulado a propósito** en Santa María (`2026-08`), y un `logoUrl` puesto al
 >   conjunto de Las Playas para poder observar `CA13`. Todo eso es dato de prueba: bórralo si estorba.
@@ -110,6 +118,29 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 8. **Una aserción mía era falsa y pasaba por suerte del fixture:** «el PDF con firmas es más
 >    largo». Medido, **el SIN firmar es más grande**. **El tamaño de un artefacto no prueba que algo
 >    se pintó dentro.**
+>
+> ### 🔴 UN DEFECTO DE DINERO ENCONTRADO AL ENCENDER, Y **DELIBERADAMENTE NO ARREGLADO**
+>
+> Mirando producción con la bandera encendida: **el informe del consejo y `/admin/finanzas` enseñan
+> «Saldo de fondos» distinto para el mismo conjunto y el mismo día** — **−$675.000** contra
+> **725.000**, en Santa María.
+>
+> Las dos llaman a la **misma** `computeFundPosition`; lo que difiere es el `cuotaIncome` que cada
+> una define por su cuenta:
+>
+> | Pantalla | Cómo define el recaudo | Da |
+> |---|---|---|
+> | Informe del consejo (`use-committee-report.ts`) | `billing.filter(b => b.status === "paid")` — **ignora los pagos PARCIALES** | 800.000 |
+> | `/admin/finanzas` (`page.tsx:153`) | `recaudo.total` — todo el `paymentAmount` | 2.200.000 |
+>
+> **La diferencia son 1.400.000 y sale íntegra de DOS cargos** de `T1-101` en `2026-03` con pago
+> parcial. La aritmética cuadra con las dos pantallas: `5.000.000 + recaudo + (−6.475.000)`.
+>
+> **Es PREEXISTENTE**: el filtro viene de `f0aba4b` (23 de junio de 2026) y `FLOW-007` **nunca tocó**
+> esa definición. **No se arregló a propósito**, para no reabrir una ficha ya desplegada — pero es
+> **la misma enfermedad que `R12`/`R16`**, en la pantalla que se quedó fuera de la unificación de
+> `RN-01`. Y el sentido del error importa: **el informe que ve el consejo SUBESTIMA**, y le enseña
+> un fondo en rojo a un conjunto que tiene dinero.
 >
 > ### Dos rojos que NO son de esta jornada
 >
