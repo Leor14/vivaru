@@ -4,6 +4,7 @@ import type {
   ExpenseCategory,
   LedgerCategory,
 } from "@/types/domain";
+import { statementCollectedAmount } from "@/features/billing/collection";
 
 /**
  * El reparto del recaudo por concepto (`PRD-V-PLAT-003`, entrega 1b-iii).
@@ -160,7 +161,13 @@ export function repartirRecaudo(
   const porCategoria = new Map<LedgerCategory, number>();
   let total = 0;
   for (const s of statements) {
-    const pagado = typeof s.paymentAmount === "number" ? s.paymentAmount : 0;
+    // **La misma fórmula que el resto**, no una propia: `statementCollectedAmount`
+    // es la única declarada (VIV-103/1103) y **topa en cero**. Esta función
+    // sumaba `paymentAmount` a pelo, así que un valor negativo habría RESTADO
+    // aquí y contado cero allí — dos cifras distintas para el mismo dinero por
+    // un borde que hoy no se da (0 negativos en producción, 4 sep 2026) y que
+    // nadie habría visto venir.
+    const pagado = statementCollectedAmount(s);
     if (!pagado) continue;
     total += pagado;
     const cat = categoriaDeConcepto(s.concept);

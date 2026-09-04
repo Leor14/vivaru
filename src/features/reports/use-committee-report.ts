@@ -11,7 +11,7 @@ import {
 } from "@/features/finanzas/financial-statement";
 import { useChartOfAccounts } from "@/features/finanzas/use-chart-of-accounts";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
-import { categoriaDeConcepto, type RecaudoDeCartera } from "@/lib/finanzas/conceptos-de-cargo";
+import { repartirRecaudo } from "@/lib/finanzas/conceptos-de-cargo";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
 import { sumarSaldoInicial } from "@/features/finanzas/use-bank-accounts";
 import {
@@ -471,9 +471,15 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
 
     const billingInPeriod = billing.filter((b) => b.period >= startMonth && b.period <= endMonth);
 
-    const totalCollected = billingInPeriod
-      .filter((b) => b.status === "paid")
-      .reduce((sum, b) => sum + (b.paymentAmount ?? b.amount ?? 0), 0);
+    // **Lo recaudado del período, con su reparto, de UNA sola llamada.**
+    // Antes esto filtraba `status === "paid"` — y **un cargo con pago PARCIAL no
+    // es `paid`**, así que lo tiraba entero: 10 cargos por $4.800.000 en tres
+    // conjuntos, medido el 4 de septiembre de 2026. De ahí que esta pantalla y
+    // `/admin/finanzas` enseñaran «Saldo de fondos» distinto el mismo día.
+    // `repartirRecaudo` es la que ya usaba `/admin/finanzas`, y devuelve total y
+    // mapa juntos para que nadie vuelva a sumar el mapa por su cuenta.
+    const recaudo = repartirRecaudo(billingInPeriod);
+    const totalCollected = recaudo.total;
 
     const totalOverdue = billing
       .filter((b) => b.status === "overdue" && b.balance > 0)
@@ -588,33 +594,24 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     // ── Financiero (cartera + libro/fondos) ────────────────────────────────────
     // Saldo de fondos = acumulado (recaudo histórico + ingresos del libro − egresos).
     // Ingresos/egresos del período = estado de resultados sobre el libro filtrado.
-    const cuotaIncomeAllTime = billing
-      .filter((b) => b.status === "paid")
-      .reduce((sum, b) => sum + (b.paymentAmount ?? b.amount ?? 0), 0);
+    const cuotaIncomeAllTime = computeCollectionSummary(billing).collected;
     // **El saldo inicial, leído.** Hasta esta entrega el informe del consejo
     // pasaba `0` igual que `/admin/finanzas`, así que su «saldo de fondos» era
     // el acumulado de movimientos y no el dinero del conjunto. `CA9`.
     const saldoInicial = sumarSaldoInicial(saldosIniciales);
     const fundPosition = computeFundPosition(ledger, cuotaIncomeAllTime, saldoInicial);
     const periodLedger = ledger.filter((e) => inRange(toDateStr(e.date), start, end));
-    // El reparto se construye AQUÍ y no con `repartirRecaudo` a propósito: este
-    // informe define «recaudado» de otra forma que la pantalla de Finanzas
-    // —solo cargos `paid`, y con `amount` de respaldo si falta `paymentAmount`—.
-    // Esa discrepancia es anterior a esta entrega y no se toca aquí; lo que sí
-    // importa es que el reparto sume EXACTAMENTE el total de este informe, o el
-    // estado financiero dejaría de cuadrar consigo mismo.
-    const recaudoPorCategoria = new Map<string, number>();
-    for (const b of billingInPeriod) {
-      if (b.status !== "paid") continue;
-      const pagado = b.paymentAmount ?? b.amount ?? 0;
-      if (!pagado) continue;
-      const cat = categoriaDeConcepto(b.concept);
-      recaudoPorCategoria.set(cat, (recaudoPorCategoria.get(cat) ?? 0) + pagado);
-    }
-    const recaudo: RecaudoDeCartera = {
-      total: totalCollected,
-      porCategoria: recaudoPorCategoria as RecaudoDeCartera["porCategoria"],
-    };
+    // ⚠️ **Aquí había un comentario que JUSTIFICABA la desviación**: decía que
+    // el reparto se construía a mano «a propósito», porque este informe definía
+    // «recaudado» de otra forma que `/admin/finanzas`. Describía el defecto con
+    // exactitud y lo llamaba decisión. Era la misma discrepancia que hacía que
+    // las dos pantallas enseñaran «Saldo de fondos» distinto el mismo día.
+    // **Una cabecera no es una medición**, y ésta llevaba desde junio.
+    // El reparto por categoría **ya viene con el total** desde `repartirRecaudo`,
+    // arriba. Aquí vivía una cuarta copia de la misma suma —con el mismo filtro
+    // roto—, construyendo a mano el mapa que esa función devuelve. Se buscaba
+    // «quién llama a `repartirRecaudo`» y salían consumidores; el duplicado no
+    // la nombraba.
     const statement = buildFinancialStatement(
       periodLedger,
       conceptoAlLibro ? recaudo : totalCollected,
@@ -710,11 +707,11 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     const collectedDelta = recaudadoPrev > 0 ? Math.round(((recaudado - recaudadoPrev) / recaudadoPrev) * 100) : null;
 
     // Resultado neto del período anterior (mismo método que el actual).
-    const totalCollectedPrev = billingPrev
-      .filter((b) => b.status === "paid")
-      .reduce((s, b) => s + (b.paymentAmount ?? b.amount ?? 0), 0);
+    // **`recaudadoPrev` es este mismo número, con la fórmula buena, cinco líneas
+    // más arriba.** El fichero calculaba el recaudo del período anterior DOS
+    // VECES con dos fórmulas distintas, a cinco líneas de distancia.
     const prevLedger = ledger.filter((e) => inRange(toDateStr(e.date), prevStartStr, prevEndStr));
-    const prevNet = buildFinancialStatement(prevLedger, totalCollectedPrev).netResult;
+    const prevNet = buildFinancialStatement(prevLedger, recaudadoPrev).netResult;
     const netResultDelta = prevNet !== 0 ? Math.round(((statement.netResult - prevNet) / Math.abs(prevNet)) * 100) : null;
 
     // Morosidad: índice por MONTO (cartera vencida acumulada / facturado acumulado) como
