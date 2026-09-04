@@ -1346,8 +1346,11 @@ service cloud.firestore {
     // fallan porque no hay rama de residente. Cerrarlo después de que la
     // comunidad lo vio no se puede.
     //
-    // ⚠️ **Estas ramas NO se han ejercitado con el banco de reglas**: pide
-    // emulador y este equipo no tiene Java. Es lo mismo que pasó con `FEAT-007`.
+    // ✅ **Estas ramas SÍ están ejercitadas contra el emulador**, en
+    // `tests/informe-mensual.rules.test.ts` (17 casos). Y con la falsación que
+    // importa: **borrar este bloque entero dejó las trece pruebas de escritura en
+    // VERDE** —las satisface el deny por defecto— y solo enrojecieron las cuatro
+    // de lectura. Una prueba de denegación no prueba que exista una regla.
     match /monthlyReports/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
