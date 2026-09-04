@@ -101,9 +101,25 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > ### Lo que falta de esta ficha
 >
 > **Encendida en los DOS conjuntos con datos**: Santa María (cero pendientes) y **Las Playas**
-> (cuatro pendientes, **$33.150**, y 14 egresos). **Ninguno tiene todavía un plan de cuotas**: el
-> editor aparece al registrar o editar una factura, así que la capacidad está encendida y **sin
-> estrenar**. Es «encender no es poner en uso» — lo que falta es capturar un cuadro de pagos real.
+> (cuatro pendientes, $33.150, y 14 egresos).
+>
+> ### ✅ ESTRENADA: hay un cuadro de pagos real en producción
+>
+> **`exp-playas-012` — «Reparación de bomba hidroneumática», $7.800 de HidroServicios MX — en TRES
+> cuotas de $2.600**, venciendo el 10 de julio, agosto y septiembre. Escrito por `guardarPlan`, la
+> misma función que ejecuta la callable.
+>
+> **Y el efecto es exactamente el que la ficha prometía:**
+>
+> | | Antes del plan | Después |
+> |---|---|---|
+> | **Por pagar** (la deuda) | 33.150 | **33.150** — no se mueve, y no debe |
+> | **Vencido** | 33.150 | **30.550** |
+> | **Próximo a vencer** | 0 | **2.600** |
+>
+> **$2.600 pasaron de «vencido» a «próximo a vencer»** porque la tercera cuota vence el 10 de
+> septiembre. Antes, la factura entera caía del lado de lo vencido por su única fecha. **Eso es el
+> valor de la ficha, medido sobre datos de producción.**
 >
 > **Encenderla NO movió ninguna cifra de Las Playas**: «Por pagar» vale **33.150 antes y después**,
 > porque ninguno de sus 14 egresos lleva plan. Es `CA10`/`CA11` observado **sobre datos reales de
