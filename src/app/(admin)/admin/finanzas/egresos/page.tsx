@@ -586,11 +586,18 @@ export default function AdminEgresosPage() {
               disabled={submitting}
             />
           )}
-          {form.formState.errors.installments ? (
-            <p className="text-xs text-[var(--danger-700)]">
-              {form.formState.errors.installments.message}
-            </p>
-          ) : null}
+          {/*
+            **El error del esquema NO se pinta aquí, y no es un olvido.**
+            `PlanDeCuotasField` ya enseña los problemas mientras se escribe, y con
+            el formato de moneda del conjunto. Pintarlos otra vez daba el mismo
+            aviso DUPLICADO —«faltan $ 1.000» y debajo «faltan 1.000», la segunda
+            sin símbolo— porque el mensaje del esquema no conoce el formateador.
+            Lo cazó mirar la pantalla en staging.
+
+            El esquema **sigue guardando**: su `superRefine` invalida el
+            formulario e impide guardar. Lo que se retira es la segunda copia del
+            texto, no la protección.
+          */}
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Estado
