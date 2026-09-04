@@ -46,14 +46,35 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | Bandera | Producción | Staging |
 > |---|---|---|
 > | `producto-informe-mensual` | **1 de 9** — canario en `tenant-santa-maria`, con un informe real emitido | 2 de 9 |
-> | `producto-egresos-en-cuotas` | **0 de 9** — el código está desplegado y es **inerte** | 1 de 9 (`tenant-santa-maria`) |
+> | `producto-egresos-en-cuotas` | **1 de 9** — canario en `tenant-santa-maria` | 1 de 9 (`tenant-santa-maria`) |
 >
 > **Para apagar un canario, quitar la OVERRIDE, no tocar la global**: con la override puesta, un
 > `enabled: false` global apagaría ocho y dejaría uno encendido. Para los nueve, el **kill switch**.
 >
 > ---
 >
-> ## `PRD-V-FLOW-008` — cuentas por pagar en cuotas, EN PRODUCCIÓN (`3f0de0a`)
+> ## 🔴 UN DEFECTO MÍO QUE LLEGÓ A PRODUCCIÓN, Y CÓMO SE ENCONTRÓ
+>
+> **Al encender la bandera y mirar la pantalla**, Santa María enseñaba **«Por pagar $6.765.000» con
+> sus cinco egresos en `Pagado`** — exactamente la suma de los cinco. Debía decir cero.
+>
+> **La causa, y es la parte que enseña: el defecto lo introduje ARREGLANDO otro del mismo tipo.** Al
+> corregir el cuarto duplicado de la deuda escribí un bucle que recorría todo lo no anulado llamando
+> a **`pendienteDelEgreso`, que NO mira el estado** —eso lo hace `sumarDeudaAProveedores`—. Usé la
+> pieza suelta en vez de la función completa: **rehice el filtro olvidándolo.**
+>
+> **No estaba detrás de la bandera**, así que la cifra llevaba mal en **los nueve** conjuntos desde
+> que el front subió. Corregido en producción (`782fb7b`): la tarjeta llama ya a la función única, y
+> el quinto duplicado **desaparece** en vez de sustituirse por otro. Verificado con ojos: **«Por
+> pagar $0 · Pagado $6.765.000»**.
+>
+> > **`pendienteDelEgreso` responde «cuánto falta de ESTE egreso», NO «cuánto se debe».** Quien
+> > decide si un egreso cuenta es el estado, y eso vive en `sumarDeudaAProveedores`. **Al sustituir
+> > un cálculo duplicado, usar la función COMPLETA — no su pieza interna.**
+>
+> ---
+>
+> ## `PRD-V-FLOW-008` — cuentas por pagar en cuotas, EN PRODUCCIÓN (`3f0de0a`, arreglo en `782fb7b`)
 >
 > **Las tres entregas**, con `R8` cerrado. Orden **invertido** —functions → front → reglas—, porque
 > la regla **restringe**. Recorrida entera con ojos en staging antes de subir.
@@ -79,7 +100,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### Lo que falta de esta ficha
 >
-> - **Encenderla**, cuando David quiera. **Por conjunto**, con `mover-bandera-de-conjunto.mjs`.
+> - **Santa María tiene CERO egresos pendientes**, así que la capacidad está encendida sobre nada:
+>   el editor del plan solo aparece al registrar una factura nueva. **Si se quiere ver trabajando
+>   sobre cuentas por pagar reales, el conjunto es `conjunto-las-playas`** — cuatro pendientes que
+>   suman $33.150. Es «encender no es poner en uso», otra vez.
 > - **`CA13` en la tarjeta de Cartera** con ojos (la columna «Vence» ya está vista).
 >
 > ---
@@ -125,6 +149,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 6. **Una lectura hecha ANTES de que la operación termine no es una medición: es una carrera.**
 > 7. **Una falsación en verde es falsación mala O hueco real**, y hay que distinguirlo: hoy rompí el
 >    filtro de `guardarPlan` creyendo que era la guarda, y la guarda estaba en `fundirPlan`.
+> 8. **UN ARREGLO PUEDE INTRODUCIR EL MISMO DEFECTO QUE VIENE A CERRAR.** Corrigiendo el cuarto
+>    duplicado de la deuda creé el quinto, y llegó a producción. **Al sustituir un cálculo duplicado,
+>    llamar a la función COMPLETA, no a su pieza interna:** `pendienteDelEgreso` dice «cuánto falta
+>    de este egreso», no «cuánto se debe».
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
