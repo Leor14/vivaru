@@ -573,9 +573,16 @@ esta ficha**: solo fue quien hizo visible el punto ciego. Es `UX-004` otra vez.
 otra, **la conciliación dejaría de emparejarlo** y el estado financiero lo agruparía en otro sitio.
 Lo único añadido es `installmentNumber`, para volver del asiento a su cuota. Hay prueba que lo fija.
 
-**2 · La cuenta contable NO se recalcula en el servidor.** `codigoDeCategoriaDeEgreso` vive solo en
-`src/`, y el documento del egreso **ya guarda su `accountCode`**. Recalcularlo sería una segunda
-implementación de la misma regla — exactamente cómo nacieron `R12` y `R16`. Se lee del egreso.
+**2 · La cuenta contable SE DERIVA de la categoría, con el mapa que ya existe en el servidor.**
+`cuentaParaCategoriaDeEgreso`, en `functions/src/plan-de-cuentas.ts` — el mismo que usa
+`trial-seed`. No es una segunda implementación: es **la** implementación del lado del servidor.
+
+> **Este punto decía lo contrario hasta el 4 de septiembre de 2026 —«no se recalcula, se lee del
+> egreso»— y sus dos premisas eran FALSAS.** Ni el mapa vive solo en `src/` —el gemelo llevaba ahí
+> desde antes—, ni el egreso guarda su `accountCode`: **0 de 52 en producción**, porque no es un
+> campo del egreso, lo escribe el ASIENTO. Construido tal cual, el asiento de toda cuota nacía con
+> `accountCode: null`, que es justo la rama de respaldo que `R9` quiere evitar. Corregido en
+> producción (`09608f2`) tras verlo al pagar la primera cuota real.
 
 **3 · Pagar va en TRANSACCIÓN, y no es cosmética.** Marcar la cuota y escribir el asiento son dos
 escrituras: si solo cuajara la primera, el conjunto tendría **una cuota pagada que no aparece en el

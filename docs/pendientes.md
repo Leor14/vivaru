@@ -4,17 +4,32 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 4 de septiembre de 2026, corte (`FLOW-008` EN PRODUCCIÓN)
+## LO PRIMERO AL ABRIR SESIÓN — 4 de septiembre de 2026, corte (`FLOW-008` EN PRODUCCIÓN Y ESTRENADO)
 
 > # NO QUEDA NADA CONSTRUIBLE ABIERTO. LO PRIMERO ES **ELEGIR FRENTE**.
 >
 > `PRD-V-FLOW-007` y `PRD-V-FLOW-008` están **en producción con todas sus entregas**, salvo la
 > entrega 3 de `FLOW-007`, que **espera al abogado** y es de David. **Ninguna ficha a medias.**
 >
-> **Estado:** leer los remotos con `git ls-remote`, **no de aquí**.
-> **Bancos:** `npm test` **1763** · functions **832** · reglas **394** · emulador **329**
-> (con **dos rojos PREEXISTENTES** en `payments.emulator.test.ts`, medidos también sobre el árbol
-> limpio; hay chip abierto).
+> **Estado:** leer los remotos con `git ls-remote`, **no de aquí**. Al cerrar, `origin/master` y
+> `origin/develop` iban los dos a `d2e77af`, y producción servía `build-2026-09-04-016` de ese
+> mismo commit (verificado por **procedencia del build**, no por `git log`).
+>
+> **Bancos, medidos hoy:** `npm test` **1766** · functions **832** · emulador **329**
+> (con **dos rojos PREEXISTENTES** en `payments.emulator.test.ts` — `CA12` y `D-B`—, medidos también
+> sobre el árbol limpio; hay chip abierto). **El de reglas NO se volvió a medir esta pasada**: el
+> último dato es **394** y es de la pasada anterior — contarlo, no citarlo.
+>
+> ## 🔴 LO ÚNICO QUE QUEDA A MEDIAS, Y ES UNA LÍNEA
+>
+> **Un asiento de producción sigue con `accountCode: null` y debería ser `2.3`.** Es
+> `ledgerEntries/tWgE2rhBeztUbCTWKokt` (Las Playas, la cuota 1 de `exp-playas-012`), nacido con el
+> defecto que se corrigió después. **El clasificador bloquea escribir directo al libro de dinero de
+> producción** —también con la autorización de David en el chat, porque no la lee de ahí—, así que
+> **lo corre David**. El script está escrito y verificado en el scratchpad de esa sesión; si ya no
+> existe, son tres líneas: `ref.update({ accountCode: "2.3" })` sobre ese id, con la ADC contra
+> `hogaru-1`. **Es el único afectado** — se barrieron todos los asientos con `installmentNumber`,
+> no solo el conocido. Los nuevos ya nacen con su cuenta.
 >
 > ---
 >
@@ -41,6 +56,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > lee el ruleset **vivo** por la API de Rules y lo diferencia contra el repo. «Deploy complete» no
 > prueba nada: hoy el log de functions confirmó **9 de 98** operaciones y estaban las 98.
 >
+> ### ⚠️ EL TRABAJO SE HACE EN `develop`, Y `master` NO SE MUEVE SOLO
+>
+> Costó un `push` que respondió **«Everything up-to-date» siendo mentira útil**: se empujó `master`
+> desde `develop`, y lo que viajó fue el `master` local, que no se había movido. El ciclo real es
+> **`git push origin develop` → `git checkout master` → `git merge --ff-only develop` →
+> `git push origin master`**, y después **verificar el remoto con `git ls-remote`**. Los dos
+> ambientes despliegan solos al empujar.
+>
 > ### Las banderas nuevas, y dónde están encendidas
 >
 > | Bandera | Producción | Staging |
@@ -53,28 +76,45 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ---
 >
-> ## 🔴 UN DEFECTO MÍO QUE LLEGÓ A PRODUCCIÓN, Y CÓMO SE ENCONTRÓ
+> ## 🔴 DOS DEFECTOS MÍOS QUE LLEGARON A PRODUCCIÓN, Y LOS DOS LOS ENCONTRÓ **USAR** LA FICHA
 >
-> **Al encender la bandera y mirar la pantalla**, Santa María enseñaba **«Por pagar $6.765.000» con
-> sus cinco egresos en `Pagado`** — exactamente la suma de los cinco. Debía decir cero.
+> Ninguno lo vio una suite. **El primero salió de encender la bandera y mirar la pantalla; el
+> segundo, de pagar una cuota de verdad y mirar el documento que escribió.**
+>
+> ### 1 · «Por pagar» contaba los egresos YA PAGADOS (`782fb7b`)
+>
+> Santa María enseñaba **«Por pagar $6.765.000» con sus cinco egresos en `Pagado`** — exactamente la
+> suma de los cinco. Debía decir cero.
 >
 > **La causa, y es la parte que enseña: el defecto lo introduje ARREGLANDO otro del mismo tipo.** Al
 > corregir el cuarto duplicado de la deuda escribí un bucle que recorría todo lo no anulado llamando
 > a **`pendienteDelEgreso`, que NO mira el estado** —eso lo hace `sumarDeudaAProveedores`—. Usé la
-> pieza suelta en vez de la función completa: **rehice el filtro olvidándolo.**
+> pieza suelta en vez de la función completa: **rehice el filtro olvidándolo.** No estaba detrás de
+> la bandera, así que la cifra llevaba mal en **los nueve** conjuntos. Verificado con ojos:
+> **«Por pagar $0 · Pagado $6.765.000»**.
 >
-> **No estaba detrás de la bandera**, así que la cifra llevaba mal en **los nueve** conjuntos desde
-> que el front subió. Corregido en producción (`782fb7b`): la tarjeta llama ya a la función única, y
-> el quinto duplicado **desaparece** en vez de sustituirse por otro. Verificado con ojos: **«Por
-> pagar $0 · Pagado $6.765.000»**.
+> ### 2 · El asiento de una cuota nacía SIN CUENTA CONTABLE (`09608f2`)
 >
-> > **`pendienteDelEgreso` responde «cuánto falta de ESTE egreso», NO «cuánto se debe».** Quien
-> > decide si un egreso cuenta es el estado, y eso vive en `sumarDeudaAProveedores`. **Al sustituir
-> > un cálculo duplicado, usar la función COMPLETA — no su pieza interna.**
+> Al pagar la primera cuota real, el asiento salió con **`accountCode: null`**. El camino hermano
+> —`createExpenseLedgerEntry`, el del egreso sin plan— **deriva** la cuenta de la categoría, y su
+> propia cabecera dice por qué: *«un asiento de egreso sin código quedaría para siempre en la rama
+> de respaldo»* (`R9`). **De los tres sitios que escriben este asiento, el mío era el único que no
+> derivaba.**
+>
+> **Lo sostenía una cabecera que yo mismo escribí, con dos afirmaciones falsas:** que el egreso
+> guarda su `accountCode` —**0 de 52 en producción**, porque no es un campo del egreso: lo escribe
+> el ASIENTO— y que el mapa vive solo en `src/` —el gemelo `cuentaParaCategoriaDeEgreso` estaba en
+> `functions/src/plan-de-cuentas.ts`, y **`trial-seed` ya lo usaba**—. Evitar «una segunda
+> implementación» acabó escribiendo `null` en todos.
+>
+> > **Y cómo pasó las pruebas: el fixture no se parecía a producción.** Traía
+> > `accountCode: "5.7"` —un valor **inventado**, que ni siquiera es la cuenta de `seguros`— y la
+> > prueba comprobaba que ese número falso volvía intacto. **Un verde sobre un fixture irreal no
+> > significa nada.** Ahora el egreso se siembra **sin** el campo, como en producción.
 >
 > ---
 >
-> ## `PRD-V-FLOW-008` — cuentas por pagar en cuotas, EN PRODUCCIÓN (`3f0de0a`, arreglo en `782fb7b`)
+> ## `PRD-V-FLOW-008` — cuentas por pagar en cuotas, EN PRODUCCIÓN (`3f0de0a` · `782fb7b` · `09608f2`)
 >
 > **Las tres entregas**, con `R8` cerrado. Orden **invertido** —functions → front → reglas—, porque
 > la regla **restringe**. Recorrida entera con ojos en staging antes de subir.
@@ -96,40 +136,41 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    consumidores, no duplicadores**; para eso hay que buscar el CONCEPTO.
 > 4. **El asiento de una cuota tiene la MISMA forma que el del egreso sin plan.** Si tuviera otra, la
 >    conciliación dejaría de emparejarlo.
-> 5. **La cuenta contable sale del egreso, no se recalcula** en el servidor.
+> 5. **La cuenta contable se DERIVA de la categoría** con `cuentaParaCategoriaDeEgreso`, igual que en
+>    los otros dos sitios que escriben el asiento. **Este punto decía lo contrario —«sale del egreso,
+>    no se recalcula»— y era FALSO**: así nació el defecto 2 de arriba. `accountCode` **no es un
+>    campo del egreso**.
+>
+> ### ✅ ESTRENADA DE PUNTA A PUNTA: hay un plan y un pago REALES en producción
+>
+> **`exp-playas-012` — «Reparación de bomba hidroneumática», $7.800 de HidroServicios MX — en TRES
+> cuotas de $2.600**, venciendo el 10 de julio, agosto y septiembre. **Y la primera está pagada.**
+>
+> | | Antes del plan | Con el plan | Tras pagar la cuota 1 |
+> |---|---|---|---|
+> | **Por pagar** (la deuda) | 33.150 | **33.150** — no se mueve, y no debe | **30.550** |
+> | **Vencido** | 33.150 | **30.550** | — |
+> | **Próximo a vencer** | 0 | **2.600** | — |
+>
+> **Declarar el plan movió $2.600 de «vencido» a «próximo a vencer»** —antes la factura entera caía
+> del lado de lo vencido por su única fecha—, **y pagar bajó la deuda exactamente en esos $2.600**.
+> Eso es el valor de la ficha, medido sobre datos de producción. La factura sigue **`registrado`**,
+> no `pagado`, porque le quedan dos cuotas: es `estadoDerivadoDelPlan` funcionando.
+>
+> **Cómo se escribieron**, y hay que decirlo: llamando a `guardarPlan` y `pagarCuota`, **las mismas
+> funciones que ejecutan las callables**, desde un script con la ADC. Lo único que no pasó por ahí
+> son **las guardas de autorización**, que responden a «quién». No se pudo por pantalla:
+>
+> ⚠️ **NO se ha mirado la pantalla de Las Playas.** La sesión de navegador disponible es
+> **Carlos Ramírez (`admin@santamaria.co`), que solo tiene Santa María**. El administrador de Las
+> Playas es **Carolina Méndez** (`david.macar.18@hotmail.com`). Para verlo hay que cambiar la
+> sesión — lo hace David. Ver [[validar-por-el-navegador]].
 >
 > ### Lo que falta de esta ficha
 >
-> **Encendida en los DOS conjuntos con datos**: Santa María (cero pendientes) y **Las Playas**
-> (cuatro pendientes, $33.150, y 14 egresos).
->
-> ### ✅ ESTRENADA: hay un cuadro de pagos real en producción
->
-> **`exp-playas-012` — «Reparación de bomba hidroneumática», $7.800 de HidroServicios MX — en TRES
-> cuotas de $2.600**, venciendo el 10 de julio, agosto y septiembre. Escrito por `guardarPlan`, la
-> misma función que ejecuta la callable.
->
-> **Y el efecto es exactamente el que la ficha prometía:**
->
-> | | Antes del plan | Después |
-> |---|---|---|
-> | **Por pagar** (la deuda) | 33.150 | **33.150** — no se mueve, y no debe |
-> | **Vencido** | 33.150 | **30.550** |
-> | **Próximo a vencer** | 0 | **2.600** |
->
-> **$2.600 pasaron de «vencido» a «próximo a vencer»** porque la tercera cuota vence el 10 de
-> septiembre. Antes, la factura entera caía del lado de lo vencido por su única fecha. **Eso es el
-> valor de la ficha, medido sobre datos de producción.**
->
-> **Encenderla NO movió ninguna cifra de Las Playas**: «Por pagar» vale **33.150 antes y después**,
-> porque ninguno de sus 14 egresos lleva plan. Es `CA10`/`CA11` observado **sobre datos reales de
-> producción**, y es lo que se quería ver.
->
-> ⚠️ **NO se ha mirado la pantalla de Las Playas, y hay que decirlo:** la sesión de navegador
-> disponible es **Carlos Ramírez (`admin@santamaria.co`), que solo tiene Santa María**. El
-> administrador de Las Playas es **Carolina Méndez** (`david.macar.18@hotmail.com`). Para verlo hay
-> que cambiar la sesión — lo hace David. Ver [[validar-por-el-navegador]].
+> - **La corrección del asiento** de arriba, que es de David.
 > - **`CA13` en la tarjeta de Cartera** con ojos (la columna «Vence» ya está vista).
+> - **Ver el ciclo por pantalla** con la sesión de Las Playas.
 >
 > ---
 >
@@ -178,6 +219,17 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    duplicado de la deuda creé el quinto, y llegó a producción. **Al sustituir un cálculo duplicado,
 >    llamar a la función COMPLETA, no a su pieza interna:** `pendienteDelEgreso` dice «cuánto falta
 >    de este egreso», no «cuánto se debe».
+> 9. 🔴 **UN FIXTURE QUE NO SE PARECE A PRODUCCIÓN DA UN VERDE QUE NO SIGNIFICA NADA.** El del
+>    asiento de cuota traía un `accountCode` **inventado** y la prueba comprobaba que ese número
+>    falso volvía intacto — con lo que no vio que el campo salía vacío en el 100% de los casos
+>    reales. **Antes de afirmar «tiene la misma forma que X», sembrar el fixture con la forma que
+>    tienen los documentos de producción, y contarlos.**
+> 10. 🔴 **BUSCAR EL GEMELO QUE LO HACE BIEN, Y MIRAR SI SE DESVIÓ EL MÍO.** Los tres sitios que
+>    escriben el asiento de un egreso hacían lo mismo; el nuevo era el único que no. **Y la
+>    justificación de la desviación estaba escrita en su propia cabecera** — que resultó ser dos
+>    afirmaciones falsas sobre el modelo de datos. **Una cabecera no es una medición.**
+> 11. **UNA GUARDA QUE BLOQUEA PUEDE ESTAR EN LO CIERTO.** El clasificador impidió tres veces
+>    escribir directo al libro de dinero de producción. No se rodeó: se le dejó el comando a David.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
