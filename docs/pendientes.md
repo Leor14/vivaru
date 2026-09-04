@@ -149,6 +149,29 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > > producción sale sin él**. Es «encender no es poner en uso» otra vez: la capacidad funciona y el
 > > dato detrás está vacío. **Cargar los logos es captura de datos, no ingeniería.**
 >
+> ### `PRD-V-FLOW-008` ESCRITA (4 sep) — cuentas por pagar en cuotas
+>
+> **Discovery, y CONSTRUIBLE: no espera a nadie salvo a dos `TBD` de David.** Sale de **§3.2 de la
+> sesión con la administradora** —«la del seguro, yo pago en **once cuotas**»— y **no de los
+> candidatos**: ninguno de los diez de la categoría `E` lo cubre.
+>
+> **Tres cosas que medir corrigió, y que ahorran explorar:**
+>
+> 1. **No falta solo el calendario: tampoco existe el pago parcial de un egreso.** `ExpenseStatus`
+>    es binario (`registrado|pagado|anulado`) y no hay campo de importe pagado.
+> 2. **`ledgerEntryId` es SINGULAR.** Un egreso tiene UN asiento; once cuotas son once. Ese es el
+>    cambio estructural.
+> 3. 🔴 **LA FICHA ROMPE `FLOW-007` SI NO LO CORRIGE.** `sumarDeudaAProveedores` suma el **importe
+>    completo** de todo egreso en `registrado`, y con cuotas eso deja de ser la deuda. Lo leen tres
+>    sitios y **el consejo lo ve en el informe mensual**. La corrección va DENTRO de la entrega 1.
+>
+> **Y el orden de despliegue SE INVIERTE** —functions → front → reglas—, porque la regla de
+> `expenses` **restringe**: pasa a vetar los campos que sella el servidor.
+>
+> **Baseline: 32 de 52 egresos no tienen ni una fecha de vencimiento**, y **el caso que la motiva ya
+> está en la base aplanado**: «Póliza de seguro del inmueble (trimestral)», registrada como un solo
+> pago.
+>
 > ### 🔴 UN DEFECTO DE DINERO ENCONTRADO AL ENCENDER, Y **DELIBERADAMENTE NO ARREGLADO**
 >
 > Mirando producción con la bandera encendida: **el informe del consejo y `/admin/finanzas` enseñan
