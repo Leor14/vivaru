@@ -698,9 +698,12 @@ service cloud.firestore {
     // ─── `PRD-V-FLOW-008` · el egreso y su calendario de cuotas ───────────────
     //
     // **Un egreso CON PLAN no es lo mismo que uno sin él**, y esta regla es la que
-    // lo separa. Declarar y editar el plan sigue siendo escritura directa —es
-    // captura de datos—, pero **pagar y anular pasan por callable**, y hay campos
-    // que solo el servidor escribe.
+    // lo separa. El egreso se escribe desde el cliente como siempre, pero **el
+    // calendario, los pagos y las anulaciones van por callable** (`R8`), y hay
+    // campos que solo el servidor escribe.
+    //
+    // *Este comentario decía «declarar y editar el plan sigue siendo escritura
+    // directa» y dejó de ser cierto el mismo día, al cerrar `R8`.*
     //
     // ⚠️ **`installments` se guarda como `null` cuando no hay plan**, así que
     // `'installments' in d` es CIERTO para los 52 egresos de producción. Preguntarlo
