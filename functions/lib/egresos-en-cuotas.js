@@ -10,6 +10,7 @@ const https_1 = require("firebase-functions/v2/https");
 const nucleo_estado_financiero_1 = require("./nucleo-estado-financiero");
 Object.defineProperty(exports, "estadoDerivado", { enumerable: true, get: function () { return nucleo_estado_financiero_1.estadoDerivadoDelPlan; } });
 Object.defineProperty(exports, "sumarPagado", { enumerable: true, get: function () { return nucleo_estado_financiero_1.sumarPagadoDelPlan; } });
+const plan_de_cuentas_1 = require("./plan-de-cuentas");
 /**
  * `PRD-V-FLOW-008`, entrega 2 — pagar y anular una cuota.
  *
@@ -29,13 +30,18 @@ Object.defineProperty(exports, "sumarPagado", { enumerable: true, get: function 
  * escritura directa y **el propio navegador crea el asiento**. Con una fecha y un
  * importe eso era defendible; con un plan aparece un invariante y deja de serlo.
  *
- * ## Lo que NO se reimplementa aquí
+ * ## La cuenta contable se DERIVA, y este bloque decía lo contrario
  *
- * **La cuenta contable sale del egreso, no se vuelve a calcular.**
- * `codigoDeCategoriaDeEgreso` vive solo en `src/` y el documento del egreso ya
- * guarda su `accountCode` desde que se registra. Recalcularlo aquí sería una
- * segunda implementación de la misma regla — que es exactamente cómo nacieron
- * `R12` y `R16`.
+ * Decía que «sale del egreso, no se vuelve a calcular», con dos afirmaciones que
+ * al medirlas el 4 de septiembre de 2026 resultaron **falsas las dos**: que el
+ * egreso guarda su `accountCode` —**0 de 52 en producción**, porque no es un
+ * campo del egreso: lo escribe el ASIENTO— y que el mapa vive solo en `src/`
+ * —el gemelo es `cuentaParaCategoriaDeEgreso`, aquí al lado, y `trial-seed` ya
+ * lo usaba—. Con eso, evitar «una segunda implementación» acababa escribiendo
+ * `accountCode: null` en todos los asientos de cuota, que es justo la rama de
+ * respaldo que `R9` quiere evitar.
+ *
+ * **Los tres sitios que escriben este asiento derivan ahora del mismo mapa.**
  *
  * ## La forma del asiento
  *
@@ -118,8 +124,14 @@ async function pagarCuota(input, uid) {
             amount: cuota.amount ?? 0,
             concept: `${egreso.description ?? "Egreso"} — cuota ${cuota.number} de ${cuotas.length}`,
             category: egreso.category ?? null,
-            // Sale del egreso: no se recalcula aquí. Ver la cabecera.
-            accountCode: egreso.accountCode ?? null,
+            // **Se DERIVA de la categoría, como en los otros dos sitios que escriben
+            // este asiento** (`createExpenseLedgerEntry` y `trial-seed`). Leerla del
+            // egreso —que es lo que hacía esto— daba `null` siempre: `accountCode` no
+            // es un campo del egreso, lo escribe el asiento. Medido en producción el
+            // 4 de septiembre de 2026: **0 de 52 egresos lo traen**, así que la cuenta
+            // se perdía en todos, no solo en los viejos. R9 manda que los informes
+            // agrupen por código y solo caigan en la categoría si falta.
+            accountCode: (0, plan_de_cuentas_1.cuentaParaCategoriaDeEgreso)(egreso.category).code,
             bankAccountId: input.bankAccountId ?? null,
             sourceType: "expense",
             sourceId: input.expenseId,

@@ -54,7 +54,11 @@ async function sembrar(extra: Record<string, unknown> = {}) {
     tenantId: T,
     description: "Póliza de seguro del inmueble",
     category: "seguros",
-    accountCode: "5.7",
+    // **Sin `accountCode`, que es la forma real**: medido el 4 de septiembre de
+    // 2026, 0 de 52 egresos de producción lo traen — no es un campo del egreso.
+    // Este fixture lo traía, y encima con un valor inventado (`5.7` no es la
+    // cuenta de `seguros`), así que la prueba comprobaba que un número falso
+    // volvía intacto y no vio que el asiento salía sin cuenta.
     amount: 1_100,
     issueDate: "2026-01-02",
     status: "registrado",
@@ -96,8 +100,10 @@ describe("FLOW-008 · `CA4` · pagar una cuota crea SU asiento", () => {
     expect(a.sourceType).toBe("expense");
     expect(a.sourceId).toBe(ID);
     expect(a.reconciled).toBe(false);
-    // La cuenta sale del egreso: NO se recalcula aquí.
-    expect(a.accountCode).toBe("5.7");
+    // La cuenta se DERIVA de la categoría, igual que en los otros dos sitios que
+    // escriben este asiento. `seguros` es `2.6`; se escribe el literal a
+    // propósito, porque recalcularlo con la misma función no probaría nada.
+    expect(a.accountCode).toBe("2.6");
     // Y lo único añadido, para poder volver del asiento a su cuota.
     expect(a.installmentNumber).toBe(1);
   });
@@ -298,7 +304,7 @@ describe("FLOW-008 · las guardas que no dependen del conjunto", () => {
 describe("FLOW-008 · `R8` · `guardarPlan`", () => {
   beforeEach(async () => {
     await db.collection("expenses").doc(ID).set({
-      tenantId: T, description: "Póliza", category: "seguros", accountCode: "5.7",
+      tenantId: T, description: "Póliza", category: "seguros",
       amount: 1_100, issueDate: "2026-01-02", status: "registrado",
     });
   });
