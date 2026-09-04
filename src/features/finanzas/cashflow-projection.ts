@@ -1,5 +1,6 @@
 import type { BillingStatement, Expense } from "@/types/domain";
 
+import { envejecerEgreso } from "./cuotas-del-egreso";
 import { granularityFor } from "./fund-coverage";
 import { addDaysIso } from "./payables";
 
@@ -54,8 +55,17 @@ export function projectCashFlow(
         if (s.dueDate && s.dueDate <= cutoff) inflow += s.balance;
       }
       for (const e of expenses) {
-        if (e.status !== "registrado") continue;
-        if (e.dueDate && e.dueDate <= cutoff) outflow += e.amount;
+        // **`PRD-V-FLOW-008` · la salida de caja va POR CUOTA cuando hay plan.**
+        // Esto sumaba el importe entero de la factura si su `dueDate` caía en la
+        // ventana: una póliza de once cuotas aparecía completa a treinta días, y
+        // la proyección enseñaba una salida que no va a ocurrir. `envejecerEgreso`
+        // ya sabe distinguirlo, y sin plan cae al `dueDate` del egreso — idéntico
+        // a lo de siempre.
+        //
+        // Lo vencido cuenta como salida igual que antes: sigue habiendo que
+        // pagarlo, y el `<= cutoff` de la versión anterior también lo incluía.
+        const { vencido, proximo } = envejecerEgreso(e, opts.asOf, cutoff);
+        outflow += vencido + proximo;
       }
 
       return { horizonDays: days, inflow, outflow, net: inflow - outflow };

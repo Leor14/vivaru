@@ -336,6 +336,19 @@ mensual automático— y los tres se equivocarían a la vez, porque los tres lla
 **Que sea una sola función es lo que hace barata la corrección**, y es exactamente el motivo por el
 que `FLOW-007` la unificó.
 
+> 🔴 **ESTO SE QUEDÓ CORTO, Y LO DESTAPÓ PAGAR UNA CUOTA DE VERDAD EN STAGING.** No eran tres:
+> **eran cinco**, y los dos que faltaban **no llamaban a la función — la duplicaban**:
+>
+> | Dónde | Qué hacía |
+> |---|---|
+> | La tarjeta **«Por pagar»** de la pantalla de Egresos | Un bucle propio sumando `item.amount`. Pagada una cuota de once, **la cifra no bajaba** |
+> | La **proyección de flujo de caja** | `outflow += e.amount` si el `dueDate` caía en la ventana: una póliza de once cuotas aparecía **entera** a treinta días |
+>
+> **La lección de método:** buscar *quién llama* a una función encuentra sus **consumidores, no
+> quien la reimplementa sin llamarla**. Para eso hay que buscar el **concepto** —aquí, «sumar
+> `amount` filtrando por `status`»—. Es «buscar por nombre miente» en la dirección de dar cero para
+> algo que sí existe. Los dos derivan ya de las mismas primitivas, y tienen guardián con falsación.
+
 **La corrección: la deuda de un egreso es `amount − paidAmount`**, y para uno sin plan `paidAmount`
 vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 

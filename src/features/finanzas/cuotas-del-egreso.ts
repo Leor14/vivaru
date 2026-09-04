@@ -157,3 +157,21 @@ export function proximaCuota(cuotas: ReadonlyArray<Installment> | undefined): In
     .filter((c) => c.status === "pendiente")
     .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? "") || a.number - b.number)[0];
 }
+
+/**
+ * Lo ya pagado de una factura, **para enseñarlo**.
+ *
+ * Con plan sale de `paidAmount`, que sella el servidor; sin plan, del estado —un
+ * egreso `pagado` se pagó entero—. **Existe porque «pagado» dejó de ser binario**:
+ * una factura en `registrado` con tres cuotas saldadas SÍ ha pagado algo, y el
+ * bucle que sumaba solo los `pagado` la contaba como cero.
+ */
+export function pagadoDelEgreso(
+  egreso: Pick<Expense, "amount" | "status" | "paidAmount" | "installments">,
+): number {
+  if (egreso.status === "anulado") return 0;
+  if (egreso.installments && egreso.installments.length > 0) {
+    return aCentimos(egreso.paidAmount ?? 0);
+  }
+  return egreso.status === "pagado" ? (egreso.amount ?? 0) : 0;
+}

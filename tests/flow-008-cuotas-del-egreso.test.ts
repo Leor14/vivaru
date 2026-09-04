@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   envejecerEgreso,
   explicarProblema,
+  pagadoDelEgreso,
   proximaCuota,
   sumaDelPlan,
   validarPlan,
 } from "@/features/finanzas/cuotas-del-egreso";
+import { projectCashFlow as proyectarFlujo } from "@/features/finanzas/cashflow-projection";
 import { summarizePayables } from "@/features/finanzas/payables";
 import { pendienteDelEgreso, sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
 import type { Expense, Installment } from "@/types/domain";
@@ -339,5 +341,57 @@ describe("`CA11` · sobre los datos de HOY, la cifra no se mueve", () => {
     expect(r.dueSoon).toBe(0);
     // Pero SÍ cuentan como deuda: no vencer no es no deber.
     expect(r.totalPayable).toBe(9_780_000);
+  });
+});
+
+/**
+ * **LOS DOS DUPLICADORES QUE LA FICHA NO CONTÓ.**
+ *
+ * §11 decía que la cifra de deuda «la consumen TRES sitios y los tres llaman a la
+ * misma función». Al pagar una cuota de verdad en staging apareció un **cuarto**
+ * —la tarjeta «Por pagar» de la pantalla de Egresos— que **no llamaba a la
+ * función: la duplicaba** con un bucle propio sobre `item.amount`. Y buscando el
+ * concepto en vez del nombre salió un **quinto**: la proyección de flujo de caja.
+ *
+ * **La lección de método:** buscar *quién llama* a una función encuentra sus
+ * consumidores, **no quién la reimplementa sin llamarla**. Para eso hay que
+ * buscar el CONCEPTO —aquí, «sumar `amount` filtrando por `status`»—. Es
+ * «buscar por nombre miente» en la dirección de dar cero para algo que sí existe.
+ */
+describe("los duplicadores de la deuda, que ahora derivan de lo mismo", () => {
+  const HOY = "2026-04-01";
+  const conPlan = egreso({
+    amount: 1_100,
+    paidAmount: 100,
+    installments: once.map((c) => (c.number === 1 ? { ...c, status: "pagada" as const } : c)),
+  });
+
+  it("`pagadoDelEgreso` cuenta el pago PARCIAL de una factura en `registrado`", () => {
+    // El bucle viejo sumaba solo los egresos `pagado`, así que esta factura
+    // —diez cuotas por pagar, una saldada— contaba CERO como pagado.
+    expect(pagadoDelEgreso(conPlan)).toBe(100);
+    expect(pagadoDelEgreso(egreso({ status: "pagado" }))).toBe(1_100);
+    expect(pagadoDelEgreso(egreso({}))).toBe(0);
+    expect(pagadoDelEgreso(egreso({ status: "anulado", paidAmount: 300 }))).toBe(0);
+  });
+
+  it("la tarjeta «Por pagar» baja al pagar una cuota: 1.100 → 1.000", () => {
+    // Es exactamente lo que NO pasaba en staging antes de este arreglo.
+    expect(pendienteDelEgreso(conPlan)).toBe(1_000);
+  });
+
+  it("la proyección de caja cuenta solo las CUOTAS de la ventana, no la factura", () => {
+    // A 30 días desde el 1 de abril: vencidas enero, febrero y marzo (la 1 está
+    // pagada, así que quedan 2 y 3 = 200) más la del 15 de abril = 100.
+    const r = proyectarFlujo([], [conPlan], { asOf: HOY, horizons: [30] });
+    expect(r.horizons[0].outflow).toBe(300);
+  });
+
+  it("y sin plan la proyección se comporta EXACTAMENTE como antes", () => {
+    const sinPlan = egreso({ dueDate: "2026-04-10" });
+    expect(proyectarFlujo([], [sinPlan], { asOf: HOY, horizons: [30] }).horizons[0].outflow).toBe(1_100);
+    // Fuera de la ventana, nada.
+    const lejos = egreso({ dueDate: "2026-12-10" });
+    expect(proyectarFlujo([], [lejos], { asOf: HOY, horizons: [30] }).horizons[0].outflow).toBe(0);
   });
 });

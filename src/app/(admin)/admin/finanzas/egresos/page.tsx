@@ -36,7 +36,8 @@ import { VendorRegistryDialog } from "@/components/features/finanzas/VendorRegis
 import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgresoModal";
 import { CuotasDelEgresoPanel } from "@/components/features/finanzas/CuotasDelEgresoPanel";
 import { PlanDeCuotasField } from "@/components/features/finanzas/PlanDeCuotasField";
-import { proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
+import { pagadoDelEgreso, proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
+import { pendienteDelEgreso } from "@/lib/finanzas/nucleo-estado-financiero";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
@@ -239,14 +240,26 @@ export default function AdminEgresosPage() {
     });
   }, [items, statusFilter, categoryFilter, searchFilter, dateFrom, dateTo]);
 
+  /**
+   * **`PRD-V-FLOW-008` · esto era un CUARTO cálculo de la deuda, y no llamaba a
+   * la función compartida.** Sumaba `item.amount` en un bucle propio, así que con
+   * una factura en cuotas seguía enseñando el importe entero: pagada una cuota de
+   * once, «Por pagar» no bajaba. Lo cazó mirar la pantalla en staging, después de
+   * pagar de verdad.
+   *
+   * La ficha había contado **tres** consumidores —los que llaman a
+   * `sumarDeudaAProveedores`— y esa medición encuentra **quién llama a la
+   * función, no quién la duplica sin llamarla**.
+   */
   const totals = useMemo(() => {
-    let registrado = 0;
+    let porPagar = 0;
     let pagado = 0;
     for (const item of filteredItems) {
-      if (item.status === "pagado") pagado += item.amount;
-      else if (item.status === "registrado") registrado += item.amount;
+      if (item.status === "anulado") continue;
+      porPagar += pendienteDelEgreso(item);
+      pagado += pagadoDelEgreso(item);
     }
-    return { registrado, pagado, porPagar: registrado };
+    return { registrado: porPagar, pagado, porPagar };
   }, [filteredItems]);
 
   const activeFiltersCount =
