@@ -4,32 +4,27 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 4 de septiembre de 2026, corte (entrega 2 EN PRODUCCIÓN)
+## LO PRIMERO AL ABRIR SESIÓN — 4 de septiembre de 2026, corte (`FLOW-008` EN PRODUCCIÓN)
 
-> # `FLOW-007` TIENE LAS ENTREGAS 1 Y 2 EN PRODUCCIÓN. LA 3 ESTÁ BLOQUEADA POR EL ABOGADO.
+> # NO QUEDA NADA CONSTRUIBLE ABIERTO. LO PRIMERO ES **ELEGIR FRENTE**.
 >
-> **No queda nada que construir de esta ficha.** La entrega 3 —publicar el informe al residente—
-> **espera las cinco preguntas al abogado ecuatoriano** (`TBD-L1`–`L5`), que son **de David**.
+> `PRD-V-FLOW-007` y `PRD-V-FLOW-008` están **en producción con todas sus entregas**, salvo la
+> entrega 3 de `FLOW-007`, que **espera al abogado** y es de David. **Ninguna ficha a medias.**
 >
-> **Así que lo primero al abrir es preguntarle si ya hay respuesta.** Si no la hay, **toca ELEGIR
-> FRENTE**, y esta vez de verdad: no hay ninguna ficha escrita a medias.
->
-> **Estado:** `master` y `develop` en el mismo commit. **Leerlos con `git ls-remote`, no de aquí.**
-> **Bancos:** `npm test` **1732** · functions **826** · reglas **371** · emulador **301**
-> (dos rojos **PREEXISTENTES** en `payments.emulator.test.ts` — medidos también sobre el árbol
-> limpio, así que no son de esta jornada).
+> **Estado:** leer los remotos con `git ls-remote`, **no de aquí**.
+> **Bancos:** `npm test` **1763** · functions **832** · reglas **394** · emulador **329**
+> (con **dos rojos PREEXISTENTES** en `payments.emulator.test.ts`, medidos también sobre el árbol
+> limpio; hay chip abierto).
 >
 > ---
 >
-> ## 🔴 LA CORRECCIÓN QUE MÁS LEJOS LLEGA: **SÍ HAY JAVA, Y LLEVABA SEMANAS DICIÉNDOSE QUE NO**
+> ## LO QUE HAY QUE SABER ANTES DE TOCAR NADA
 >
-> Cuatro documentos afirmaban que **este equipo no puede correr el banco de reglas «porque no hay
-> Java»**. Es falso, y comprobarlo costó treinta segundos:
+> ### 🔴 SÍ HAY JAVA. El banco de reglas y el emulador CORREN en este equipo
 >
-> - **`/usr/bin/java` es el stub de macOS.** Responde «Unable to locate a Java Runtime», que es
->   exactamente lo que se lee como «aquí no hay Java».
-> - **El JDK está en `~/.local/jdk`** (Temurin 21 LTS, arm64), **documentado en `CLAUDE.md`** desde
->   el 26 de agosto, y levanta el emulador de Firestore y Storage sin una queja.
+> `/usr/bin/java` es el **stub de macOS** y responde «Unable to locate a Java Runtime» — de ahí la
+> afirmación falsa que circuló por cuatro documentos. **El JDK está en `~/.local/jdk`** y `CLAUDE.md`
+> lo documenta:
 >
 > ```bash
 > export JAVA_HOME="$HOME/.local/jdk/jdk-21.0.12.1+1/Contents/Home"
@@ -37,178 +32,101 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > firebase emulators:start --only firestore,storage --project hogaru-1-test
 > ```
 >
-> Dejaba **diez criterios** declarados inverificables. **Los seis de `FLOW-007` ya se corrieron.**
-> **Los cuatro de `FEAT-007` siguen sin correr, y ahora se sabe que SE PUEDE** — es deuda de
-> aquella ficha, no una limitación del equipo.
+> **Quedan sin correr los cuatro criterios de reglas de `FEAT-007`**, y ahora se sabe que se puede.
 >
-> > **La regla: una credencial —o una herramienta— solo está viva o muerta si algo la EJERCITÓ.**
-> > Igual que `invalid_rapt` con la ADC, pero peor: **esto se propagó por escrito** y cada documento
-> > nuevo lo copió del anterior sin volver a medirlo.
+> ### ⚠️ EL PROYECTO POR DEFECTO DEL CLI ES `hogaru-1`, O SEA PRODUCCIÓN
+>
+> Un `firebase deploy --only firestore:rules` **sin `--project` toca producción**. Ponerlo siempre.
+> Y después, **verificar con `functions/scripts/verificar-reglas-desplegadas.mjs <projectId>`**, que
+> lee el ruleset **vivo** por la API de Rules y lo diferencia contra el repo. «Deploy complete» no
+> prueba nada: hoy el log de functions confirmó **9 de 98** operaciones y estaban las 98.
+>
+> ### Las banderas nuevas, y dónde están encendidas
+>
+> | Bandera | Producción | Staging |
+> |---|---|---|
+> | `producto-informe-mensual` | **1 de 9** — canario en `tenant-santa-maria`, con un informe real emitido | 2 de 9 |
+> | `producto-egresos-en-cuotas` | **0 de 9** — el código está desplegado y es **inerte** | 1 de 9 (`tenant-santa-maria`) |
+>
+> **Para apagar un canario, quitar la OVERRIDE, no tocar la global**: con la override puesta, un
+> `enabled: false` global apagaría ocho y dejaría uno encendido. Para los nueve, el **kill switch**.
 >
 > ---
 >
-> ### La entrega 2, desplegada y COMPROBADA
+> ## `PRD-V-FLOW-008` — cuentas por pagar en cuotas, EN PRODUCCIÓN (`3f0de0a`)
 >
-> Orden **reglas → índices → functions → front**, el normal, porque la regla **amplía**.
+> **Las tres entregas**, con `R8` cerrado. Orden **invertido** —functions → front → reglas—, porque
+> la regla **restringe**. Recorrida entera con ojos en staging antes de subir.
 >
-> | Pieza | Cómo se comprobó — que no es lo mismo que desplegarla |
-> |---|---|
-> | Reglas | Ruleset **vivo** por la API de Rules: **0 líneas de diff** contra el repositorio, en los **dos** ambientes. Hay script: `functions/scripts/verificar-reglas-desplegadas.mjs` |
-> | Índices | Los dos de `monthlyReports` |
-> | Functions | **94 en el código, 94 en producción, todas `ACTIVE`, todas con `updateTime` de hoy** |
-> | Front | Rollout esperado **por nombre** hasta ver `traffic.current` con el commit |
-> | Bandera | **0 de 9**, resuelta con la precedencia del servidor, no leyendo un campo |
+> **Lo que hace:** una factura puede llevar un calendario de cuotas; cada una vence, se paga y se
+> anula por su cuenta, y **deja su propio asiento en el libro**. La deuda a proveedores pasa a ser
+> **lo que falta**.
 >
-> > ⚠️ **EL DESPLIEGUE DE FUNCTIONS VOLVIÓ A MENTIR.** Salida **0**, log **truncado**, y **sin la
-> > línea «Deploy complete»**. Al contar: **`registrarImportacion` se había quedado en el bundle del
-> > día anterior** por un `INTERNAL_ERROR` de Cloud Build — **el mismo que había flaqueado antes en
-> > staging**, así que es un fallo recurrente de ESA función, no del despliegue. Se redesplegó sola.
-> > **Contar es lo único que lo dice.**
+> ### Las cinco cosas que hay que saber si se vuelve a tocar
 >
-> ### Lo que está ENCENDIDO y lo que no
+> 1. **La deuda de una factura con plan son sus CUOTAS VIVAS**, no `amount − paidAmount`. La
+>    entrega 1 lo hizo con la resta y estaba **mal**: al anular cuotas sin anular la factura contaba
+>    deuda que ya nadie debe. **Las cuotas son la fuente de verdad; `paidAmount` es un acumulado.**
+> 2. **`R8`: el array `installments` NO lo escribe el cliente.** Lo guarda `saveExpensePlan`, y la
+>    regla lo **congela**. Se movió a callable porque la entrega 2 lo convirtió en portador de un
+>    invariante — y **las reglas no pueden vigilarlo: NO ITERAN LISTAS**.
+> 3. **La deuda tenía CINCO consumidores, no tres.** Dos **no llamaban a la función: la duplicaban**
+>    —la tarjeta «Por pagar» y la proyección de caja—. **Buscar quién LLAMA a una función encuentra
+>    consumidores, no duplicadores**; para eso hay que buscar el CONCEPTO.
+> 4. **El asiento de una cuota tiene la MISMA forma que el del egreso sin plan.** Si tuviera otra, la
+>    conciliación dejaría de emparejarlo.
+> 5. **La cuenta contable sale del egreso, no se recalcula** en el servidor.
 >
-> - **Producción: ENCENDIDA EN 1 DE 9 — el canario es `tenant-santa-maria`** (4 sep 2026). Medido
->   resolviendo el valor **efectivo** con la precedencia del servidor: resuelve por
->   **`override_conjunto`**, y los otros ocho por `default_catalogo` (la global **no tiene
->   documento**). La tarjeta **se ve en producción**, en `/admin/reports`.
-> - **Lo que cambia de verdad al encenderla:** aparece la tarjeta, se pueden generar y emitir
->   informes, y **la corrida del día 1 de octubre creará el borrador de Santa María y añadirá las
->   cuatro filas nuevas a su archivo mensual**. En los otros ocho, nada.
-> - **PARA APAGARLA, quitar la OVERRIDE, no tocar la global.** Con la override puesta, Santa María
->   resuelve por ella: un `enabled: false` global **apagaría ocho y dejaría este encendido**. Es la
->   lección que ya pagó `FEAT-007`. Para apagar de emergencia en los nueve, el **kill switch**, que
->   va por encima de cualquier override.
-> - **Ampliar el canario:** el siguiente candidato natural es **`conjunto-las-playas`**, porque es
->   el único de producción con **egresos en `registrado`** (4) y por tanto el único donde la fila
->   «Deuda a proveedores» sale **distinta de cero**. Santa María la enseña en cero calculado.
-> - **Staging: encendida en `conjunto-las-playas` y `tenant-santa-maria`**, con un informe de prueba
->   emitido, firmado y **anulado a propósito** en Santa María (`2026-08`), y un `logoUrl` puesto al
->   conjunto de Las Playas para poder observar `CA13`. Todo eso es dato de prueba: bórralo si estorba.
+> ### Lo que falta de esta ficha
 >
-> ### Lo que se vio CON OJOS antes de subir
+> - **Encenderla**, cuando David quiera. **Por conjunto**, con `mover-bandera-de-conjunto.mjs`.
+> - **`CA13` en la tarjeta de Cartera** con ojos (la columna «Vence» ya está vista).
 >
-> Recorrido entero por la pantalla real con la sesión de un administrador y las callables
-> desplegadas: **Generar → Emitir → Firmar → Anular**. `CA4` dice **«Sin saldo de apertura»** y no
-> «$0»; el PDF **se archiva** con la categoría nueva y **se descarga**; la firma lleva el nombre que
-> **pone el servidor**; el anulado **sigue en pantalla con su motivo** y conserva cifras y firma.
+> ---
 >
-> ### Las ocho cosas que enseñó construirla
+> ## LO QUE SIGUE, Y AHORA SÍ TOCA ELEGIR
 >
-> 1. **«No hay Java» era falso** — arriba, y es la que más lejos llega.
-> 2. **UNA PRUEBA DE DENEGACIÓN PASA IGUAL SIN NINGUNA REGLA.** Borrar el bloque entero de
->    `monthlyReports` dejó **las trece pruebas de escritura en verde** —las satisface el deny por
->    defecto— y solo enrojecieron las cuatro de lectura. **Al escribir reglas, la falsación
->    obligatoria es BORRAR EL BLOQUE, no aflojarlo.**
-> 3. **Una prueba mía nació sin poder fallar.** El caso principal de `CA5` es cierto **por
->    construcción** mientras el informe sea una instantánea guardada: ninguna de las nueve
->    falsaciones lo tocó. Se le añadió el control que le faltaba — comprobar que **recalcular hoy
->    daría otro número**.
-> 4. **Un guardián se queda ciego ante el primer caso que se sale de su expresión regular.** El de
->    la taxonomía leía `/"([a-z]+)"/g`, **sin guion bajo**: con `informe_mensual` sin clasificar,
->    **once pruebas en verde**.
-> 5. **`StatusBadge` no conocía `emitido` ni `anulado`.** En castellano la clave cruda **se lee casi
->    bien**, y por eso este fallo dura: se disimula a sí mismo.
-> 6. **El asiento es CASTELLANO (`ingreso`/`egreso`)** y el núcleo **no lanza** ante un tipo que no
->    conoce: no acumula, y la cifra sale en cero con pinta de dato. Lo cometí **dentro del banco que
->    venía a vigilarlo**.
-> 7. **MIRAR EL PAPEL ENCONTRÓ LO QUE 824 PRUEBAS EN VERDE NO VEÍAN.** El PDF pintaba **`ˆ`** donde
->    iba un menos: el rótulo llevaba `−` (U+2212) y **`pdfkit` va en WinAnsi**, que no lo tiene —
->    sustituye el glifo **sin lanzar y sin avisar**. Y dura porque **las tildes y la `ñ` SÍ están**:
->    «Nómina» sale perfecto y uno da el resto por bueno. **Ninguna suite lee el papel.**
-> 8. **Una aserción mía era falsa y pasaba por suerte del fixture:** «el PDF con firmas es más
->    largo». Medido, **el SIN firmar es más grande**. **El tamaño de un artefacto no prueba que algo
->    se pintó dentro.**
+> 1. **La entrega 3 de `FLOW-007`** — publicar el informe al residente. **Bloqueada por las cinco
+>    preguntas al abogado ecuatoriano**, que son de David. Lo primero al abrir es preguntarle.
+> 2. **`PRD-V-FLOW-006`** (mora legal y convenio) sigue bloqueada por **`G5`** y por el abogado.
+> 3. **Si nada de eso se mueve, ELEGIR FRENTE.** Del estado medido el 4 de septiembre:
+>    - **37 P1, 42 P2 y 12 P3** de los 108 candidatos;
+>    - de los **diez huecos** de la administradora quedan siete. Los dos siguientes de su propio
+>      orden son **la foto del medidor** (§3.5, su cuello de botella declarado, `medidor` = 0
+>      ficheros) y **presupuesto contra ejecución** (§3.6) — **pero éste encaja DENTRO del informe
+>      mensual, así que hacerlo antes obliga a rehacer parte**;
+>    - **`PRD-V-PLAT-004`** (alcance del rol Consejo) **nunca se escribió** y ya lo piden ocho fichas:
+>      hoy `committee` solo llega a `/admin/documents`;
+>    - **`FIX-001` entrega 2** — política de reserva por área. Van 10 de 11.
 >
-> ### El PRIMER INFORME REAL, emitido en producción (4 sep 2026)
+> ### Tres frenos que NO son de código, y no los quita el equipo
 >
-> **`monthlyReports/tenant-santa-maria_2026-08`, estado `emitido`**, generado y emitido **por la
-> pantalla**, con la sesión del administrador y las callables desplegadas. Las cifras se
-> contrastaron **antes** contra un cálculo independiente con el núcleo compilado, y coinciden:
+> **Proveedores (0 filas), paz y salvo (0 emitidos) y coeficiente (18 de 93 unidades)** están
+> **encendidos en los nueve sobre tablas vacías**. Eso es captura de datos. Y **producción no tiene
+> ni un cliente real**: cero, medido.
 >
-> | | |
-> |---|---|
-> | Saldo inicial | **$5.000.000** (`registrado`) |
-> | Ingresos / egresos del mes | **−$120.000** / **−$300.000** |
-> | Resultado neto | **$180.000** |
-> | Saldo final | **$5.180.000** — `RN-03` **cuadra** |
-> | Por cobrar | **$80.220.000**, 19 unidades |
-> | Deuda a proveedores | **$0**, y el PDF lo dice: «Sin movimientos en el período» (`CA8`) |
+> ---
 >
-> El PDF se archivó en `documents/informe_tenant-santa-maria_2026-08`, categoría **`informe_mensual`**,
-> y **se descargó y se miró**: el rótulo sale **«(inicial + ingresos - egresos)»**, así que el
-> arreglo del menos aguanta en producción. **Sin firmar** — el bloque aparece y no se omite.
+> ## MÉTODO — lo que dejó esta jornada, y se paga solo
 >
-> > ⚠️ **AGOSTO EN SANTA MARÍA SON SOLO REVERSOS**, así que el informe dice **ingresos y egresos
-> > NEGATIVOS**. Es aritméticamente cierto y lo mismo que enseña `/admin/finanzas`, pero **en un
-> > papel de asamblea se lee raro**. Si se quiere otra presentación para los reversos, es decisión
-> > de producto y **ficha aparte** — no se tocó.
+> 1. **UNA PRUEBA DE DENEGACIÓN PASA IGUAL SIN NINGUNA REGLA.** Borrar el bloque de
+>    `monthlyReports` dejó **trece pruebas de escritura en verde**: las satisface el deny por
+>    defecto. **Al escribir reglas, la falsación obligatoria es BORRAR EL BLOQUE.**
+> 2. **`changedKeys()` NO ve una clave AÑADIDA** — son las que están en los dos mapas con valor
+>    distinto. Hace falta **`affectedKeys()`**. Medido con una sonda; **quedan cuatro sitios del
+>    fichero con el patrón viejo**, de otras fichas, con chip abierto.
+> 3. **MIRAR EL ARTEFACTO.** El PDF pintaba `ˆ` donde iba un menos (`pdfkit` va en WinAnsi) con 824
+>    pruebas en verde. **Ninguna suite lee el papel.**
+> 4. **RECORRER LA PANTALLA.** Encontró que editar un egreso **deshacía sus pagos**, que «Por pagar»
+>    no bajaba, y un aviso duplicado. Nada de eso lo veía un banco.
+> 5. **EL INSTRUMENTO TAMBIÉN NECESITA CONTROL, y hoy falló tres veces:** un `grep` mal leído, una
+>    reimplementación mía de `esRecaudoDeCartera` a la que le faltaba una condición, y **el clic
+>    sintético del navegador**, que hizo parecer roto un modal que abría perfectamente.
+> 6. **Una lectura hecha ANTES de que la operación termine no es una medición: es una carrera.**
+> 7. **Una falsación en verde es falsación mala O hueco real**, y hay que distinguirlo: hoy rompí el
+>    filtro de `guardarPlan` creyendo que era la guarda, y la guarda estaba en `fundirPlan`.
 >
-> > ⚠️ **EL INFORME SALIÓ SIN LOGO, y no es un fallo del código: NINGUNO de los nueve conjuntos de
-> > producción tiene `branding.logoUrl`.** Medido. `CA13` pide «logo del conjunto» y el código lo
-> > pinta cuando existe —comprobado en staging poniéndole uno—, pero **hoy todo informe emitido en
-> > producción sale sin él**. Es «encender no es poner en uso» otra vez: la capacidad funciona y el
-> > dato detrás está vacío. **Cargar los logos es captura de datos, no ingeniería.**
->
-> ### `PRD-V-FLOW-008` ESCRITA (4 sep) — cuentas por pagar en cuotas
->
-> ## 🟢 **LISTA PARA DESARROLLO, Y NO ESPERA A NADIE.** David aceptó `G1` vacía y cerró las dos
-> preguntas el mismo día, **las dos en «no en el MVP»**: sin saldo por cuota (`TBD-C1`) y sin
-> recordatorios (`TBD-C2`). **El MVP es el calendario y nada más.** Es lo siguiente que se puede
-> construir sin pedirle permiso a nadie. Sale de **§3.2 de la
-> sesión con la administradora** —«la del seguro, yo pago en **once cuotas**»— y **no de los
-> candidatos**: ninguno de los diez de la categoría `E` lo cubre.
->
-> **Tres cosas que medir corrigió, y que ahorran explorar:**
->
-> 1. **No falta solo el calendario: tampoco existe el pago parcial de un egreso.** `ExpenseStatus`
->    es binario (`registrado|pagado|anulado`) y no hay campo de importe pagado.
-> 2. **`ledgerEntryId` es SINGULAR.** Un egreso tiene UN asiento; once cuotas son once. Ese es el
->    cambio estructural.
-> 3. 🔴 **LA FICHA ROMPE `FLOW-007` SI NO LO CORRIGE.** `sumarDeudaAProveedores` suma el **importe
->    completo** de todo egreso en `registrado`, y con cuotas eso deja de ser la deuda. Lo leen tres
->    sitios y **el consejo lo ve en el informe mensual**. La corrección va DENTRO de la entrega 1.
->
-> **Y el orden de despliegue SE INVIERTE** —functions → front → reglas—, porque la regla de
-> `expenses` **restringe**: pasa a vetar los campos que sella el servidor.
->
-> **Baseline: 32 de 52 egresos no tienen ni una fecha de vencimiento**, y **el caso que la motiva ya
-> está en la base aplanado**: «Póliza de seguro del inmueble (trimestral)», registrada como un solo
-> pago.
->
-> ### 🔴 UN DEFECTO DE DINERO ENCONTRADO AL ENCENDER, Y **DELIBERADAMENTE NO ARREGLADO**
->
-> Mirando producción con la bandera encendida: **el informe del consejo y `/admin/finanzas` enseñan
-> «Saldo de fondos» distinto para el mismo conjunto y el mismo día** — **−$675.000** contra
-> **725.000**, en Santa María.
->
-> Las dos llaman a la **misma** `computeFundPosition`; lo que difiere es el `cuotaIncome` que cada
-> una define por su cuenta:
->
-> | Pantalla | Cómo define el recaudo | Da |
-> |---|---|---|
-> | Informe del consejo (`use-committee-report.ts`) | `billing.filter(b => b.status === "paid")` — **ignora los pagos PARCIALES** | 800.000 |
-> | `/admin/finanzas` (`page.tsx:153`) | `recaudo.total` — todo el `paymentAmount` | 2.200.000 |
->
-> **La diferencia son 1.400.000 y sale íntegra de DOS cargos** de `T1-101` en `2026-03` con pago
-> parcial. La aritmética cuadra con las dos pantallas: `5.000.000 + recaudo + (−6.475.000)`.
->
-> **Es PREEXISTENTE**: el filtro viene de `f0aba4b` (23 de junio de 2026) y `FLOW-007` **nunca tocó**
-> esa definición. **No se arregló a propósito**, para no reabrir una ficha ya desplegada — pero es
-> **la misma enfermedad que `R12`/`R16`**, en la pantalla que se quedó fuera de la unificación de
-> `RN-01`. Y el sentido del error importa: **el informe que ve el consejo SUBESTIMA**, y le enseña
-> un fondo en rojo a un conjunto que tiene dinero.
->
-> ### Dos rojos que NO son de esta jornada
->
-> `payments.emulator.test.ts` falla en `CA12 · deshacer un cruce…` y `D-B · revertir un pago
-> repartido…`, las dos con `expected 'overdue' to be 'pending'`. **Ya fallaban sobre el árbol
-> limpio** antes de tocar nada. Huele a dependencia de la fecha del día. **Fuera del alcance de esta
-> ficha, y sin investigar.**
->
-> ### Una trampa nueva del entorno, y muerde
->
-> **El proyecto por defecto del CLI de Firebase es `hogaru-1`, o sea PRODUCCIÓN.** Un
-> `firebase deploy --only firestore:rules` **sin `--project` toca producción**. Ponerlo siempre.
+> **Sigue en pie: una sola sesión que escriba a la vez.**
 
 ## EL CONTEXTO DE HABITANTO, CONSOLIDADO
 >
