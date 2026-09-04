@@ -46,7 +46,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | Bandera | Producción | Staging |
 > |---|---|---|
 > | `producto-informe-mensual` | **1 de 9** — canario en `tenant-santa-maria`, con un informe real emitido | 2 de 9 |
-> | `producto-egresos-en-cuotas` | **1 de 9** — canario en `tenant-santa-maria` | 1 de 9 (`tenant-santa-maria`) |
+> | `producto-egresos-en-cuotas` | **2 de 9** — `tenant-santa-maria` y `conjunto-las-playas` | 1 de 9 (`tenant-santa-maria`) |
 >
 > **Para apagar un canario, quitar la OVERRIDE, no tocar la global**: con la override puesta, un
 > `enabled: false` global apagaría ocho y dejaría uno encendido. Para los nueve, el **kill switch**.
@@ -100,10 +100,19 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### Lo que falta de esta ficha
 >
-> - **Santa María tiene CERO egresos pendientes**, así que la capacidad está encendida sobre nada:
->   el editor del plan solo aparece al registrar una factura nueva. **Si se quiere ver trabajando
->   sobre cuentas por pagar reales, el conjunto es `conjunto-las-playas`** — cuatro pendientes que
->   suman $33.150. Es «encender no es poner en uso», otra vez.
+> **Encendida en los DOS conjuntos con datos**: Santa María (cero pendientes) y **Las Playas**
+> (cuatro pendientes, **$33.150**, y 14 egresos). **Ninguno tiene todavía un plan de cuotas**: el
+> editor aparece al registrar o editar una factura, así que la capacidad está encendida y **sin
+> estrenar**. Es «encender no es poner en uso» — lo que falta es capturar un cuadro de pagos real.
+>
+> **Encenderla NO movió ninguna cifra de Las Playas**: «Por pagar» vale **33.150 antes y después**,
+> porque ninguno de sus 14 egresos lleva plan. Es `CA10`/`CA11` observado **sobre datos reales de
+> producción**, y es lo que se quería ver.
+>
+> ⚠️ **NO se ha mirado la pantalla de Las Playas, y hay que decirlo:** la sesión de navegador
+> disponible es **Carlos Ramírez (`admin@santamaria.co`), que solo tiene Santa María**. El
+> administrador de Las Playas es **Carolina Méndez** (`david.macar.18@hotmail.com`). Para verlo hay
+> que cambiar la sesión — lo hace David. Ver [[validar-por-el-navegador]].
 > - **`CA13` en la tarjeta de Cartera** con ojos (la columna «Vence» ya está vista).
 >
 > ---
