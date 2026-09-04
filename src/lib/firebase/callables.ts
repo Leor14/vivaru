@@ -1660,3 +1660,64 @@ export async function voidMonthlyReportCallable(input: VoidMonthlyReportInput) {
   );
   return executeCallable(callable, input, "No fue posible anular el informe.");
 }
+
+// ── PRD-V-FLOW-008 entrega 2 · pagar y anular una cuota ─────────────────────
+//
+// **Declarar el plan va por escritura directa y esto NO.** Pagar escribe en dos
+// sitios —la cuota y el libro—, mueve dinero y sella `paidAmount` y el estado
+// derivado del egreso: un campo escribible desde el cliente no puede sostener un
+// invariante. Aquí no viaja ni el importe de la cuota ni el estado resultante.
+
+export type PayExpenseInstallmentInput = {
+  tenantId: string;
+  expenseId: string;
+  installmentNumber: number;
+  /** `YYYY-MM-DD`. La pone quien paga; el servidor no inventa hoy. */
+  paidAt: string;
+  paymentMethod?: string;
+  bankAccountId?: string;
+};
+
+export async function payExpenseInstallmentCallable(input: PayExpenseInstallmentInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<
+    PayExpenseInstallmentInput,
+    { ok: true; ledgerEntryId: string; paidAmount: number; expenseStatus: "registrado" | "pagado"; yaPagada: boolean }
+  >(functions, "payExpenseInstallment");
+  return executeCallable(callable, input, "No fue posible registrar el pago de la cuota.");
+}
+
+export type VoidExpenseInstallmentInput = {
+  tenantId: string;
+  expenseId: string;
+  installmentNumber: number;
+  /** `RN-13` · obligatorio, y el servidor lo exige además del formulario. */
+  reason: string;
+};
+
+export async function voidExpenseInstallmentCallable(input: VoidExpenseInstallmentInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<
+    VoidExpenseInstallmentInput,
+    { ok: true; yaAnulada: boolean; expenseStatus: "registrado" | "pagado" }
+  >(functions, "voidExpenseInstallment");
+  return executeCallable(callable, input, "No fue posible anular la cuota.");
+}
+
+export type VoidExpenseWithInstallmentsInput = { tenantId: string; expenseId: string; reason: string };
+
+/** `RN-08` · anula la factura **conservando las cuotas pagadas y sus asientos**. */
+export async function voidExpenseWithInstallmentsCallable(input: VoidExpenseWithInstallmentsInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<
+    VoidExpenseWithInstallmentsInput,
+    { ok: true; yaAnulado: boolean; cuotasAnuladas: number; cuotasConservadas: number }
+  >(functions, "voidExpenseWithInstallments");
+  return executeCallable(callable, input, "No fue posible anular el egreso.");
+}

@@ -361,6 +361,26 @@ function sumarDeudaAProveedores(egresos) {
  * por documento que hace `sumarCuentasPorCobrar` con el sobrepago de una unidad.
  */
 function pendienteDelEgreso(egreso) {
+    // **Con plan, la deuda son las cuotas que SIGUEN PENDIENTES**, y no
+    // `amount − paidAmount`. La diferencia aparece en cuanto se anula una cuota
+    // sin anular la factura —el proveedor perdona lo que queda—: con la resta, una
+    // póliza de 1.100 con cinco cuotas pagadas y seis anuladas **seguiría contando
+    // 600 de deuda que ya nadie debe**. Medido antes de escribir esto.
+    //
+    // Y hay una razón más de fondo: **las cuotas son la fuente de verdad y
+    // `paidAmount` es un acumulado que hay que mantener**. Derivar la deuda de lo
+    // que se mantiene solo es pedir que algún día se desincronice; derivarla de las
+    // cuotas no puede desincronizarse de sí mismo.
+    const cuotas = egreso.installments;
+    if (cuotas && cuotas.length > 0) {
+        let vivo = 0;
+        for (const c of cuotas) {
+            if (c.status !== "pendiente")
+                continue;
+            vivo += c.amount ?? 0;
+        }
+        return vivo > 0 ? vivo : 0;
+    }
     const importe = egreso.amount ?? 0;
     const pagado = egreso.paidAmount ?? 0;
     const pendiente = importe - pagado;

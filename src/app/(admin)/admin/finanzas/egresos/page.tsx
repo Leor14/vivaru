@@ -34,6 +34,7 @@ import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useVendors } from "@/features/finanzas/use-vendors";
 import { VendorRegistryDialog } from "@/components/features/finanzas/VendorRegistryDialog";
 import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgresoModal";
+import { CuotasDelEgresoPanel } from "@/components/features/finanzas/CuotasDelEgresoPanel";
 import { PlanDeCuotasField } from "@/components/features/finanzas/PlanDeCuotasField";
 import { proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
@@ -629,6 +630,23 @@ export default function AdminEgresosPage() {
             </Button>
           </div>
         </form>
+        {/*
+          `PRD-V-FLOW-008` entrega 2 · pagar y anular cuotas.
+
+          **Va FUERA del `<form>` a propósito.** Cada cuota se paga por su cuenta,
+          por callable, y no al guardar el egreso: meterlo dentro haría que el
+          botón «Guardar» del formulario pareciera confirmar también los pagos.
+          Y solo con el egreso YA guardado: no se paga una cuota de una factura
+          que todavía no existe.
+        */}
+        {egresosEnCuotas && editingItem?.installments?.length ? (
+          <div className="mt-4">
+            <CuotasDelEgresoPanel
+              egreso={items.find((e) => e.id === editingItem.id) ?? editingItem}
+              formatAmount={formatAmount}
+            />
+          </div>
+        ) : null}
       </Modal>
 
       {user?.tenantId && user.uid ? (

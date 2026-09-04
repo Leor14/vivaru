@@ -153,6 +153,23 @@ describe("`CA8` · la deuda a proveedores es LO QUE FALTA", () => {
     expect(sumarDeudaAProveedores([sinPlan])).toBe(1_100);
   });
 
+  /**
+   * **El caso que la entrega 1 resolvía MAL, medido antes de escribir el pago.**
+   *
+   * El proveedor perdona lo que queda: cinco cuotas pagadas y seis anuladas, y la
+   * factura sigue `registrado`. Con `amount − paidAmount` esto decía **600 de
+   * deuda que ya nadie debe**. La deuda de una factura con plan son **sus cuotas
+   * vivas**, que además es la fuente de verdad y no un acumulado que mantener.
+   */
+  it("anular cuotas SIN anular la factura deja de deber lo anulado", () => {
+    const perdonada = egreso({
+      paidAmount: 500,
+      installments: once.map((c) => ({ ...c, status: c.number <= 5 ? ("pagada" as const) : ("anulada" as const) })),
+    });
+    expect(pendienteDelEgreso(perdonada)).toBe(0);
+    expect(sumarDeudaAProveedores([perdonada])).toBe(0);
+  });
+
   it("un egreso `pagado` o `anulado` no debe nada, con plan o sin él", () => {
     expect(sumarDeudaAProveedores([egreso({ status: "pagado" })])).toBe(0);
     expect(sumarDeudaAProveedores([egreso({ status: "anulado", paidAmount: 200 })])).toBe(0);
@@ -248,7 +265,17 @@ describe("summarizePayables — el total y el desglose NO pueden discrepar", () 
    */
   it("las categorías SUMAN el total que la tarjeta imprime al lado", () => {
     const gastos = [
-      egreso({ id: "a", category: "seguros", amount: 1_100, paidAmount: 500, installments: once }),
+      // **Coherente a propósito**: cinco cuotas `pagada` Y `paidAmount: 500`. La
+      // versión anterior de este caso llevaba el acumulado sin marcar ninguna
+      // cuota, y la regla vieja —`amount − paidAmount`— lo daba por bueno. La
+      // nueva no, porque deriva de las cuotas: **destapó su propio fixture**.
+      egreso({
+        id: "a",
+        category: "seguros",
+        amount: 1_100,
+        paidAmount: 500,
+        installments: once.map((c) => (c.number <= 5 ? { ...c, status: "pagada" as const } : c)),
+      }),
       egreso({ id: "b", category: "nomina", amount: 2_000 }),
       egreso({ id: "c", category: "nomina", amount: 500, status: "pagado" }),
     ];

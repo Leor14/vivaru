@@ -263,7 +263,7 @@ Installment = {
 | `RN-06` | **Lo pagado nunca supera el total**, y el total **no se puede bajar por debajo de lo ya pagado** | `CA5` — debe fallar |
 | `RN-07` | **Una cuota `pagada` no se edita ni se reabre.** Corregirla es anular su asiento, que es otra operación | `CA6` — debe fallar |
 | `RN-08` | **Anular el egreso conserva las cuotas pagadas** y anula solo las pendientes. Archivar no es esconder | `CA7` |
-| `RN-09` | 🔴 **La deuda a proveedores es lo que FALTA por pagar**, no el importe de la factura. Un egreso con 5 de 11 cuotas pagadas debe **6 cuotas** | `CA8` — es la corrección de `FLOW-007` |
+| `RN-09` | 🔴 **La deuda a proveedores es lo que FALTA por pagar**, no el importe de la factura. **Con plan son las CUOTAS VIVAS** —no `amount − paidAmount`, que cuenta de más en cuanto se anula una cuota—; sin plan, el importe completo | `CA8` — es la corrección de `FLOW-007` |
 | `RN-10` | **Un conjunto suspendido o vencido no registra, no paga y no anula**; sí consulta | `CA9` — debe fallar |
 | `RN-11` | **Un egreso SIN plan se comporta exactamente como hoy**, con la bandera encendida o apagada | `CA10` |
 | `RN-12` | **Con la bandera APAGADA, el producto entero se comporta como hoy**, incluidas las cifras del informe mensual | `CA11` |
@@ -420,7 +420,7 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 | # | Qué | Reversible |
 |---|---|---|
 | **1** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
-| **2** | **Pagar y anular.** La callable de pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado, y el estado derivado | Sí, bandera |
+| **2** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
 | **3** | **Las reglas endurecidas** de `expenses`, que cierran la puerta del cliente a los campos del servidor | **No con bandera**: se revierte redesplegando las reglas anteriores |
 
 ### Rollback
@@ -492,6 +492,62 @@ reclamaba la primera y **daba por buenas las otras dos**. Al ensancharlo apareci
 sin traducir preexistentes** —`cerrada`, `sent`, `invalid`, `used`, `applied`, `anulado`—, de
 campañas de cobro, programación de envíos, invitaciones, anticipos y comprobantes. **Ninguna es de
 esta ficha**: solo fue quien hizo visible el punto ciego. Es `UX-004` otra vez.
+
+---
+
+## 13 ter · Estado tras la entrega 2 — 4 de septiembre de 2026
+
+| Criterio | Estado | Dónde vive |
+|---|---|---|
+| `CA3` | ✅ **Cumplido** | El estado del egreso es **derivado**: `pagado` solo cuando ninguna cuota queda pendiente |
+| `CA4` | ✅ **Cumplido** | Pagar la cuota 3 de 11 crea **un asiento de 100**, no de 1.100, con la fecha del pago |
+| `CA6` | ✅ **Cumplido — debe fallar y falla** | Una cuota **pagada** no se anula: dejó un asiento que puede estar conciliado |
+| `CA7` | ✅ **Cumplido** | Anular la factura con 5 de 11 pagadas conserva **las 5 cuotas y sus 5 asientos** |
+| `CA12` | ✅ **Cumplido en el SERVIDOR** | Anular sin motivo se rechaza, y el motivo se **recorta antes de mirarlo** |
+| `CA5` `CA9` | ⏳ **Entrega 3** | Piden las reglas endurecidas |
+| `CA13` | 🟡 **Falta MIRARLO** en staging | El vencimiento por cuota en la tarjeta y en la columna «Vence» |
+
+**Bancos: `npm test` 1751 · functions 832 · reglas 371 · emulador 322**, con los dos rojos
+**preexistentes** de `payments.emulator.test.ts`.
+
+> ### 🔴 LA ENTREGA 2 CORRIGIÓ UN DEFECTO DE LA ENTREGA 1, DE ESTA MISMA JORNADA
+>
+> La entrega 1 calculaba la deuda como **`amount − paidAmount`**, que es lo que esta ficha escribió
+> en `RN-09`. **Está mal en cuanto se anula una cuota sin anular la factura** —el proveedor perdona
+> lo que queda—: una póliza de 1.100 con cinco cuotas pagadas y **seis anuladas** seguiría contando
+> **600 de deuda que ya nadie debe**. Se midió con un caso a mano **antes** de escribir el pago.
+>
+> **La deuda de una factura con plan son sus CUOTAS VIVAS.** Y la razón de fondo es mejor que el
+> caso que lo destapó: **las cuotas son la fuente de verdad y `paidAmount` es un acumulado que hay
+> que mantener**. Derivar la deuda de lo que se mantiene es pedir que algún día se desincronice;
+> derivarla de las cuotas no puede desincronizarse de sí mismo. `paidAmount` se conserva —lo sella
+> el servidor y se enseña— pero **ya no sostiene la cifra**.
+>
+> **Y la regla nueva destapó un fixture propio que la vieja toleraba:** un caso de prueba llevaba
+> `paidAmount: 500` con las once cuotas en `pendiente`. Incoherente, y `amount − paidAmount` lo daba
+> por bueno.
+
+### Lo que la entrega 2 enseñó
+
+**1 · El asiento de una cuota tiene que tener la MISMA forma que el del egreso sin plan.**
+`type: "egreso"`, `sourceType: "expense"`, `sourceId` el egreso, `reconciled: false`. Si tuviera
+otra, **la conciliación dejaría de emparejarlo** y el estado financiero lo agruparía en otro sitio.
+Lo único añadido es `installmentNumber`, para volver del asiento a su cuota. Hay prueba que lo fija.
+
+**2 · La cuenta contable NO se recalcula en el servidor.** `codigoDeCategoriaDeEgreso` vive solo en
+`src/`, y el documento del egreso **ya guarda su `accountCode`**. Recalcularlo sería una segunda
+implementación de la misma regla — exactamente cómo nacieron `R12` y `R16`. Se lee del egreso.
+
+**3 · Pagar va en TRANSACCIÓN, y no es cosmética.** Marcar la cuota y escribir el asiento son dos
+escrituras: si solo cuajara la primera, el conjunto tendría **una cuota pagada que no aparece en el
+libro** — dinero que salió y que ningún informe cuenta.
+
+**4 · Anular una cuota NO comprueba la bandera**, igual que anular un informe o un paz y salvo:
+apagarla no puede dejar cuotas vivas sin forma de retirarlas.
+
+> **Cuatro falsaciones, cada una roja solo en lo suyo:** quitar la derivación del estado (3, y las
+> tres son suyas), quitar la idempotencia del pago (1), anular también las cuotas pagadas (1), y
+> permitir anular una cuota ya pagada (1).
 
 ---
 

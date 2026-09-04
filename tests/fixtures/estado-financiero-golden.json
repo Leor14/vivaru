@@ -383,6 +383,144 @@
         }
       ],
       "esperado": 0
+    },
+    {
+      "nombre": "`FLOW-008` · anular cuotas SIN anular la factura deja de deber lo anulado",
+      "porQue": "El proveedor perdona lo que queda: cinco cuotas pagadas y seis anuladas. Con `amount - paidAmount` esto daria 600 de deuda que ya nadie debe. La deuda de una factura con plan son sus cuotas VIVAS.",
+      "egresos": [
+        {
+          "status": "registrado",
+          "amount": 1100,
+          "paidAmount": 500,
+          "installments": [
+            {
+              "number": 1,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 2,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 3,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 4,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 5,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 6,
+              "amount": 100,
+              "status": "anulada"
+            },
+            {
+              "number": 7,
+              "amount": 100,
+              "status": "anulada"
+            },
+            {
+              "number": 8,
+              "amount": 100,
+              "status": "anulada"
+            },
+            {
+              "number": 9,
+              "amount": 100,
+              "status": "anulada"
+            },
+            {
+              "number": 10,
+              "amount": 100,
+              "status": "anulada"
+            },
+            {
+              "number": 11,
+              "amount": 100,
+              "status": "anulada"
+            }
+          ]
+        }
+      ],
+      "esperado": 0
+    },
+    {
+      "nombre": "`FLOW-008` · con plan manda la suma de las cuotas vivas, no el acumulado pagado",
+      "porQue": "Cinco pagadas y seis pendientes: la deuda son las seis, 600. Coincide con `amount - paidAmount` en el caso sano, y por eso hay que probar tambien el caso donde NO coincide (el de arriba).",
+      "egresos": [
+        {
+          "status": "registrado",
+          "amount": 1100,
+          "paidAmount": 500,
+          "installments": [
+            {
+              "number": 1,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 2,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 3,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 4,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 5,
+              "amount": 100,
+              "status": "pagada"
+            },
+            {
+              "number": 6,
+              "amount": 100,
+              "status": "pendiente"
+            },
+            {
+              "number": 7,
+              "amount": 100,
+              "status": "pendiente"
+            },
+            {
+              "number": 8,
+              "amount": 100,
+              "status": "pendiente"
+            },
+            {
+              "number": 9,
+              "amount": 100,
+              "status": "pendiente"
+            },
+            {
+              "number": 10,
+              "amount": 100,
+              "status": "pendiente"
+            },
+            {
+              "number": 11,
+              "amount": 100,
+              "status": "pendiente"
+            }
+          ]
+        }
+      ],
+      "esperado": 600
     }
   ]
 }

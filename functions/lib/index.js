@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -73,6 +73,7 @@ const management_companies_1 = require("./management-companies");
 const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
 const feature_flags_1 = require("./feature-flags");
+const egresos_en_cuotas_1 = require("./egresos-en-cuotas");
 const informe_mensual_1 = require("./informe-mensual");
 const nucleo_estado_financiero_1 = require("./nucleo-estado-financiero");
 const aviso_recibo_1 = require("./aviso-recibo");
@@ -4029,6 +4030,108 @@ exports.voidMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableCo
             // `writeAuditLog` revienta con un `undefined`, y aquí el motivo es
             // obligatorio río arriba — se manda normalizado igualmente.
             reason: (data.reason ?? "").trim(),
+        });
+    }
+    return r;
+});
+// ── FLOW-008 entrega 2 · pagar y anular una cuota ────────────────────────────
+//
+// **Las tres van por callable y declarar el plan NO**, y la asimetría es
+// deliberada (§11 de la ficha): declarar es captura de datos que las reglas
+// protegen; pagar escribe en **dos sitios**, mueve dinero y sella `paidAmount` y
+// el estado derivado del egreso — **un campo escribible desde el cliente no puede
+// sostener un invariante**.
+//
+// **Las cuatro guardas, y ninguna sobra:**
+//   · `assertActiveTenantAdmin`  — quién.
+//   · `assertTenantOperable`     — `RN-10`: un conjunto suspendido o vencido no paga.
+//   · `assertTenantContratado`   — Egresos es módulo de VISTA PREVIA durante la
+//     prueba, y `previewModuleWritable` lo veta en las reglas. Una callable no
+//     evalúa reglas, así que sin esto la puerta cerrada por regla quedaría
+//     abierta por callable: el defecto de `CF8`, otra vez.
+//   · `assertFeatureEnabled`     — la bandera se comprueba EN EL SERVIDOR, o es
+//     solo un botón.
+//
+// **Anular NO comprueba la bandera**, por lo mismo que el paz y salvo y el
+// informe mensual: apagarla no puede dejar cuotas vivas sin forma de retirarlas.
+exports.payExpenseInstallment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId || !d.paidAt || typeof d.installmentNumber !== "number") {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para pagar la cuota.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+    await assertActiveTenantAdmin(tenantId, uid);
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
+    await (0, tenant_status_1.assertTenantContratado)(tenantId);
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-egresos-en-cuotas", tenantId);
+    const r = await (0, egresos_en_cuotas_1.pagarCuota)({
+        tenantId,
+        expenseId: normalizeText(d.expenseId),
+        installmentNumber: d.installmentNumber,
+        paidAt: normalizeText(d.paidAt),
+        paymentMethod: normalizeText(d.paymentMethod) || undefined,
+        bankAccountId: normalizeText(d.bankAccountId) || undefined,
+    }, uid);
+    if (!r.yaPagada) {
+        await writeAuditLog(tenantId, uid, "pay_expense_installment", {
+            expenseId: normalizeText(d.expenseId),
+            installmentNumber: d.installmentNumber,
+            ledgerEntryId: r.ledgerEntryId,
+            paidAmount: r.paidAmount,
+            expenseStatus: r.expenseStatus,
+        });
+    }
+    return r;
+});
+exports.voidExpenseInstallment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId || typeof d.installmentNumber !== "number") {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para anular la cuota.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+    // Sin `assertFeatureEnabled`: apagar la bandera no puede dejar cuotas vivas
+    // sin forma de retirarlas.
+    await assertActiveTenantAdmin(tenantId, uid);
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
+    const r = await (0, egresos_en_cuotas_1.anularCuota)({
+        tenantId,
+        expenseId: normalizeText(d.expenseId),
+        installmentNumber: d.installmentNumber,
+        reason: d.reason,
+    }, uid);
+    if (!r.yaAnulada) {
+        await writeAuditLog(tenantId, uid, "void_expense_installment", {
+            expenseId: normalizeText(d.expenseId),
+            installmentNumber: d.installmentNumber,
+            reason: (d.reason ?? "").trim(),
+        });
+    }
+    return r;
+});
+exports.voidExpenseWithInstallments = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para anular el egreso.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+    await assertActiveTenantAdmin(tenantId, uid);
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
+    const r = await (0, egresos_en_cuotas_1.anularEgresoConCuotas)({ tenantId, expenseId: normalizeText(d.expenseId), reason: d.reason }, uid);
+    if (!r.yaAnulado) {
+        await writeAuditLog(tenantId, uid, "void_expense_with_installments", {
+            expenseId: normalizeText(d.expenseId),
+            reason: (d.reason ?? "").trim(),
+            cuotasAnuladas: r.cuotasAnuladas,
+            cuotasConservadas: r.cuotasConservadas,
         });
     }
     return r;

@@ -89,6 +89,14 @@ import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
 import {
+  anularCuota,
+  anularEgresoConCuotas,
+  pagarCuota,
+  type AnularCuotaInput,
+  type AnularEgresoInput,
+  type PagarCuotaInput,
+} from "./egresos-en-cuotas";
+import {
   anularInforme,
   construirInstantanea,
   firmarInforme,
@@ -5085,6 +5093,136 @@ export const voidMonthlyReport = onCall<{ tenantId: string; reportId: string; re
         // `writeAuditLog` revienta con un `undefined`, y aquí el motivo es
         // obligatorio río arriba — se manda normalizado igualmente.
         reason: (data.reason ?? "").trim(),
+      });
+    }
+    return r;
+  },
+);
+
+// ── FLOW-008 entrega 2 · pagar y anular una cuota ────────────────────────────
+//
+// **Las tres van por callable y declarar el plan NO**, y la asimetría es
+// deliberada (§11 de la ficha): declarar es captura de datos que las reglas
+// protegen; pagar escribe en **dos sitios**, mueve dinero y sella `paidAmount` y
+// el estado derivado del egreso — **un campo escribible desde el cliente no puede
+// sostener un invariante**.
+//
+// **Las cuatro guardas, y ninguna sobra:**
+//   · `assertActiveTenantAdmin`  — quién.
+//   · `assertTenantOperable`     — `RN-10`: un conjunto suspendido o vencido no paga.
+//   · `assertTenantContratado`   — Egresos es módulo de VISTA PREVIA durante la
+//     prueba, y `previewModuleWritable` lo veta en las reglas. Una callable no
+//     evalúa reglas, así que sin esto la puerta cerrada por regla quedaría
+//     abierta por callable: el defecto de `CF8`, otra vez.
+//   · `assertFeatureEnabled`     — la bandera se comprueba EN EL SERVIDOR, o es
+//     solo un botón.
+//
+// **Anular NO comprueba la bandera**, por lo mismo que el paz y salvo y el
+// informe mensual: apagarla no puede dejar cuotas vivas sin forma de retirarlas.
+
+export const payExpenseInstallment = onCall<PagarCuotaInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId || !d.paidAt || typeof d.installmentNumber !== "number") {
+      throw new HttpsError("invalid-argument", "Datos incompletos para pagar la cuota.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+    await assertTenantContratado(tenantId);
+    await assertFeatureEnabled("producto-egresos-en-cuotas", tenantId);
+
+    const r = await pagarCuota(
+      {
+        tenantId,
+        expenseId: normalizeText(d.expenseId),
+        installmentNumber: d.installmentNumber,
+        paidAt: normalizeText(d.paidAt),
+        paymentMethod: normalizeText(d.paymentMethod) || undefined,
+        bankAccountId: normalizeText(d.bankAccountId) || undefined,
+      },
+      uid,
+    );
+
+    if (!r.yaPagada) {
+      await writeAuditLog(tenantId, uid, "pay_expense_installment", {
+        expenseId: normalizeText(d.expenseId),
+        installmentNumber: d.installmentNumber,
+        ledgerEntryId: r.ledgerEntryId,
+        paidAmount: r.paidAmount,
+        expenseStatus: r.expenseStatus,
+      });
+    }
+    return r;
+  },
+);
+
+export const voidExpenseInstallment = onCall<AnularCuotaInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId || typeof d.installmentNumber !== "number") {
+      throw new HttpsError("invalid-argument", "Datos incompletos para anular la cuota.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+
+    // Sin `assertFeatureEnabled`: apagar la bandera no puede dejar cuotas vivas
+    // sin forma de retirarlas.
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+
+    const r = await anularCuota(
+      {
+        tenantId,
+        expenseId: normalizeText(d.expenseId),
+        installmentNumber: d.installmentNumber,
+        reason: d.reason,
+      },
+      uid,
+    );
+
+    if (!r.yaAnulada) {
+      await writeAuditLog(tenantId, uid, "void_expense_installment", {
+        expenseId: normalizeText(d.expenseId),
+        installmentNumber: d.installmentNumber,
+        reason: (d.reason ?? "").trim(),
+      });
+    }
+    return r;
+  },
+);
+
+export const voidExpenseWithInstallments = onCall<AnularEgresoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const d = request.data;
+    if (!d?.tenantId || !d.expenseId) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para anular el egreso.");
+    }
+    const tenantId = normalizeText(d.tenantId);
+
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+
+    const r = await anularEgresoConCuotas(
+      { tenantId, expenseId: normalizeText(d.expenseId), reason: d.reason },
+      uid,
+    );
+
+    if (!r.yaAnulado) {
+      await writeAuditLog(tenantId, uid, "void_expense_with_installments", {
+        expenseId: normalizeText(d.expenseId),
+        reason: (d.reason ?? "").trim(),
+        cuotasAnuladas: r.cuotasAnuladas,
+        cuotasConservadas: r.cuotasConservadas,
       });
     }
     return r;
