@@ -24,6 +24,12 @@ export default defineConfig({
       "**/storage.rules.test.ts",
       "**/push-tokens.rules.test.ts",
       "**/puerta-de-buzones.rules.test.ts",
+      // `PRD-V-FLOW-007`. **Faltaba, y por eso `npm test` enrojecía sin emulador.**
+      // Añadir un banco de reglas a `vitest.rules.config.ts` y NO a esta lista es
+      // el mismo descuido que ya tuvo `push-tokens.rules.test.ts`: el banco entero
+      // se pone rojo por el ENTORNO, y un rojo que no es del código enseña a
+      // ignorar el color. Los dos ficheros van siempre juntos.
+      "**/informe-mensual.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

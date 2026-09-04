@@ -30,7 +30,16 @@ describe("cobertura del mapa de estados", () => {
     for (const base of ["src", "components", "features"]) {
       for (const fichero of ficherosDeCodigo(base)) {
         const texto = readFileSync(fichero, "utf-8");
-        for (const m of texto.matchAll(/status:\s*"([a-zA-Z_]+)"/g)) claves.add(m[1]);
+        // **Se lee la DECLARACIÓN entera, no el primer literal.** Con
+        // `/status:\s*"([a-zA-Z_]+)"/` este guardián solo veía el primer miembro
+        // de una unión: ante `status: "pendiente" | "pagada" | "anulada"`
+        // reclamaba `pendiente` y **daba por buenas las otras dos**. Lo destapó
+        // `PRD-V-FLOW-008` al añadir el primer campo `status` con tres valores
+        // declarados en línea. Es el punto ciego de `UX-004` con otro nombre: un
+        // guardián se queda ciego justo ante el caso que se sale de su patrón.
+        for (const m of texto.matchAll(/status\??:\s*("(?:[a-zA-Z_]+)"(?:\s*\|\s*"(?:[a-zA-Z_]+)")*)/g)) {
+          for (const lit of m[1].matchAll(/"([a-zA-Z_]+)"/g)) claves.add(lit[1]);
+        }
         
       }
     }

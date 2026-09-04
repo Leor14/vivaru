@@ -34,6 +34,8 @@ import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useVendors } from "@/features/finanzas/use-vendors";
 import { VendorRegistryDialog } from "@/components/features/finanzas/VendorRegistryDialog";
 import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgresoModal";
+import { PlanDeCuotasField } from "@/components/features/finanzas/PlanDeCuotasField";
+import { proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
@@ -106,6 +108,9 @@ export default function AdminEgresosPage() {
 
   const registroProveedores = useFeatureFlag("producto-registro-proveedores");
   const prorrateoDeGastos = useFeatureFlag("producto-prorrateo-de-gastos");
+  // `PRD-V-FLOW-008`. **Apagada en los nueve**: sin ella no se puede declarar un
+  // plan, así que `paidAmount` es siempre cero y la deuda es la de siempre.
+  const egresosEnCuotas = useFeatureFlag("producto-egresos-en-cuotas");
   const [repartiendo, setRepartiendo] = useState<Expense | null>(null);
   const { vendors } = useVendors(registroProveedores ? user?.tenantId : undefined);
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
@@ -158,6 +163,13 @@ export default function AdminEgresosPage() {
       paymentMethod: item.paymentMethod ?? "",
       checkNumber: item.checkNumber ?? "",
       bankAccountId: item.bankAccountId ?? "",
+      // Solo las cuotas, sin lo que sella el servidor: el formulario no reenvía
+      // el estado ni el asiento de una cuota.
+      installments: item.installments?.map((c) => ({
+        number: c.number,
+        dueDate: c.dueDate,
+        amount: c.amount,
+      })),
     });
     setCreateOpen(true);
   }
@@ -276,7 +288,29 @@ export default function AdminEgresosPage() {
     {
       key: "dueDate",
       header: "Vence",
-      render: (item) => <span className="text-[var(--slate-700)]">{item.dueDate || "-"}</span>,
+      /*
+        `PRD-V-FLOW-008` · con plan, la fecha que importa **no es la de la
+        factura: es la de la próxima cuota sin pagar**. Enseñar el `dueDate` de
+        una póliza de once cuotas no dice nada de lo que hay que pagar este mes,
+        que es lo único que se viene a mirar aquí.
+      */
+      render: (item) => {
+        const proxima = egresosEnCuotas ? proximaCuota(item.installments) : undefined;
+        if (!proxima) {
+          return <span className="text-[var(--slate-700)]">{item.dueDate || "-"}</span>;
+        }
+        const total = item.installments?.length ?? 0;
+        const pagadas = item.installments?.filter((c) => c.status === "pagada").length ?? 0;
+        return (
+          <span className="text-[var(--slate-700)]">
+            {proxima.dueDate}
+            <span className="ml-1.5 text-xs text-[var(--slate-500)]">
+              cuota {proxima.number} de {total}
+              {pagadas > 0 ? ` · ${pagadas} pagada${pagadas === 1 ? "" : "s"}` : ""}
+            </span>
+          </span>
+        );
+      },
     },
     {
       key: "status",
@@ -537,6 +571,25 @@ export default function AdminEgresosPage() {
               <Input type="date" {...form.register("dueDate")} />
             </label>
           </div>
+          {/*
+            `PRD-V-FLOW-008` · el calendario de pagos, detrás de su bandera.
+            Con la bandera apagada el campo no existe, así que ningún egreso
+            puede nacer con plan y la deuda a proveedores es la de siempre.
+          */}
+          {egresosEnCuotas && (
+            <PlanDeCuotasField
+              cuotas={form.watch("installments")}
+              total={form.watch("amount")}
+              onChange={(c) => form.setValue("installments", c, { shouldValidate: true })}
+              formatAmount={formatAmount}
+              disabled={submitting}
+            />
+          )}
+          {form.formState.errors.installments ? (
+            <p className="text-xs text-[var(--danger-700)]">
+              {form.formState.errors.installments.message}
+            </p>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Estado

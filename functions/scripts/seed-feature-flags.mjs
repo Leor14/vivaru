@@ -138,6 +138,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-egresos-en-cuotas",
+    area: "producto",
+    label: "Cuentas por pagar con calendario de cuotas",
+    origen: "PRD-V-FLOW-008 entrega 1",
+    // Nace apagada y se enciende por conjunto: cambia la deuda a proveedores,
+    // que es una cifra que el consejo ya recibe en el informe mensual.
+    enabled: false,
+  },
+  {
     key: "producto-calendario-de-cobranza",
     area: "producto",
     label: "Calendario de cobranza del conjunto",

@@ -1,6 +1,8 @@
 import type { Expense } from "@/types/domain";
 
-import { categoryLabel, sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
+import { categoryLabel, pendienteDelEgreso, sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
+
+import { envejecerEgreso } from "./cuotas-del-egreso";
 
 /**
  * Resumen de cuentas por pagar a partir de los egresos. Selector puro (asOf
@@ -44,11 +46,18 @@ export function summarizePayables(
 
   for (const e of expenses) {
     if (e.status !== "registrado") continue;
-    byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amount);
-    if (e.dueDate) {
-      if (e.dueDate < opts.asOf) overdue += e.amount;
-      else if (e.dueDate <= cutoff) dueSoon += e.amount;
-    }
+    // **`PRD-V-FLOW-008`: el reparto por categoría suma LO PENDIENTE, no el
+    // importe de la factura.** Antes sumaba `e.amount`, que valía lo mismo
+    // mientras un egreso solo pudiera estar pagado o sin pagar. Con calendario de
+    // cuotas dejarían de coincidir, y entonces esta tarjeta enseñaría **un total
+    // y unas categorías que no lo suman** — la contradicción de un widget
+    // consigo mismo, que es peor que estar mal.
+    byCat.set(e.category, (byCat.get(e.category) ?? 0) + pendienteDelEgreso(e));
+    // **El vencimiento va POR CUOTA cuando hay plan** (`RN-09`). Sin plan,
+    // `envejecerEgreso` cae al `dueDate` del egreso: idéntico a lo de siempre.
+    const { vencido, proximo } = envejecerEgreso(e, opts.asOf, cutoff);
+    overdue += vencido;
+    dueSoon += proximo;
   }
 
   const byCategory = [...byCat.entries()]

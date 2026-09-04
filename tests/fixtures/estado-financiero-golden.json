@@ -14,7 +14,13 @@
     {
       "nombre": "CA2 · saldo inicial 5.000 y un mes de −200 dan un cierre de 4.800",
       "entrada": {
-        "asientos": [{ "type": "egreso", "category": "mantenimiento", "amount": 200 }],
+        "asientos": [
+          {
+            "type": "egreso",
+            "category": "mantenimiento",
+            "amount": 200
+          }
+        ],
         "cuota": 0,
         "openingBalance": 5000
       },
@@ -32,7 +38,13 @@
     {
       "nombre": "CA4 · sin saldo registrado, el origen es `ausente` y `openingBalance` no existe",
       "entrada": {
-        "asientos": [{ "type": "egreso", "category": "nomina", "amount": 200 }],
+        "asientos": [
+          {
+            "type": "egreso",
+            "category": "nomina",
+            "amount": 200
+          }
+        ],
         "cuota": 1000
       },
       "esperado": {
@@ -49,7 +61,13 @@
     {
       "nombre": "CA4bis · un CERO registrado no es lo mismo: el origen sí es `registrado`",
       "entrada": {
-        "asientos": [{ "type": "egreso", "category": "nomina", "amount": 200 }],
+        "asientos": [
+          {
+            "type": "egreso",
+            "category": "nomina",
+            "amount": 200
+          }
+        ],
         "cuota": 1000,
         "openingBalance": 0
       },
@@ -68,8 +86,17 @@
       "nombre": "CA3 · COP en enteros — 5.000.000 de apertura, el saldo real de Santa María",
       "entrada": {
         "asientos": [
-          { "type": "ingreso", "category": "arriendo", "sourceType": "manual", "amount": 350000 },
-          { "type": "egreso", "category": "vigilancia", "amount": 1200000 }
+          {
+            "type": "ingreso",
+            "category": "arriendo",
+            "sourceType": "manual",
+            "amount": 350000
+          },
+          {
+            "type": "egreso",
+            "category": "vigilancia",
+            "amount": 1200000
+          }
         ],
         "cuota": 800000,
         "openingBalance": 5000000
@@ -88,7 +115,13 @@
     {
       "nombre": "CA3bis · MXN con centavos: la identidad se cumple al céntimo",
       "entrada": {
-        "asientos": [{ "type": "egreso", "category": "seguros", "amount": 1234.56 }],
+        "asientos": [
+          {
+            "type": "egreso",
+            "category": "seguros",
+            "amount": 1234.56
+          }
+        ],
         "cuota": 2000.44,
         "openingBalance": 100.1
       },
@@ -107,10 +140,31 @@
       "nombre": "R12/R13 · el recaudo de Cartera NO se cuenta dos veces, ni por origen ni por su reverso",
       "entrada": {
         "asientos": [
-          { "type": "ingreso", "category": "multa", "sourceType": "billingStatement", "amount": 90000 },
-          { "type": "ingreso", "category": "multa", "sourceType": "reversal", "reversedSourceType": "billingStatement", "amount": -90000 },
-          { "type": "ingreso", "category": "alicuota", "sourceType": "manual", "amount": 70000 },
-          { "type": "ingreso", "category": "anticipo", "sourceType": "advance", "amount": 40000 }
+          {
+            "type": "ingreso",
+            "category": "multa",
+            "sourceType": "billingStatement",
+            "amount": 90000
+          },
+          {
+            "type": "ingreso",
+            "category": "multa",
+            "sourceType": "reversal",
+            "reversedSourceType": "billingStatement",
+            "amount": -90000
+          },
+          {
+            "type": "ingreso",
+            "category": "alicuota",
+            "sourceType": "manual",
+            "amount": 70000
+          },
+          {
+            "type": "ingreso",
+            "category": "anticipo",
+            "sourceType": "advance",
+            "amount": 40000
+          }
         ],
         "cuota": 500000,
         "openingBalance": 0
@@ -130,15 +184,43 @@
       "nombre": "CA7 · con plan, los egresos salen en el orden del plan y no por monto",
       "entrada": {
         "asientos": [
-          { "type": "egreso", "accountCode": "2.10", "category": "otros", "amount": 10 },
-          { "type": "egreso", "accountCode": "2.2", "category": "nomina", "amount": 999 },
-          { "type": "egreso", "accountCode": "2.1", "category": "seguros", "amount": 500 }
+          {
+            "type": "egreso",
+            "accountCode": "2.10",
+            "category": "otros",
+            "amount": 10
+          },
+          {
+            "type": "egreso",
+            "accountCode": "2.2",
+            "category": "nomina",
+            "amount": 999
+          },
+          {
+            "type": "egreso",
+            "accountCode": "2.1",
+            "category": "seguros",
+            "amount": 500
+          }
         ],
         "cuota": 0,
         "openingBalance": 0,
         "plan": {
           "codigoPorSystemKey": [],
-          "nombrePorCodigo": [["2.1", "Seguros"], ["2.2", "Nómina"], ["2.10", "Otros"]]
+          "nombrePorCodigo": [
+            [
+              "2.1",
+              "Seguros"
+            ],
+            [
+              "2.2",
+              "Nómina"
+            ],
+            [
+              "2.10",
+              "Otros"
+            ]
+          ]
         }
       },
       "esperado": {
@@ -151,9 +233,21 @@
         "pendingReceivables": 0,
         "supplierDebt": 0,
         "expenseByCategory": [
-          { "category": "2.1", "label": "Seguros", "amount": 500 },
-          { "category": "2.2", "label": "Nómina", "amount": 999 },
-          { "category": "2.10", "label": "Otros", "amount": 10 }
+          {
+            "category": "2.1",
+            "label": "Seguros",
+            "amount": 500
+          },
+          {
+            "category": "2.2",
+            "label": "Nómina",
+            "amount": 999
+          },
+          {
+            "category": "2.10",
+            "label": "Otros",
+            "amount": 10
+          }
         ]
       }
     },
@@ -182,11 +276,26 @@
     {
       "nombre": "se suma el saldo vivo, se topa en cero por cargo, y `paid`/`cancelled` quedan fuera",
       "cargos": [
-        { "status": "overdue", "balance": 120000 },
-        { "status": "pending", "balance": 30000 },
-        { "status": "pending", "balance": -5000 },
-        { "status": "paid", "balance": 0 },
-        { "status": "cancelled", "balance": 999999 }
+        {
+          "status": "overdue",
+          "balance": 120000
+        },
+        {
+          "status": "pending",
+          "balance": 30000
+        },
+        {
+          "status": "pending",
+          "balance": -5000
+        },
+        {
+          "status": "paid",
+          "balance": 0
+        },
+        {
+          "status": "cancelled",
+          "balance": 999999
+        }
       ],
       "esperado": 150000
     }
@@ -195,12 +304,85 @@
     {
       "nombre": "solo `registrado` — el catálogo es castellano y filtrar en inglés no excluye nada",
       "egresos": [
-        { "status": "registrado", "amount": 1600 },
-        { "status": "registrado", "amount": 31550 },
-        { "status": "pagado", "amount": 500000 },
-        { "status": "anulado", "amount": 700000 }
+        {
+          "status": "registrado",
+          "amount": 1600
+        },
+        {
+          "status": "registrado",
+          "amount": 31550
+        },
+        {
+          "status": "pagado",
+          "amount": 500000
+        },
+        {
+          "status": "anulado",
+          "amount": 700000
+        }
       ],
       "esperado": 33150
+    },
+    {
+      "nombre": "`FLOW-008` · una factura con cuotas debe LO QUE FALTA, no el importe de la factura",
+      "porQue": "La póliza de 1.100 con cinco cuotas de 100 pagadas debe 600. Hasta FLOW-008 esto decía 1.100, y lo leían la tarjeta de Cartera, el informe mensual emitible y el archivo mensual del día 1.",
+      "egresos": [
+        {
+          "status": "registrado",
+          "amount": 1100,
+          "paidAmount": 500
+        }
+      ],
+      "esperado": 600
+    },
+    {
+      "nombre": "`FLOW-008` · un egreso SIN plan no cambia: `paidAmount` ausente vale cero",
+      "porQue": "Es lo que mantiene intactos los 52 egresos de produccion y lo que sostiene CA10 y CA11.",
+      "egresos": [
+        {
+          "status": "registrado",
+          "amount": 9950
+        },
+        {
+          "status": "registrado",
+          "amount": 7800,
+          "paidAmount": 0
+        }
+      ],
+      "esperado": 17750
+    },
+    {
+      "nombre": "`FLOW-008` · un `paidAmount` mayor que el importe NO resta deuda de otro proveedor",
+      "porQue": "Se topa en cero POR EGRESO. Sin el topado, un dato corrupto taparia la deuda de otro y el conjunto veria menos de la que tiene: el mismo topado por documento que sumarCuentasPorCobrar hace con el sobrepago.",
+      "egresos": [
+        {
+          "status": "registrado",
+          "amount": 100,
+          "paidAmount": 5000
+        },
+        {
+          "status": "registrado",
+          "amount": 900
+        }
+      ],
+      "esperado": 900
+    },
+    {
+      "nombre": "`FLOW-008` · un egreso pagado o anulado no debe nada aunque lleve `paidAmount`",
+      "porQue": "El estado manda antes que la aritmetica.",
+      "egresos": [
+        {
+          "status": "pagado",
+          "amount": 1100,
+          "paidAmount": 1100
+        },
+        {
+          "status": "anulado",
+          "amount": 1100,
+          "paidAmount": 200
+        }
+      ],
+      "esperado": 0
     }
   ]
 }

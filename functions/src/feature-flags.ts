@@ -56,6 +56,7 @@ export type FeatureFlagKey =
   | "producto-plan-de-cuentas"
   | "producto-concepto-al-libro"
   | "producto-informe-mensual"
+  | "producto-egresos-en-cuotas"
   | "producto-anticipos"
   | "producto-pago-multiple"
   | "producto-multiconjunto"
@@ -103,6 +104,7 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   // siempre y no lee saldo inicial, cartera viva ni deuda a proveedores. Ver el
   // catálogo en `src/`.
   "producto-informe-mensual": false,
+  "producto-egresos-en-cuotas": false,
   // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
   // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
   "producto-anticipos": false,

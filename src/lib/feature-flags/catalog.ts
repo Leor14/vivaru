@@ -81,6 +81,7 @@ export type FeatureFlagKey =
   | "producto-puerta-de-buzones"
   | "producto-modo-oscuro"
   | "producto-informe-mensual"
+  | "producto-egresos-en-cuotas"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -408,6 +409,21 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-PLAT-003 §5.2",
     alApagar:
       "Todo asiento NUEVO vuelve a escribirse como «alicuota» y el recaudo se vuelve a ver junto. Los ya escritos con su cuenta correcta se quedan — y no se quieren revertir: son los correctos.",
+  },
+  "producto-egresos-en-cuotas": {
+    key: "producto-egresos-en-cuotas",
+    area: "producto",
+    label: "Cuentas por pagar con calendario de cuotas",
+    description:
+      "Una factura de proveedor puede llevar un plan de pagos: n cuotas con su fecha y su importe. La deuda a proveedores pasa a ser LO QUE FALTA por pagar, y el vencimiento se cuenta por cuota.",
+    // Nace apagada porque cambia una cifra que el consejo ya recibe: la deuda a
+    // proveedores del informe mensual. Con la bandera apagada ningún egreso
+    // puede tener plan, así que `paidAmount` es siempre cero y la cifra es
+    // exactamente la de hoy.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-008 entrega 1",
+    alApagar:
+      "Los planes ya declarados dejan de pintarse y la deuda vuelve a contar el importe completo de la factura. Las cuotas YA PAGADAS conservan su asiento en el libro: apagar la bandera no borra dinero registrado.",
   },
   "producto-informe-mensual": {
     key: "producto-informe-mensual",

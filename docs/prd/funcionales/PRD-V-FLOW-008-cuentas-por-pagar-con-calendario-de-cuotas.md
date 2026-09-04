@@ -419,7 +419,7 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 
 | # | Qué | Reversible |
 |---|---|---|
-| **1** | **El plan y su aritmética.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. **Sin pagar todavía**: el plan se declara y se ve | Sí, bandera |
+| **1** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
 | **2** | **Pagar y anular.** La callable de pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado, y el estado derivado | Sí, bandera |
 | **3** | **Las reglas endurecidas** de `expenses`, que cierran la puerta del cliente a los campos del servidor | **No con bandera**: se revierte redesplegando las reglas anteriores |
 
@@ -439,6 +439,59 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 | Banco de reglas | `CA3`, `CA6`, `CA9` — **y SÍ se pueden correr aquí**: el JDK está en `~/.local/jdk` y `CLAUDE.md` lo documenta. *(La afirmación de que este equipo no tiene Java circuló en cuatro documentos y era falsa; se corrigió el 4 de septiembre de 2026.)* |
 | Staging, con ojos | `CA13` — el envejecimiento por cuota en la tarjeta de Cartera, y la captura de un plan de once cuotas de principio a fin |
 | Producción | Que con la bandera apagada la deuda a proveedores **no se mueve** |
+
+---
+
+## 13 bis · Estado tras la entrega 1 — 4 de septiembre de 2026
+
+| Criterio | Estado | Dónde vive |
+|---|---|---|
+| `CA1` | ✅ **Cumplido, y el mensaje NOMBRA la diferencia** | «faltan $11» con once cuotas de 99 sobre una factura de 1.100 |
+| `CA2` | ✅ **Cumplido — los cuatro casos fallan** | Plan vacío, números repetidos, con salto, sin vencimiento e importe no positivo |
+| `CA8` | ✅ **Cumplido, y EN LOS DOS BANCOS** | Cuatro casos nuevos en `tests/fixtures/estado-financiero-golden.json`, que corren `npm test` **y** functions |
+| `CA10` `CA11` | ✅ **Cumplidos** | Un egreso sin plan no cambia, y la cifra de los 13 egresos reales de producción sigue dando **9.814.750** |
+| `CA13` | 🟡 **Construido; falta MIRARLO** en staging | El vencimiento por cuota en la tarjeta de Cartera y en la columna «Vence» |
+| `CA3` `CA5` `CA6` `CA7` `CA9` `CA12` | ⏳ **Entregas 2 y 3** | Necesitan pagar y anular, que es la entrega 2 |
+| `CA14` | ✅ **Falsado, y la predicción FALLÓ** | Ver abajo |
+
+**Bancos: `npm test` 1748 · functions 830**, los dos en verde y el espejo del núcleo idéntico.
+
+> **`CA14` decía que romper lo pendiente enrojecería «`CA8` y solo `CA8`», y NO fue así — la
+> predicción estaba mal, no la construcción.** Enrojecieron **cuatro pruebas en tres criterios**:
+> los dos casos de `CA8`, el `CA13` de la tarjeta y el guardián de «las categorías suman el total».
+> El motivo es que `pendienteDelEgreso` **alimenta tres consumidores** —el total de la deuda, el
+> total de la tarjeta y el reparto por categoría— y la ficha los contó como un cable. **Es
+> literalmente lo que pasó con `CA18` en `FLOW-007`**, dos entregas antes.
+>
+> Las otras cinco falsaciones enrojecieron **exactamente lo suyo**: quitar el topado en cero (1),
+> ignorar el plan al envejecer (3), quitar la comprobación del plan vacío (2), devolver el reparto
+> por categoría al importe completo (1), y romper la aritmética **en las dos copias del núcleo a la
+> vez** (6 en `src` y 2 en functions, **con el espejo idéntico** — así la falsación prueba la
+> aritmética y no la divergencia).
+
+### Lo que la construcción enseñó, y no estaba en la ficha
+
+**1 · La aritmética corregida NO va detrás de la bandera, a propósito.** La bandera gobierna **poder
+declarar un plan**, no las matemáticas del dinero: revertir una cifra a la versión equivocada es
+volver a mentir. Es la misma decisión que `FLOW-007` tomó con el aviso falso de «Fondo insuficiente».
+Lo que lo hace seguro es que **sin plan no hay `paidAmount`**, y sin bandera no hay plan.
+
+**2 · El reparto por categoría de la tarjeta de Cartera también había que corregirlo**, y no estaba
+escrito. Sumaba `e.amount` mientras el total pasaba a ser lo pendiente: la tarjeta habría enseñado
+**un total y unas categorías que no lo suman**. Es el defecto de un widget contradiciéndose consigo
+mismo, que es peor que estar mal — y el mismo que `FLOW-007` cazó entre su total y su desglose.
+
+**3 · `npm test` enrojecía sin emulador por culpa de `FLOW-007`, y se arregló aquí.** El banco de
+reglas del informe mensual se añadió a `vitest.rules.config.ts` **y no a las exclusiones de
+`vitest.config.ts`**. Es el mismo descuido que ya tuvo `push-tokens.rules.test.ts`: **un rojo que
+viene del entorno enseña a ignorar el color**. Los dos ficheros van siempre juntos.
+
+**4 · El guardián del mapa de estados estaba CIEGO a partir del primer miembro de una unión.**
+Leía `/status:\s*"([a-zA-Z_]+)"/`, así que ante `status: "pendiente" | "pagada" | "anulada"`
+reclamaba la primera y **daba por buenas las otras dos**. Al ensancharlo aparecieron **seis claves
+sin traducir preexistentes** —`cerrada`, `sent`, `invalid`, `used`, `applied`, `anulado`—, de
+campañas de cobro, programación de envíos, invitaciones, anticipos y comprobantes. **Ninguna es de
+esta ficha**: solo fue quien hizo visible el punto ciego. Es `UX-004` otra vez.
 
 ---
 

@@ -88,6 +88,27 @@ function normalizeExpensePayload(values: ExpenseFormValues) {
     paymentMethod: values.paymentMethod ? values.paymentMethod : null,
     checkNumber: values.paymentMethod === "cheque" ? values.checkNumber?.trim() || null : null,
     bankAccountId: values.bankAccountId?.trim() || null,
+    /**
+     * `PRD-V-FLOW-008` · el plan.
+     *
+     * **`null` cuando no hay cuotas, y no un array vacío**: es la diferencia
+     * entre «esta factura se paga de una vez» y «tiene un plan sin cuotas», y el
+     * resto del producto lee la ausencia como lo primero.
+     *
+     * **Las cuotas nacen `pendiente` y sin nada del pago.** El estado, el asiento
+     * y `paidAt` los escribe el SERVIDOR en la entrega 2; si viajaran desde aquí,
+     * marcar una cuota como pagada sería editar un campo y la deuda del conjunto
+     * bajaría sin que nadie pagase.
+     */
+    installments:
+      values.installments && values.installments.length > 0
+        ? values.installments.map((c) => ({
+            number: c.number,
+            dueDate: c.dueDate,
+            amount: c.amount,
+            status: "pendiente" as const,
+          }))
+        : null,
   };
 }
 

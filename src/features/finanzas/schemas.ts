@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { explicarProblema, validarPlan } from "./cuotas-del-egreso";
+
 const requiredText = (label: string, min = 2) =>
   z.string().trim().min(min, `${label} es obligatorio`);
 
@@ -44,11 +46,50 @@ export const expenseSchema = z
     paymentMethod: z.union([paymentMethodEnum, z.literal("")]).optional(),
     checkNumber: z.string().trim().optional(),
     bankAccountId: z.string().trim().optional(),
+    /**
+     * `PRD-V-FLOW-008` · el calendario de pagos. **Vacío o ausente = egreso sin
+     * plan, como hasta hoy.** La entrega 1 solo declara cuotas `pendiente`: el
+     * pago es la entrega 2 y lo sella el servidor.
+     */
+    installments: z
+      .array(
+        z.object({
+          number: z.number().int().positive(),
+          dueDate: dateText,
+          amount: positiveAmount,
+        }),
+      )
+      .optional(),
   })
   .refine(
     (data) => data.paymentMethod !== "cheque" || Boolean(data.checkNumber?.trim()),
     { message: "El numero de cheque es obligatorio", path: ["checkNumber"] },
-  );
+  )
+  /**
+   * `RN-01`–`RN-03` · **el plan tiene que cuadrar con la factura.**
+   *
+   * Va en el esquema y no solo en la pantalla porque un plan que no cuadra
+   * **descuadra la deuda del conjunto para siempre**, y esa cifra la lee el
+   * consejo en el informe mensual. El mensaje **NOMBRA la diferencia**: «no
+   * cuadra» obliga a sacar la calculadora; «faltan 11» no.
+   *
+   * `superRefine` y no `refine` porque el mensaje **depende de los datos**, y eso
+   * `refine` no lo admite.
+   */
+  .superRefine((data, ctx) => {
+    if (!data.installments || data.installments.length === 0) return;
+    const problemas = validarPlan(
+      data.installments.map((c) => ({ ...c, status: "pendiente" as const })),
+      data.amount,
+    );
+    for (const p of problemas) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["installments"],
+        message: explicarProblema(p, (n) => n.toLocaleString("es-CO")),
+      });
+    }
+  });
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;
 

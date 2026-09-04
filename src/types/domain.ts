@@ -765,6 +765,46 @@ export type PaymentMethod = "transferencia" | "cheque" | "efectivo" | "otro";
 
 export type ExpenseStatus = "registrado" | "pagado" | "anulado";
 
+/**
+ * Una cuota del calendario de pagos de un egreso. `PRD-V-FLOW-008`.
+ *
+ * **Existe porque una factura no siempre se paga de una vez.** La administradora
+ * paga la póliza del seguro en **once cuotas** y hoy teclea el cuadro de pagos
+ * entero a mano; en Vivaru ni eso podía, porque un egreso era un importe con UNA
+ * fecha.
+ *
+ * **`pendiente` es binario a propósito** (`TBD-C1`, decidido el 4 de septiembre
+ * de 2026): una cuota se paga **entera**, no tiene saldo propio. El «importe
+ * editable al pagar» es cómo lo resuelve Habitanto **por no tener calendario**, y
+ * admitirlo aquí duplicaría la máquina de estados un nivel más abajo. Mientras
+ * nada esté pagado, lo que se corrige es **el plan**.
+ */
+export interface Installment {
+  /** 1..n, consecutivo y sin repetir dentro del egreso. */
+  number: number;
+  /** `YYYY-MM-DD`. **Obligatorio**: sin fecha no hay calendario. */
+  dueDate: string;
+  amount: number;
+  status: "pendiente" | "pagada" | "anulada";
+  /** Lo que sigue lo escribe el SERVIDOR al pagar (entrega 2). */
+  paidAt?: string;
+  paidBy?: string;
+  paymentMethod?: PaymentMethod;
+  bankAccountId?: string;
+  /**
+   * El asiento de ESTA cuota.
+   *
+   * **Aquí está el cambio estructural de la ficha:** `Expense.ledgerEntryId` es
+   * **singular** y vale para un egreso que se paga de una vez. Once cuotas son
+   * once asientos, y no caben en un campo. El de arriba se conserva intacto para
+   * los egresos sin plan; con plan **no se usa**, para que no haya dos sitios
+   * diciendo cuál es el asiento de un egreso.
+   */
+  ledgerEntryId?: string;
+  /** Obligatorio al anular una cuota (`RN-13`). */
+  voidReason?: string;
+}
+
 /** Egreso / cuenta por pagar del conjunto. */
 export interface Expense {
   id: string;
@@ -797,8 +837,27 @@ export interface Expense {
   supportFileUrl?: string;
   supportFileName?: string;
   supportStoragePath?: string;
-  /** Movimiento de libro generado al pagar el egreso. */
+  /**
+   * Movimiento de libro generado al pagar el egreso.
+   *
+   * **Solo para egresos SIN plan de cuotas.** Con plan, el asiento vive en cada
+   * cuota (`Installment.ledgerEntryId`) — ver `PRD-V-FLOW-008` §7.
+   */
   ledgerEntryId?: string;
+  /**
+   * El calendario de pagos. **Ausente = egreso sin plan, exactamente como hasta
+   * hoy** — los 52 egresos de producción no lo llevan y no se migran.
+   */
+  installments?: Installment[];
+  /**
+   * Lo ya pagado de esta factura. **Lo escribe el SERVIDOR, siempre.**
+   *
+   * Es lo que sostiene la deuda del conjunto (`sumarDeudaAProveedores`), y **un
+   * campo escribible desde el cliente no puede sostener un invariante**: bajar la
+   * deuda sería editar un número. Ausente vale cero, que es lo que mantiene
+   * intacto el comportamiento de un egreso sin plan.
+   */
+  paidAmount?: number;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;

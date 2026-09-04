@@ -444,12 +444,40 @@ export function sumarCuentasPorCobrar(
  * puedan decir dos cifras distintas de la misma deuda.
  */
 export function sumarDeudaAProveedores(
-  egresos: ReadonlyArray<{ amount?: number; status?: string }>,
+  egresos: ReadonlyArray<{ amount?: number; status?: string; paidAmount?: number }>,
 ): number {
   let total = 0;
   for (const egreso of egresos) {
     if (egreso.status !== "registrado") continue;
-    total += egreso.amount ?? 0;
+    total += pendienteDelEgreso(egreso);
   }
   return aCentimos(total);
+}
+
+/**
+ * Lo que falta por pagar de UN egreso. `PRD-V-FLOW-008`, `RN-09`.
+ *
+ * **Hasta el 4 de septiembre de 2026 esto era `amount` a secas**, y era correcto
+ * mientras un egreso solo pudiera estar pagado o sin pagar. Con el **calendario
+ * de cuotas** deja de serlo: una póliza de 1.100 con cinco cuotas de 100 ya
+ * pagadas **seguiría contando 1.100 de deuda**. La cifra la leen la tarjeta de
+ * Cartera, el informe mensual emitible y el archivo mensual automático, así que
+ * los tres se equivocarían a la vez — y el informe mensual **ya está en
+ * producción y lo lee el consejo**.
+ *
+ * **Un egreso sin plan no cambia**: `paidAmount` ausente vale cero y el resultado
+ * es `amount`, byte por byte lo de siempre. Es lo que sostiene `CA10` y `CA11`.
+ *
+ * **Se topa en cero**, y no es defensivo por gusto: si `paidAmount` superara al
+ * importe —por un dato corrupto o una factura editada a la baja—, un egreso
+ * pasaría a restar deuda y **taparía la de otro proveedor**. Es el mismo topado
+ * por documento que hace `sumarCuentasPorCobrar` con el sobrepago de una unidad.
+ */
+export function pendienteDelEgreso(
+  egreso: { amount?: number; paidAmount?: number },
+): number {
+  const importe = egreso.amount ?? 0;
+  const pagado = egreso.paidAmount ?? 0;
+  const pendiente = importe - pagado;
+  return pendiente > 0 ? pendiente : 0;
 }

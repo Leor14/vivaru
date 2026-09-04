@@ -54,6 +54,27 @@ const STATUS_LABELS: Record<string, string> = {
   perdido: "Perdido",
   registrado: "Registrado",
   vigente: "Vigente",
+  // `PRD-V-FLOW-008` · las cuotas de una cuenta por pagar. En castellano la clave
+  // cruda se lee «casi bien» —«pagada» pasaría por etiqueta— y por eso este fallo
+  // dura: se disimula a sí mismo. Es el mismo patrón de las diez claves sin
+  // traducir de `UX-003`.
+  pendiente: "Pendiente",
+  pagada: "Pagada",
+  anulada: "Anulada",
+  // ── Seis claves que llevaban SIN traducir y no las veía nadie ──────────────
+  //
+  // Las destapó ensanchar el guardián de este mapa, que hasta el 4 de septiembre
+  // de 2026 solo leía **el primer literal de una unión**: ante
+  // `status: "vigente" | "cerrada" | "anulada"` reclamaba `vigente` y daba por
+  // buenas las otras dos. Son de campañas de cobro, programación de envíos,
+  // validez de una invitación, aplicación de un anticipo y comprobantes — todas
+  // preexistentes a `FLOW-008`, que solo fue quien hizo visible el punto ciego.
+  cerrada: "Cerrada",
+  sent: "Enviado",
+  invalid: "No válida",
+  used: "Ya utilizada",
+  applied: "Aplicado",
+  anulado: "Anulado",
 };
 
 export function getStatusLabel(status: string) {
