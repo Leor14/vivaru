@@ -151,7 +151,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### `PRD-V-FLOW-008` ESCRITA (4 sep) — cuentas por pagar en cuotas
 >
-> **Discovery, y CONSTRUIBLE: no espera a nadie salvo a dos `TBD` de David.** Sale de **§3.2 de la
+> ## 🟢 **LISTA PARA DESARROLLO, Y NO ESPERA A NADIE.** David aceptó `G1` vacía y cerró las dos
+> preguntas el mismo día, **las dos en «no en el MVP»**: sin saldo por cuota (`TBD-C1`) y sin
+> recordatorios (`TBD-C2`). **El MVP es el calendario y nada más.** Es lo siguiente que se puede
+> construir sin pedirle permiso a nadie. Sale de **§3.2 de la
 > sesión con la administradora** —«la del seguro, yo pago en **once cuotas**»— y **no de los
 > candidatos**: ninguno de los diez de la categoría `E` lo cubre.
 >

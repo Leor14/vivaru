@@ -9,7 +9,7 @@
 | **Módulo** | Finanzas · Egresos y cuentas por pagar |
 | **Usuario principal** | `tenant_admin`. **Sin usuarios secundarios**: el consejo ve el total en el informe mensual, no el detalle |
 | **Responsable** | David |
-| **Estado** | **Discovery** — escrita el 4 de septiembre de 2026 tras medir el código y los datos de producción |
+| **Estado** | 🟢 **LISTA PARA DESARROLLO** (4 sep 2026). Escrita tras medir el código y los datos de producción; **David cerró las dos preguntas abiertas y aceptó `G1` vacía el mismo día**. Ver §14 |
 | **Dependencias** | `FEAT-003` (proveedores, **en producción con 0 filas**) · `PLAT-003` (plan de cuentas, **sembrado: 189 cuentas**) · `FLOW-004` (conciliación, **en producción**) · **`FLOW-007` no es dependencia: es CONSECUENCIA — esta ficha rompe su cifra de deuda a proveedores si no la corrige. Ver §11** |
 | **Riesgo** | 🔴 **ALTO.** Cambia el modelo de un documento que **crea asientos en el libro**, y esos asientos son lo que concilia `FLOW-004`. No toca `aplicarPago` ni la cartera |
 | **Reversibilidad** | Bandera `producto-egresos-en-cuotas`. **Lo que no se revierte solo** son las cuotas ya pagadas: cada una dejó su asiento, y un asiento conciliado no se retira sin soltar antes la conciliación. Ver §13 |
@@ -278,7 +278,7 @@ Installment = {
 | Una cuota vence **en los próximos días** | — | **NINGUNO en el MVP** | Ver abajo |
 | Cuota pagada | — | Ninguno | Es un acto del propio administrador: avisarle de lo que acaba de hacer es ruido |
 
-> **EL MVP NO MANDA NINGÚN AVISO, y es una decisión, no un olvido.** El aviso útil sería «se te
+> **EL MVP NO MANDA NINGÚN AVISO, y es una decisión de David del 4 de septiembre de 2026 (`TBD-C2`), no un olvido.** El aviso útil sería «se te
 > vence una cuota», y eso es un **proceso programado** que hoy no existe para egresos y que necesita
 > antes dos cosas que no tenemos: **el vencimiento poblado** —32 de 52 egresos no lo traen— y
 > alguien que atienda el aviso. Un recordatorio que llega sobre datos vacíos enseña a ignorarlo.
@@ -447,24 +447,33 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 | Puerta | Estado | Por qué |
 |---|---|---|
 | **`G0` Necesidad** | ✅ | Rodeo manual **declarado en voz alta** por quien lo sufre, y **el caso ya está en la base aplanado** («Póliza de seguro del inmueble (trimestral)», un solo pago). Además, **32 de 52 egresos no tienen ni una fecha de vencimiento** |
-| **`G1` Valor** | ❌ **NO SE SUPERA** | **Cero clientes reales.** `CA1`–`CA8` la sustituyen con métrica de **corrección**. Misma situación aceptada en `FEAT-006`, `FEAT-007`, `FLOW-006` y `FLOW-007` |
+| **`G1` Valor** | ❌ **NO SE SUPERA — y David aceptó su ausencia explícitamente (4 sep 2026)** | **Cero clientes reales.** `CA1`–`CA8` la sustituyen con métrica de **corrección**. Misma situación aceptada en `FEAT-006`, `FEAT-007`, `FLOW-006` y `FLOW-007`. **Aceptarla vacía NO la vuelve superada**: el día que haya un cliente, medir cuántas cuentas por pagar llevan vencimiento —hoy 20 de 52— y cuántos egresos se registran con plan es **deuda de esta ficha** |
 | **`G2` Datos y permisos** | ✅ | Modelo, campos, quién escribe cada uno, y los cinco roles **con lo que NO pueden**. No abre ninguna colección a nadie nuevo |
 | **`G3` Riesgo** | 🟡 **PARCIAL** | Bandera, rollback y guardianes sí. **Pero toca el núcleo del estado financiero y una cifra que ya está en producción** (`R1`), y **endurece una regla**, que invierte el orden de despliegue |
 | **`G4` Aceptación** | ✅ | 14 criterios, **seis deben fallar**, y uno es la falsación |
 | **`G5` Operación** | ✅ | **El dueño existe y ya hace la tarea**: la administradora teclea hoy el cuadro de pagos a mano. Es la misma prueba que superó `FLOW-007` y que `FLOW-006` no supera |
 | **`G6` Escala** | ✅ | Un plan son decenas de cuotas, no miles; sin consulta nueva y sin índice nuevo |
 
-> **Es «lista para desarrollo» en cuanto David acepte `G1` vacía** —como en las cuatro fichas
-> anteriores— **y conteste `TBD-C1`**. **`G3` queda en amarillo a propósito**: no por incertidumbre,
-> sino porque toca una cifra desplegada y una regla que restringe, y las dos cosas piden el cuidado
-> que §11 y §13 describen.
+> ✅ **ES LISTA PARA DESARROLLO** desde el 4 de septiembre de 2026: David aceptó `G1` vacía y cerró
+> las dos preguntas, **las dos en «no en el MVP»**. No queda nada esperando a nadie.
+>
+> **`G3` queda en amarillo A PROPÓSITO**, y no se sube: no es incertidumbre, es que la entrega toca
+> **una cifra que ya está en producción** (`R1`) y **endurece una regla** (`R7`). Las dos piden el
+> cuidado que §11 y §13 describen, y el amarillo existe para que quien construya lo lea antes de
+> empezar en vez de descubrirlo al desplegar.
 
-### Preguntas abiertas
+### Preguntas abiertas — **CERRADAS las dos, por David, el 4 de septiembre de 2026**
 
-| # | Pregunta | Por qué cambia el alcance | Recomendación |
+| # | Pregunta | Decisión | Qué implica |
 |---|---|---|---|
-| **`TBD-C1`** | **¿Una cuota admite pagarse por un importe distinto al previsto?** | Cambia la máquina de estados: una cuota pasaría a tener **saldo propio** y `pendiente` dejaría de ser binario. Es el mecanismo 2 de §2 | **No en el MVP.** Es cómo lo resuelve Habitanto **por no tener calendario**, y con el plan bien hecho el caso se cubre editando las cuotas no pagadas. Si aparece de verdad, entra como entrega 4 sin rehacer lo anterior |
-| **`TBD-C2`** | **¿Se avisa de una cuota próxima a vencer, y a quién?** | Añade un proceso programado y un canal | **No en el MVP**, y §9 explica por qué: haría falta antes poblar el vencimiento (32 de 52 no lo traen). El envejecimiento en pantalla cubre la necesidad hoy |
+| **`TBD-C1`** | ¿Una cuota admite pagarse por un importe distinto al previsto? | ❌ **NO EN EL MVP** | La cuota **no tiene saldo propio**: `pendiente` es binario y se paga entera. Es el mecanismo 2 de §2, que es **cómo lo resuelve Habitanto por no tener calendario**, no lo que se pidió. Mientras no haya nada pagado, **el plan se edita**, y eso cubre el error de captura. Si aparece de verdad, entra como **entrega 4 sin rehacer lo anterior** |
+| **`TBD-C2`** | ¿Se avisa de una cuota próxima a vencer? | ❌ **NO EN EL MVP** | **Ningún aviso, ningún proceso programado.** La necesidad la cubre el **envejecimiento en pantalla** (`CA13`), en la tarjeta que el administrador ya abre. Reabrirlo exige antes poblar el vencimiento: **32 de 52 egresos no lo traen** |
+
+> **Las dos decisiones apuntan al mismo sitio, y conviene verlo: el MVP se queda con EL CALENDARIO Y
+> NADA MÁS.** Ni saldo por cuota, ni recordatorios. Es lo que ella pidió con esas palabras —«le
+> ingresamos todo el registro del cuadro de pagos según las fechas»— y lo que hace que la deuda del
+> conjunto deje de ser una cifra plana. **Todo lo demás que se le parece está fuera y con su
+> porqué**, en §4 y aquí.
 
 ---
 
