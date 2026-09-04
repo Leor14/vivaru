@@ -119,6 +119,36 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    largo». Medido, **el SIN firmar es más grande**. **El tamaño de un artefacto no prueba que algo
 >    se pintó dentro.**
 >
+> ### El PRIMER INFORME REAL, emitido en producción (4 sep 2026)
+>
+> **`monthlyReports/tenant-santa-maria_2026-08`, estado `emitido`**, generado y emitido **por la
+> pantalla**, con la sesión del administrador y las callables desplegadas. Las cifras se
+> contrastaron **antes** contra un cálculo independiente con el núcleo compilado, y coinciden:
+>
+> | | |
+> |---|---|
+> | Saldo inicial | **$5.000.000** (`registrado`) |
+> | Ingresos / egresos del mes | **−$120.000** / **−$300.000** |
+> | Resultado neto | **$180.000** |
+> | Saldo final | **$5.180.000** — `RN-03` **cuadra** |
+> | Por cobrar | **$80.220.000**, 19 unidades |
+> | Deuda a proveedores | **$0**, y el PDF lo dice: «Sin movimientos en el período» (`CA8`) |
+>
+> El PDF se archivó en `documents/informe_tenant-santa-maria_2026-08`, categoría **`informe_mensual`**,
+> y **se descargó y se miró**: el rótulo sale **«(inicial + ingresos - egresos)»**, así que el
+> arreglo del menos aguanta en producción. **Sin firmar** — el bloque aparece y no se omite.
+>
+> > ⚠️ **AGOSTO EN SANTA MARÍA SON SOLO REVERSOS**, así que el informe dice **ingresos y egresos
+> > NEGATIVOS**. Es aritméticamente cierto y lo mismo que enseña `/admin/finanzas`, pero **en un
+> > papel de asamblea se lee raro**. Si se quiere otra presentación para los reversos, es decisión
+> > de producto y **ficha aparte** — no se tocó.
+>
+> > ⚠️ **EL INFORME SALIÓ SIN LOGO, y no es un fallo del código: NINGUNO de los nueve conjuntos de
+> > producción tiene `branding.logoUrl`.** Medido. `CA13` pide «logo del conjunto» y el código lo
+> > pinta cuando existe —comprobado en staging poniéndole uno—, pero **hoy todo informe emitido en
+> > producción sale sin él**. Es «encender no es poner en uso» otra vez: la capacidad funciona y el
+> > dato detrás está vacío. **Cargar los logos es captura de datos, no ingeniería.**
+>
 > ### 🔴 UN DEFECTO DE DINERO ENCONTRADO AL ENCENDER, Y **DELIBERADAMENTE NO ARREGLADO**
 >
 > Mirando producción con la bandera encendida: **el informe del consejo y `/admin/finanzas` enseñan
