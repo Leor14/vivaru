@@ -9,7 +9,7 @@
 | **Módulo** | Finanzas y Reportes |
 | **Usuario principal** | `tenant_admin` · **secundarios** `committee` (ve y firma), `resident` (ve lo publicado) |
 | **Responsable** | David |
-| **Estado** | **Discovery** — escrita el 3 de septiembre de 2026 tras medir el código |
+| **Estado** | 🟢 **ENTREGAS 1 Y 2 EN PRODUCCIÓN** (4 sep 2026), con la bandera encendida en **1 de 9** —`tenant-santa-maria`, el canario— y **el primer informe real emitido**. **La entrega 3 sigue en Discovery y bloqueada por el abogado.** *La cabecera decía «Discovery» hasta el 4 de septiembre: se quedó vieja al construir, que es justo lo que este campo no puede hacer.* |
 | **Dependencias** | `PLAT-003` (plan de cuentas, **sembrado**: 189 cuentas) · `FLOW-004` (cuentas bancarias y saldo inicial, **en producción**) · `FEAT-003` (proveedores, **en producción, 0 filas**) · **NO depende de `FLOW-006`** y no toca `aplicarPago` |
 | **Riesgo** | 🟠 **MEDIO-ALTO.** No toca el camino del dinero, pero **modifica una función programada que ya corre en producción** y **abre al residente una categoría de documento que hoy una regla desplegada le niega** |
 | **Reversibilidad** | Bandera `producto-informe-mensual`. **Lo que no se revierte solo** es un informe ya publicado: se despublica, y queda el rastro. Ver §13 |

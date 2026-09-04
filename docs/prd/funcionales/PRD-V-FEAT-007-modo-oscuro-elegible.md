@@ -9,7 +9,7 @@
 | **Módulo** | Transversal a la interfaz. Sin módulo de negocio propio, sin entrada en la navegación |
 | **Usuario principal** | `resident` (móvil, uso nocturno) · **secundario** `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **EN STAGING — las tres entregas construidas** (3 sep 2026); en producción la bandera sigue apagada y sin tocar. Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
+| **Estado** | 🟢 **EN PRODUCCIÓN Y ENCENDIDA EN LOS NUEVE CONJUNTOS** (3 sep 2026). *Esta cabecera decía «EN STAGING… en producción la bandera sigue apagada y sin tocar» hasta el 4 de septiembre, y **era falsa**: medido resolviendo el valor efectivo conjunto por conjunto, `producto-modo-oscuro` sale **9/9**.* Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
 | **Dependencias** | Ninguna bloqueante. **Resuelve la decisión abierta de `UX-005`** (preferencia por usuario), que queda desbloqueada por esta ficha |
 | **Riesgo** | **Medio.** Cero riesgo de dinero, de datos personales y de permisos. El riesgo es de **regresión visual en 145 ficheros** y de **contraste ilegible** |
 | **Reversibilidad** | **Total y en un solo interruptor.** La bandera `producto-modo-oscuro` apagada deja el producto exactamente como está hoy. La migración de color a tokens es inerte en claro por construcción — ver `RN-01` |
