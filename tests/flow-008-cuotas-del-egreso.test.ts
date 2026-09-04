@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   envejecerEgreso,
   explicarProblema,
+  fundirPlan,
   pagadoDelEgreso,
   proximaCuota,
   sumaDelPlan,
@@ -393,5 +394,73 @@ describe("los duplicadores de la deuda, que ahora derivan de lo mismo", () => {
     // Fuera de la ventana, nada.
     const lejos = egreso({ dueDate: "2026-12-10" });
     expect(proyectarFlujo([], [lejos], { asOf: HOY, horizons: [30] }).horizons[0].outflow).toBe(0);
+  });
+});
+
+/**
+ * **EL DEFECTO QUE MÁS CERCA ESTUVO DE COSTAR DINERO, y lo cazó la pantalla.**
+ *
+ * Editar la descripción de una factura **deshacía sus pagos**. El formulario carga
+ * las cuotas quedándose con número, fecha e importe —no reenvía lo que sella el
+ * servidor—, así que al guardar sobrescribía el array y una cuota `pagada` volvía
+ * a `pendiente`. Medido en staging: **`paidAmount: 100`, cero cuotas pagadas, y el
+ * asiento del libro HUÉRFANO**.
+ *
+ * **La regla de Firestore no podía impedirlo: no itera listas** (`R8`). Por eso el
+ * cuidado vive donde sí se conoce lo que había.
+ */
+describe("fundirPlan — editar el egreso NO puede deshacer un pago", () => {
+  const guardadas: Installment[] = [
+    { ...cuota(1, "2026-01-15", 100), status: "pagada", paidAt: "2026-09-04", paidBy: "admin-1", ledgerEntryId: "asiento-1" },
+    { ...cuota(2, "2026-02-15", 100), status: "anulada", voidReason: "El proveedor la perdonó." },
+    cuota(3, "2026-03-15", 100),
+  ];
+  const delFormulario = [
+    { number: 1, dueDate: "2026-01-15", amount: 100 },
+    { number: 2, dueDate: "2026-02-15", amount: 100 },
+    { number: 3, dueDate: "2026-03-15", amount: 100 },
+  ];
+
+  it("una cuota PAGADA sobrevive entera, con su asiento", () => {
+    const r = fundirPlan(guardadas, delFormulario)!;
+    expect(r[0]).toEqual(guardadas[0]);
+    expect(r[0].ledgerEntryId).toBe("asiento-1");
+  });
+
+  it("una cuota ANULADA conserva su motivo", () => {
+    expect(fundirPlan(guardadas, delFormulario)![1]).toEqual(guardadas[1]);
+  });
+
+  it("las PENDIENTES sí se editan: es lo que sustituye al pago parcial", () => {
+    const r = fundirPlan(guardadas, [...delFormulario.slice(0, 2), { number: 3, dueDate: "2026-03-31", amount: 250 }])!;
+    expect(r[2]).toEqual({ number: 3, dueDate: "2026-03-31", amount: 250, status: "pendiente" });
+  });
+
+  it("`RN-07` · cambiar el importe de una PAGADA no la mueve", () => {
+    const r = fundirPlan(guardadas, [{ number: 1, dueDate: "2030-01-01", amount: 99_999 }])!;
+    expect(r[0].amount).toBe(100);
+    expect(r[0].dueDate).toBe("2026-01-15");
+  });
+
+  it("una cuota pagada NO se borra aunque el formulario ya no la traiga", () => {
+    // Quitar la fila 1 en la pantalla no puede borrar un pago del libro.
+    const r = fundirPlan(guardadas, [delFormulario[2]])!;
+    expect(r.map((c) => c.number)).toEqual([1, 2, 3]);
+    expect(r.find((c) => c.number === 1)!.status).toBe("pagada");
+  });
+
+  it("quitar el plan entero solo se puede si no hay nada pagado ni anulado", () => {
+    expect(fundirPlan([cuota(1, "2026-01-15", 100)], undefined)).toBeNull();
+    // Con algo sellado, el plan se conserva.
+    expect(fundirPlan(guardadas, undefined)).toHaveLength(2);
+  });
+
+  it("un egreso sin plan sigue sin plan", () => {
+    expect(fundirPlan(undefined, undefined)).toBeNull();
+  });
+
+  it("y la deuda después de fundir es la correcta: solo la cuota 3", () => {
+    const r = fundirPlan(guardadas, delFormulario)!;
+    expect(pendienteDelEgreso({ amount: 300, paidAmount: 100, installments: r })).toBe(100);
   });
 });

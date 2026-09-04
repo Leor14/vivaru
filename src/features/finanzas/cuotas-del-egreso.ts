@@ -175,3 +175,53 @@ export function pagadoDelEgreso(
   }
   return egreso.status === "pagado" ? (egreso.amount ?? 0) : 0;
 }
+
+/**
+ * **Funde el plan que viene del formulario con el que está guardado.**
+ *
+ * Existe por un defecto que cazó recorrer staging: **editar la descripción de una
+ * factura DESHACÍA sus pagos**. El formulario carga las cuotas quedándose solo con
+ * número, fecha e importe —no reenvía lo que sella el servidor—, así que al
+ * guardar sobrescribía el array entero y una cuota `pagada` volvía a `pendiente`.
+ * `paidAmount` sí quedaba a salvo, protegido por la regla, y por eso el destrozo
+ * se veía: **100 pagados y ninguna cuota pagada**, con su asiento huérfano en el
+ * libro.
+ *
+ * La regla de Firestore **no podía impedirlo**: no itera listas. Así que el
+ * cuidado tiene que estar aquí, donde sí se conoce lo que había.
+ *
+ * **Una cuota que no está `pendiente` se conserva ENTERA** —importe y fecha
+ * incluidos (`RN-07`)— y **sobrevive aunque el formulario ya no la traiga**: no se
+ * borra una cuota que dejó un asiento en el libro.
+ */
+export function fundirPlan(
+  guardadas: ReadonlyArray<Installment> | undefined,
+  delFormulario: ReadonlyArray<CuotaDelFormulario> | undefined,
+): Installment[] | null {
+  const previas = guardadas ?? [];
+  const selladas = previas.filter((c) => c.status !== "pendiente");
+
+  if (!delFormulario || delFormulario.length === 0) {
+    // Quitar el plan solo se puede si no había nada pagado ni anulado.
+    return selladas.length > 0 ? [...selladas] : null;
+  }
+
+  const porNumero = new Map(previas.map((c) => [c.number, c]));
+  const fundidas: Installment[] = [];
+  for (const nueva of delFormulario) {
+    const previa = porNumero.get(nueva.number);
+    if (previa && previa.status !== "pendiente") {
+      fundidas.push(previa);
+      continue;
+    }
+    fundidas.push({ number: nueva.number, dueDate: nueva.dueDate, amount: nueva.amount, status: "pendiente" });
+  }
+
+  // Las selladas que el formulario ya no trae vuelven a la lista: no se borran.
+  for (const c of selladas) {
+    if (!fundidas.some((f) => f.number === c.number)) fundidas.push(c);
+  }
+  return fundidas.sort((a, b) => a.number - b.number);
+}
+
+export type CuotaDelFormulario = { number: number; dueDate: string; amount: number };
