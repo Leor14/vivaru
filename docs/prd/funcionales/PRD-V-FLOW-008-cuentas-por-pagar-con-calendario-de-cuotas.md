@@ -411,7 +411,8 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 | `R4` | **Anular un egreso cuyas cuotas ya se conciliaron** | `FLOW-004` ya lo cubre: borrar un asiento **suelta antes la conciliación**, y por eso lo hace el servidor | No se borran asientos de cuotas pagadas: `RN-08` los conserva |
 | `R5` | **Nadie usa el plan** porque capturar once filas a mano es tedioso | Contar egresos con plan | Aceptado en el MVP. La generación automática está en §4 como exclusión **con su porqué**, y es lo primero que entra si el dato lo pide |
 | `R6` | **La cifra de deuda cambia el día que se enciende** y alguien lo lee como un error | La comparación antes/después en el canario | Con la bandera apagada **no cambia nada** (`RN-12`). Al encender, la deuda **baja** solo donde haya cuotas pagadas — y esa bajada es la corrección, no una pérdida |
-| `R7` | **Endurecer la regla de `expenses` deja fuera una escritura legítima** que hoy funciona | El banco de reglas, y la pantalla de Egresos | La regla se despliega **después** de que el front deje de escribir esos campos. Ver §13 |
+| `R7` | **Endurecer la regla de `expenses` deja fuera una escritura legítima** que hoy funciona | El banco de reglas, y la pantalla de Egresos | La regla se despliega **después** de que el front deje de escribir esos campos. Ver §13. **Seis pruebas del banco existen solo para esto** |
+| `R8` | 🔴 **NUEVO (4 sep) · el array `installments` sostiene un invariante y lo escribe el CLIENTE.** Desde la entrega 2 la deuda se deriva de las cuotas vivas, así que un cliente manipulado podría marcarlas `pagada` o `anulada` y bajar la deuda **sin pasar por el servidor**. **Las reglas no pueden impedirlo: no iteran listas** | `paidAmount` dejaría de cuadrar con la suma de las cuotas `pagada` — **detectable, no impedido** | **DECISIÓN PENDIENTE DE DAVID.** El cierre completo es **mover la edición del plan a una callable**, lo que cambia §11 (que decidió escritura directa cuando la deuda venía de `paidAmount`, no de las cuotas). No se hizo por libre: es un cambio de alcance |
 
 ---
 
@@ -434,7 +435,7 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 |---|---|---|
 | **1** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** `installments` y `paidAmount` en el modelo, validación del plan, **la corrección de la deuda a proveedores** (`RN-09`, `CA8`) y el envejecimiento por cuota. El plan se declara y se ve; **no se paga todavía** | Sí, bandera |
 | **2** | ✅ **CONSTRUIDA (4 sep 2026), sin desplegar.** Tres callables —pagar una cuota con su asiento, anular cuota con motivo, anular el egreso conservando lo pagado— y el estado derivado | Sí, bandera |
-| **3** | **Las reglas endurecidas** de `expenses`, que cierran la puerta del cliente a los campos del servidor | **No con bandera**: se revierte redesplegando las reglas anteriores |
+| **3** | ✅ **CONSTRUIDA (4 sep 2026).** Reglas de `expenses` endurecidas: `paidAmount` y los sellos de anulación son del servidor, con plan el estado no lo mueve el cliente, y una factura con cuotas pagadas no se borra | **No con bandera**: se revierte redesplegando las reglas anteriores |
 
 ### Rollback
 
@@ -561,6 +562,51 @@ apagarla no puede dejar cuotas vivas sin forma de retirarlas.
 > **Cuatro falsaciones, cada una roja solo en lo suyo:** quitar la derivación del estado (3, y las
 > tres son suyas), quitar la idempotencia del pago (1), anular también las cuotas pagadas (1), y
 > permitir anular una cuota ya pagada (1).
+
+---
+
+## 13 quater · Estado tras la entrega 3 — 4 de septiembre de 2026
+
+| Criterio | Estado |
+|---|---|
+| `CA5` | ✅ **Cumplido** — `paidAmount` no se inventa al crear ni se mueve al editar, **ni con `setDoc`** |
+| `CA9` | ✅ **Cumplido** — un conjunto `suspended` no crea ni edita; un residente no toca `expenses` |
+| `CA3` **en la regla** | ✅ **Cumplido** — con plan, el cliente **no cambia el estado**: ni a `pagado` ni a `anulado`, y no puede nacer `pagado` |
+
+**Bancos: `npm test` 1755 · functions 832 · reglas 389 · emulador 322** (dos rojos preexistentes).
+
+> ### 🔴 UN DEFECTO EN MI PROPIA REGLA, CAZADO CON UNA SONDA
+>
+> La regla usaba `changedKeys()` para vetar los sellos de anulación, y **dejaba pasar
+> `voidReason`**. La causa, **medida con una sonda contra el emulador y no razonada**:
+>
+> > **`changedKeys()` son las claves que están en LOS DOS mapas con un valor distinto.
+> > Una clave AÑADIDA no aparece.** Lo que hacía falta es **`affectedKeys()`** =
+> > añadidas + borradas + cambiadas.
+>
+> Es exactamente el caso que la línea venía a bloquear —escribir un motivo de anulación
+> donde no había ninguno—, así que la protección era **cero** en su propio escenario.
+>
+> ⚠️ **Y el mismo patrón está en OTROS CUATRO SITIOS del fichero**, todos preexistentes y de
+> otras fichas: `firestore.rules:463` (`visitorInvitations`), **`:490` (`visitorPasses`, con
+> `hasOnly` — ahí una clave añadida se colaría entera)**, `:561` y `:1239`. **No se tocaron**:
+> son de otro alcance y cada uno necesita su propia falsación. Hay chip abierto.
+
+### Lo que la entrega 3 enseñó
+
+**1 · `installments` se guarda como `null` cuando no hay plan**, así que `'installments' in d` es
+**cierto para los 52 egresos de producción**. Preguntar por la clave en vez de por el valor habría
+bloqueado el flujo de siempre — y la falsación lo confirma: con `'installments' in d`, **enrojecen
+las dos pruebas de «los egresos sin plan no notan la regla nueva»**.
+
+**2 · La falsación que enseña es BORRAR EL BLOQUE**, y aquí sí cazó: revertir a la regla permisiva
+enrojece **ocho** pruebas. A diferencia de `FLOW-007`, estas no son de denegación pura —comprueban
+restricciones concretas—, así que el deny por defecto no las satisface.
+
+> **Lo que estas reglas NO pueden hacer, y está escrito en el propio fichero:** el lenguaje **no
+> itera listas**, así que no se puede comprobar cuota por cuota. Cerrar `paidAmount` deja cualquier
+> manipulación **detectable** —dejaría de cuadrar con la suma de las cuotas `pagada`— pero no
+> impedida. **La consecuencia de diseño es de David y está en `R8`.**
 
 ---
 
