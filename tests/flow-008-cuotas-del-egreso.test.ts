@@ -464,3 +464,46 @@ describe("fundirPlan — editar el egreso NO puede deshacer un pago", () => {
     expect(pendienteDelEgreso({ amount: 300, paidAmount: 100, installments: r })).toBe(100);
   });
 });
+
+/**
+ * **EL DEFECTO QUE LLEGÓ A PRODUCCIÓN, y lo cazó encender la bandera y mirar.**
+ *
+ * La tarjeta «Por pagar» de la pantalla de Egresos recorría todo lo no anulado
+ * llamando a `pendienteDelEgreso`, que **no mira el estado** —eso lo hace
+ * `sumarDeudaAProveedores`—, así que **un egreso ya `pagado` sin plan devolvía su
+ * importe entero**. Santa María enseñaba **«Por pagar $6.765.000» con sus cinco
+ * egresos en `Pagado`**: exactamente la suma de los cinco.
+ *
+ * **La lección:** `pendienteDelEgreso` responde «cuánto falta de ESTE egreso» y
+ * **no** «cuánto se debe». Quien decide si un egreso cuenta es el estado, y eso
+ * vive en `sumarDeudaAProveedores`. Usar la pieza suelta en vez de la función
+ * completa fue rehacer el filtro… olvidándolo.
+ */
+describe("la tarjeta «Por pagar» solo cuenta lo que de verdad se debe", () => {
+  const comoSantaMaria: Expense[] = [
+    egreso({ id: "1", amount: 300_000, status: "pagado" }),
+    egreso({ id: "2", amount: 150_000, status: "pagado" }),
+    egreso({ id: "3", amount: 15_000, status: "pagado" }),
+    egreso({ id: "4", amount: 5_500_000, status: "pagado" }),
+    egreso({ id: "5", amount: 800_000, status: "pagado" }),
+  ];
+
+  it("cinco egresos PAGADOS deben CERO, no 6.765.000", () => {
+    expect(sumarDeudaAProveedores(comoSantaMaria)).toBe(0);
+    // Y la pieza suelta, para dejar claro por qué se equivocaba:
+    expect(pendienteDelEgreso(comoSantaMaria[0])).toBe(300_000);
+  });
+
+  it("con uno pendiente, cuenta SOLO ese", () => {
+    const conUno = [...comoSantaMaria, egreso({ id: "6", amount: 42_000, status: "registrado" })];
+    expect(sumarDeudaAProveedores(conUno)).toBe(42_000);
+  });
+
+  it("y una factura con plan aporta sus cuotas vivas, no su importe", () => {
+    const conPlan = egreso({
+      id: "7", amount: 1_100, status: "registrado", paidAmount: 500,
+      installments: once.map((c) => (c.number <= 5 ? { ...c, status: "pagada" as const } : c)),
+    });
+    expect(sumarDeudaAProveedores([...comoSantaMaria, conPlan])).toBe(600);
+  });
+});

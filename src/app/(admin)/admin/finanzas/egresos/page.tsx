@@ -37,7 +37,7 @@ import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgre
 import { CuotasDelEgresoPanel } from "@/components/features/finanzas/CuotasDelEgresoPanel";
 import { PlanDeCuotasField } from "@/components/features/finanzas/PlanDeCuotasField";
 import { pagadoDelEgreso, proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
-import { pendienteDelEgreso } from "@/lib/finanzas/nucleo-estado-financiero";
+import { sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { saveExpensePlanCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -282,13 +282,19 @@ export default function AdminEgresosPage() {
    * función, no quién la duplica sin llamarla**.
    */
   const totals = useMemo(() => {
-    let porPagar = 0;
+    // **`porPagar` sale de `sumarDeudaAProveedores`, la función ÚNICA**, y no de
+    // un bucle propio. Es la misma cifra que enseñan la tarjeta de Cartera y el
+    // informe mensual, y tenerla escrita aquí otra vez era el quinto duplicado.
+    //
+    // 🔴 **Y la primera versión de este arreglo estaba MAL, en producción:**
+    // recorría todo lo no anulado llamando a `pendienteDelEgreso`, que **no mira
+    // el estado** —eso lo hace `sumarDeudaAProveedores`—, así que un egreso ya
+    // `pagado` sin plan devolvía su importe entero. Santa María enseñaba
+    // **«Por pagar $6.765.000» con sus cinco egresos en `Pagado`**: exactamente
+    // la suma de los cinco. Lo cazó mirar la pantalla al encender la bandera.
+    const porPagar = sumarDeudaAProveedores(filteredItems);
     let pagado = 0;
-    for (const item of filteredItems) {
-      if (item.status === "anulado") continue;
-      porPagar += pendienteDelEgreso(item);
-      pagado += pagadoDelEgreso(item);
-    }
+    for (const item of filteredItems) pagado += pagadoDelEgreso(item);
     return { registrado: porPagar, pagado, porPagar };
   }, [filteredItems]);
 
