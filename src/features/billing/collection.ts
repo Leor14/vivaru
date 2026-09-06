@@ -71,6 +71,36 @@ export function statementSettledAmount(statement: StatementLike): number {
   return Math.min(Math.max(charged - balance, 0), charged);
 }
 
+/**
+ * **Las unidades sobre las que se mide la mora: las activas MÁS las que deben.**
+ *
+ * Existe porque el informe del consejo llegó a enseñar **«106% de unidades ·
+ * 19/18»** en producción (Santa María, 6 de septiembre de 2026). El conjunto
+ * tiene 19 unidades —18 `active` y una `inactive`— y **las 19 tenían cargos
+ * vencidos**, la inactiva incluida, con $2.240.000 de deuda. El numerador
+ * recorría los cargos sin mirar el estado de la unidad y el denominador contaba
+ * solo las activas: **el numerador no cabía en el denominador**.
+ *
+ * **Se ensancha el denominador, no se filtra el numerador**, y la diferencia
+ * importa: filtrar dejaría a esa unidad fuera de «Mayores deudores»
+ * —escondiendo dinero que alguien debe— y contradiría el «Total vencido», que
+ * sí la cuenta. Una unidad inactiva que debe sigue debiendo.
+ *
+ * Un `unitId` que no case con ningún documento de `units` **también entra**: los
+ * identificadores de unidad de este producto tienen historia —conviven
+ * `unit-t1-101`, `t1-101`, `1014` e ids que PARECEN slugs—, y así el porcentaje
+ * no puede pasar de 100 ni con los datos torcidos.
+ */
+export function baseDeMorosidad(
+  unidades: readonly { id: string; status?: string }[],
+  unidadesConMora: readonly string[],
+): number {
+  const base = new Set<string>();
+  for (const u of unidades) if (u.status === "active") base.add(u.id);
+  for (const id of unidadesConMora) base.add(id);
+  return base.size;
+}
+
 export type CollectionSummary = {
   charged: number;
   /** El dinero que entró por Cartera. Es el INGRESO, y no es lo que mide `rate`. */

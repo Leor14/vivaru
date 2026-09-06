@@ -691,7 +691,7 @@ function AdminReportsPageContent() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                   <KpiCard label="% de recaudo" value={`${report.executive.collectionRate}%`} delta={report.executive.collectionRateDelta} deltaSuffix=" pp" />
                   <KpiCard label="Resultado neto" value={formatCurrency(report.financial.netResult)} tone={report.financial.netResult >= 0 ? "success" : "danger"} delta={report.executive.netResultDelta} deltaSuffix="%" />
-                  <KpiCard label="Morosidad (monto, acum.)" value={`${report.executive.delinquencyAmount}%`} tone={report.executive.delinquencyAmount > 15 ? "danger" : "neutral"} sub={`${report.executive.delinquencyRate}% de unidades · ${report.billing.overdueUnits.length}/${report.executive.activeUnits}`} />
+                  <KpiCard label="Morosidad (monto, acum.)" value={`${report.executive.delinquencyAmount}%`} tone={report.executive.delinquencyAmount > 15 ? "danger" : "neutral"} sub={`${report.executive.delinquencyRate}% de unidades · ${report.billing.overdueUnits.length}/${report.executive.delinquencyBase}`} />
                   <KpiCard label="Meses de fondo" value={report.executive.reserveMonths === null ? "—" : `${report.executive.reserveMonths}`} tone={report.executive.reserveMonths !== null && report.executive.reserveMonths < 3 ? "danger" : "success"} sub="reserva ÷ egreso mensual" />
                   <KpiCard label="Resolución PQRS" value={`${report.executive.pqrsResolutionRate}%`} tone={report.executive.pqrsResolutionRate >= 70 ? "success" : "neutral"} />
                   <KpiCard label="% de firma" value={`${report.agreements.signatureRate}%`} tone={report.agreements.signatureRate >= 80 ? "success" : "neutral"} />

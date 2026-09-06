@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchTenantCollection } from "@/lib/firebase/realtime-helpers";
-import { computeCollectionSummary, statementChargedAmount } from "@/features/billing/collection";
+import { baseDeMorosidad, computeCollectionSummary, statementChargedAmount } from "@/features/billing/collection";
 import {
   buildFinancialStatement,
   esRecaudoDeCartera,
@@ -107,7 +107,11 @@ export type CommitteeReport = {
     reserveMonths: number | null;     // meses de fondo de reserva (saldo / egreso mensual)
     pqrsResolutionRate: number;       // % de PQRS resueltos
     netResultDelta: number | null;    // % cambio del resultado neto vs período anterior
-    activeUnits: number;
+    /** **El denominador de `delinquencyRate`**, y por eso no es «unidades
+     *  activas»: son las activas MÁS las que deben aunque ya no lo estén. Se
+     *  llamaba `activeUnits` y su único consumidor pintaba «19/18» — una
+     *  fracción imposible. Ver `baseDeMorosidad`. */
+    delinquencyBase: number;
   };
 
   /** Tendencias por mes (últimos 12) para gráficos — desde datos ya cargados (P3). */
@@ -274,7 +278,7 @@ const EMPTY: CommitteeReport = {
   loading: true,
   error: null,
   billing: { totalCollected: 0, totalOverdue: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, overdueUnits: [] },
-  executive: { collectionRate: 0, collectionRateDelta: null, collectedDelta: null, delinquencyAmount: 0, delinquencyRate: 0, reserveMonths: null, pqrsResolutionRate: 0, netResultDelta: null, activeUnits: 0 },
+  executive: { collectionRate: 0, collectionRateDelta: null, collectedDelta: null, delinquencyAmount: 0, delinquencyRate: 0, reserveMonths: null, pqrsResolutionRate: 0, netResultDelta: null, delinquencyBase: 0 },
   trends: { byMonth: [] },
   packages: { totalReceived: 0, totalDelivered: 0, stillPending: 0 },
   tickets: { total: 0, open: 0, inProgress: 0, resolved: 0, byCategory: { pqrs: 0, maintenance: 0, billing: 0 } },
@@ -718,7 +722,14 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     // primario; % de unidades morosas como secundario. Ambos acumulados (todo el tiempo).
     const billedAllTime = billing.reduce((sum, b) => sum + statementChargedAmount(b), 0);
     const delinquencyAmount = billedAllTime > 0 ? Math.round((totalOverdue / billedAllTime) * 100) : 0;
-    const delinquencyRate = activeUnitsCount > 0 ? Math.round((overdueUnits.length / activeUnitsCount) * 100) : 0;
+    // **El denominador tiene que contener al numerador.** `overdueUnits` se
+    // construye recorriendo los cargos vencidos SIN mirar el estado de la
+    // unidad, así que una unidad inactiva que debe entraba arriba y no abajo:
+    // en producción eso dio **106% (19/18)**. `activeUnitsCount` sigue siendo
+    // solo las activas donde eso es lo correcto —las firmas esperadas de un
+    // acuerdo—, y esta base es otra cosa.
+    const delinquencyBase = baseDeMorosidad(units, overdueUnits.map((u) => u.unitId));
+    const delinquencyRate = delinquencyBase > 0 ? Math.round((overdueUnits.length / delinquencyBase) * 100) : 0;
     const monthlyExpense = monthsInRange > 0 ? statement.totalExpenses / monthsInRange : statement.totalExpenses;
     const reserveMonths = monthlyExpense > 0 ? Math.round((fundPosition.balance / monthlyExpense) * 10) / 10 : null;
     const pqrsResolutionRate = ticketMetrics.total > 0 ? Math.round((ticketMetrics.resolved / ticketMetrics.total) * 100) : 0;
@@ -732,7 +743,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       reserveMonths,
       pqrsResolutionRate,
       netResultDelta,
-      activeUnits: activeUnitsCount,
+      delinquencyBase,
     };
 
     // ── Tendencias por mes (últimos 12) — sin lecturas extra ────────────────────
