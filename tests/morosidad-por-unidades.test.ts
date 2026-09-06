@@ -111,6 +111,19 @@ describe("el cableado: la tasa y la fracción usan el MISMO denominador", () => 
     expect(pagina).not.toContain("report.billing.overdueUnits.length}/${report.executive.activeUnits");
   });
 
+  /**
+   * **El pie que explica la métrica también cuenta.** Decía «sobre unidades
+   * ACTIVAS», que describía la fórmula vieja; al ensanchar el denominador esa
+   * frase se volvió falsa — y la habría dejado yo. Un texto que describe una
+   * fórmula que ya no existe es la misma clase de defecto que un comentario que
+   * justifica una desviación: se lee el día que se escribe y ninguno más.
+   */
+  it("el pie de la tarjeta describe el denominador que se usa de verdad", () => {
+    const pagina = fs.readFileSync(path.resolve("src/app/(admin)/admin/reports/page.tsx"), "utf8");
+    expect(pagina).toContain("sobre las unidades activas y las que deben");
+    expect(pagina).not.toContain("saldo vencido sobre unidades activas;");
+  });
+
   /** `activeUnitsCount` SIGUE siendo solo las activas donde debe serlo: las
    *  firmas esperadas de un acuerdo se piden a las unidades activas, no a las
    *  que deben dinero. Ensanchar aquel contador habría pedido firma a una unidad
