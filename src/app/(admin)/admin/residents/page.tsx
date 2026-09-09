@@ -5,7 +5,7 @@ import { z } from "zod";
 import { HelpTip } from "@/components/shared/help-tip";
 import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
 import { AYUDA, capitalizar } from "@/lib/config/vocabulario-pais";
-import { Building2, FilterX, KeyRound, Search, Upload, UserCheck, UserPlus, Users2, X } from "lucide-react";
+import { Building2, FilterX, KeyRound, Search, ShieldCheck, Upload, UserCheck, UserPlus, Users2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,7 +30,8 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/lib/utils/use-debounce";
 import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
-import { provisionResidentTemporaryAccessCallable } from "@/lib/firebase/callables";
+import { provisionResidentTemporaryAccessCallable, setCommitteeMembershipCallable } from "@/lib/firebase/callables";
+import { useMarcasDeConsejo } from "@/features/admin/use-marcas-de-consejo";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import {
   personSchema,
@@ -91,6 +92,18 @@ export default function AdminResidentsPage() {
     null,
   );
   const [peopleLoadError, setPeopleLoadError] = useState<string | null>(null);
+  /**
+   * `PRD-V-PLAT-004` · la marca de consejo.
+   *
+   * **Va en el padrón y no en la pantalla de Usuarios, aunque la ficha apuntara
+   * allí.** Usuarios lista solo los roles OPERATIVOS —los filtra explícitamente a
+   * `tenant_admin` y `security_guard`—, y el destinatario de esta marca es un
+   * RESIDENTE. Puesto allí, el control habría vivido sobre una lista que nunca
+   * contiene un destinatario válido.
+   */
+  const rolDeConsejo = useFeatureFlag("producto-rol-consejo");
+  const { marcas: marcasDeConsejo } = useMarcasDeConsejo(user?.tenantId);
+  const [cambiandoConsejoA, setCambiandoConsejoA] = useState<string | null>(null);
   const [unitRoleFilter, setUnitRoleFilter] = useState<"all" | PersonItem["occupancyType"]>("all");
   const [unitIdFilter, setUnitIdFilter] = useState<string>("all");
   const [unitStatusFilter, setUnitStatusFilter] = useState<"all" | UnitItem["status"]>("all");
@@ -422,12 +435,27 @@ export default function AdminResidentsPage() {
       key: "person",
       header: "Persona",
       className: "min-w-[220px]",
-      render: (person) => (
-        <div>
-          <p className="font-medium text-[var(--slate-900)]">{person.fullName}</p>
-          <p className="text-xs text-[var(--slate-600)]">{person.email}</p>
-        </div>
-      ),
+      render: (person) => {
+        const consejo = person.authUid ? marcasDeConsejo.get(person.authUid) : undefined;
+        return (
+          <div>
+            <p className="font-medium text-[var(--slate-900)]">{person.fullName}</p>
+            <p className="text-xs text-[var(--slate-600)]">{person.email}</p>
+            {rolDeConsejo && consejo ? (
+              // `CA6` — la marca se ve, y con ella DESDE CUÁNDO. No es adorno:
+              // `G5` se cerró sin caducidad automática, así que la antigüedad es
+              // lo único que delata un consejo que la asamblea ya renovó.
+              <Badge className="mt-1 inline-flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3" />
+                Consejo
+                {consejo.desde
+                  ? ` desde ${consejo.desde.toLocaleDateString("es-CO", { month: "short", year: "numeric" })}`
+                  : ""}
+              </Badge>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       key: "contact",
@@ -958,6 +986,42 @@ export default function AdminResidentsPage() {
     }
   }
 
+  /**
+   * `PRD-V-PLAT-004` · nombrar o retirar a un consejero.
+   *
+   * **Quien decide es el servidor.** Aquí no se comprueba el rol ni el estado de
+   * la persona: `setCommitteeMembership` los valida y devuelve el mensaje que se
+   * enseña. Repetir esas reglas en el cliente sería una segunda puerta al mismo
+   * sitio, y la que se queda vieja es siempre esta.
+   */
+  async function handleToggleConsejo(person: PersonItem, esConsejoAhora: boolean) {
+    if (!user?.tenantId) return;
+    if (!person.authUid) {
+      // Sin cuenta no hay membresía en `tenantUsers`, que es donde vive la
+      // marca. Se dice aquí porque el servidor solo podría responder «no
+      // pertenece a este conjunto», que culpa al dato equivocado.
+      toast.error("Esta persona aún no tiene acceso. Envíale el acceso antes de nombrarla consejo.");
+      return;
+    }
+    setCambiandoConsejoA(person.id);
+    try {
+      await setCommitteeMembershipCallable({
+        tenantId: user.tenantId,
+        uid: person.authUid,
+        isCommittee: !esConsejoAhora,
+      });
+      toast.success(
+        esConsejoAhora
+          ? `${person.fullName} ya no forma parte del consejo. Conserva su acceso de residente.`
+          : `${person.fullName} es miembro del consejo. Sigue siendo residente y conserva su unidad.`,
+      );
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setCambiandoConsejoA(null);
+    }
+  }
+
   async function handleBulkImport(
     rows: Array<{ displayName: string; tower: string; type: UnitItem["type"]; status: UnitItem["status"] }>,
   ) {
@@ -1405,6 +1469,30 @@ export default function AdminResidentsPage() {
                       disabled: sendingResetTo === person.id,
                       onSelect: () => void handleResetTemporaryPassword(person),
                     },
+                    // `PRD-V-PLAT-004`. Detrás de la bandera, y **solo sobre
+                    // quien tiene cuenta**: sin `authUid` no hay membresía donde
+                    // escribir la marca. Se deshabilita en vez de esconderse
+                    // para que el motivo se pueda explicar.
+                    ...(rolDeConsejo
+                      ? [
+                          {
+                            key: "consejo",
+                            label:
+                              cambiandoConsejoA === person.id
+                                ? "Guardando..."
+                                : person.authUid && marcasDeConsejo.has(person.authUid)
+                                  ? "Retirar del consejo"
+                                  : "Nombrar consejo",
+                            icon: <ShieldCheck className="h-3.5 w-3.5" />,
+                            disabled: cambiandoConsejoA === person.id || !person.authUid,
+                            onSelect: () =>
+                              void handleToggleConsejo(
+                                person,
+                                Boolean(person.authUid && marcasDeConsejo.has(person.authUid)),
+                              ),
+                          },
+                        ]
+                      : []),
                   ]}
                 />
               </div>

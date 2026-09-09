@@ -1750,3 +1750,37 @@ export async function saveExpensePlanCallable(input: SaveExpensePlanInput) {
   >(functions, "saveExpensePlan");
   return executeCallable(callable, input, "No fue posible guardar el plan de cuotas.");
 }
+
+export type SetCommitteeMembershipInput = {
+  tenantId: string;
+  /** **El `uid` de la cuenta**, que en el padrón es `person.authUid`. */
+  uid: string;
+  isCommittee: boolean;
+};
+
+/**
+ * `PRD-V-PLAT-004` · nombra o retira a un consejero.
+ *
+ * **Callable y no escritura directa, por tres motivos con uno solo bastaría:**
+ * hay que comprobar el rol de quien concede y el de quien recibe en dos
+ * documentos distintos; **un campo escribible por el cliente no sostiene un
+ * invariante** —y `isCommittee` decide quién firma el informe del conjunto—; y
+ * es el mismo camino que ya usan `createTenantOperationalUser` y
+ * `updateOperationalUser`.
+ *
+ * **La marca NO es un rol.** Quien la recibe sigue siendo `resident` y conserva
+ * su unidad, su estado de cuenta y sus pagos (`RN-01`). Solo se le puede poner a
+ * una persona **con cuenta de acceso**: sin ella no hay membresía en
+ * `tenantUsers` donde escribirla, y el servidor responde «no pertenece a este
+ * conjunto».
+ */
+export async function setCommitteeMembershipCallable(input: SetCommitteeMembershipInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<SetCommitteeMembershipInput, { ok: true; cambiado: boolean }>(
+    functions,
+    "setCommitteeMembership",
+  );
+  return executeCallable(callable, input, "No fue posible cambiar la marca de consejo.");
+}

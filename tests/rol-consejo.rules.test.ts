@@ -7,7 +7,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 
 /**
@@ -192,5 +192,33 @@ describe("PLAT-004 · `CA14` · la marca no se escribe desde el cliente", () => 
     // regla entera— pasaría inadvertido: todas las pruebas de arriba seguirían
     // en verde por el deny por defecto.
     await assertSucceeds(updateDoc(doc(admin(), "tenantUsers", `${CONJUNTO}_admin-1`), { fullName: "Nombre Nuevo" }));
+  });
+});
+
+/**
+ * **La consulta que necesita la pantalla, probada antes de construirla.** La
+ * marca vive en `tenantUsers` y el padrón lee `people`, así que para pintar quién
+ * es consejo hay que LISTAR `tenantUsers` del conjunto. Firestore evalúa una
+ * consulta contra la regla **sin ejecutarla**, así que una rama que dependa del
+ * documento puede rechazarla entera aunque ni un documento la incumpliera — es
+ * lo que ya costó `bankAccounts`. Esto se mide, no se razona.
+ */
+describe("PLAT-004 · la consulta que hace la pantalla de Personas", () => {
+  it("el `tenant_admin` LISTA las membresías de su conjunto filtrando por `tenantId`", async () => {
+    await assertSucceeds(
+      getDocs(query(collection(admin(), "tenantUsers"), where("tenantId", "==", CONJUNTO))),
+    );
+  });
+
+  it("y NO puede listar las de otro conjunto", async () => {
+    await assertFails(
+      getDocs(query(collection(admin(), "tenantUsers"), where("tenantId", "==", OTRO))),
+    );
+  });
+
+  it("un residente NO lista el padrón de membresías", async () => {
+    await assertFails(
+      getDocs(query(collection(residente(), "tenantUsers"), where("tenantId", "==", CONJUNTO))),
+    );
   });
 });
