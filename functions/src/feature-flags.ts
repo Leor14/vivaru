@@ -57,6 +57,7 @@ export type FeatureFlagKey =
   | "producto-concepto-al-libro"
   | "producto-informe-mensual"
   | "producto-egresos-en-cuotas"
+  | "producto-rol-consejo"
   | "producto-anticipos"
   | "producto-pago-multiple"
   | "producto-multiconjunto"
@@ -105,6 +106,10 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   // catálogo en `src/`.
   "producto-informe-mensual": false,
   "producto-egresos-en-cuotas": false,
+  // Apagada = no se puede nombrar ni retirar consejeros. OJO: apagarla no retira
+  // la marca a quien ya la tenga — el permiso vive en el dato. Ver el catálogo
+  // en `src/`.
+  "producto-rol-consejo": false,
   // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
   // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
   "producto-anticipos": false,

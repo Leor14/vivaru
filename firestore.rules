@@ -24,6 +24,26 @@ service cloud.firestore {
       );
     }
 
+    // **PRD-V-PLAT-004 · `RN-01`: el consejo es un ATRIBUTO, no un valor de
+    // `role`.** `tenantUsers` tiene un solo campo `role` por persona, así que
+    // `role: "committee"` le quitaria al consejero su condicion de residente —y
+    // con ella su unidad, su estado de cuenta y sus pagos, porque
+    // `residentOwnUnit` exige `role == 'resident'`—. Por eso la marca va aparte.
+    //
+    // `role == 'committee'` se conserva por compatibilidad: **no lo tiene nadie**
+    // (0 de 41 en produccion, medido el 4 de septiembre de 2026), pero quitarlo
+    // le retiraria el permiso a quien lo tuviera, y eso no lo pide la ficha.
+    //
+    // **El `get` con default es obligatorio**: la marca no existe como campo en
+    // la inmensa mayoria de las membresias, y `data.isCommittee` a secas
+    // reventaria la regla en vez de responder «no».
+    function esConsejo(tenantId) {
+      return tenantMember(tenantId) && (
+        membershipDoc(tenantId).data.get('isCommittee', false) == true ||
+        membershipDoc(tenantId).data.role == 'committee'
+      );
+    }
+
     function residentOwnUnit(tenantId, unitId) {
       return tenantRole(tenantId, 'resident') && membershipDoc(tenantId).data.unitId == unitId;
     }
@@ -249,6 +269,19 @@ service cloud.firestore {
       allow create, delete: if superadmin();
 
       // Tenant admin can update only their own membership display fields.
+      //
+      // ⚠️ **ESTE PATRON ES UNA LISTA BLANCA AL REVES: enumera lo que NO puede
+      // cambiar, asi que todo campo nuevo nace ESCRIBIBLE por el cliente.** Al
+      // anadir un campo a `tenantUsers` hay que preguntarse si sostiene algun
+      // permiso; si lo sostiene, va en esta lista. Los tres de `PLAT-004`
+      // llegaron aqui por eso: sin ellos, un `tenant_admin` podia escribirse
+      // `isCommittee: true` a si mismo desde el navegador y darse la firma del
+      // informe del conjunto (`CA14`).
+      //
+      // **La regla CIERRA LA PUERTA DEL CLIENTE; no sostiene el invariante.**
+      // Quien concede la marca de verdad es `setCommitteeMembership`, que va con
+      // Admin SDK y **no evalua estas reglas**. Si algun dia esta linea se
+      // relaja, el permiso no se cae — se abre.
       allow update: if superadmin() || (
         signedIn() &&
         resource.data.uid == request.auth.uid &&
@@ -259,7 +292,23 @@ service cloud.firestore {
         request.resource.data.status == resource.data.status &&
         request.resource.data.email == resource.data.email &&
         request.resource.data.unitId == resource.data.unitId &&
-        request.resource.data.unitLabel == resource.data.unitLabel
+        request.resource.data.unitLabel == resource.data.unitLabel &&
+        // **`diff().affectedKeys()` y no tres comparaciones de igualdad.** Las
+        // dos funcionan —se midieron las dos contra el emulador—, pero los tres
+        // campos NO EXISTEN en casi ninguna membresia y comparar
+        // `get(campo, default)` obliga a elegir un centinela por campo, con un
+        // tipo que case con el real. Esto dice lo que se quiere decir sin
+        // inventar valores: estos tres no cambian, existan o no.
+        //
+        // > Al denegar, el emulador imprime «evaluation error» sobre este mismo
+        // > `allow update`. **Es PREEXISTENTE y no de esta linea**: se reproduce
+        // > igual contra las reglas de `HEAD` denegando un cambio de `role`. La
+        // > regla se evalua dos veces y en la pasada sin `resource` el
+        // > `resource.data.uid` de arriba revienta. Deniega igual, que es lo
+        // > correcto, pero **no es una denegacion razonada** — si alguien toca
+        // > este bloque, que sepa que ese mensaje ya estaba.
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['isCommittee', 'committeeSince', 'committeeGrantedBy'])
       );
     }
 
@@ -1097,7 +1146,7 @@ service cloud.firestore {
     match /documents/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        tenantRole(resource.data.tenantId, 'committee') ||
+        esConsejo(resource.data.tenantId) ||
         (tenantRole(resource.data.tenantId, 'resident') &&
           resource.data.get('category', '') in ['asamblea', 'comunicado', 'acuerdo', 'reglamento', 'plano', 'memoria', 'otro'])
       );
@@ -1438,7 +1487,7 @@ service cloud.firestore {
     match /monthlyReports/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        (tenantRole(resource.data.tenantId, 'committee') && resource.data.status != 'borrador')
+        (esConsejo(resource.data.tenantId) && resource.data.status != 'borrador')
       );
       allow create, update, delete: if false;
     }
@@ -1446,7 +1495,7 @@ service cloud.firestore {
     match /clearanceCertificates/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        tenantRole(resource.data.tenantId, 'committee') ||
+        esConsejo(resource.data.tenantId) ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
       allow create, update, delete: if false;

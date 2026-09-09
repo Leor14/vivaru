@@ -9,7 +9,7 @@
 | **Usuario principal** | Miembro del consejo de administración |
 | **Usuarios secundarios** | `tenant_admin` (concede el rol), `superadmin` (soporte) |
 | **Responsable** | David |
-| **Estado** | Discovery |
+| **Estado** | Listo para desarrollo — entrega 1 en curso |
 | **Dependencias** | `PRD-V-FLOW-007` (firma del informe, **ya en producción**) · `PRD-V-PLAT-002` (multiconjunto) |
 | **Riesgo** | Medio-alto — toca permisos y el padrón |
 | **Reversibilidad** | Reversible por bandera **salvo el modelo de datos** (ver §13) |
@@ -347,8 +347,24 @@ la llame. Es el mismo orden que `FLOW-008`.
 | **`G2` Datos y permisos** | ✅ Modelo definido; `RN-01` resuelve el choque con el rol único |
 | **`G3` Riesgo** | ✅ Auditoría, bandera y rollback declarados, incluido lo que **no** revierte |
 | **`G4` Aceptación** | ✅ Quince criterios, ocho de ellos que deben fallar |
-| **`G5` Operación** | ⚠️ **Abierta.** Quién mantiene el consejo al día cuando la asamblea lo renueva cada año. Hoy nadie, porque no existe |
+| **`G5` Operación** | ✅ **Cerrada el 9 de septiembre de 2026: el administrador del conjunto.** Ver abajo |
 | **`G6` Escala** | ✅ Un conjunto tiene entre 3 y 7 consejeros. Sin problema de volumen |
 
-> **No está lista para desarrollo hasta cerrar `G5`** —y `G5` es una pregunta de operación, no de
-> código—. `G0`–`G4` están superadas.
+### `G5`, cerrada — quién mantiene el consejo al día
+
+**Respuesta de David (9 sep 2026): el `tenant_admin` del conjunto.** Tras cada asamblea, el
+administrador concede la marca a los entrantes y la retira a los salientes, desde la pantalla de
+Personas. **No hay caducidad automática** — se descartó explícitamente modelar el periodo de la
+asamblea.
+
+**La consecuencia, declarada porque no se mitiga sola:** una marca puesta hoy sigue puesta dentro
+de tres años si nadie la retira, y quien la conserve podrá firmar informes. Lo que la contiene es
+que **la antigüedad es visible**: `committeeSince` se pinta en el padrón (`CA6`), así que un
+consejo rancio se ve al mirarlo. Se acepta a sabiendas: un vencimiento automático retiraría el
+acceso a un consejero en ejercicio si la asamblea se retrasa, que es el fallo peor de los dos.
+
+**Esto no cambia nada de lo ya escrito** — `RN-04` y §3 ya daban la concesión al `tenant_admin`.
+`G5` preguntaba por la operación, no por el permiso, y la respuesta confirma el diseño.
+
+> **`G0`–`G6` superadas. La ficha está LISTA PARA DESARROLLO.** La entrega 1 es **poder conceder
+> el rol**, no las pantallas.

@@ -88,6 +88,7 @@ import {
 import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
+import { aplicarMarcaDeConsejo } from "./rol-consejo";
 import {
   anularCuota,
   anularEgresoConCuotas,
@@ -1836,6 +1837,84 @@ export const updateOperationalUser = onCall<UpdateOperationalUserInput>(
     });
 
     return { ok: true };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// PRD-V-PLAT-004 entrega 1 — la condición de consejero
+//
+// **Por qué es una callable y no una escritura del cliente**, que es la decisión
+// que sostiene todo lo demás:
+//
+//   1. Hay que comprobar el rol de QUIEN CONCEDE y el de QUIEN RECIBE, en dos
+//      documentos distintos. Una regla de Firestore no puede leer el rol del
+//      destinatario y validar el del emisor sobre el mismo `update` sin volverse
+//      ilegible.
+//   2. **Un campo escribible por el cliente no sostiene un invariante**, y
+//      `isCommittee` decide quién firma un documento con valor frente a la
+//      comunidad. La regla de `tenantUsers` ACOMPAÑA —le cierra la puerta al
+//      cliente— pero no sostiene: esta callable va con Admin SDK y no evalúa
+//      reglas, así que la validación real vive aquí.
+//
+// **`RN-01`: la marca es un ATRIBUTO, no un valor de `role`.** `tenantUsers`
+// tiene un único documento por persona y conjunto con un único campo `role`:
+// escribir `role: "committee"` le quitaría al consejero su condición de
+// residente, y con ella su unidad, su estado de cuenta y sus pagos —
+// `canAccessPath` exige `role === "resident"` para TODO `/resident`—. Un
+// consejero es un propietario; dejarlo sin su unidad es inaceptable.
+type SetCommitteeMembershipInput = { tenantId: string; uid: string; isCommittee: boolean };
+
+export const setCommitteeMembership = onCall<SetCommitteeMembershipInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+
+    const tenantId = normalizeText(request.data?.tenantId);
+    const targetUid = normalizeText(request.data?.uid);
+    const quiereLaMarca = request.data?.isCommittee;
+
+    if (!tenantId || !targetUid) {
+      throw new HttpsError("invalid-argument", "tenantId y uid son requeridos.");
+    }
+    // Sin esto, un `undefined` se leería como «retirar» y una llamada mal
+    // formada retiraría permisos en silencio.
+    if (typeof quiereLaMarca !== "boolean") {
+      throw new HttpsError("invalid-argument", "isCommittee debe ser true o false.");
+    }
+
+    // **El superadmin sale primero, y a propósito**: soporte necesita operar un
+    // conjunto suspendido. El administrador del conjunto sí pasa por
+    // `assertActiveTenantAdmin`, que lleva `assertTenantOperable` dentro — de
+    // ahí sale `CA13`.
+    const esSuperadmin = request.auth.token?.role === "superadmin";
+    const targetTenantId = esSuperadmin
+      ? tenantId
+      : (await assertActiveTenantAdmin(tenantId, request.auth.uid)).tenantId;
+
+    await assertFeatureEnabled("producto-rol-consejo", targetTenantId);
+
+    const resultado = await aplicarMarcaDeConsejo({
+      tenantId: targetTenantId,
+      actorUid: request.auth.uid,
+      targetUid,
+      quiereLaMarca,
+    });
+
+    // `RN-08`. **Solo si cambió algo**: una llamada idempotente no es un acto que
+    // auditar, y llenar el registro de no-actos entierra los que sí lo son.
+    // Sin campos `undefined`: `writeAuditLog` audita FUERA de la transacción y
+    // uno haría fallar la callable DESPUÉS de que la marca ya esté escrita.
+    if (resultado.cambiado) {
+      await writeAuditLog(targetTenantId, request.auth.uid, "set_committee_membership", {
+        uid: targetUid,
+        isCommittee: quiereLaMarca,
+        porSuperadmin: esSuperadmin,
+      });
+    }
+
+    return resultado;
   },
 );
 
@@ -4886,6 +4965,7 @@ async function identidadParaFirmar(tenantId: string, uid: string): Promise<{ nam
     status?: string;
     tenantId?: string;
     fullName?: string;
+    isCommittee?: boolean;
   };
   // **El conjunto de la membresía tiene que ser ESTE**, y no basta con que el
   // documento exista: su id lo compone el llamador. Es la misma comprobación que
@@ -4895,7 +4975,14 @@ async function identidadParaFirmar(tenantId: string, uid: string): Promise<{ nam
     throw new HttpsError("permission-denied", "No puedes operar sobre otro conjunto.");
   }
   const rol = membership.role ?? "";
-  if (rol !== "tenant_admin" && rol !== "admin_tenant" && rol !== "committee") {
+  // **`PLAT-004`: quien firma como consejo es un RESIDENTE con la marca**, no
+  // alguien con `role: "committee"`. Ese valor sigue admitido porque retirarlo
+  // le quitaría la firma a quien lo tuviera, pero **no lo tiene nadie**: medido
+  // el 4 de septiembre de 2026, 0 de 41 en producción. Era precisamente la
+  // capacidad muerta que esta ficha viene a resucitar — estaba desplegada,
+  // verificada y era inejecutable porque el rol no se podía conceder.
+  const esConsejo = rol === "committee" || membership.isCommittee === true;
+  if (rol !== "tenant_admin" && rol !== "admin_tenant" && !esConsejo) {
     throw new HttpsError(
       "permission-denied",
       "Solo la administración y el consejo firman el informe del conjunto.",
@@ -4924,7 +5011,10 @@ async function identidadParaFirmar(tenantId: string, uid: string): Promise<{ nam
   }
   return {
     name: nombre,
-    role: rol === "committee" ? "Consejo de administración" : "Administración",
+    // El cargo lo decide la MARCA, no el `role`: un consejero es un residente,
+    // así que `rol` dice «resident» y preguntarle a él imprimiría
+    // «Administración» sobre la firma del consejo.
+    role: esConsejo ? "Consejo de administración" : "Administración",
   };
 }
 

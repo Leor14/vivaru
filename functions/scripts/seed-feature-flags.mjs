@@ -138,6 +138,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-rol-consejo",
+    area: "producto",
+    label: "El consejo de administración existe de verdad",
+    origen: "PRD-V-PLAT-004 entrega 1",
+    // Nace apagada y se enciende por conjunto. Apagarla NO retira la marca a
+    // quien ya la tenga: el permiso vive en el dato, no en la bandera.
+    enabled: false,
+  },
+  {
     key: "producto-egresos-en-cuotas",
     area: "producto",
     label: "Cuentas por pagar con calendario de cuotas",

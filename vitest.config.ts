@@ -31,6 +31,11 @@ export default defineConfig({
       // ignorar el color. Los dos ficheros van siempre juntos.
       "**/informe-mensual.rules.test.ts",
       "**/egresos-en-cuotas.rules.test.ts",
+      // `PRD-V-PLAT-004`. Volvió a pasar el 9 de septiembre de 2026 y **lo cazó
+      // el CONTEO, no leer este comentario**: `npm test` saltó de 1789 a 1804 sin
+      // que se hubiera añadido ni una prueba a la app. Los 15 eran este banco de
+      // reglas, en verde solo porque el emulador estaba levantado.
+      "**/rol-consejo.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

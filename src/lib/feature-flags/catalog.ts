@@ -82,6 +82,7 @@ export type FeatureFlagKey =
   | "producto-modo-oscuro"
   | "producto-informe-mensual"
   | "producto-egresos-en-cuotas"
+  | "producto-rol-consejo"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -424,6 +425,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-008 entrega 1",
     alApagar:
       "Los planes ya declarados dejan de pintarse y la deuda vuelve a contar el importe completo de la factura. Las cuotas YA PAGADAS conservan su asiento en el libro: apagar la bandera no borra dinero registrado.",
+  },
+  "producto-rol-consejo": {
+    key: "producto-rol-consejo",
+    area: "producto",
+    label: "El consejo de administración existe de verdad",
+    description:
+      "El administrador puede nombrar consejero a un residente del conjunto y retirarle la marca. Con ella, esa persona lee los informes mensuales EMITIDOS y los puede firmar — sin dejar de ser residente ni perder su unidad.",
+    // Nace apagada, pero apagarla NO es simétrico: ver `alApagar`. El riesgo que
+    // vigila no es una cifra, es un PERMISO — quien tenga la marca firma un
+    // documento con valor frente a la comunidad.
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-004 entrega 1",
+    alApagar:
+      "Desaparece el control para nombrar y retirar consejeros, y las pantallas que da la marca. PERO NO RETIRA LOS PERMISOS YA CONCEDIDOS: quien tenga `isCommittee` escrito lo sigue teniendo, porque el permiso vive en las reglas y en el dato, no en la bandera. Para quitarle el acceso a alguien hay que RETIRARLE LA MARCA, no apagar esto. Las firmas ya puestas se conservan siempre (`RN-06`).",
   },
   "producto-informe-mensual": {
     key: "producto-informe-mensual",
