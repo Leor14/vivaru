@@ -4,233 +4,152 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 6 de septiembre de 2026, cierre (TRES DEFECTOS DE INFORME CERRADOS Y EN PRODUCCIÓN)
+## LO PRIMERO AL ABRIR SESIÓN — 9 de septiembre de 2026 (`PLAT-004` ENTREGA 1 CONSTRUIDA)
 
-> # NO QUEDA NADA CONSTRUIBLE ABIERTO. `PLAT-004` ESTÁ ESCRITA Y ESPERA UNA RESPUESTA DE DAVID (`G5`).
+> # EL FRENO DE `PLAT-004` NO ES CÓDIGO: **SOLO SANTA MARÍA PUEDE TENER CONSEJO**. Está medido.
 >
-> **Estado: leer los remotos con `git ls-remote`, no de aquí.** Al cerrar, `origin/master` y
-> `origin/develop` iban los dos a `ac26068`, y **producción SERVÍA ese commit**
-> (`build-2026-09-06-003`, `READY`), verificado por procedencia del build con
+> **Estado: leer los remotos con `git ls-remote`, no de aquí.** Al cerrar, `develop` local iba
+> **cinco commits por delante** del remoto y **el push quedó SIN HACER** —lo bloqueó el
+> clasificador, es de David—. `origin/master` seguía en `ac26068` y producción servía
+> `build-2026-09-06-003` de ese commit, verificado con
 > `node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru`.
 >
-> **Bancos medidos hoy:** `npm test` **1789** · functions **832**. **Reglas y emulador NO se
-> corrieron**, y a propósito: los tres commits de hoy no tocan `firestore.rules`,
-> `storage.rules` ni `functions/`. Los últimos datos de esos dos son **394** y **329** —con los
-> dos rojos preexistentes de `payments.emulator.test.ts`, `CA12` y `D-B`—, y **son viejos:
-> contarlos, no citarlos**.
+> **Bancos medidos hoy, los cuatro:** `npm test` **1804** (119 ficheros) · functions **832** ·
+> reglas **358** · emulador de functions **340 de 342**. Los dos rojos son **`CA12` y `D-B` de
+> `payments.emulator.test.ts`, PREEXISTENTES** y confirmados hoy. `storage.rules.test.ts` enrojece
+> aparte si el emulador se levanta **solo con Firestore**: es entorno, no código.
 >
-> ## 🔴 TRES DEFECTOS DE INFORME, CERRADOS HOY — Y LOS TRES LOS ENCONTRÓ MIRAR, NO PROBAR
+> ## 🔴 LO PRIMERO: `PLAT-004` ESTÁ DESPLEGADA A MEDIAS, Y A PROPÓSITO
 >
-> Ninguno lo vio una suite. El primero llevaba **desde el 23 de junio** en producción, por debajo
-> de 1766 pruebas en verde. Los otros dos **ni siquiera existían como pregunta** hasta que se
-> recorrió la pantalla.
+> **Staging tiene functions y reglas** (desplegadas y verificadas el 9 sep: `setCommitteeMembership`
+> listada por nombre, ruleset vivo **idéntico al repo**). **El front NO**, porque el push se quedó
+> sin hacer. **Es inofensivo** —la bandera `producto-rol-consejo` está apagada en todas partes—
+> pero **la entrega no se puede probar en ningún sitio hasta empujar**.
 >
-> ### 1 · El informe del consejo TIRABA LOS PAGOS PARCIALES (`69ff374`)
+> **Producción no tiene NADA de esto.** El ciclo pendiente, y termina en `checkout develop`:
 >
-> `/admin/reports` y `/admin/finanzas` enseñaban «Saldo de fondos» **distinto para el mismo
-> conjunto el mismo día** —**−675.000 contra 725.000** en Santa María— llamando las dos a la
-> misma `computeFundPosition`. Difería el `cuotaIncome`: el informe filtraba
-> `status === "paid"`, y **un cargo con pago PARCIAL no es `paid`**, así que lo descartaba entero.
+> ```bash
+> git push origin develop && git ls-remote origin refs/heads/develop
+> firebase deploy --only functions --project hogaru-1
+> firebase deploy --only firestore:rules --project hogaru-1
+> node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
+> git checkout master && git merge --ff-only develop && git push origin master && git checkout develop
+> ```
 >
-> **Medido antes de tocar: 10 cargos parciales por $4.800.000, en TRES conjuntos** —Queretarock,
-> Qintilab y Santa María—, no en uno. La nota que describía el defecto solo conocía Santa María.
+> **El orden es functions → reglas → front** porque la regla RESTRINGE (blinda tres campos de
+> `tenantUsers`) y porque la callable tiene que existir antes de que el front la llame.
 >
-> **Eran CUATRO sitios, no uno ni tres.** `totalCollected`, `cuotaIncomeAllTime`,
-> `totalCollectedPrev` —que ya estaba calculado **bien** cinco líneas más arriba, en
-> `recaudadoPrev`— y el reparto por categoría, construido a mano **al lado de `repartirRecaudo`**,
-> que devuelve total y mapa juntos.
+> ## 🔴 EL NÚMERO QUE DECIDE DÓNDE SE ENCIENDE
 >
-> 🔴 **Y lo sostenía un comentario que JUSTIFICABA la desviación**: decía que el reparto se hacía a
-> mano «a propósito», porque este informe definía «recaudado» de otra forma que Finanzas.
-> **Describía el defecto con exactitud y lo llamaba decisión.** Llevaba desde junio.
+> Medido en producción cruzando `people.authUid` contra `tenantUsers`. **Nombrable** = persona del
+> padrón con cuenta, con membresía `resident` activa:
 >
-> **La fórmula única ya existía y este fichero YA LA IMPORTABA** para «facturado»:
-> `src/features/billing/collection.ts`, cuya cabecera dice que Dashboard, Cartera y **el Reporte de
-> Comité** tenían tres fórmulas y se unificaron ahí. El «recaudado» se quedó fuera de esa
-> unificación y nadie lo notó.
+> | Conjunto | Nombrables | ¿Consejo de 3–7? |
+> |---|---|---|
+> | **Santa María** | **8** | ✅ |
+> | Bromelias · Privada Las Playas | 1 cada uno | ❌ |
+> | **Los otros SEIS** | **0** | ❌ |
 >
-> **Efecto medido en producción:** Queretarock +1.700.000 · Qintilab +1.700.000 · Santa María
-> +1.400.000 · El Nogal −1.560.000 · Palmas −12.800. Las bajadas son **8 cargos `paid` con importe
-> y SIN `paymentAmount`**, sembrados (`balance: 0`, sin `paidAt`, **sin asiento**), que solo el
-> informe contaba por un respaldo `?? amount` **que ninguna de las otras tres fórmulas tiene**.
+> **68 personas en el padrón y solo 10 con cuenta.** El cruce está limpio —cero `authUid` sin
+> membresía, cero membresías no residentes—, así que la pantalla funciona: **lo que falta son
+> CUENTAS**, y eso es captura de datos.
 >
-> ### 2 · La morosidad daba «106% DE UNIDADES · 19/18» (`e8f3c37`)
+> **Encender la bandera fuera de `tenant-santa-maria` pone un control que no puede nombrar a
+> nadie.** Es «encendido sobre tablas vacías» por cuarta vez, y esta es la primera que se ve
+> **antes** de encender.
 >
-> Un porcentaje por encima de 100 en el documento que se le presenta al consejo. **Lo encontró
-> recorrer la pantalla de producción mientras se verificaba el defecto 1.**
+> ## QUÉ SE CONSTRUYÓ (5 commits, en `develop` local)
 >
-> **Medido:** Santa María tiene 19 unidades —18 `active` y una `inactive`— y **las 19 tienen cargos
-> vencidos**, la inactiva incluida: `T1-202`, con **$2.240.000**. `overdueUnits` recorre los cargos
-> **sin mirar el estado de la unidad**; el denominador contaba solo las activas. El numerador no
-> cabía en el denominador.
+> `0150d2e` servidor y reglas · `5969b8c` front y guardián · `76fbeb1` y `8ee53f3` la ficha.
 >
-> **Se ensanchó el DENOMINADOR, no se filtró el numerador**, y la diferencia importa: filtrar
-> habría dejado a `T1-202` fuera de «Mayores deudores» —escondiendo $2.240.000 que alguien debe— y
-> habría contradicho el «Total vencido», que sí la cuenta. **Una unidad inactiva que debe sigue
-> debiendo.** Verificado en pantalla: 100% · 19/19 **y T1-202 todavía en la tabla**.
+> - **Callable `setCommitteeMembership`** con la lógica en `functions/src/rol-consejo.ts` —módulo
+>   aparte **para poder ejercitarla**: lo que no se ejercita no está probado—.
+> - **`identidadParaFirmar` lee la marca**, así que la firma del consejo que `FLOW-007` dejó
+>   **inejecutable en producción** pasa a ejercerse. Era el motivo de la ficha.
+> - **Reglas:** helper `esConsejo()` en los tres sitios, y `tenantUsers` blindado.
+> - **El control va en el PADRÓN** (`admin/residents`), NO en `admin/users` como decía §11: esa
+>   pantalla **filtra fuera a los residentes**, que son los destinatarios.
+> - **Bandera `producto-rol-consejo` en los CINCO sitios**, apagada.
 >
-> **También eran DOS sitios**: el «19/18» que se VE no sale del cálculo, lo pinta la tarjeta con
-> `executive.activeUnits`. Arreglar solo la tasa habría dejado **«100% de unidades · 19/18»**.
+> ## LO QUE CORRIGIÓ CONSTRUIR, Y ES LO QUE HAY QUE LLEVARSE
 >
-> `activeUnitsCount` **no se tocó** donde sí debe ser solo activas: las firmas esperadas de un
-> acuerdo. Y `executive.activeUnits` pasó a llamarse **`delinquencyBase`**, porque su único
-> consumidor era esa fracción: el nombre decía una cosa y el campo servía otra.
+> 1. 🔴 **`CA14` no era hipotético: el hueco ESTABA ABIERTO, y se midió ejecutándolo.** Contra las
+>    reglas de `HEAD`, un `tenant_admin` **podía escribirse `isCommittee: true` desde el navegador**
+>    y con ello la firma del informe. La causa es de FORMA: el `allow update` de `tenantUsers`
+>    enumera los campos que **NO pueden cambiar**, así que **todo campo nuevo nace escribible**.
+>    Al añadir un campo ahí, la pregunta es si sostiene un permiso.
+> 2. 🔴 **UNA HIPÓTESIS MÍA SOBRE LA CAUSA RESULTÓ FALSA, Y LA CACÉ MIDIENDO.** El emulador imprimía
+>    `evaluation error` al denegar; escribí un comentario culpando a mi propia línea. **Es
+>    preexistente**: se reproduce igual contra `HEAD` denegando un cambio de `role`. **El comentario
+>    falso se corrigió** — un comentario que justifica con una razón falsa es exactamente lo que
+>    sobrevive años.
+> 3. 🔴 **EL CONTEO CAZÓ LO QUE EL COMENTARIO NO EVITÓ.** El banco de reglas nuevo entraba en
+>    `npm test` (1789 → **1804**) por faltar en las exclusiones, y **`vitest.config.ts` avisa de ese
+>    error exacto TRES LÍNEAS más arriba**. Ha pasado tres veces. Ahora hay guardián que **mide el
+>    disco** (`tests/bancos-de-reglas-en-las-dos-listas.test.ts`), falsado en las dos direcciones y
+>    con control propio para no medir la nada.
+> 4. **EL PLURAL, OTRA VEZ — y dentro de la sección que avisa de él.** §11 contaba cuatro sitios que
+>    leen `role === "committee"`. Son **ONCE**: 3 en reglas, 2 en `identidadParaFirmar`, **5 en el
+>    front** (entrega 2).
+> 5. **PROBAR LA CONSULTA ANTES DE ESCRIBIR LA PANTALLA.** Listar `tenantUsers` podía rechazarse
+>    entera —Firestore evalúa la consulta contra la regla **sin ejecutarla**, la trampa de
+>    `bankAccounts`—. Se midió primero: tres pruebas, y funciona filtrando `tenantId`.
+> 6. **`RN-01` tiene guardián:** al conceder la marca, una prueba comprueba que el `role` sigue
+>    siendo `resident`. Si algún día alguien escribe `role: "committee"`, enrojece.
 >
-> ### 3 · El pie explicaba el denominador VIEJO (`ac26068`) — **y lo rompí yo en el arreglo 2**
+> ## LAS TRES CREDENCIALES: HOY CADUCARON DOS
 >
-> Al ensanchar el denominador, el pie de la tarjeta siguió diciendo «Morosidad = unidades con saldo
-> vencido sobre unidades **ACTIVAS**». El número correcto y la frase que lo explica, falsa.
->
-> 🔴 **Es la lección 8 del traspaso del jueves repitiéndose en una tarde** —«un arreglo puede
-> introducir el mismo defecto que viene a cerrar»— con otra cara: **esta vez no era un cálculo
-> duplicado, era un TEXTO que describía la fórmula anterior**. Lo cazó mirar staging.
->
-> ---
->
-> ## LO QUE HAY QUE SABER ANTES DE TOCAR NADA
->
-> ### 🔴 COMPROBAR LA RAMA ANTES DE COMMITEAR. Hoy costó una reparación
->
-> David corrió el bloque de promoción (`checkout master && merge --ff-only develop && push`), que
-> **deja el árbol en `master`**, y el siguiente commit se hizo encima **sin mirar la rama**: el
-> arreglo acabó en la rama de PRODUCCIÓN en vez de en `develop`. No llegó al remoto y se reparó
-> (`git checkout develop && git merge --ff-only <sha> && git branch -f master origin/master`), pero
-> **el bloque de promoción debe terminar SIEMPRE en `git checkout develop`**.
->
-> **Y `git push` respondió «Everything up-to-date» siendo mentira**: el remoto no se había movido.
-> **`git ls-remote` después de cada push, siempre.**
->
-> ### ⚠️ LA ADC CADUCA EN DOS DÍAS, Y EL DOCUMENTO QUE LO AVISA PUEDE ESTAR EQUIVOCADO
->
-> El traspaso del jueves decía que había caducado: **era falso al abrir el sábado** —respondía a la
-> primera—. Y **caducó de verdad a media sesión**, con el `invalid_rapt` que parece error de código.
-> O sea: **la afirmación era buena y el momento no**. Comprobarla cuesta un segundo:
+> **La ADC estaba muerta al abrir** (`invalid_grant`) **y la del CLI de firebase también** — la
+> segunda no se descubrió hasta ir a desplegar. **David repuso las dos.** Comprobarlas cuesta un
+> segundo y son independientes:
 >
 > ```bash
 > gcloud auth application-default print-access-token >/dev/null && echo viva || echo muerta
-> gcloud auth application-default login   # cuando toque
+> firebase projects:list >/dev/null 2>&1 && echo viva || echo muerta   # firebase login --reauth
 > ```
 >
-> ### ⚠️ EL CLASIFICADOR BLOQUEA EL LIBRO DE DINERO DE PRODUCCIÓN, Y HACE BIEN
+> ## 🔴 SIGUE PENDIENTE Y ES DE DAVID
 >
-> Bloqueó **tres** cosas: leer un asiento con un script en `/tmp`, escribirlo, y **crear el fichero**
-> que lo escribiría. **No lee la autorización del chat.** Lo que sí funciona para lo legítimo: un
-> script de **solo lectura** colocado **dentro de `functions/`** —donde vive `firebase-admin`— y
-> borrado después. Uno en `/tmp` ni siquiera resuelve el import.
->
-> ### ⚠️ EL PROYECTO POR DEFECTO DEL CLI ES `hogaru-1`, O SEA PRODUCCIÓN
->
-> `firebase deploy` **sin `--project` toca producción**. Y después,
-> `functions/scripts/verificar-reglas-desplegadas.mjs <projectId>`, que lee el ruleset **vivo**.
->
-> ### 🔴 SÍ HAY JAVA
->
-> `/usr/bin/java` es el stub de macOS. El JDK está en `~/.local/jdk`:
->
-> ```bash
-> export JAVA_HOME="$HOME/.local/jdk/jdk-21.0.12.1+1/Contents/Home"
-> export PATH="$JAVA_HOME/bin:$PATH"
-> firebase emulators:start --only firestore,storage --project hogaru-1-test
-> ```
->
-> **Siguen sin correr los cuatro criterios de reglas de `FEAT-007`.**
->
-> ### Las banderas, y dónde están encendidas
->
-> `producto-informe-mensual` y `producto-egresos-en-cuotas` están **ENCENDIDAS EN LOS NUEVE** desde
-> el 4 de septiembre, por el **global**. ⚠️ **Las overrides de canario siguen puestas**
-> (`tenant-santa-maria` en las dos, `conjunto-las-playas` en la de cuotas): un `enabled: false`
-> global apagaría siete y **dejaría dos encendidas**. **Para los nueve, kill switch.**
->
-> Y las dos **nacieron sin documento global** —resolvían por `defaultEnabled: false` del catálogo—:
-> **«sin documento» no es «apagada», es «lo que diga el catálogo»**.
->
-> ---
->
-> ## 🔴 LO QUE QUEDA A MEDIAS, Y ES DE DAVID
->
-> **`ledgerEntries/tWgE2rhBeztUbCTWKokt` sigue con `accountCode: null`.** Medido el 4 de
-> septiembre: `conjunto-las-playas`, cuota 1 de `exp-playas-012`, $2.600. Debe ser **`2.3`**,
-> derivado —no citado— de que el egreso tiene `category: "mantenimiento"` y
-> `SEMILLA_PLAN_DE_CUENTAS` mapea `mantenimiento → 2.3` (`functions/src/plan-de-cuentas.ts:159`).
-> Tres líneas con la ADC contra `hogaru-1`, comprobando antes que siga siendo `null`.
->
-> ---
->
-> ## `PRD-V-PLAT-004` — ESCRITA, EN DISCOVERY, BLOQUEADA POR `G5`
->
-> `docs/prd/funcionales/PRD-V-PLAT-004-alcance-del-rol-consejo.md`. **`G0`–`G4` superadas.**
->
-> Se abrió creyendo que era «darle más alcance al consejo». Medir dijo otra cosa:
->
-> 1. **El rol `committee` NO SE PUEDE CONCEDER POR NINGUNA VÍA.** La pantalla de Usuarios ofrece
->    dos opciones (`users/page.tsx:314-315`) con el tipo escrito a mano como unión de esas dos, y
->    el servidor lo blinda en `assertOperationalRole` (`index.ts:781`). **Cero personas con el rol,
->    sobre 41.**
-> 2. **Hay capacidad muerta en producción:** `FLOW-007` desplegó la firma del informe por el
->    consejo (`identidadParaFirmar`, `index.ts:4898`) y **no la ejerce nadie**.
-> 3. 🔴 **`RN-01`:** `tenantUsers` tiene id `{tenantId}_{uid}` — **una membresía por persona con un
->    único campo `role`**—, y `canAccessPath` (`routing.ts:34`) exige `role === "resident"` para
->    **todo** `/resident`. Poner `role: "committee"` deja al consejero **fuera del portal del
->    residente entero**. Por eso la marca es un **atributo** `isCommittee`, no un rol.
->
-> **`G5`, la pregunta para David:** *¿quién mantiene el consejo al día cuando la asamblea lo renueva
-> cada año?* Hoy nadie, porque no existe. **No está lista para desarrollo sin esa respuesta.**
->
-> ---
+> **`ledgerEntries/tWgE2rhBeztUbCTWKokt` SIGUE con `accountCode: null`** — verificado hoy con la
+> ADC viva: `conjunto-las-playas`, $2.600. Debe ser **`2.3`**, derivado de que el egreso tiene
+> `category: "mantenimiento"` (`functions/src/plan-de-cuentas.ts:159`), **no copiado**. **El
+> clasificador bloquea escribirlo Y crear el fichero que lo haría.**
 >
 > ## LO QUE SIGUE
 >
-> 1. **`G5` de `PLAT-004`** — una respuesta y queda lista para construir. La entrega 1 es
->    **poder conceder el rol**, no las pantallas.
-> 2. **El asiento `2.3`**, arriba. Es de David.
-> 3. **El abogado ecuatoriano** sigue **sin contestar** (confirmado el 4 sep). Bloquea la entrega 3
->    de `FLOW-007` y **`FLOW-006` entera**.
-> 4. **Chip abierto:** el informe rotula «Saldo de fondos» aunque no haya saldo de apertura, donde
->    Finanzas dice «Movimientos acumulados». Mismo número, dos nombres. Visto en El Nogal.
-> 5. **Si nada de eso se mueve, elegir frente:** **37 P1, 42 P2 y 12 P3** de los 108 candidatos ·
->    **siete de los diez huecos** de la administradora (los dos siguientes de su orden son la **foto
->    del medidor**, §3.5, y **presupuesto contra ejecución**, §3.6 — **pero éste encaja DENTRO del
->    informe mensual**) · **`FIX-001` entrega 2** (van 10 de 11).
+> 1. **Empujar y desplegar** el bloque de arriba. Es lo único que separa la entrega 1 de estar viva.
+> 2. **Encender la bandera SOLO en `tenant-santa-maria`** y **observar `CA1`–`CA5`**, que están
+>    construidos y **NO vistos**: piden una sesión de consejero real.
+> 3. **Entrega 2 de `PLAT-004`**: los cinco sitios del front y `TBD-B` (¿el consejero entra por
+>    `/admin` o por `/resident`? La ficha recomienda `/resident`, porque `RN-01` lo hace residente).
+> 4. **El abogado ecuatoriano** sigue **sin contestar** (confirmado hoy). Bloquea la entrega 3 de
+>    `FLOW-007` y **`FLOW-006` entera**.
+> 5. **Si nada de eso:** 37 P1 / 42 P2 / 12 P3 de los 108 candidatos · **siete huecos** de la
+>    administradora (los dos siguientes: **foto del medidor** §3.5 y **presupuesto contra
+>    ejecución** §3.6 — **pero éste encaja DENTRO del informe mensual**) · `FIX-001` entrega 2.
+>
+> ### Las banderas
+>
+> `producto-informe-mensual` y `producto-egresos-en-cuotas`, **encendidas en los nueve** por el
+> global. ⚠️ **Las overrides de canario siguen puestas**: `enabled: false` apagaría siete y dejaría
+> dos. **Para los nueve, kill switch.** `producto-rol-consejo` **nace apagada** y sin documento —
+> y «sin documento» no es «apagada»: es lo que diga el `defaultEnabled` del catálogo, que aquí es
+> `false`.
 >
 > ### Tres frenos que NO son de código
 >
-> **Proveedores (0 filas), paz y salvo (0 emitidos) y coeficiente (18 de 93 unidades)** encendidos
-> en los nueve **sobre tablas vacías**. Y **producción no tiene ni un cliente real**: cero, medido.
+> Proveedores (0 filas), paz y salvo (0 emitidos) y coeficiente (18 de 93). **Y ahora un cuarto,
+> medido: el consejo, con 10 cuentas en 68 personas.** Producción sigue sin **un solo cliente
+> real**.
 >
-> ---
+> ## NO REABRIR
 >
-> ## MÉTODO — lo que dejó esta pasada
->
-> 1. 🔴 **RECORRER LA PANTALLA ENCONTRÓ DOS DEFECTOS QUE NINGUNA PREGUNTA HABÍA HECHO.** El 106% y
->    el pie falso aparecieron **verificando otra cosa**. 1789 pruebas en verde no los veían porque
->    **nadie las había escrito**: no es un hueco de cobertura, es un hueco de preguntas.
-> 2. 🔴 **ESCRIBIR LA PREDICCIÓN ANTES DE MIRAR.** Se replicó `computeFundPosition` sobre los datos
->    reales y salieron **exactamente** −675.000 y 725.000, las dos cifras de la nota original. Leer
->    el número primero y decir «era lo esperado» no habría probado nada.
-> 3. 🔴 **UNA COMPROBACIÓN SOBRE UN CONJUNTO VACÍO NO PRUEBA NADA.** Santa María en staging tiene
->    **0 cargos y 0 asientos**: mirar ahí habría dado un verde hueco. Y para la morosidad,
->    **staging no cambiaba en ninguno de sus siete conjuntos** — el arreglo solo era observable en
->    producción. **Antes de verificar, comprobar que el sujeto puede distinguir el antes del
->    después.**
-> 4. **EL CONTROL NEGATIVO TAMBIÉN ES VERIFICACIÓN.** Predecir «estos siete números NO se mueven» y
->    comprobarlo demuestra que no se perturbó a quien no tocaba.
-> 5. 🔴 **UN COMENTARIO PUEDE JUSTIFICAR UN DEFECTO Y SOBREVIVIRLE.** El del reparto describía la
->    discrepancia con exactitud y la llamaba decisión deliberada. **Una cabecera no es una
->    medición**, y al cambiar una fórmula hay que releer lo que la explica — incluido el texto que
->    ve el usuario, que es como nació el defecto 3.
-> 6. **EL PLURAL, OTRA VEZ Y DOS VECES.** «El filtro de los parciales» eran **cuatro** sitios; «la
->    morosidad» eran **dos** (el cálculo y el rótulo). **Contar antes de firmar la conclusión.**
-> 7. 🔴 **UN CERO ES TAN SOSPECHOSO COMO UN NÚMERO RARO.** El primer barrido de roles dio **0
->    memberships** porque la colección se llama **`tenantUsers`**. Un inventario vale lo que valen
->    las colecciones que recorre.
-> 8. **MEDIR ANTES DE ESCRIBIR UNA PRD CAMBIA LA PRD, no solo sus números.** `PLAT-004` iba a ser
->    «más pantallas» y resultó ser «el rol no se puede conceder».
-> 9. **AL SUSTITUIR UN DUPLICADO, MIRAR QUÉ HACE DE MÁS EL ORIGINAL.** El informe tenía un respaldo
->    `?? amount` que las otras tres fórmulas no tienen; sustituir a ciegas habría **bajado**
->    $1.572.800 sin querer. Se midió primero y se decidió con el dato: 8 cargos sembrados, sin
->    asiento.
-> 10. **COMPROBAR LA RAMA.** Ver arriba.
+> - Las cuatro decisiones de `FEAT-007`; `RN-13` y `RN-14` de `FLOW-006`; los dos `TBD` de
+>   `FLOW-008`; los dos huecos de la administradora que resultaron falsos.
+> - **`RN-01` de `PLAT-004`**: la marca es un ATRIBUTO `isCommittee`, no un valor de `role`. Ahora
+>   además **tiene guardián**.
+> - **`G5`**: la mantiene el **administrador del conjunto**, sin caducidad. La antigüedad se ve en
+>   el padrón (`committeeSince`), y eso es lo que contiene un consejo rancio.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
