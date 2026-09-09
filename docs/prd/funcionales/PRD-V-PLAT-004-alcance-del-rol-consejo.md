@@ -9,7 +9,7 @@
 | **Usuario principal** | Miembro del consejo de administración |
 | **Usuarios secundarios** | `tenant_admin` (concede el rol), `superadmin` (soporte) |
 | **Responsable** | David |
-| **Estado** | Listo para desarrollo — entrega 1 en curso |
+| **Estado** | **Entrega 1 CONSTRUIDA** (9 sep 2026) · sin desplegar · entregas 2 y 3 pendientes |
 | **Dependencias** | `PRD-V-FLOW-007` (firma del informe, **ya en producción**) · `PRD-V-PLAT-002` (multiconjunto) |
 | **Riesgo** | Medio-alto — toca permisos y el padrón |
 | **Reversibilidad** | Reversible por bandera **salvo el modelo de datos** (ver §13) |
@@ -325,7 +325,7 @@ la llame. Es el mismo orden que `FLOW-008`.
 
 | Entrega | Qué | Por qué en este orden |
 |---|---|---|
-| **1** | Conceder y retirar la marca: callable, reglas, control en Personas, auditoría | **Sin esto todo lo demás es código muerto**, y ya hay una capacidad muerta en producción por saltarse este paso |
+| **1** ✅ | Conceder y retirar la marca: callable, reglas, control en el padrón, auditoría | **Sin esto todo lo demás es código muerto**, y ya hay una capacidad muerta en producción por saltarse este paso |
 | **2** | Las pantallas de lo que ya tiene permiso: informes emitidos y documentos. Resuelve `TBD-B` | El permiso ya existe; solo falta llegar |
 | **3** | Paz y salvo, sujeto a `TBD-C` y al abogado | Dato de terceros |
 
@@ -335,6 +335,64 @@ la llame. Es el mismo orden que `FLOW-008`.
   `~/.local/jdk`), y la recorrida por pantalla con una sesión de consejero real.
 - **Solo en producción:** que un consejero de verdad abra un informe real. Hoy imposible —
   es precisamente lo que esta ficha viene a arreglar.
+
+---
+
+---
+
+## 14 · Lo que CONSTRUIR corrigió de esta ficha (9 de septiembre de 2026)
+
+Los tres salieron de medir, no de leer, y los tres cambian algo que esta ficha
+afirmaba.
+
+### 1 · El control NO va en `admin/users`. Va en el padrón
+
+§11 apuntaba a `src/app/(admin)/admin/users/page.tsx`. Esa pantalla **filtra
+fuera a los residentes**: `page.tsx:72` se queda solo con `tenant_admin` y
+`security_guard`. El destinatario de la marca es un residente, así que el control
+habría vivido sobre **una lista que nunca contiene un destinatario válido** — el
+patrón de «encendido sobre tablas vacías», que este proyecto ya pagó tres veces.
+
+Va en `src/app/(admin)/admin/residents/page.tsx`, que además es donde `CA6` pide
+que la marca se vea.
+
+### 2 · El puente entre las dos colecciones, que la ficha no nombraba
+
+El padrón vive en **`people`** y la marca en **`tenantUsers`**. Los une
+`person.authUid`, y **una persona del padrón sin cuenta de acceso no tiene
+membresía**: no hay documento donde escribir la marca. Es un freno de DATO, no de
+código, y hay que medirlo antes de prometer la métrica primaria: *cuántos
+residentes de cada conjunto tienen `authUid`*. **Sin ADC no se pudo medir el 9 de
+septiembre.**
+
+### 3 · Los sitios que leen `role === "committee"` son ONCE, no cuatro
+
+§11 contaba «tres en `firestore.rules` más `identidadParaFirmar`». Medido:
+
+| Dónde | Sitios | Entrega |
+|---|---|---|
+| `firestore.rules` (`tenantRole`) | 3 — `1100`, `1441`, `1449` | **1** ✅ |
+| `functions/src/index.ts` (`identidadParaFirmar`) | 2 — la puerta y el cargo del PDF | **1** ✅ |
+| Front: `auth-context`, `routing` (×2), `app-shell`, `role-sidebar-groups` | 5 | **2** |
+
+**La trampa del plural, otra vez** — y esta vez dentro de la sección que avisa de
+ella.
+
+### 4 · `CA14` no era hipotético: el hueco estaba abierto, y está MEDIDO
+
+Contra las reglas de `HEAD`, un `tenant_admin` **podía escribirse
+`isCommittee: true` desde el navegador** y con ello la firma del informe del
+conjunto. Se comprobó ejecutándolo contra el emulador antes de cerrarlo, no
+leyendo la regla. La causa es de forma: `tenantUsers` enumera los campos que **no
+pueden cambiar**, así que **todo campo nuevo nace escribible**.
+
+### Lo que queda para la entrega 2
+
+- Los **cinco sitios del front** de la tabla de arriba, y `TBD-B` con ellos.
+- Las pantallas de informes emitidos y paz y salvo. El permiso ya llega — lo
+  prueban las cuatro positivas de `tests/rol-consejo.rules.test.ts`.
+- **`CA1`–`CA5` no se han observado**: piden una sesión de consejero real con la
+  bandera encendida. Están construidos, no vistos.
 
 ---
 
