@@ -77,6 +77,10 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // catálogo en `src/`.
     "producto-informe-mensual": false,
     "producto-egresos-en-cuotas": false,
+    // Apagada = no se puede nombrar ni retirar consejeros. OJO: apagarla no retira
+    // la marca a quien ya la tenga — el permiso vive en el dato. Ver el catálogo
+    // en `src/`.
+    "producto-rol-consejo": false,
     // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
     // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
     "producto-anticipos": false,

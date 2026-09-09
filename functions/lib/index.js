@@ -33,8 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = void 0;
+exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -73,6 +73,7 @@ const management_companies_1 = require("./management-companies");
 const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
 const feature_flags_1 = require("./feature-flags");
+const rol_consejo_1 = require("./rol-consejo");
 const egresos_en_cuotas_1 = require("./egresos-en-cuotas");
 const informe_mensual_1 = require("./informe-mensual");
 const nucleo_estado_financiero_1 = require("./nucleo-estado-financiero");
@@ -1368,6 +1369,49 @@ exports.updateOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callab
         roleChanged,
     });
     return { ok: true };
+});
+exports.setCommitteeMembership = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    if (!request.auth?.uid) {
+        throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+    const tenantId = normalizeText(request.data?.tenantId);
+    const targetUid = normalizeText(request.data?.uid);
+    const quiereLaMarca = request.data?.isCommittee;
+    if (!tenantId || !targetUid) {
+        throw new https_1.HttpsError("invalid-argument", "tenantId y uid son requeridos.");
+    }
+    // Sin esto, un `undefined` se leería como «retirar» y una llamada mal
+    // formada retiraría permisos en silencio.
+    if (typeof quiereLaMarca !== "boolean") {
+        throw new https_1.HttpsError("invalid-argument", "isCommittee debe ser true o false.");
+    }
+    // **El superadmin sale primero, y a propósito**: soporte necesita operar un
+    // conjunto suspendido. El administrador del conjunto sí pasa por
+    // `assertActiveTenantAdmin`, que lleva `assertTenantOperable` dentro — de
+    // ahí sale `CA13`.
+    const esSuperadmin = request.auth.token?.role === "superadmin";
+    const targetTenantId = esSuperadmin
+        ? tenantId
+        : (await assertActiveTenantAdmin(tenantId, request.auth.uid)).tenantId;
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-rol-consejo", targetTenantId);
+    const resultado = await (0, rol_consejo_1.aplicarMarcaDeConsejo)({
+        tenantId: targetTenantId,
+        actorUid: request.auth.uid,
+        targetUid,
+        quiereLaMarca,
+    });
+    // `RN-08`. **Solo si cambió algo**: una llamada idempotente no es un acto que
+    // auditar, y llenar el registro de no-actos entierra los que sí lo son.
+    // Sin campos `undefined`: `writeAuditLog` audita FUERA de la transacción y
+    // uno haría fallar la callable DESPUÉS de que la marca ya esté escrita.
+    if (resultado.cambiado) {
+        await writeAuditLog(targetTenantId, request.auth.uid, "set_committee_membership", {
+            uid: targetUid,
+            isCommittee: quiereLaMarca,
+            porSuperadmin: esSuperadmin,
+        });
+    }
+    return resultado;
 });
 exports.deleteOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {
@@ -3865,7 +3909,14 @@ async function identidadParaFirmar(tenantId, uid) {
         throw new https_1.HttpsError("permission-denied", "No puedes operar sobre otro conjunto.");
     }
     const rol = membership.role ?? "";
-    if (rol !== "tenant_admin" && rol !== "admin_tenant" && rol !== "committee") {
+    // **`PLAT-004`: quien firma como consejo es un RESIDENTE con la marca**, no
+    // alguien con `role: "committee"`. Ese valor sigue admitido porque retirarlo
+    // le quitaría la firma a quien lo tuviera, pero **no lo tiene nadie**: medido
+    // el 4 de septiembre de 2026, 0 de 41 en producción. Era precisamente la
+    // capacidad muerta que esta ficha viene a resucitar — estaba desplegada,
+    // verificada y era inejecutable porque el rol no se podía conceder.
+    const esConsejo = rol === "committee" || membership.isCommittee === true;
+    if (rol !== "tenant_admin" && rol !== "admin_tenant" && !esConsejo) {
         throw new https_1.HttpsError("permission-denied", "Solo la administración y el consejo firman el informe del conjunto.");
     }
     // **Una membresía inactiva no firma.** A quien se le retiró el acceso se le
@@ -3887,7 +3938,10 @@ async function identidadParaFirmar(tenantId, uid) {
     }
     return {
         name: nombre,
-        role: rol === "committee" ? "Consejo de administración" : "Administración",
+        // El cargo lo decide la MARCA, no el `role`: un consejero es un residente,
+        // así que `rol` dice «resident» y preguntarle a él imprimiría
+        // «Administración» sobre la firma del consejo.
+        role: esConsejo ? "Consejo de administración" : "Administración",
     };
 }
 exports.regenerateMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {

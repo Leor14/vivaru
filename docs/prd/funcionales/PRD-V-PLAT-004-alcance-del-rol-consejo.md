@@ -386,6 +386,34 @@ conjunto. Se comprobó ejecutándolo contra el emulador antes de cerrarlo, no
 leyendo la regla. La causa es de forma: `tenantUsers` enumera los campos que **no
 pueden cambiar**, así que **todo campo nuevo nace escribible**.
 
+### 5 · 🔴 EL FRENO NO ES CÓDIGO: solo UN conjunto de nueve puede tener consejo
+
+Medido en producción el 9 de septiembre de 2026, cruzando `people.authUid` contra
+`tenantUsers`. **Nombrable** = persona del padrón con cuenta, con membresía
+`resident` activa en su conjunto:
+
+| Conjunto | Nombrables | ¿Puede formar consejo (3–7)? |
+|---|---|---|
+| **Conjunto Residencial Santa María** | **8** | ✅ |
+| Conjunto Bromelias | 1 | ❌ |
+| Privada Las Playas | 1 | ❌ |
+| Los otros **seis** | **0** | ❌ |
+
+**68 personas en el padrón y solo 10 con cuenta de acceso.** El cruce está limpio
+—cero `authUid` sin membresía, cero membresías no residentes—, así que la
+pantalla funciona; lo que falta son **cuentas**, y eso es captura de datos, no
+ingeniería.
+
+**Consecuencia operativa, y es la que decide el despliegue:** la bandera solo
+tiene sentido en **`tenant-santa-maria`**, que además es el canario de siempre.
+Encenderla en los otros ocho pondría un control que **no puede nombrar a nadie** —
+el patrón de «encendido sobre tablas vacías» que esta misma ficha cita como
+riesgo ya pagado tres veces, ahora con números.
+
+**Y la métrica primaria queda acotada por esto**, no por el código: «conjuntos con
+al menos un `committee` activo» tiene hoy un techo real de **tres**, y de **uno**
+si se exige un consejo completo.
+
 ### Lo que queda para la entrega 2
 
 - Los **cinco sitios del front** de la tabla de arriba, y `TBD-B` con ellos.
