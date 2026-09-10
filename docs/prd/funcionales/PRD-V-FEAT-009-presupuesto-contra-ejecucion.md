@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | Entrega 1 en los dos ambientes, **apagada en los nueve** · **entrega 2 en staging, vista en pantalla** (10 sep 2026) · su producción, pendiente |
+| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES** (10 sep 2026) · en producción con la bandera **apagada en los nueve** · falta la vista previa real de impresión |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -568,10 +568,20 @@ pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó ante
 > nada — el importe no llegó al campo, y la comprobación de antes de guardar lo mostró vacío.
 > Se confirmó en la base que no había quedado ningún documento a medias antes de repetir.
 
+### En producción, con la bandera apagada (10 de septiembre de 2026)
+
+- **Reglas primero**: el ruleset vivo difería del repo exactamente en `aprobacionValida` y en
+  la línea que la llama; tras desplegar, el servido (`f2677c59…`) es **idéntico al repo**.
+- **Front después**: `master` en avance rápido de `f623148` a `7846bc1`, servido —verificado
+  por el commit del build—.
+- **La bandera, resuelta con el código compilado**: apagada en los nueve, sin documento
+  global. En producción **no hay ningún presupuesto** guardado.
+
 ### Pendiente
 
-- La vista previa real de impresión (`⌘P`), para cerrar `CA8`.
-- **La entrega 2 a producción**, en el mismo orden: reglas → front.
+- **La vista previa real de impresión (`⌘P`)**, para cerrar `CA8`.
+- Encenderla en un conjunto de producción cuando haya quien cargue el presupuesto de 2026.
+- Fase 2: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D` (línea en el informe).
 
 ## Puertas
 
