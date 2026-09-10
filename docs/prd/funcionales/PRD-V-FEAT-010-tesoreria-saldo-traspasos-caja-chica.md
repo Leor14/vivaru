@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 construida y falseada** (10 sep 2026) · pendiente de verse en staging |
+| **Estado** | **Entrega 1 en staging, vista en pantalla** (10 sep 2026) · producción pendiente |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -377,6 +377,27 @@ Leída en la base de staging con la misma regla de signo:
   Reportes —$74,700—, «cobrado sin asiento» tiene que dar **$0**.
 - **Santa María en staging:** 0 cuentas y 0 asientos. El caso de «cuenta registrada que
   ningún asiento lleva» solo existe en producción.
+
+### Vista en staging, contra la predicción (10 de septiembre de 2026)
+
+| Línea, en Conjunto Las Playas | Predicción | Pantalla |
+|---|---|---|
+| Cuenta operativa · BBVA México · corriente | 85,000 · 127,500 · 137,800 · **74,700** | $85,000.00 · $127,500.00 · $137,800.00 · **$74,700.00** |
+| Sin cuenta asignada | $0 en 2 movimientos | $0.00 en 2 movimientos |
+| Cobrado en Cartera sin asiento | $0 | $0.00 |
+| **Total** | 74,700 | **$74,700.00**, y sin línea de «sin explicar» |
+
+- **`CA2`**: «Libro y fondos» dice **SALDO DE FONDOS $74,700.00**, el mismo número.
+- **`CA3`**: los dos movimientos sin cuenta son un pago de multa de **+$500.00** y su reverso,
+  **−$500.00** — el reverso sale con el signo bueno, que es lo que protege
+  `movimientoEntraAlFondo`.
+- **Sin cuentas** (Santa María en staging, que no tiene ni cuentas ni asientos): «Este conjunto
+  no tiene cuentas bancarias registradas. Todo su dinero aparece en las líneas de abajo», todo
+  en cero y en el formato de moneda del conjunto.
+
+**Pendiente:** llevarla a producción con la bandera apagada —solo front, no hay reglas nuevas— y
+verla en Santa María de producción, donde el saldo por cuenta saldrá casi entero fuera de las
+cuentas: es el caso que la motiva.
 
 ## Puertas
 
