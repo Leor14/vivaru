@@ -77,17 +77,19 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | 🟢 En producción, bandera apagada | **§3.5 la foto del medidor** (`FEAT-008`) · **§3.8 presupuesto contra ejecución** (`FEAT-009`) |
 > | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
 > | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
-> | 🟡 Parcial | §3.10 — **el pase recurrente YA existe**; falta comprobar si `larga_duracion` + categoría `servicio` cubre al proveedor |
+> | ✅ Ya existía (verificado el 10 sep) | §3.10 — pase de **larga duración** con categoría **Servicio**, con QR y ventana: cubre al proveedor recurrente. **Verificado en el código, no en pantalla**, y no se enlaza con el registro de proveedores |
 >
-> **Construible de verdad no queda ninguno**: solo verificar §3.10. Y de los 108 candidatos quedan
-> 37 P1, 42 P2 y 12 P3.
+> **Construible de verdad no queda ninguno**, y §3.10 resultó cubierto: el formulario de visitas del
+> administrador ya tenía la categoría `servicio`. Y de los 108 candidatos quedan **33 P1, 41 P2 y 12 P3**
+> —el 10 sep salieron `F1`–`F4` con `FEAT-008` y `E6` con `FEAT-009`—.
 >
 > ⚠️ **La referencia del presupuesto es §3.8, NO §3.6.** §3.6 es el corte de acceso, que está
 > VETADO; esa confusión vivió cinco días en este documento.
 >
 > ## LO QUE SIGUE
 >
-> 1. **Verificar §3.10** — probablemente ya esté hecho.
+> 1. ~~Verificar §3.10~~ — ✅ **hecho el 10 sep**: el pase de larga duración con categoría Servicio cubre al
+>    proveedor. Comprobado en el código; falta verlo una vez en pantalla.
 > 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
 > 3. **Encender `FEAT-008` o `FEAT-009` en algún conjunto de producción** — es decisión de David, y
