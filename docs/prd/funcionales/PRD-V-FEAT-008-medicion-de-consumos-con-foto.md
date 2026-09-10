@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
 | **Responsable** | David |
-| **Estado** | **ENTREGAS 1 Y 2 EN STAGING, VISTAS EN PANTALLA** · entrega 1 también en producción, con la bandera apagada |
+| **Estado** | **LAS TRES ENTREGAS EN STAGING, VISTAS EN PANTALLA** · en producción solo la 1, con la bandera apagada |
 | **Dependencias** | `PRD-V-FLOW-001` (reparto por coeficiente, **de donde sale la estructura**) · `PRD-V-PLAT-003` (plan de cuentas) |
 | **Riesgo** | Medio — toca dinero, pero no toca permisos ni el modelo de la unidad |
 | **Reversibilidad** | Reversible por bandera **salvo los cargos ya emitidos** (§13) |
@@ -414,6 +414,41 @@ El ciclo entero en staging/Palmas, con la predicción escrita antes de cada paso
 ### Lo que queda
 
 **Entrega 3:** el residente ve sus lecturas y su foto. ⚠️ Su consulta —`tenantId` + `unitId`— **no se ha ejercitado contra un índice real**; las tres del administrador sí, y funcionan.
+
+---
+
+## 16 · La entrega 3, vista con la sesión del residente (10 de septiembre de 2026)
+
+Con la sesión de **Carmen García Vidal** (Privada Las Palmas, EA-101), que es
+además la consejera de `PLAT-004` — así que una sesión verificó las dos fichas.
+
+| Qué | Visto |
+|---|---|
+| `CA7` · la tarjeta | «Tus consumos medidos», con **dos filas** |
+| Octubre | **47 m³ · $150.400**, con «Ver foto» |
+| Septiembre · `RN-04` | **«primera lectura»** e importe «—»: se dice POR QUÉ no se cobra, en vez de enseñar un cero que parece un error |
+| El orden | Lo más reciente arriba — **puesto en memoria, sin índice** |
+| La foto | Se abre a tamaño completo con su título |
+| **`RN-07`** | **Falsado con un dato de prueba**: se sembró una lectura de 99 m³ en EA-102, y Carmen **siguió viendo solo sus dos filas** |
+| **`RN-01` de `PLAT-004`** | Carmen es consejera y **conserva su unidad y su estado de cuenta** |
+
+**`RN-07` no se dio por bueno con la regla escrita ni con la prueba del emulador:
+se metió el dato del vecino y se comprobó que no aparece.** Es la diferencia entre
+«la consulta filtra» y «el vecino no lo ve», y solo la segunda es la promesa.
+
+Y `RN-01` cierra el hueco que quedó ayer: **es el invariante que ninguna de las
+374 pruebas de reglas puede demostrar**, porque lo que hay que ver es que un
+consejero SIGA entrando a su portal de residente.
+
+### Antes de escribir código se midieron dos cosas, y las dos decidieron el diseño
+
+1. **`tenantId + unitId + orderBy(period)` EXIGE índice compuesto**; sin orden, no.
+   Un índice que falta **no da error**: Firestore rechaza la consulta entera y el
+   residente vería «no tienes lecturas» teniendo doce. Por eso el orden va en
+   memoria — patrón `watchLedger`, con guardián.
+2. **El `unitId` de las lecturas CASA con el de las membresías** (1 de 1). Si no
+   casaran, `residentOwnUnit` rechazaría y el residente vería vacío: el defecto de
+   `FIX-002` con otro nombre.
 
 ---
 
