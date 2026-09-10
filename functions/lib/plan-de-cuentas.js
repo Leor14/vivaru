@@ -47,7 +47,7 @@ exports.cuentaPorCodigo = cuentaPorCodigo;
 exports.cuentaParaCategoriaDeEgreso = cuentaParaCategoriaDeEgreso;
 exports.categoriaParaConcepto = categoriaParaConcepto;
 exports.descripcionDeCobro = descripcionDeCobro;
-/** Los siete conceptos de cargo. Copia deliberada de `BillingConcept` de `src/types/domain.ts`. */
+/** Los conceptos de cargo. Copia deliberada de `BillingConcept` de `src/types/domain.ts`. */
 exports.CONCEPTOS_DE_CARGO = [
     "administracion",
     "extraordinaria",
@@ -56,6 +56,7 @@ exports.CONCEPTOS_DE_CARGO = [
     "interes_mora",
     "parqueadero",
     "vigilancia",
+    "consumo_medido",
     "otro",
 ];
 /**
@@ -196,6 +197,7 @@ exports.CUENTA_POR_CONCEPTO = {
     parqueadero: "1.5",
     reparacion: "1.6",
     vigilancia: "1.9", // ← el CARGO de vigilancia es un INGRESO. El gasto es la 2.9
+    consumo_medido: "1.11", // ← el COBRO del agua es un INGRESO. Lo que se PAGA por ella es la 2.2
     otro: exports.CUENTA_OTROS_INGRESOS, // ← `otro` (cargo) no es `otros` (egreso, 2.8)
 };
 /**
@@ -301,6 +303,7 @@ const DESCRIPCION_DE_COBRO = {
     parqueadero: "parqueadero",
     reparacion: "reparación",
     vigilancia: "cuota de vigilancia",
+    consumo_medido: "consumo medido",
     otro: "cargo",
 };
 function descripcionDeCobro(concepto) {

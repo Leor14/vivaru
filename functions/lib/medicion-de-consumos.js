@@ -9,7 +9,11 @@ exports.unidadesSinFoto = unidadesSinFoto;
 exports.registrarLectura = registrarLectura;
 exports.cerrarPeriodo = cerrarPeriodo;
 exports.reabrirPeriodo = reabrirPeriodo;
+exports.repartirPorConsumo = repartirPorConsumo;
+exports.idDeCorridaDeConsumo = idDeCorridaDeConsumo;
+exports.generarCorridaDeConsumo = generarCorridaDeConsumo;
 const firestore_1 = require("firebase-admin/firestore");
+const plan_de_cuentas_1 = require("./plan-de-cuentas");
 const https_1 = require("firebase-functions/v2/https");
 /** `YYYY-MM`. Se valida aquí porque de él cuelga la búsqueda del período anterior. */
 function esPeriodoValido(period) {
@@ -185,4 +189,192 @@ async function reabrirPeriodo(params) {
     }
     await lote.commit();
     return { ok: true, lecturas: snap.size };
+}
+/**
+ * `RN-01` — **el cobro por consumo es una TERCERA BASE DE REPARTO**, no un
+ * mecanismo nuevo. `BillingCampaign` ya lleva `distributionBasis`,
+ * `totalDistributed` y `distributionBasisValue` por línea desde `FLOW-001`.
+ *
+ * **Y hay una diferencia con el reparto por coeficiente que conviene ver, porque
+ * quita trabajo:** allí se reparte un total CONOCIDO entre las unidades, así que
+ * hay que cuadrar los céntimos contra ese total y existe un ajuste de redondeo.
+ * Aquí el total **se DERIVA** de la suma: cada unidad paga lo suyo y el total es
+ * lo que salga. **No hay nada que cuadrar, así que no hay ajuste de redondeo** —
+ * y no tenerlo no es un olvido.
+ *
+ * `RN-04`: las lecturas de línea base **no generan cargo**, y por eso salen de
+ * la lista en vez de entrar con importe cero: un cargo de cero es un cargo que
+ * alguien tiene que mirar y cerrar.
+ */
+function repartirPorConsumo(lecturas, rate, unidadesActivas) {
+    const etiqueta = new Map(unidadesActivas.map((u) => [u.id, u.unitLabel]));
+    const conLectura = new Set(lecturas.map((l) => l.unitId));
+    const lines = lecturas
+        .filter((l) => !l.esLineaBase && l.consumption > 0)
+        .map((l) => ({
+        unitId: l.unitId,
+        unitLabel: etiqueta.get(l.unitId) ?? l.unitId,
+        consumption: l.consumption,
+        amount: importeDelConsumo(l.consumption, rate),
+    }))
+        .sort((a, b) => a.unitLabel.localeCompare(b.unitLabel, "es"));
+    return {
+        lines,
+        total: lines.reduce((a, l) => a + l.amount, 0),
+        totalConsumo: redondear(lecturas.reduce((a, l) => a + (l.esLineaBase ? 0 : l.consumption), 0)),
+        // `RN-06` — las que faltan se NOMBRAN, igual que hace el reparto por
+        // coeficiente cuando falta un coeficiente. Un «faltan unidades» a secas
+        // obliga a buscarlas a mano entre noventa y tres.
+        sinLectura: unidadesActivas
+            .filter((u) => !conLectura.has(u.id))
+            .map((u) => u.unitLabel)
+            .sort((a, b) => a.localeCompare(b, "es")),
+    };
+}
+/** El id de la corrida deriva del período: dos confirmaciones no crean dos. */
+function idDeCorridaDeConsumo(tenantId, serviceId, period) {
+    return `consumo_${`${tenantId}_${serviceId}_${period}`.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120)}`;
+}
+/**
+ * Genera la corrida de cobro del período. **El permiso lo validó `index.ts`.**
+ *
+ * ## Por qué hay vista previa, y no es un adorno
+ *
+ * Esto crea cargos de dinero sobre veintitantas unidades de golpe. El reparto
+ * por coeficiente ya la tiene (`dryRun`), y por lo mismo: se mira antes de
+ * confirmar, y lo que se mira incluye **a quién NO se le va a cobrar**.
+ *
+ * ## Idempotencia
+ *
+ * El id de la corrida **deriva del período** (`CA15`), así que un doble clic o
+ * un reintento encuentran la corrida ya creada y devuelven lo que hay en vez de
+ * cobrar dos veces. Es el mismo mecanismo que `generarCorridaPorCoeficiente`,
+ * con la diferencia de que allí la clave la manda el cliente y aquí **no hace
+ * falta**: el período ya identifica la corrida sin ambigüedad.
+ */
+async function generarCorridaDeConsumo(input, uid) {
+    const db = (0, firestore_1.getFirestore)();
+    const { tenantId, serviceId, period } = input;
+    if (!esPeriodoValido(period)) {
+        throw new https_1.HttpsError("invalid-argument", "El período debe tener la forma AAAA-MM.");
+    }
+    const servicioSnap = await db.collection("meteredServices").doc(serviceId).get();
+    const servicio = servicioSnap.data();
+    if (!servicioSnap.exists || servicio?.tenantId !== tenantId) {
+        throw new https_1.HttpsError("not-found", "Ese servicio medido no existe en este conjunto.");
+    }
+    const rate = servicio?.rate ?? 0;
+    const serviceName = servicio?.name ?? "Servicio medido";
+    if (!(rate > 0)) {
+        throw new https_1.HttpsError("failed-precondition", "El servicio no tiene tarifa: no se puede cobrar el consumo.");
+    }
+    const lecturasSnap = await db
+        .collection("meterReadings")
+        .where("tenantId", "==", tenantId)
+        .where("serviceId", "==", serviceId)
+        .where("period", "==", period)
+        .get();
+    if (lecturasSnap.empty) {
+        throw new https_1.HttpsError("failed-precondition", "No hay ninguna lectura registrada en este período.");
+    }
+    const lecturas = lecturasSnap.docs.map((d) => d.data());
+    // 🔴 **EL ORDEN DE LAS DOS GUARDAS DE ABAJO SE INVIRTIÓ, y no es un detalle.**
+    //
+    // Primero decía «ya se cobró» y después miraba si la corrida existía. Con ese
+    // orden **la idempotencia no se alcanzaba nunca**: la primera corrida deja las
+    // lecturas en `cobrado`, así que el segundo clic moría en la guarda anterior
+    // con un error, en vez de devolver la corrida que acababa de crear.
+    //
+    // No cobraba dos veces —eso estaba bien—, pero un doble clic contestaba «ese
+    // período ya se cobró» a quien acababa de cobrarlo, que se lee como un fallo.
+    // **Es la misma lección que `assertTenantOperable`:** dentro de un guardián,
+    // el orden decide qué mensaje recibe cada caso.
+    //
+    // Ahora la idempotencia va primero —protege el caso FRECUENTE, el doble clic—
+    // y `RN-05` queda para el caso raro: lecturas cobradas cuya corrida ya no
+    // existe, que es un dato inconsistente y merece error.
+    const campaignIdPrevisto = idDeCorridaDeConsumo(tenantId, serviceId, period);
+    const yaExiste = !input.dryRun && (await db.collection("billingCampaigns").doc(campaignIdPrevisto).get()).exists;
+    // `RN-05` — un período ya cobrado no se vuelve a cobrar.
+    if (!yaExiste && lecturas.some((l) => l.status === "cobrado")) {
+        throw new https_1.HttpsError("failed-precondition", "Ese período ya se cobró.");
+    }
+    // `RN-09` — la foto es condición para cerrar, y cobrar es cerrar y algo más.
+    // Cobrar sin la evidencia dejaría cargos que nadie puede defender.
+    const faltanFotos = unidadesSinFoto(lecturas);
+    if (faltanFotos.length > 0) {
+        const lista = faltanFotos.slice(0, 8).join(", ");
+        const resto = faltanFotos.length > 8 ? ` y ${faltanFotos.length - 8} más` : "";
+        throw new https_1.HttpsError("failed-precondition", `Faltan las fotos de ${faltanFotos.length} ${faltanFotos.length === 1 ? "unidad" : "unidades"}: ${lista}${resto}.`);
+    }
+    const unidadesSnap = await db.collection("units").where("tenantId", "==", tenantId).get();
+    const unidadesActivas = unidadesSnap.docs
+        .filter((d) => d.data().status === "active")
+        .map((d) => ({ id: d.id, unitLabel: d.data().displayName ?? d.id }));
+    const reparto = repartirPorConsumo(lecturas, rate, unidadesActivas);
+    if (input.dryRun) {
+        return { ok: true, dryRun: true, rate, serviceName, ...reparto };
+    }
+    if (reparto.lines.length === 0) {
+        throw new https_1.HttpsError("failed-precondition", "Ninguna unidad tiene consumo que cobrar en este período.");
+    }
+    const campaignId = campaignIdPrevisto;
+    const campaignRef = db.collection("billingCampaigns").doc(campaignId);
+    if (yaExiste) {
+        // `CA15` — un reintento devuelve lo que ya hay. No cobra dos veces.
+        return { ok: true, dryRun: false, campaignId, created: false, rate, serviceName, ...reparto };
+    }
+    const concepto = "consumo_medido";
+    const accountCode = (0, plan_de_cuentas_1.cuentaParaConcepto)(concepto).code;
+    const lote = db.batch();
+    lote.set(campaignRef, {
+        tenantId,
+        concept: concepto,
+        period,
+        // `unitAmount` en 0 a propósito, como la corrida por coeficiente: esto NO
+        // tiene importe plano. El campo se conserva por compatibilidad con la lista.
+        unitAmount: 0,
+        distributionBasis: "consumption",
+        totalDistributed: reparto.total,
+        dueDate: input.dueDate ?? null,
+        unitCount: reparto.lines.length,
+        source: "immediate",
+        status: "vigente",
+        // De la lectura al cargo, y al revés: la otra mitad de la trazabilidad.
+        sourceServiceId: serviceId,
+        sentAt: firestore_1.FieldValue.serverTimestamp(),
+        createdBy: uid,
+        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    });
+    for (const linea of reparto.lines) {
+        lote.set(db.collection("billingStatements").doc(), {
+            tenantId,
+            unitId: linea.unitId,
+            unitLabel: linea.unitLabel,
+            period,
+            concept: concepto,
+            accountCode,
+            campaignId,
+            amount: linea.amount,
+            paymentAmount: 0,
+            balance: linea.amount,
+            // **El consumo viaja CONGELADO en el cargo**, igual que el coeficiente en
+            // la corrida hermana: si mañana se corrige la lectura, este cargo sigue
+            // explicando por qué vale lo que vale.
+            distributionBasisValue: linea.consumption,
+            ...(input.dueDate ? { dueDate: input.dueDate } : {}),
+            status: "pending",
+            createdBy: uid,
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+    }
+    // Las lecturas pasan a `cobrado` en el MISMO lote: si el cargo existe y la
+    // lectura sigue editable, alguien podría cambiar el respaldo de una deuda.
+    for (const d of lecturasSnap.docs) {
+        lote.set(d.ref, { status: "cobrado", billingCampaignId: campaignId, updatedAt: firestore_1.Timestamp.now() }, { merge: true });
+    }
+    await lote.commit();
+    return { ok: true, dryRun: false, campaignId, created: true, rate, serviceName, ...reparto };
 }
