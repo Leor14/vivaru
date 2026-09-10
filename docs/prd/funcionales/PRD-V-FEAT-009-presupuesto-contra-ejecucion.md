@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **ENTREGA 1 COMPLETA EN STAGING, VISTA EN PANTALLA** (10 sep 2026) · producción pendiente |
+| **Estado** | **ENTREGA 1 EN LOS DOS AMBIENTES** (10 sep 2026) · en producción con la bandera **apagada en los nueve** |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -483,9 +483,24 @@ Borrador de prueba en Las Playas 2026 —**se deja guardado**, sirve para la ent
 - El arreglo de `822fa3a`, **servido y visto**: sin presupuesto, ninguna fila dice
   «Sobre-ejecución» y el resultado presupuestado dice «Sin presupuesto cargado».
 
+### En producción, con la bandera apagada (10 de septiembre de 2026)
+
+- **Reglas primero**: antes de desplegar se diferenció el ruleset vivo contra el repo — la
+  única diferencia era el bloque de `budgets` (39 líneas añadidas, ninguna quitada). Tras
+  desplegar, el servido (`e75c2017…`) es **idéntico al repo**.
+- **Front después**: `master` en avance rápido de `6fac4bc` a `f623148`; App Hosting lo sirve,
+  verificado por el commit del build y no por «rollout creado».
+- **La bandera, resuelta con el código compilado en los nueve conjuntos**: apagada en los
+  nueve, sin documento global —manda el default del catálogo— y sin ninguna override.
+- `functions` **no se desplegó**: el único cambio de servidor es el default de la bandera en
+  `feature-flags.ts`, y ninguna función la consulta.
+
 ### Pendiente
 
-Llevarla a producción con la bandera apagada: **reglas → front**, como en staging.
+- **Encenderla en un conjunto de producción.** Todos tienen el plan sembrado, pero el valor
+  real llega en el **primer trimestre de 2027**, revisando 2026 — y exige cargar antes el
+  presupuesto de 2026 que la asamblea ya aprobó en papel.
+- **Entrega 2**: aprobar con la fecha del acta, bloquear, y la vista imprimible.
 
 ## Puertas
 

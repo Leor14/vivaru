@@ -157,7 +157,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | 🟢 En producción, bandera apagada | **§3.5 la foto del medidor** — `FEAT-008`, las tres entregas |
 > | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
 > | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
-> | 🟡 En staging, entrega 1 vista en pantalla | **§3.8 presupuesto contra ejecución** — `PRD-V-FEAT-009` (10 sep) |
+> | 🟢 En producción, bandera apagada | **§3.8 presupuesto contra ejecución** — `FEAT-009` entrega 1 (10 sep) |
 > | 🟡 Parcial | §3.10 — **el pase recurrente YA existe**; falta comprobar si `larga_duracion` + categoría `servicio` cubre al proveedor |
 >
 > 🔴 **«Quedan siete» es engañoso y por eso se escribe así:** dos están **vetados por decisión
