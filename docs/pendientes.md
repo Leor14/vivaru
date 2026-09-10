@@ -4,13 +4,24 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 9 de septiembre de 2026 (`PLAT-004` ENTREGA 1 CONSTRUIDA)
+## LO PRIMERO AL ABRIR SESIÓN — 9 de septiembre de 2026 (`PLAT-004` ENTREGA 1 EN PRODUCCIÓN Y ENCENDIDA)
 
 > # EL FRENO DE `PLAT-004` NO ES CÓDIGO: **SOLO SANTA MARÍA PUEDE TENER CONSEJO**. Está medido.
 >
-> **Estado: leer los remotos con `git ls-remote`, no de aquí.** Al cerrar, `master` y `develop`
-> iban los dos a `8db685b` y **los dos ambientes servían `build-2026-09-09-001` de ese commit**,
-> `READY`, verificado por procedencia con `functions/scripts/estado-de-apphosting.mjs`.
+> **Estado: leer los remotos con `git ls-remote`, no de aquí — y esta cabecera NO lleva el sha a
+> propósito.** Al cerrar, `master` y `develop` iban **al mismo commit**, el árbol quedó **limpio y
+> en `develop`**, y **los dos ambientes servían ese commit**, `READY`, verificado por procedencia
+> con `functions/scripts/estado-de-apphosting.mjs`.
+>
+> ⚠️ **Por qué no hay sha aquí:** el commit que escribe esta línea **es posterior al que describe**,
+> así que un sha escrito a mano **nace viejo**. Ya pasó el 4 de septiembre. Lo que no caduca es la
+> forma de mirarlo:
+>
+> ```bash
+> git ls-remote origin refs/heads/master refs/heads/develop
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> ```
 >
 > **Bancos medidos hoy, los cuatro:** `npm test` **1804** (119 ficheros) · functions **832** ·
 > reglas **358** · emulador de functions **340 de 342**. Los dos rojos son **`CA12` y `D-B` de
