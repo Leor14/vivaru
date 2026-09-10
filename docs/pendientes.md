@@ -4,7 +4,134 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` COMPLETA EN LOS DOS AMBIENTES)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, cierre (`FEAT-009` ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES)
+
+> # LO CONSTRUIBLE DE HABITANTO ESTÁ HECHO. Lo que queda lo frenan el abogado, datos o decisiones propias.
+>
+> **Estado: leer los remotos con `git ls-remote`, y esta cabecera NO lleva el sha a propósito** —
+> el commit que la escribe es posterior al que describe, así que nace viejo. Al cerrar, `master`
+> servía en producción el último commit de CÓDIGO y `develop` iba por delante **solo con
+> documentación**.
+>
+> ```bash
+> git ls-remote origin refs/heads/master refs/heads/develop
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> ```
+>
+> **Bancos CONTADOS hoy, no citados:** `npm test` **1849** · functions **856** · reglas **404**
+> (medido con solo Firestore: `storage.rules.test.ts` enrojece aparte sin su emulador en el 9199,
+> y es entorno) · emulador de functions **352 de 354** — los dos rojos son `CA12` y `D-B` de
+> `payments.emulator.test.ts`, **preexistentes y confirmados por nombre**.
+>
+> ## `PRD-V-FEAT-009` — PRESUPUESTO CONTRA EJECUCIÓN — LAS DOS ENTREGAS EN LOS DOS AMBIENTES
+>
+> Sale de **§3.8 de la sesión con la administradora**: la asamblea ordinaria del primer trimestre
+> revisa el presupuesto contra lo ejecutado. **En producción con la bandera APAGADA en los nueve**
+> (`producto-presupuesto-anual`, resuelta con el código compilado, sin documento global) y
+> **ningún presupuesto guardado**. En staging, encendida en **Palmas** —que no tiene plan de
+> cuentas: la pantalla dice «Falta el plan» y es verdad— y en **Conjunto Las Playas**, que es donde
+> se ve (55 asientos y 50 cargos de 2026; se entra con la cuenta de David, que administra siete).
+>
+> | Entrega | Qué | Visto |
+> |---|---|---|
+> | 1 | Cargar en borrador y comparar, año en curso y cerrado | **`CA2` idéntico a `/admin/reports` en las siete cuentas** |
+> | 2 | Aprobar con la fecha del acta, bloquear, imprimir | `CA7` en pantalla **y en la base**; `CA8` con el `⌘P` real de David |
+>
+> **La regla central tiene guardián:** lo ejecutado sale de `useCommitteeReport` y **nunca** de sumar
+> asientos. El núcleo recibe las cuotas aparte (`esRecaudoDeCartera`), así que sumar asientos daría
+> un ejecutado sin la mayor partida del conjunto.
+>
+> ⚠️ **El año cerrado sale VACÍO hoy en los nueve**: los 95 asientos de producción son de 2026. El
+> uso legal real es **el primer trimestre de 2027**, y exige cargar antes el presupuesto de 2026.
+>
+> **Datos de prueba en staging, Las Playas, con permiso de David:** `budgets/conjunto-las-playas_2026`
+> en **borrador** —editable a propósito— y `conjunto-las-playas_2025` **APROBADO** (acta del 15 mar
+> 2025), que **ya no se toca desde la app**.
+>
+> ### Lo que encontró mirar, y lo que falló del método
+>
+> 1. **Sin presupuesto, cada egreso decía «Sobre-ejecución»** y el resultado presupuestado
+>    «equilibrio», con «$0.00 presupuestados». Un no-op que se leía como afirmación, y ninguna prueba
+>    miraba el caso sin presupuesto — que es como abre la pantalla cualquier conjunto. `822fa3a`.
+> 2. 🔴 **Un `| tail` se tragó el fallo del deploy de reglas** y la cadena de `&&` siguió hasta el
+>    push: el front de staging salió ANTES que sus reglas. **La lección ya estaba escrita** en la
+>    memoria. Remedio: `set -o pipefail`, o desplegar y empujar en llamadas separadas.
+> 3. **El vigilante del rollout no podía acertar**: llamaba al script de estado sin sus dos
+>    argumentos y contaba el mensaje de uso como «esperando». Ahora **aborta si su instrumento
+>    falla** y sale con 2 si agota; un 0 ya solo significa «sirve».
+> 4. **La trampa de la fecha del acta es real en este equipo**, que corre en `America/Mexico_City`
+>    (−06:00): `new Date("2026-03-01")` pinta el 28 de febrero. Se escribe sin `Date`, y se falsó
+>    **porque** el huso es negativo — en UTC la mutación habría pasado en verde sin probar nada.
+>
+> ## `PRD-V-FEAT-008` — LA FOTO DEL MEDIDOR — LAS TRES ENTREGAS EN LOS DOS AMBIENTES
+>
+> `producto-medicion-de-consumos` **APAGADA en los nueve**, solo Palmas en staging. El detalle de
+> la jornada está justo debajo de esta cabecera.
+>
+> ## DÓNDE ESTÁ HABITANTO, MEDIDO HOY
+>
+> | Estado | Cuáles |
+> |---|---|
+> | ✅ Entregados | §3.2 cuotas · §3.7 informe (entregas 1 y 2) · §3.9 (el hueco era falso) |
+> | 🟢 En producción, bandera apagada | **§3.5 la foto del medidor** (`FEAT-008`) · **§3.8 presupuesto contra ejecución** (`FEAT-009`) |
+> | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
+> | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
+> | 🟡 Parcial | §3.10 — **el pase recurrente YA existe**; falta comprobar si `larga_duracion` + categoría `servicio` cubre al proveedor |
+>
+> **Construible de verdad no queda ninguno**: solo verificar §3.10. Y de los 108 candidatos quedan
+> 37 P1, 42 P2 y 12 P3.
+>
+> ⚠️ **La referencia del presupuesto es §3.8, NO §3.6.** §3.6 es el corte de acceso, que está
+> VETADO; esa confusión vivió cinco días en este documento.
+>
+> ## LO QUE SIGUE
+>
+> 1. **Verificar §3.10** — probablemente ya esté hecho.
+> 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
+>    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
+> 3. **Encender `FEAT-008` o `FEAT-009` en algún conjunto de producción** — es decisión de David, y
+>    hoy no hay a quién: ningún conjunto real mide consumos ni ha cargado un presupuesto.
+> 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
+> 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
+>    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
+> 6. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
+>    (una línea en el informe mensual).
+>
+> ### Las banderas
+>
+> `producto-informe-mensual` y `producto-egresos-en-cuotas`: **encendidas en los nueve** por el
+> global, ⚠️ **con las overrides de canario puestas** — para apagar los nueve, **kill switch**.
+> `producto-rol-consejo`: **Santa María** en producción, **Palmas** en staging.
+> `producto-medicion-de-consumos`: **APAGADA en los nueve**, solo Palmas en staging.
+> `producto-presupuesto-anual`: **APAGADA en los nueve**; en staging, Palmas y Las Playas.
+>
+> ### Frenos que NO son de código
+>
+> Proveedores (0 filas) · paz y salvo (0 emitidos) · coeficiente (18 de 93) · el consejo (10 cuentas
+> en 68 personas, **solo Santa María puede formar uno**) · **presupuestos (0 en producción)**. Y
+> **producción sigue sin un cliente real**.
+>
+> ℹ️ **La clave de `carmen.garcia@privadapalmas.mx` en STAGING quedó siendo `TU_CLAVE_AQUI`** —el
+> marcador del comando se copió literal—. Se cambia con `functions/scripts/poner-clave-en-staging.mjs`,
+> que lleva el proyecto **clavado**.
+>
+> ## NO REABRIR
+>
+> - Las cuatro decisiones de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los dos `TBD` de `FLOW-008`;
+>   los dos huecos falsos de la administradora.
+> - **`RN-01` de `PLAT-004`**: la marca es un atributo, y tiene guardián.
+> - **`TBD-A` y `TBD-B` de `FEAT-008`**: la foto es obligatoria **para cerrar**, no para guardar; y
+>   las lecturas las registra **solo la administración**.
+> - **De `FEAT-009`**: el año en curso **y** el cerrado; **sin escenarios**; y va **aparte** del
+>   informe mensual — lo compartido es el cálculo, no la pantalla.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA JORNADA DE `FEAT-008` — 9 Y 10 DE SEPTIEMBRE — detalle
+
 
 > # LO CONSTRUIBLE DE HABITANTO SE ACABÓ SALVO DOS HUECOS. El resto lo frenan DATOS o decisiones propias.
 >
@@ -147,64 +274,6 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    la clave YA esté en español**: `getStatusLabel` cae en silencio a la clave cruda, así que
 >    «cobrado» se habría visto casi bien para siempre.
 >
-> ## DÓNDE ESTÁ HABITANTO, MEDIDO HOY
->
-> **Los 14 candidatos P0 están TODOS construidos.** De los diez huecos de la administradora:
->
-> | Estado | Cuáles |
-> |---|---|
-> | ✅ Entregados | §3.2 cuotas · §3.7 informe (entregas 1 y 2) · §3.9 (el hueco era falso) |
-> | 🟢 En producción, bandera apagada | **§3.5 la foto del medidor** — `FEAT-008`, las tres entregas |
-> | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
-> | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
-> | 🟢 En producción, bandera apagada | **§3.8 presupuesto contra ejecución** — `FEAT-009` entregas 1 y 2 (10 sep) |
-> | 🟡 Parcial | §3.10 — **el pase recurrente YA existe**; falta comprobar si `larga_duracion` + categoría `servicio` cubre al proveedor |
->
-> 🔴 **«Quedan siete» es engañoso y por eso se escribe así:** dos están **vetados por decisión
-> propia** y dos esperan al abogado. **Construible de verdad queda UNO —§3.8— más verificar §3.10**,
-> que probablemente ya esté hecho.
->
-> ⚠️ **«§3.8 encaja DENTRO del informe mensual» se corrigió al medir (10 sep):** lo que no hay que
-> rehacer es el CÁLCULO, no la pantalla. Va aparte —el informe es mensual, congelado y con la bandera
-> apagada en los nueve— y lee lo ejecutado del mismo hook que `/admin/reports`. `FEAT-009` §4 y §11.
->
-> ⚠️ **La referencia correcta del presupuesto es §3.8, NO §3.6.** El traspaso dijo «§3.6» desde el
-> 4 de septiembre y se copió sin verificar hasta el 9. **§3.6 es el corte de acceso, que está
-> VETADO**: seguir esa referencia mandaba a construir justo lo prohibido.
->
-> ## LO QUE SIGUE
->
-> 1. **`CA2` de `FEAT-008`**: subir una foto de verdad, desde un teléfono, que es como se usa.
-> 2. **La entrega 2**: el cobro derivado del consumo. `BillingCampaign` **ya reparte importes
->    distintos por unidad** —`distributionBasis`, `totalDistributed`, `distributionBasisValue`—, así
->    que el consumo es **una TERCERA BASE** y el gemelo a calcar es `coefficient-billing.ts`.
-> 3. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
->    `CA2`, `CA3` y `CA4` sin observar (hay un consejero nombrado en staging/Palmas para eso).
-> 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
-> 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
->    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
->
-> ### Las banderas
->
-> `producto-informe-mensual` y `producto-egresos-en-cuotas`: **encendidas en los nueve** por el
-> global, ⚠️ **con las overrides de canario puestas** — para apagar los nueve, **kill switch**.
-> `producto-rol-consejo`: **Santa María** en producción, **Palmas** en staging.
-> `producto-medicion-de-consumos`: **APAGADA en los nueve**, solo Palmas en staging.
->
-> ### Frenos que NO son de código
->
-> Proveedores (0 filas) · paz y salvo (0 emitidos) · coeficiente (18 de 93) · el consejo (10 cuentas
-> en 68 personas, **solo Santa María puede formar uno**). Y **producción sigue sin un cliente real**.
->
-> ## NO REABRIR
->
-> - Las cuatro decisiones de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los dos `TBD` de `FLOW-008`;
->   los dos huecos falsos de la administradora.
-> - **`RN-01` de `PLAT-004`**: la marca es un atributo, y tiene guardián.
-> - **`TBD-A` y `TBD-B` de `FEAT-008`**: la foto es obligatoria **para cerrar**, no para guardar; y
->   las lecturas las registra **solo la administración**.
->
-> **Sigue en pie: una sola sesión que escriba a la vez.**
 
 ---
 
