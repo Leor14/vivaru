@@ -154,17 +154,19 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | Estado | Cuáles |
 > |---|---|
 > | ✅ Entregados | §3.2 cuotas · §3.7 informe (entregas 1 y 2) · §3.9 (el hueco era falso) |
-> | 🟡 En staging | **§3.5 la foto del medidor**, hoy |
+> | 🟢 En producción, bandera apagada | **§3.5 la foto del medidor** — `FEAT-008`, las tres entregas |
 > | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
 > | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
-> | ⬜ Sin tocar | **§3.8 presupuesto contra ejecución** |
+> | 📝 PRD escrita, sin construir | **§3.8 presupuesto contra ejecución** — `PRD-V-FEAT-009` (10 sep) |
 > | 🟡 Parcial | §3.10 — **el pase recurrente YA existe**; falta comprobar si `larga_duracion` + categoría `servicio` cubre al proveedor |
 >
 > 🔴 **«Quedan siete» es engañoso y por eso se escribe así:** dos están **vetados por decisión
 > propia** y dos esperan al abogado. **Construible de verdad queda UNO —§3.8— más verificar §3.10**,
 > que probablemente ya esté hecho.
 >
-> ⚠️ **Y §3.8 encaja DENTRO del informe mensual**: hacerlo suelto obliga a rehacer parte.
+> ⚠️ **«§3.8 encaja DENTRO del informe mensual» se corrigió al medir (10 sep):** lo que no hay que
+> rehacer es el CÁLCULO, no la pantalla. Va aparte —el informe es mensual, congelado y con la bandera
+> apagada en los nueve— y lee lo ejecutado del mismo hook que `/admin/reports`. `FEAT-009` §4 y §11.
 >
 > ⚠️ **La referencia correcta del presupuesto es §3.8, NO §3.6.** El traspaso dijo «§3.6» desde el
 > 4 de septiembre y se copió sin verificar hasta el 9. **§3.6 es el corte de acceso, que está
