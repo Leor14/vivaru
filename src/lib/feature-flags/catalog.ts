@@ -85,6 +85,7 @@ export type FeatureFlagKey =
   | "producto-rol-consejo"
   | "producto-medicion-de-consumos"
   | "producto-presupuesto-anual"
+  | "producto-tesoreria"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -456,6 +457,19 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FEAT-009 entrega 1",
     alApagar:
       "Desaparece la pantalla de presupuesto. Los presupuestos guardados se quedan, y no alteran ninguna otra cifra del conjunto.",
+  },
+  "producto-tesoreria": {
+    key: "producto-tesoreria",
+    area: "producto",
+    label: "Tesorería: cuánto hay en cada cuenta del conjunto",
+    description:
+      "El saldo de cada cuenta bancaria —saldo inicial, entradas y salidas—, más las dos líneas que hacen cuadrar el total con el saldo de fondos: los movimientos sin cuenta asignada y lo cobrado en Cartera que el libro no registra. Después vendrán los traspasos y la caja chica.",
+    // Nace apagada. En la entrega 1 solo LEE: no escribe nada ni cambia ninguna
+    // cifra, así que encenderla es inerte salvo para quien la mira.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-010 entrega 1",
+    alApagar:
+      "Desaparece la pantalla de tesorería. No se pierde nada: en esta entrega la tesorería no guarda datos, solo los lee.",
   },
   "producto-rol-consejo": {
     key: "producto-rol-consejo",

@@ -87,6 +87,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Apagada = no se ve la pantalla de presupuesto. Ningún callable la consulta:
     // el presupuesto se escribe directo y no altera ninguna cifra. Ver `src/`.
     "producto-presupuesto-anual": false,
+    // Apagada = no se ve la pantalla de tesorería. En la entrega 1 ningún callable
+    // la consulta: solo lee. Ver el catálogo en `src/`.
+    "producto-tesoreria": false,
     // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
     // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
     "producto-anticipos": false,

@@ -156,6 +156,14 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-tesoreria",
+    area: "producto",
+    label: "Tesorería: cuánto hay en cada cuenta del conjunto",
+    origen: "PRD-V-FEAT-010 entrega 1",
+    // Nace apagada y se enciende por conjunto. En la entrega 1 solo lee.
+    enabled: false,
+  },
+  {
     key: "producto-rol-consejo",
     area: "producto",
     label: "El consejo de administración existe de verdad",
