@@ -4,18 +4,13 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 9 de septiembre de 2026 (`PLAT-004` ENTREGA 1 EN PRODUCCIÓN Y ENCENDIDA)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` ENTREGA 1 EN LOS DOS AMBIENTES)
 
-> # EL FRENO DE `PLAT-004` NO ES CÓDIGO: **SOLO SANTA MARÍA PUEDE TENER CONSEJO**. Está medido.
+> # LO CONSTRUIBLE DE HABITANTO SE ACABÓ SALVO DOS HUECOS. El resto lo frenan DATOS o decisiones propias.
 >
-> **Estado: leer los remotos con `git ls-remote`, no de aquí — y esta cabecera NO lleva el sha a
-> propósito.** Al cerrar, `master` y `develop` iban **al mismo commit**, el árbol quedó **limpio y
-> en `develop`**, y **los dos ambientes servían ese commit**, `READY`, verificado por procedencia
-> con `functions/scripts/estado-de-apphosting.mjs`.
->
-> ⚠️ **Por qué no hay sha aquí:** el commit que escribe esta línea **es posterior al que describe**,
-> así que un sha escrito a mano **nace viejo**. Ya pasó el 4 de septiembre. Lo que no caduca es la
-> forma de mirarlo:
+> **Estado: leer los remotos con `git ls-remote`, y esta cabecera NO lleva el sha a propósito** —
+> el commit que la escribe es posterior al que describe, así que nace viejo. Al cerrar, `master` y
+> `develop` iban al mismo commit y **los dos ambientes lo servían**, `READY`.
 >
 > ```bash
 > git ls-remote origin refs/heads/master refs/heads/develop
@@ -23,200 +18,114 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
 > ```
 >
-> **Bancos medidos hoy, los cuatro:** `npm test` **1804** (119 ficheros) · functions **832** ·
-> reglas **358** · emulador de functions **340 de 342**. Los dos rojos son **`CA12` y `D-B` de
-> `payments.emulator.test.ts`, PREEXISTENTES** y confirmados hoy. `storage.rules.test.ts` enrojece
-> aparte si el emulador se levanta **solo con Firestore**: es entorno, no código.
+> **Bancos medidos hoy:** `npm test` **1808** · functions **846** · reglas **374** · emulador de
+> functions **340 de 342** (`CA12` y `D-B` de `payments`, **preexistentes**). `storage.rules.test.ts`
+> enrojece aparte si el emulador se levanta **solo con Firestore**: es entorno, no código.
 >
-> ## `PLAT-004` ENTREGA 1: EN LOS DOS AMBIENTES, ENCENDIDA Y **VISTA EN PANTALLA**
+> ## `PRD-V-FEAT-008` — MEDICIÓN DE CONSUMOS CON FOTO — ENTREGA 1 DESPLEGADA
 >
-> Desplegada entera el 9 sep: functions (`setCommitteeMembership` y `signMonthlyReport` listadas
-> **por nombre**), reglas (**ruleset vivo idéntico al repo** en los dos) y front
-> (`build-2026-09-09-001`, `READY`, commit `8db685b` en producción y staging).
+> **Producción: functions, reglas (Firestore y Storage) y front, con la BANDERA APAGADA EN LOS
+> NUEVE** — verificado **resolviendo** con `functions/lib/feature-flags.js`, no leyendo documentos:
+> global `false`, encendida en **ninguno**. **Staging: encendida solo en `tenant-palmas-cdmx`**, que
+> tiene 25 unidades activas.
 >
-> **Encendida en UN conjunto de cada ambiente**, verificado **resolviendo con
-> `functions/lib/feature-flags.js`** y no leyendo documentos: 🟢 `tenant-santa-maria` en producción
-> (los otros 8 off) · 🟢 `tenant-palmas-cdmx` en staging (los otros 9 off) · global `false` en ambos.
+> **Sale de §3.5 de la sesión con la administradora**, que es su cuello de botella declarado y la
+> respuesta a «¿qué le lleva más trabajo?»: recorre los medidores, los fotografía y **manda las
+> fotos por correo en un archivo aparte**. Y hay ventaja que tomar y no solo igualar: Habitanto
+> tiene la pantalla y —textual— **«no nos calcula»**.
 >
-> ### `CA1`, `CA5` y `CA6` OBSERVADOS con ojos en staging (Palmas, Carmen García Vidal)
+> ### Visto en pantalla en staging, con la predicción escrita ANTES
 >
-> Ciclo entero **nombrar → retirar → nombrar**, con la predicción escrita antes de mirar:
->
-> | Qué | Visto |
+> | Criterio | Visto |
 > |---|---|
-> | `CA1` · el control aparece | «Nombrar consejo» en el menú de fila, solo con la bandera |
-> | `CA6` · la marca y su fecha | Badge **«Consejo desde sept de 2026»** bajo el nombre |
-> | `RN-01` · **conserva su condición de residente** | En el dato: `role: "resident"`, `unitId: ea-101` |
-> | `CA5` · al retirar conserva lo suyo | `role`, `unitId` y `status` intactos |
-> | Al retirar se **borran** los dos campos | `committeeSince` y `committeeGrantedBy` **BORRADOS** |
-> | `RN-08` · auditoría | **2 líneas**, conceder y retirar |
+> | `CA1` · declarar el servicio | «Agua fría · $3.200/m³» con las 25 unidades |
+> | `CA3` · la anterior **la pone el sistema** | Octubre trajo `1200` de septiembre sin teclearlo |
+> | **`CA5` · el cálculo** | 1247 − 1200 = **47 m³ → $150.400**, exacto |
+> | `CA8` · `RN-04` línea base | «No genera cargo», consumo 0 |
+> | `RN-09` · la foto para cerrar | «Faltan 1 foto», **antes** de intentarlo |
+> | `RN-10` · en el DATO | `previous=1200` escrito por el servidor |
 >
-> ⚠️ **Y una trampa que casi da un falso negativo:** la sesión abrió en **El Nogal**, donde la
-> bandera está apagada. Mirar ahí habría dicho «no funciona». **Hubo que cambiar de conjunto con el
-> selector** — el sujeto tiene que poder distinguir el antes del después.
+> **Quedan sin ver:** `CA2` (subir una foto de verdad, pide un archivo y un teléfono), `CA7` (el
+> residente, que es la entrega 3) y todo el cobro (entrega 2). **Los datos de prueba se DEJARON en
+> staging/Palmas a propósito** para poder mirarlo.
 >
-> ### Lo que SIGUE SIN OBSERVAR, y pide otra sesión
+> ## 🔴 EL DEFECTO DEL DÍA, Y NINGUNA PRUEBA PODÍA VERLO
 >
-> **`CA2` (leer un informe emitido), `CA3` (firmarlo) y `CA4` (que el consejero siga viendo su
-> unidad EN PANTALLA)** necesitan entrar **como Carmen García Vidal** en staging/Palmas — la dejé
-> nombrada a propósito para eso. `CA4` está comprobado en el DATO, no en la pantalla.
+> Al cambiar de septiembre a octubre, **el campo conservaba la lectura del mes anterior**: la fila
+> decía «—» en anterior, consumo e importe —octubre estaba vacío— **y el campo enseñaba el `1200`
+> de septiembre**. Quien lo mirara daría el mes por registrado y **se saltaría el mes entero**, que
+> aquí es no cobrarle el agua a nadie.
 >
-> ## 🔴 EL NÚMERO QUE DECIDE DÓNDE SE ENCIENDE
+> **La causa no es de tipos ni de lógica: es una IDENTIDAD DE NODO.** El campo es no controlado
+> —`defaultValue`, que React solo lee al montar— y la `key` no llevaba el período, así que React
+> reutilizaba el input. **Typecheck en 0 y 1806 pruebas en verde no lo alcanzaban.** Lo cazó
+> mirar la pantalla verificando otra cosa. Guardián: `tests/campo-no-controlado-con-periodo.test.ts`,
+> que **mide el código**, lleva su propio control y se falsó reintroduciendo el defecto exacto.
 >
-> Medido en producción cruzando `people.authUid` contra `tenantUsers`. **Nombrable** = persona del
-> padrón con cuenta, con membresía `resident` activa:
+> ## Y TRES GUARDIANES QUE YA EXISTÍAN CORRIGIERON EL TRABAJO
 >
-> | Conjunto | Nombrables | ¿Consejo de 3–7? |
-> |---|---|---|
-> | **Santa María** | **8** | ✅ |
-> | Bromelias · Privada Las Playas | 1 cada uno | ❌ |
-> | **Los otros SEIS** | **0** | ❌ |
+> 1. **`clave-de-unidad-guarda`** — nada comprobaba que la unidad existiera.
+> 2. **`page-identity`** — el encabezado de nivel 1 lo pone el shell. 🔴 **Y volvió a enrojecer con
+>    el COMENTARIO que lo explicaba**, porque cuenta la etiqueta escrita en comentarios: es el
+>    gemelo de Tailwind resucitando una clase nombrada para explicarla.
+> 3. **`status-mapper-cobertura`** — los tres estados nuevos faltaban en el mapa. **No basta con que
+>    la clave YA esté en español**: `getStatusLabel` cae en silencio a la clave cruda, así que
+>    «cobrado» se habría visto casi bien para siempre.
 >
-> **68 personas en el padrón y solo 10 con cuenta.** El cruce está limpio —cero `authUid` sin
-> membresía, cero membresías no residentes—, así que la pantalla funciona: **lo que falta son
-> CUENTAS**, y eso es captura de datos.
+> ## DÓNDE ESTÁ HABITANTO, MEDIDO HOY
 >
-> **Encender la bandera fuera de `tenant-santa-maria` pone un control que no puede nombrar a
-> nadie.** Es «encendido sobre tablas vacías» por cuarta vez, y esta es la primera que se ve
-> **antes** de encender.
+> **Los 14 candidatos P0 están TODOS construidos.** De los diez huecos de la administradora:
 >
-> ## QUÉ SE CONSTRUYÓ (5 commits, en `develop` local)
+> | Estado | Cuáles |
+> |---|---|
+> | ✅ Entregados | §3.2 cuotas · §3.7 informe (entregas 1 y 2) · §3.9 (el hueco era falso) |
+> | 🟡 En staging | **§3.5 la foto del medidor**, hoy |
+> | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
+> | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
+> | ⬜ Sin tocar | **§3.8 presupuesto contra ejecución** |
+> | 🟡 Parcial | §3.10 — **el pase recurrente YA existe**; falta comprobar si `larga_duracion` + categoría `servicio` cubre al proveedor |
 >
-> `0150d2e` servidor y reglas · `5969b8c` front y guardián · `76fbeb1` y `8ee53f3` la ficha.
+> 🔴 **«Quedan siete» es engañoso y por eso se escribe así:** dos están **vetados por decisión
+> propia** y dos esperan al abogado. **Construible de verdad queda UNO —§3.8— más verificar §3.10**,
+> que probablemente ya esté hecho.
 >
-> - **Callable `setCommitteeMembership`** con la lógica en `functions/src/rol-consejo.ts` —módulo
->   aparte **para poder ejercitarla**: lo que no se ejercita no está probado—.
-> - **`identidadParaFirmar` lee la marca**, así que la firma del consejo que `FLOW-007` dejó
->   **inejecutable en producción** pasa a ejercerse. Era el motivo de la ficha.
-> - **Reglas:** helper `esConsejo()` en los tres sitios, y `tenantUsers` blindado.
-> - **El control va en el PADRÓN** (`admin/residents`), NO en `admin/users` como decía §11: esa
->   pantalla **filtra fuera a los residentes**, que son los destinatarios.
-> - **Bandera `producto-rol-consejo` en los CINCO sitios**, apagada.
+> ⚠️ **Y §3.8 encaja DENTRO del informe mensual**: hacerlo suelto obliga a rehacer parte.
 >
-> ## LO QUE CORRIGIÓ CONSTRUIR, Y ES LO QUE HAY QUE LLEVARSE
->
-> 1. 🔴 **`CA14` no era hipotético: el hueco ESTABA ABIERTO, y se midió ejecutándolo.** Contra las
->    reglas de `HEAD`, un `tenant_admin` **podía escribirse `isCommittee: true` desde el navegador**
->    y con ello la firma del informe. La causa es de FORMA: el `allow update` de `tenantUsers`
->    enumera los campos que **NO pueden cambiar**, así que **todo campo nuevo nace escribible**.
->    Al añadir un campo ahí, la pregunta es si sostiene un permiso.
-> 2. 🔴 **UNA HIPÓTESIS MÍA SOBRE LA CAUSA RESULTÓ FALSA, Y LA CACÉ MIDIENDO.** El emulador imprimía
->    `evaluation error` al denegar; escribí un comentario culpando a mi propia línea. **Es
->    preexistente**: se reproduce igual contra `HEAD` denegando un cambio de `role`. **El comentario
->    falso se corrigió** — un comentario que justifica con una razón falsa es exactamente lo que
->    sobrevive años.
-> 3. 🔴 **EL CONTEO CAZÓ LO QUE EL COMENTARIO NO EVITÓ.** El banco de reglas nuevo entraba en
->    `npm test` (1789 → **1804**) por faltar en las exclusiones, y **`vitest.config.ts` avisa de ese
->    error exacto TRES LÍNEAS más arriba**. Ha pasado tres veces. Ahora hay guardián que **mide el
->    disco** (`tests/bancos-de-reglas-en-las-dos-listas.test.ts`), falsado en las dos direcciones y
->    con control propio para no medir la nada.
-> 4. **EL PLURAL, OTRA VEZ — y dentro de la sección que avisa de él.** §11 contaba cuatro sitios que
->    leen `role === "committee"`. Son **ONCE**: 3 en reglas, 2 en `identidadParaFirmar`, **5 en el
->    front** (entrega 2).
-> 5. **PROBAR LA CONSULTA ANTES DE ESCRIBIR LA PANTALLA.** Listar `tenantUsers` podía rechazarse
->    entera —Firestore evalúa la consulta contra la regla **sin ejecutarla**, la trampa de
->    `bankAccounts`—. Se midió primero: tres pruebas, y funciona filtrando `tenantId`.
-> 6. **`RN-01` tiene guardián:** al conceder la marca, una prueba comprueba que el `role` sigue
->    siendo `resident`. Si algún día alguien escribe `role: "committee"`, enrojece.
->
-> ## LAS TRES CREDENCIALES: HOY CADUCARON DOS
->
-> **La ADC estaba muerta al abrir** (`invalid_grant`) **y la del CLI de firebase también** — la
-> segunda no se descubrió hasta ir a desplegar. **David repuso las dos.** Comprobarlas cuesta un
-> segundo y son independientes:
->
-> ```bash
-> gcloud auth application-default print-access-token >/dev/null && echo viva || echo muerta
-> firebase projects:list >/dev/null 2>&1 && echo viva || echo muerta   # firebase login --reauth
-> ```
->
-> ## 🔴 SIGUE PENDIENTE Y ES DE DAVID
->
-> **`ledgerEntries/tWgE2rhBeztUbCTWKokt` SIGUE con `accountCode: null`** — verificado hoy con la
-> ADC viva: `conjunto-las-playas`, $2.600. Debe ser **`2.3`**, derivado de que el egreso tiene
-> `category: "mantenimiento"` (`functions/src/plan-de-cuentas.ts:159`), **no copiado**. **El
-> clasificador bloquea escribirlo Y crear el fichero que lo haría.**
+> ⚠️ **La referencia correcta del presupuesto es §3.8, NO §3.6.** El traspaso dijo «§3.6» desde el
+> 4 de septiembre y se copió sin verificar hasta el 9. **§3.6 es el corte de acceso, que está
+> VETADO**: seguir esa referencia mandaba a construir justo lo prohibido.
 >
 > ## LO QUE SIGUE
 >
-> 1. **Empujar y desplegar** el bloque de arriba. Es lo único que separa la entrega 1 de estar viva.
-> 2. **Encender la bandera SOLO en `tenant-santa-maria`** y **observar `CA1`–`CA5`**, que están
->    construidos y **NO vistos**: piden una sesión de consejero real.
-> 3. **Entrega 2 de `PLAT-004`**: los cinco sitios del front y `TBD-B` (¿el consejero entra por
->    `/admin` o por `/resident`? La ficha recomienda `/resident`, porque `RN-01` lo hace residente).
-> 4. **El abogado ecuatoriano** sigue **sin contestar** (confirmado hoy). Bloquea la entrega 3 de
->    `FLOW-007` y **`FLOW-006` entera**.
-> 5. **Si nada de eso:** 37 P1 / 42 P2 / 12 P3 de los 108 candidatos · **siete huecos** de la
->    administradora (los dos siguientes: **foto del medidor** §3.5 y **presupuesto contra
->    ejecución** **§3.8** — **pero éste encaja DENTRO del informe mensual**) · `FIX-001` entrega 2.
->
->    > ⚠️ **La referencia correcta es §3.8, no §3.6.** Este traspaso dijo «§3.6» desde el 4 de
->    > septiembre y **se copió sin verificar** hasta el 9. **§3.6 es «corte de acceso por
->    > morosidad»**, que es otro hueco — y uno sobre el que `FLOW-006` ya decidió **en contra**
->    > (`RN-13`: restringir exige una notificación previa de 5 días que es otra ficha). Confundirlos
->    > mandaba a construir lo que está vetado. Se cazó **abriendo el documento**, no releyendo el
->    > traspaso.
+> 1. **`CA2` de `FEAT-008`**: subir una foto de verdad, desde un teléfono, que es como se usa.
+> 2. **La entrega 2**: el cobro derivado del consumo. `BillingCampaign` **ya reparte importes
+>    distintos por unidad** —`distributionBasis`, `totalDistributed`, `distributionBasisValue`—, así
+>    que el consumo es **una TERCERA BASE** y el gemelo a calcar es `coefficient-billing.ts`.
+> 3. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
+>    `CA2`, `CA3` y `CA4` sin observar (hay un consejero nombrado en staging/Palmas para eso).
+> 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
+> 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
+>    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
 >
 > ### Las banderas
 >
-> `producto-informe-mensual` y `producto-egresos-en-cuotas`, **encendidas en los nueve** por el
-> global. ⚠️ **Las overrides de canario siguen puestas**: `enabled: false` apagaría siete y dejaría
-> dos. **Para los nueve, kill switch.** `producto-rol-consejo` **nace apagada** y sin documento —
-> y «sin documento» no es «apagada»: es lo que diga el `defaultEnabled` del catálogo, que aquí es
-> `false`.
+> `producto-informe-mensual` y `producto-egresos-en-cuotas`: **encendidas en los nueve** por el
+> global, ⚠️ **con las overrides de canario puestas** — para apagar los nueve, **kill switch**.
+> `producto-rol-consejo`: **Santa María** en producción, **Palmas** en staging.
+> `producto-medicion-de-consumos`: **APAGADA en los nueve**, solo Palmas en staging.
 >
-> ### Tres frenos que NO son de código
+> ### Frenos que NO son de código
 >
-> Proveedores (0 filas), paz y salvo (0 emitidos) y coeficiente (18 de 93). **Y ahora un cuarto,
-> medido: el consejo, con 10 cuentas en 68 personas.** Producción sigue sin **un solo cliente
-> real**.
+> Proveedores (0 filas) · paz y salvo (0 emitidos) · coeficiente (18 de 93) · el consejo (10 cuentas
+> en 68 personas, **solo Santa María puede formar uno**). Y **producción sigue sin un cliente real**.
 >
 > ## NO REABRIR
 >
-> - Las cuatro decisiones de `FEAT-007`; `RN-13` y `RN-14` de `FLOW-006`; los dos `TBD` de
->   `FLOW-008`; los dos huecos de la administradora que resultaron falsos.
-> - **`RN-01` de `PLAT-004`**: la marca es un ATRIBUTO `isCommittee`, no un valor de `role`. Ahora
->   además **tiene guardián**.
-> - **`G5`**: la mantiene el **administrador del conjunto**, sin caducidad. La antigüedad se ve en
->   el padrón (`committeeSince`), y eso es lo que contiene un consejo rancio.
->
-> ## LAS FUENTES, TODAS ACTUALIZADAS EL 9 DE SEPTIEMBRE
->
-> | Qué | Dónde | Estado |
-> |---|---|---|
-> | Traspaso vivo | `docs/pendientes.md` (esta cabecera) | ✅ |
-> | Por qué se decidió así | `docs/roadmap-producto.md` **0.9.61** | ✅ estado y «verificado contra» reescritos, changelog antepuesto |
-> | Estado de las PRD | `docs/prd/README.md` | ✅ `PLAT-004` a producción; `FLOW-007` deja de declarar capacidad muerta |
-> | La ficha | `PRD-V-PLAT-004` §14 | ✅ con las cuatro correcciones que salieron de construir |
-> | Qué existe y dónde corre | Notion — **bitácora** | ✅ fila nueva de la entrega 1 |
-> | Dónde está cada frente | Notion — **tablero** e **inventario** | ✅ los dos |
-> | Cómo se trabaja aquí | `CLAUDE.md` | ✅ ver abajo |
->
-> **🔴 Y `CLAUDE.md` llevaba DOS defectos propios, de la familia que este proyecto ya conoce:**
->
-> 1. **«El emulador necesita Java, y esta máquina no lo trae» seguía ahí, EN NEGRITA**, con su
->    corrección enterrada cuatro líneas más abajo. Esa afirmación bloqueó **diez criterios en seis
->    documentos**. Se creyó retirada en agosto: **sobrevivió en la copia que nadie volvió a leer.**
-> 2. **El bloque de bancos apilaba CINCO épocas de cifras** —1348, 1449, 1510, 1789…—, que es
->    exactamente el defecto que ESTE documento prohíbe en su cabecera. Ahora es **una tabla de una
->    sola medición**, y se reescribe entera.
->
-> **🔴 Y EL TABLERO DE NOTION LLEVABA TRES CIFRAS RANCIAS, las tres cazadas CONTANDO:**
->
-> | Decía | Es | Cómo se vio |
-> |---|---|---|
-> | «las VEINTIDÓS PRD funcionales» | **24** | `ls docs/prd/funcionales/*.md \| wc -l` |
-> | «el inventario, las 48» | **50** | `COUNT(*)` sobre la base |
-> | «`FLOW-007` en Discovery, la construible» | **dos entregas en producción** desde el 3–4 sep | releerlo entero |
->
-> La tercera es la peor y es la lección: **no la cazó ninguna consulta, la cazó LEER la línea entera
-> mientras se corregía otra cosa**. Y su causa es de forma — enumerar «las dos últimas» **envejece
-> solo** cada vez que se escribe una ficha nueva —, así que **se retiró la enumeración** en vez de
-> actualizarla. Un dato que se estropea solo no se arregla: se quita de donde no toca.
->
-> ⚠️ **Al editar esta cabecera, ojo:** «Sigue en pie: una sola sesión que escriba a la vez» aparece
-> **diez veces** en este fichero, una por época histórica. Una sustitución por texto edita la
-> copia equivocada — la de la cabecera viva es **la primera**.
+> - Las cuatro decisiones de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los dos `TBD` de `FLOW-008`;
+>   los dos huecos falsos de la administradora.
+> - **`RN-01` de `PLAT-004`**: la marca es un atributo, y tiene guardián.
+> - **`TBD-A` y `TBD-B` de `FEAT-008`**: la foto es obligatoria **para cerrar**, no para guardar; y
+>   las lecturas las registra **solo la administración**.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
