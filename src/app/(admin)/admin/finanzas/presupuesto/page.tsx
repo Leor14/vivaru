@@ -275,24 +275,31 @@ export default function PresupuestoPage() {
                   <div>
                     <dt className="text-[var(--slate-600)]">Ingresos</dt>
                     <dd className="text-[var(--slate-900)]">
-                      {formatAmount(comparacion.totales.ingresos.ejecutado)} ejecutados de{" "}
-                      {formatAmount(comparacion.totales.ingresos.presupuestado)} presupuestados
+                      {formatAmount(comparacion.totales.ingresos.ejecutado)} ejecutados
+                      {comparacion.hayPresupuesto
+                        ? ` de ${formatAmount(comparacion.totales.ingresos.presupuestado)} presupuestados`
+                        : " · sin presupuesto cargado"}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-[var(--slate-600)]">Egresos</dt>
                     <dd className="text-[var(--slate-900)]">
-                      {formatAmount(comparacion.totales.egresos.ejecutado)} ejecutados de{" "}
-                      {formatAmount(comparacion.totales.egresos.presupuestado)} presupuestados
+                      {formatAmount(comparacion.totales.egresos.ejecutado)} ejecutados
+                      {comparacion.hayPresupuesto
+                        ? ` de ${formatAmount(comparacion.totales.egresos.presupuestado)} presupuestados`
+                        : " · sin presupuesto cargado"}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-[var(--slate-600)]">Resultado presupuestado</dt>
                     <dd className="text-[var(--slate-900)]">
-                      {VEREDICTO[comparacion.totales.resultado.veredictoPresupuestado]}
-                      {comparacion.totales.resultado.presupuestado
-                        ? ` de ${formatAmount(Math.abs(comparacion.totales.resultado.presupuestado))}`
-                        : ""}
+                      {!comparacion.hayPresupuesto
+                        ? "Sin presupuesto cargado"
+                        : `${VEREDICTO[comparacion.totales.resultado.veredictoPresupuestado]}${
+                            comparacion.totales.resultado.presupuestado
+                              ? ` de ${formatAmount(Math.abs(comparacion.totales.resultado.presupuestado))}`
+                              : ""
+                          }`}
                     </dd>
                   </div>
                   <div>

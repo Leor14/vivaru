@@ -114,6 +114,29 @@ describe("la comparación por cuenta", () => {
   });
 });
 
+describe("sin presupuesto cargado — visto en pantalla, Las Playas, staging", () => {
+  const c = compararPresupuesto({ cuentas: PLAN, lineas: [], ejecutado: EJECUTADO });
+
+  it("lo dice, en vez de afirmar un resultado presupuestado de «equilibrio»", () => {
+    expect(c.hayPresupuesto).toBe(false);
+  });
+
+  it("ningún egreso sale como sobre-ejecución: sin presupuesto no hay contra qué", () => {
+    expect(c.egresos.every((f) => f.desviacion === null)).toBe(true);
+    expect(c.egresos.every((f) => f.situacion === "sin_presupuestar")).toBe(true);
+  });
+
+  it("pero lo ejecutado sigue entero: 6.600.000, el del estado", () => {
+    expect(c.totales.egresos.ejecutado).toBe(6_600_000);
+  });
+
+  it("un presupuesto con una sola línea legible YA es presupuesto, y entonces sí alarma", () => {
+    const una = compararPresupuesto({ cuentas: PLAN, lineas: [{ accountCode: "2.1", amount: 1 }], ejecutado: EJECUTADO });
+    expect(una.hayPresupuesto).toBe(true);
+    expect(una.egresos.find((f) => f.code === "2.3")?.desviacion).toBe("sobre_ejecucion");
+  });
+});
+
 describe("`CA11` / `RN-03` · vacío no es cero", () => {
   it("un 0 tecleado con gasto es «presupuestado en cero», con diferencia y sin porcentaje", () => {
     const c = compararPresupuesto({

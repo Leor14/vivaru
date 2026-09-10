@@ -58,6 +58,12 @@ export type FilaDeComparacion = {
 export type Veredicto = "superavit" | "deficit" | "equilibrio";
 
 export type ComparacionDelPresupuesto = {
+  /**
+   * ¿Hay al menos una línea legible? Sin ella no hay contra qué comparar, y la
+   * pantalla no puede decir «equilibrio» ni «sobre-ejecución»: nadie presupuestó
+   * un año equilibrado. Salió MIRANDO la pantalla de Las Playas en staging.
+   */
+  hayPresupuesto: boolean;
   ingresos: FilaDeComparacion[];
   egresos: FilaDeComparacion[];
   totales: {
@@ -125,6 +131,7 @@ export function compararPresupuesto(entrada: {
   const invalidasSet = new Set(invalidas);
   const plan = new Map(entrada.cuentas.map((c) => [c.code, c]));
   const tipoDe = (code: string) => plan.get(code)?.type ?? tipoPorCodigo(code);
+  const hayPresupuesto = validas.size > 0;
 
   const ejecutadoPor: Record<TipoDeCuenta, Map<string, { label: string; amount: number }>> = {
     ingreso: new Map(entrada.ejecutado.incomeByCategory.map((f) => [f.category, f])),
@@ -150,9 +157,12 @@ export function compararPresupuesto(entrada: {
             ? "presupuestada_en_cero"
             : "presupuestada";
 
+      // Sin presupuesto no hay desviación que señalar: si no, CADA egreso sale
+      // como «sobre-ejecución» y la alarma deja de significar nada.
       let desviacion: Desviacion = null;
-      if (!invalida && tipo === "egreso" && ejecutado > (presupuestado ?? 0)) desviacion = "sobre_ejecucion";
-      if (!invalida && tipo === "ingreso" && presupuestado !== null && ejecutado < presupuestado) desviacion = "faltante";
+      if (!hayPresupuesto) desviacion = null;
+      else if (!invalida && tipo === "egreso" && ejecutado > (presupuestado ?? 0)) desviacion = "sobre_ejecucion";
+      else if (!invalida && tipo === "ingreso" && presupuestado !== null && ejecutado < presupuestado) desviacion = "faltante";
 
       return {
         code,
@@ -185,6 +195,7 @@ export function compararPresupuesto(entrada: {
   const resultadoEjecutado = redondear(ejecutadoIngresos - ejecutadoEgresos);
 
   return {
+    hayPresupuesto,
     ingresos: construir("ingreso"),
     egresos: construir("egreso"),
     totales: {
