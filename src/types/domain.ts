@@ -390,6 +390,15 @@ export type BillingConcept =
    * concepto la habría dejado vacía para siempre. La cuenta sola no bastaba.
    */
   | "vigilancia"
+  /**
+   * `FEAT-008`. El cobro del consumo medido. **Entró como concepto propio por la
+   * misma razón exacta que `vigilancia`, y no es una analogía suelta:** el asiento
+   * del pago resuelve su cuenta desde el CONCEPTO —`aplicarPago` llama a
+   * `cuentaParaConcepto`—, así que sin este valor el cobro del agua caería en
+   * «Otros ingresos» y la cuenta `1.11` que se creó para él **se habría quedado
+   * vacía para siempre**. La cuenta sola no basta.
+   */
+  | "consumo_medido"
   | "otro";
 
 export interface BillingStatement {
@@ -986,6 +995,15 @@ export type LedgerCategory =
    * semilla del plan.
    */
   | "anticipo"
+  /**
+   * `FEAT-008`. El INGRESO por consumo medido —agua, gas, energía—. Se llama
+   * distinto que la categoría de EGRESO `servicios_publicos`, que es lo que el
+   * conjunto PAGA por ese mismo servicio, **y por el motivo de siempre**:
+   * `LedgerCategory` incluye a `ExpenseCategory`, así que una sola clave para
+   * los dos lados haría que `cuentaPorSystemKey` devolviera la de ingreso o la
+   * de egreso según el orden del array.
+   */
+  | "consumo_medido"
   | "otros_ingresos";
 
 /** Movimiento del libro de ingresos/egresos. Backbone contable + conciliación. */

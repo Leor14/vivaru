@@ -35,7 +35,7 @@
  * Firestore, no de una constante.
  */
 
-/** Los siete conceptos de cargo. Copia deliberada de `BillingConcept` de `src/types/domain.ts`. */
+/** Los conceptos de cargo. Copia deliberada de `BillingConcept` de `src/types/domain.ts`. */
 export const CONCEPTOS_DE_CARGO = [
   "administracion",
   "extraordinaria",
@@ -44,6 +44,7 @@ export const CONCEPTOS_DE_CARGO = [
   "interes_mora",
   "parqueadero",
   "vigilancia",
+  "consumo_medido",
   "otro",
 ] as const;
 
@@ -213,6 +214,7 @@ export const CUENTA_POR_CONCEPTO: Record<ConceptoDeCargo, string> = {
   parqueadero: "1.5",
   reparacion: "1.6",
   vigilancia: "1.9", // ← el CARGO de vigilancia es un INGRESO. El gasto es la 2.9
+  consumo_medido: "1.11", // ← el COBRO del agua es un INGRESO. Lo que se PAGA por ella es la 2.2
 
   otro: CUENTA_OTROS_INGRESOS, // ← `otro` (cargo) no es `otros` (egreso, 2.8)
 };
@@ -333,6 +335,7 @@ const DESCRIPCION_DE_COBRO: Record<ConceptoDeCargo, string> = {
   parqueadero: "parqueadero",
   reparacion: "reparación",
   vigilancia: "cuota de vigilancia",
+  consumo_medido: "consumo medido",
   otro: "cargo",
 };
 

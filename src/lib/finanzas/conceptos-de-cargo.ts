@@ -52,6 +52,10 @@ export const CATEGORIA_POR_CONCEPTO: Record<BillingConcept, LedgerCategory> = {
   // El cargo `vigilancia` va a la categoría `cuota_vigilancia`, NO a
   // `vigilancia`: esa es la del egreso. Misma trampa que `administracion`.
   vigilancia: "cuota_vigilancia",
+  // El cargo `consumo_medido` va a la categoría del mismo nombre, NO a
+  // `servicios_publicos`: esa es la del EGRESO, lo que el conjunto paga por el
+  // agua. Misma trampa que `vigilancia`, con otro servicio.
+  consumo_medido: "consumo_medido",
   // `otro` (cargo) no es `otros` (egreso).
   otro: "otros_ingresos",
 };
@@ -83,6 +87,7 @@ export const CODIGO_POR_CONCEPTO: Record<BillingConcept, string> = {
   parqueadero: "1.5",
   reparacion: "1.6",
   vigilancia: "1.9",
+  consumo_medido: "1.11",
   // `otro` (cargo) no es `otros` (egreso, 2.8).
   otro: CUENTA_OTROS_INGRESOS,
 };
