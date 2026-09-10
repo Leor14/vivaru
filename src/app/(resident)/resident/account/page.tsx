@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
 import { BillingPeriodCard } from "@/components/features/billing/BillingPeriodCard";
+import { MisLecturasCard } from "@/components/features/medidores/MisLecturasCard";
 import { ResidentAdvancesCard } from "@/components/features/finanzas/ResidentAdvancesCard";
 import { ResidentVouchersCard } from "@/components/features/finanzas/ResidentVouchersCard";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -304,6 +305,14 @@ export default function ResidentAccountPage() {
           ninguno, no se pinta nada. */}
       <div className="mt-4">
         <ResidentAdvancesCard tenantId={user?.tenantId} unitId={user?.unitId} formatAmount={formatAmount} />
+      </div>
+
+      {/* `FEAT-008` entrega 3. Va DESPUÉS del saldo y ANTES del detalle de los
+          cargos, que es donde aparece el cobro del agua: quien vea un cargo por
+          consumo tiene la lectura y su foto justo encima, sin buscarla. Si el
+          conjunto no mide nada, la tarjeta no se pinta. */}
+      <div className="mt-4">
+        <MisLecturasCard tenantId={user?.tenantId} unitId={user?.unitId} />
       </div>
 
       {/* Hero card — situación financiera */}
