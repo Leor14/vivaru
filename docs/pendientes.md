@@ -4,7 +4,7 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` COMPLETA EN STAGING)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` COMPLETA EN LOS DOS AMBIENTES)
 
 > # LO CONSTRUIBLE DE HABITANTO SE ACABÓ SALVO DOS HUECOS. El resto lo frenan DATOS o decisiones propias.
 >
@@ -24,9 +24,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## `PRD-V-FEAT-008` — MEDICIÓN DE CONSUMOS CON FOTO — ENTREGAS 1 Y 2
 >
-> **Producción tiene la ENTREGA 1** —functions, reglas y front— **con la bandera APAGADA en los
-> nueve**, verificado **resolviendo** con `functions/lib/feature-flags.js`. **La ENTREGA 2 está solo
-> en STAGING**, encendida en `tenant-palmas-cdmx` (25 unidades activas).
+> **LAS TRES ENTREGAS ESTÁN EN LOS DOS AMBIENTES**, y en producción con la **bandera APAGADA en los
+> nueve** — verificado **resolviendo** con `functions/lib/feature-flags.js`, no leyendo documentos:
+> global `false`, encendida en **ninguno**. En staging, encendida en `tenant-palmas-cdmx`
+> (25 unidades activas), con octubre ya cobrado y su foto puesta a propósito.
+>
+> **Las cuatro callables de la ficha están en producción, listadas por nombre**
+> (`registerMeterReading`, `closeMeterPeriod`, `reopenMeterPeriod`, `billConsumptionPeriod`), y el
+> **ruleset vivo es idéntico al repo**: las entregas 2 y 3 no tocaron reglas.
 >
 > **Sale de §3.5 de la sesión con la administradora**, que es su cuello de botella declarado y la
 > respuesta a «¿qué le lleva más trabajo?». Y hay ventaja que tomar, no solo igualar: Habitanto
@@ -109,9 +114,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### Lo que queda de la ficha
 >
-> **Nada construible.** Las tres entregas están en staging y vistas. **Producción solo tiene la
-> entrega 1**, con la bandera apagada — promover las otras dos es inofensivo y dejaría los dos
-> ambientes iguales, que se razona mejor que tenerlos divergidos.
+> **Nada construible, y nada por promover: los dos ambientes están iguales.** Lo único que queda es
+> una decisión, no trabajo: **encender la bandera** en algún conjunto de producción. Hoy no hay a
+> quién — ningún conjunto real mide consumos —, así que encenderla sería otra capacidad sobre una
+> tabla vacía.
 >
 > ℹ️ **La clave de `carmen.garcia@privadapalmas.mx` en STAGING quedó siendo `TU_CLAVE_AQUI`** —el
 > marcador del comando se copió literal—. Es una cuenta de demostración en un ambiente sin clientes;
