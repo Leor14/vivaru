@@ -81,6 +81,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // la marca a quien ya la tenga — el permiso vive en el dato. Ver el catálogo
     // en `src/`.
     "producto-rol-consejo": false,
+    // Apagada = no hay catálogo de servicios medidos ni lecturas. Las lecturas ya
+    // registradas y sus fotos se quedan. Ver el catálogo en `src/`.
+    "producto-medicion-de-consumos": false,
     // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
     // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
     "producto-anticipos": false,

@@ -400,6 +400,15 @@ export default function MedidoresPage() {
                       </td>
                       <td className="py-2 pr-4">
                         <Input
+                          // 🔴 `key` con el período dentro, y no es cosmético: el
+                          // campo es NO CONTROLADO —`defaultValue`—, así que al
+                          // cambiar de mes React reutiliza el nodo y **se queda
+                          // con la lectura del mes anterior**. Se vio en pantalla
+                          // el 10 de septiembre: octubre en blanco y el campo
+                          // enseñando el 1200 de septiembre. Quien lo mirara
+                          // daría el mes por registrado y se lo saltaría entero.
+                          // El `key` fuerza el remonte, que es lo que lo vacía.
+                          key={`${u.id}-${periodo}-${l?.current ?? "vacio"}`}
                           className="w-28"
                           inputMode="decimal"
                           disabled={!editable || guardando === u.id}

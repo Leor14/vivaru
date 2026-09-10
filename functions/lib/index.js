@@ -33,8 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = void 0;
+exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.reopenMeterPeriod = exports.closeMeterPeriod = exports.registerMeterReading = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -74,6 +75,7 @@ const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
 const feature_flags_1 = require("./feature-flags");
 const rol_consejo_1 = require("./rol-consejo");
+const medicion_de_consumos_1 = require("./medicion-de-consumos");
 const egresos_en_cuotas_1 = require("./egresos-en-cuotas");
 const informe_mensual_1 = require("./informe-mensual");
 const nucleo_estado_financiero_1 = require("./nucleo-estado-financiero");
@@ -1412,6 +1414,78 @@ exports.setCommitteeMembership = (0, https_1.onCall)({ cors: http_config_1.calla
         });
     }
     return resultado;
+});
+exports.registerMeterReading = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    if (!request.auth?.uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
+    const d = request.data;
+    const tenantId = normalizeText(d?.tenantId);
+    const serviceId = normalizeText(d?.serviceId);
+    const unitId = normalizeText(d?.unitId);
+    const period = normalizeText(d?.period);
+    if (!tenantId || !serviceId || !unitId || !period) {
+        throw new https_1.HttpsError("invalid-argument", "Faltan el conjunto, el servicio, la unidad o el período.");
+    }
+    if (typeof d?.current !== "number") {
+        throw new https_1.HttpsError("invalid-argument", "La lectura actual es obligatoria.");
+    }
+    // `assertActiveTenantAdmin` lleva `assertTenantOperable` dentro: de ahí sale
+    // que un conjunto suspendido no pueda registrar lecturas (`CA14`).
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-medicion-de-consumos", actor.tenantId);
+    const r = await (0, medicion_de_consumos_1.registrarLectura)({
+        tenantId: actor.tenantId,
+        serviceId, unitId, period,
+        current: d.current,
+        photoUrl: normalizeText(d?.photoUrl) || undefined,
+        actorUid: request.auth.uid,
+    });
+    // Sin campos `undefined`: `writeAuditLog` audita FUERA de la transacción y
+    // uno haría fallar la callable después de que la lectura ya esté escrita.
+    await writeAuditLog(actor.tenantId, request.auth.uid, "register_meter_reading", {
+        serviceId, unitId, period,
+        consumption: r.consumption,
+        esLineaBase: r.esLineaBase,
+        reinicio: r.reinicio,
+    });
+    return r;
+});
+exports.closeMeterPeriod = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    if (!request.auth?.uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const serviceId = normalizeText(request.data?.serviceId);
+    const period = normalizeText(request.data?.period);
+    if (!tenantId || !serviceId || !period) {
+        throw new https_1.HttpsError("invalid-argument", "Faltan el conjunto, el servicio o el período.");
+    }
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-medicion-de-consumos", actor.tenantId);
+    const r = await (0, medicion_de_consumos_1.cerrarPeriodo)({
+        tenantId: actor.tenantId, serviceId, period, actorUid: request.auth.uid,
+    });
+    await writeAuditLog(actor.tenantId, request.auth.uid, "close_meter_period", {
+        serviceId, period, lecturas: r.lecturas,
+    });
+    return r;
+});
+exports.reopenMeterPeriod = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    if (!request.auth?.uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const serviceId = normalizeText(request.data?.serviceId);
+    const period = normalizeText(request.data?.period);
+    if (!tenantId || !serviceId || !period) {
+        throw new https_1.HttpsError("invalid-argument", "Faltan el conjunto, el servicio o el período.");
+    }
+    // **Reabrir NO comprueba la bandera**, por lo mismo que anular un informe:
+    // apagarla no puede dejar períodos cerrados sin forma de corregirlos.
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const r = await (0, medicion_de_consumos_1.reabrirPeriodo)({ tenantId: actor.tenantId, serviceId, period });
+    await writeAuditLog(actor.tenantId, request.auth.uid, "reopen_meter_period", {
+        serviceId, period, lecturas: r.lecturas,
+    });
+    return r;
 });
 exports.deleteOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {

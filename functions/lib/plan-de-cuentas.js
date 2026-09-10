@@ -140,6 +140,17 @@ exports.SEMILLA_PLAN_DE_CUENTAS = [
     // sin codigo, y en un conjunto CON plan sembrado su linea quedaria etiquetada
     // por la categoria mientras el resto del estado habla en codigos.
     { code: "1.10", name: "Anticipos de residentes", type: "ingreso", parentCode: "1", systemKey: "anticipo" },
+    // FEAT-008. Lo que el conjunto COBRA a las unidades por consumo medido —agua,
+    // gas, energia—. Va en cuenta propia porque no es una cuota: varia por unidad
+    // y por mes, y meterlo en «Cuotas de administracion» haria ilegible el recaudo
+    // del mes en que suba el agua.
+    //
+    // ⚠️ Su `systemKey` NO es "servicios_publicos": esa la lleva la cuenta de
+    // EGRESO 2.2, que es el agua que el conjunto PAGA. Son las dos caras del mismo
+    // servicio y repetir la clave fabricaria la colision que R11 existe para
+    // impedir — `cuentaPorSystemKey` devolveria la de ingreso o la de egreso segun
+    // el orden del array. Es la misma trampa que documenta 1.9 con "vigilancia".
+    { code: "1.11", name: "Consumos medidos", type: "ingreso", parentCode: "1", systemKey: "consumo_medido" },
     { code: "2", name: "Egresos", type: "egreso" },
     { code: "2.1", name: "Nómina", type: "egreso", parentCode: "2", systemKey: "nomina" },
     { code: "2.2", name: "Servicios públicos", type: "egreso", parentCode: "2", systemKey: "servicios_publicos" },
