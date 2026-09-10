@@ -89,6 +89,7 @@ import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
 import { aplicarMarcaDeConsejo } from "./rol-consejo";
+import { cerrarPeriodo, reabrirPeriodo, registrarLectura } from "./medicion-de-consumos";
 import {
   anularCuota,
   anularEgresoConCuotas,
@@ -1915,6 +1916,111 @@ export const setCommitteeMembership = onCall<SetCommitteeMembershipInput>(
     }
 
     return resultado;
+  },
+);
+
+// ── FEAT-008 entrega 1 · la lectura del medidor ─────────────────────────────
+//
+// **Las tres van por callable, y el motivo no es el obvio.** Lo evidente es que
+// `consumption` decide dinero; lo que decidió la vía es **`previous`**: la
+// lectura anterior la pone el SERVIDOR leyendo el período pasado, y si viajara
+// en la petición el cliente podría fijar el consumo que quisiera sin tocar
+// siquiera el campo calculado.
+//
+// El catálogo de servicios medidos sí va por escritura directa: es un CRUD del
+// administrador que las reglas protegen entero y que no sostiene ningún
+// invariante.
+
+type RegisterMeterReadingInput = {
+  tenantId: string; serviceId: string; unitId: string;
+  period: string; current: number; photoUrl?: string;
+};
+
+export const registerMeterReading = onCall<RegisterMeterReadingInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const d = request.data;
+    const tenantId = normalizeText(d?.tenantId);
+    const serviceId = normalizeText(d?.serviceId);
+    const unitId = normalizeText(d?.unitId);
+    const period = normalizeText(d?.period);
+    if (!tenantId || !serviceId || !unitId || !period) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto, el servicio, la unidad o el período.");
+    }
+    if (typeof d?.current !== "number") {
+      throw new HttpsError("invalid-argument", "La lectura actual es obligatoria.");
+    }
+
+    // `assertActiveTenantAdmin` lleva `assertTenantOperable` dentro: de ahí sale
+    // que un conjunto suspendido no pueda registrar lecturas (`CA14`).
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    await assertFeatureEnabled("producto-medicion-de-consumos", actor.tenantId);
+
+    const r = await registrarLectura({
+      tenantId: actor.tenantId,
+      serviceId, unitId, period,
+      current: d.current,
+      photoUrl: normalizeText(d?.photoUrl) || undefined,
+      actorUid: request.auth.uid,
+    });
+
+    // Sin campos `undefined`: `writeAuditLog` audita FUERA de la transacción y
+    // uno haría fallar la callable después de que la lectura ya esté escrita.
+    await writeAuditLog(actor.tenantId, request.auth.uid, "register_meter_reading", {
+      serviceId, unitId, period,
+      consumption: r.consumption,
+      esLineaBase: r.esLineaBase,
+      reinicio: r.reinicio,
+    });
+
+    return r;
+  },
+);
+
+type MeterPeriodInput = { tenantId: string; serviceId: string; period: string };
+
+export const closeMeterPeriod = onCall<MeterPeriodInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const serviceId = normalizeText(request.data?.serviceId);
+    const period = normalizeText(request.data?.period);
+    if (!tenantId || !serviceId || !period) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto, el servicio o el período.");
+    }
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    await assertFeatureEnabled("producto-medicion-de-consumos", actor.tenantId);
+
+    const r = await cerrarPeriodo({
+      tenantId: actor.tenantId, serviceId, period, actorUid: request.auth.uid,
+    });
+    await writeAuditLog(actor.tenantId, request.auth.uid, "close_meter_period", {
+      serviceId, period, lecturas: r.lecturas,
+    });
+    return r;
+  },
+);
+
+export const reopenMeterPeriod = onCall<MeterPeriodInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const serviceId = normalizeText(request.data?.serviceId);
+    const period = normalizeText(request.data?.period);
+    if (!tenantId || !serviceId || !period) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto, el servicio o el período.");
+    }
+    // **Reabrir NO comprueba la bandera**, por lo mismo que anular un informe:
+    // apagarla no puede dejar períodos cerrados sin forma de corregirlos.
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const r = await reabrirPeriodo({ tenantId: actor.tenantId, serviceId, period });
+    await writeAuditLog(actor.tenantId, request.auth.uid, "reopen_meter_period", {
+      serviceId, period, lecturas: r.lecturas,
+    });
+    return r;
   },
 );
 

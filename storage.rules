@@ -109,7 +109,21 @@ service firebase.storage {
         (miembro(tenantId) && duenoUid == request.auth.uid)) && tamanoOk();
     }
 
-    // Notas de visitantes: las escribe portería desde el puesto de vigilancia.
+    // FEAT-008 · la foto del medidor. La sube la administración al registrar la
+    // lectura, y **la lee también el residente**: la entrega 3 se la enseña con
+    // su cargo, y es lo que le permite discutirlo.
+    //
+    // ⚠️ La lectura NO se acota a la unidad del residente aquí, porque la ruta
+    // no lleva `unitId` — quien lo acota es la regla de Firestore sobre
+    // `meterReadings`, que es donde vive el `fileUrl`. **Storage y Firestore son
+    // DOS ficheros**, y el documento guarda un enlace con token que se salta
+    // Storage: la palanca real de `RN-07` está en el otro lado.
+    match /tenants/{tenantId}/meter-readings/{resto=**} {
+      allow read: if admin(tenantId) || miembro(tenantId);
+      allow write: if admin(tenantId) && tamanoOk();
+    }
+
+    // Notas de visitantes: las escribe portería desde el puesto de vigilancia.    // Notas de visitantes: las escribe portería desde el puesto de vigilancia.
     match /tenants/{tenantId}/visitor-notes/{resto=**} {
       allow read: if admin(tenantId) || porteria(tenantId);
       allow write: if (admin(tenantId) || porteria(tenantId)) && tamanoOk();

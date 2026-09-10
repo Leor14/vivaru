@@ -51,6 +51,7 @@ const CLAVES = [
   "producto-informe-mensual",
   "producto-egresos-en-cuotas",
   "producto-rol-consejo",
+  "producto-medicion-de-consumos",
   "producto-anticipos",
   "producto-expediente-conciliacion",
   "producto-notificaciones-push",

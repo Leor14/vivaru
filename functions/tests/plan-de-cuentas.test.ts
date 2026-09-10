@@ -66,11 +66,13 @@ describe("validarCodigoDeCuenta — el defecto de Habitanto fue no validar", () 
 
 describe("la semilla", () => {
   // Fueron 16+2 hasta el 23 de agosto de 2026; la vigilancia sumó dos cuentas,
-  // una por lado del libro (1.9 ingreso, 2.9 egreso), y `FLOW-002` sumó la del
-  // anticipo (1.10). CA1 se movió con ellas.
-  it("son 21 documentos: 19 cuentas con systemKey y 2 padres", () => {
-    expect(SEMILLA_PLAN_DE_CUENTAS).toHaveLength(21);
-    expect(SEMILLA_PLAN_DE_CUENTAS.filter((c) => c.systemKey)).toHaveLength(19);
+  // una por lado del libro (1.9 ingreso, 2.9 egreso), `FLOW-002` sumó la del
+  // anticipo (1.10) y `FEAT-008` la de consumos medidos (1.11). CA1 se movió con
+  // ellas. **Este número se escribe a mano A PROPÓSITO**: es lo que avisó de que
+  // la semilla había crecido, y derivarlo de la propia semilla lo dejaría mudo.
+  it("son 22 documentos: 20 cuentas con systemKey y 2 padres", () => {
+    expect(SEMILLA_PLAN_DE_CUENTAS).toHaveLength(22);
+    expect(SEMILLA_PLAN_DE_CUENTAS.filter((c) => c.systemKey)).toHaveLength(20);
   });
 
   /**

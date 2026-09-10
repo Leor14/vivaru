@@ -138,6 +138,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-medicion-de-consumos",
+    area: "producto",
+    label: "Medir el consumo de agua, gas o energía por unidad",
+    origen: "PRD-V-FEAT-008 entrega 1",
+    // Nace apagada y se enciende por conjunto. Encenderla es inerte hasta que
+    // alguien declare un servicio medido: las colecciones son nuevas.
+    enabled: false,
+  },
+  {
     key: "producto-rol-consejo",
     area: "producto",
     label: "El consejo de administración existe de verdad",

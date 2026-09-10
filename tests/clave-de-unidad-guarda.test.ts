@@ -214,6 +214,11 @@ describe("3 · el inventario del servidor está pinchado", () => {
     // membresía, así que no hay nada que pasar por `claveDeUnidad(...)`. Mismo
     // caso que `estado-de-cuenta-adjunto.ts` y `visita-no-anunciada.ts`.
     "functions/src/informe-mensual.ts",
+    // `FEAT-008`. Escribe `unitId` en `meterReadings`. **No compone una clave de
+    // unidad: la RECIBE**, y por eso comprueba contra `units` que exista y sea
+    // del conjunto antes de escribir nada — un slug aquí dejaría la lectura
+    // colgada en silencio. Este guardián es quien lo hizo evidente.
+    "functions/src/medicion-de-consumos.ts",
     "functions/src/payments.ts",
     "functions/src/reservations.ts",
     "functions/src/trial-seed.ts",

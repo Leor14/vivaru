@@ -83,6 +83,7 @@ export type FeatureFlagKey =
   | "producto-informe-mensual"
   | "producto-egresos-en-cuotas"
   | "producto-rol-consejo"
+  | "producto-medicion-de-consumos"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -425,6 +426,21 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-008 entrega 1",
     alApagar:
       "Los planes ya declarados dejan de pintarse y la deuda vuelve a contar el importe completo de la factura. Las cuotas YA PAGADAS conservan su asiento en el libro: apagar la bandera no borra dinero registrado.",
+  },
+  "producto-medicion-de-consumos": {
+    key: "producto-medicion-de-consumos",
+    area: "producto",
+    label: "Medir el consumo de agua, gas o energía por unidad",
+    description:
+      "El conjunto declara qué servicios mide y a qué tarifa, registra la lectura de cada medidor CON SU FOTO, y el producto calcula el consumo. Sale de §3.5 de la sesión con la administradora: hoy manda las fotos por correo en un archivo aparte.",
+    // Nace apagada. NO cambia ninguna cifra existente —las colecciones son
+    // nuevas y nadie las lee todavía—, así que encenderla es inerte hasta que
+    // alguien declare un servicio. Aun así se enciende por conjunto: es captura
+    // de datos nueva y conviene verla en uno antes que en nueve.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-008 entrega 1",
+    alApagar:
+      "Desaparecen el catálogo de servicios medidos y la pantalla de lecturas. Las lecturas ya registradas NO se borran y las fotos siguen en su sitio. Los cargos ya emitidos desde un consumo tampoco se tocan: apagar esto no anula dinero cobrado — para eso se anula la corrida.",
   },
   "producto-rol-consejo": {
     key: "producto-rol-consejo",

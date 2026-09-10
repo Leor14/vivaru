@@ -1484,6 +1484,41 @@ service cloud.firestore {
     // importa: **borrar este bloque entero dejó las trece pruebas de escritura en
     // VERDE** —las satisface el deny por defecto— y solo enrojecieron las cuatro
     // de lectura. Una prueba de denegación no prueba que exista una regla.
+    // ─── FEAT-008 · medicion de consumos (§3.5 de la sesion) ─────────────────
+    //
+    // El catalogo va por escritura directa: es un CRUD del administrador y no
+    // sostiene ningun invariante. **Las LECTURAS no**, y por dos campos:
+    // `consumption` decide dinero y `previous` lo pone el servidor leyendo el
+    // periodo anterior — si el cliente pudiera declararlo, fijaria el consumo
+    // que quisiera sin tocar el campo calculado. Las escribe
+    // `registerMeterReading`, que va con Admin SDK y **no evalua estas reglas**:
+    // lo de aqui cierra la puerta del cliente, no sostiene el invariante.
+    match /meteredServices/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        tenantRole(resource.data.tenantId, 'resident')
+      );
+      allow create, update: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /meterReadings/{docId} {
+      // El residente ve SOLO su unidad (`RN-07`): el consumo de un vecino es
+      // dato de un tercero. Su consulta de lista tiene que filtrar `unitId`
+      // ademas de `tenantId`, o Firestore la rechaza entera — evalua la consulta
+      // contra la regla SIN ejecutarla.
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      // Cerrado del todo al cliente. No hay rama de administrador a proposito:
+      // dejarla seria una segunda puerta al mismo sitio, que es la leccion de
+      // `CF8` y la misma decision que `monthlyReports`.
+      allow create, update, delete: if false;
+    }
+
     match /monthlyReports/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||

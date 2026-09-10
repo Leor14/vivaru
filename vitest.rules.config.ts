@@ -29,6 +29,7 @@ export default defineConfig({
       "tests/puerta-de-buzones.rules.test.ts",
       "tests/informe-mensual.rules.test.ts",
       "tests/rol-consejo.rules.test.ts",
+      "tests/medicion-de-consumos.rules.test.ts",
       "tests/egresos-en-cuotas.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
