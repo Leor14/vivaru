@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
 | **Responsable** | David |
-| **Estado** | Discovery |
+| **Estado** | **Lista para desarrollo** — `TBD-A` y `TBD-B` cerradas el 9 sep; entrega 1 en curso |
 | **Dependencias** | `PRD-V-FLOW-001` (reparto por coeficiente, **de donde sale la estructura**) · `PRD-V-PLAT-003` (plan de cuentas) |
 | **Riesgo** | Medio — toca dinero, pero no toca permisos ni el modelo de la unidad |
 | **Reversibilidad** | Reversible por bandera **salvo los cargos ya emitidos** (§13) |
@@ -215,6 +215,8 @@ declararlo la metería en la purga nocturna por defecto.
 | **`RN-06`** | Solo se cobra a las unidades **con lectura**. Las que falten **se nombran**, como ya hace el reparto por coeficiente |
 | **`RN-07`** | El residente ve **solo su unidad**. El consumo de un vecino es dato de un tercero |
 | **`RN-08`** | El servicio medido **cuelga de una cuenta del plan del conjunto**, y esa cuenta debe existir antes |
+| **`RN-09`** | **La foto es obligatoria para CERRAR el período, no para guardar la lectura** (`TBD-A`). Cerrar con lecturas sin foto se deniega **nombrando las unidades que faltan**, igual que el reparto por coeficiente |
+| **`RN-10`** | **`previous` lo pone el servidor**, leyendo el período anterior. No viaja en la petición: si el cliente pudiera declararlo, podría fijar el consumo que quisiera sin tocar `consumption` |
 
 ---
 
@@ -244,6 +246,7 @@ veces del mismo hecho —la lectura y su cargo—, y el residente solo actúa so
 | `CA7` | El residente abre su estado de cuenta y ve **su consumo y la foto de su medidor** |
 | `CA8` | La primera lectura de una unidad **no genera cargo** (`RN-04`) |
 | `CA9` | Una lectura menor que la anterior **avisa y deja continuar** (`RN-03`) |
+| `CA9b` | Se guarda una lectura **sin foto** y el recorrido continúa; el período queda abierto (`RN-09`) |
 
 ### **Deben fallar**
 
@@ -255,6 +258,8 @@ veces del mismo hecho —la lectura y su cargo—, y el residente solo actúa so
 | `CA13` | El cliente escribe **`consumption`** directamente → denegado por reglas (`RN-02`) |
 | `CA14` | Se registra una lectura con el conjunto **suspendido** → denegado por `tenantOperable` |
 | `CA15` | Se genera la corrida **dos veces** sobre el mismo período → la segunda se rechaza |
+| `CA16` | Se **cierra** un período con alguna lectura **sin foto** → denegado, **nombrando las unidades** (`RN-09`) |
+| `CA17` | La petición manda un **`previous` inventado** → se ignora: manda el del período anterior (`RN-10`) |
 
 > **Falsación obligatoria.** Al escribir las reglas de `CA10`, `CA12` y `CA13`, **borrar el
 > bloque entero y comprobar que enrojecen**. Una prueba de denegación pasa igual sin
@@ -270,7 +275,7 @@ veces del mismo hecho —la lectura y su cargo—, y el residente solo actúa so
 | Pieza | Vía | Por qué |
 |---|---|---|
 | Catálogo de servicios | **Escritura directa** | CRUD del administrador que las reglas protegen por completo. No sostiene ningún invariante |
-| Registrar la lectura | **Escritura directa**, con `consumption` **cerrado al cliente** | Es dato que el administrador teclea. Lo que no puede falsificar es el consumo derivado |
+| Registrar la lectura | **Callable** | ⚠️ **Esta celda decía «escritura directa» y se corrigió el 9 de septiembre, ANTES de escribir código.** El motivo que la tumbó no es `consumption`: es **`previous`**. `CA3` exige que la lectura anterior **la ponga el sistema**, y si viaja en la petición el cliente puede mentir sobre ella — con lo que el consumo sale mal aunque el servidor lo calcule bien. **Los dos campos deciden dinero juntos, así que los escribe el mismo lado** |
 | Generar la corrida | **Callable, sin discusión** | Escribe en varias colecciones, crea asientos, mueve dinero y no puede ser falsificable. **Es exactamente el camino de `distributeExpense`** |
 
 ### Piezas y el gemelo que ya lo hace bien
@@ -288,8 +293,8 @@ veces del mismo hecho —la lectura y su cargo—, y el residente solo actúa so
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| `TBD-A` | **¿La foto es obligatoria?** Recomendación: **sí para cerrar el período, no para guardar la lectura** — se recorren los medidores en varios días y exigirla en cada tecleo obliga a llevar el teléfono conectado. Es la decisión que más cambia el uso diario | Entrega 1 |
-| `TBD-B` | ¿La portería registra lecturas? `F2` decía «Administración · Portería», pero **Paola las toma ella**. Abrirlo al guarda añade un rol a las reglas por una necesidad no medida | Entrega 1 |
+| ~~`TBD-A`~~ | ✅ **CERRADA el 9 sep: la foto es obligatoria para CERRAR el período, no para guardar la lectura.** Se puede registrar sin foto y seguir andando —recorre los medidores en varios días, y hay sótanos sin señal—, pero **el período no se cierra ni se cobra hasta que todas la tengan**. Así ningún cargo sale sin evidencia sin obligarla a rehacer el recorrido | — |
+| ~~`TBD-B`~~ | ✅ **CERRADA el 9 sep: solo la administración.** `F2` decía «Administración · Portería», pero **Paola las toma ella**: añadir un rol a las reglas por una necesidad que nadie midió es superficie de permisos a cambio de nada. Si aparece, se abre después | — |
 | `TBD-C` | ¿Tarifas por tramos? Ninguno de los dos productos lo tiene. No bloquea el MVP | Fase 2 |
 
 ---
@@ -343,7 +348,7 @@ solo *abren* colecciones que no existen, no restringen nada vigente.
 | **`G1` Valor** | ✅ Baseline 0 en las tres mediciones |
 | **`G2` Datos y permisos** | ✅ Dos colecciones nuevas, sin tocar el modelo de la unidad ni los roles |
 | **`G3` Riesgo** | ✅ Bandera, rollback y lo que **no** revierte, declarados |
-| **`G4` Aceptación** | ✅ Quince criterios, **seis de ellos que deben fallar** |
+| **`G4` Aceptación** | ✅ Quince criterios, **ocho de ellos que deben fallar** |
 | **`G5` Operación** | ✅ **El dueño ya existe y ya hace la tarea**: la administradora que hoy recorre los medidores. Es la misma razón por la que `FLOW-007` pasó y `FLOW-006` no |
 | **`G6` Escala** | ✅ 93 unidades × 12 meses. Sin problema de volumen ni de coste |
 
