@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Discovery — LISTA PARA DESARROLLO** (10 sep 2026) |
+| **Estado** | **Entrega 1 construida y falseada** (10 sep 2026) · pendiente de verse en staging |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -329,6 +329,54 @@ estado financiero** porque nunca entraron en él (`RN-01`).
   entero fuera de las cuentas — y eso es lo que tiene que decir.
 
 ---
+
+## 14 · Lo que se vio al construir la entrega 1 (10 de septiembre de 2026)
+
+### Lo construido
+
+- **`saldosPorCuenta`** (`src/lib/finanzas/tesoreria.ts`), pura: por cuenta, saldo inicial,
+  entradas, salidas y saldo; más «sin cuenta asignada», «cuentas que ya no están en el
+  conjunto» y «cobrado en Cartera sin asiento en el libro». **El total sale de
+  `computeFundPosition`**, con las mismas entradas que «Libro y fondos»:
+  `repartirRecaudo(statements).total` y `sumarSaldoInicial(saldos)`. `sinExplicar` es lo que
+  quede entre las dos formas de contar, y se enseña si no es cero.
+- **El signo de cada movimiento sale de `movimientoEntraAlFondo`**, que ya existía: un
+  reverso conserva el tipo del asiento que anula y lleva el importe en negativo, así que el
+  reverso de un recaudo SALE y el de un gasto ENTRA.
+- **Solo lee.** No toca reglas ni escribe nada: en esta entrega no hay colección nueva.
+- La página pinta lo leído **atado al conjunto que lo pidió**, para que al cambiar de conjunto
+  no enseñe los datos del anterior —la lección del campo de lectura de `FEAT-008`—.
+
+### La falsación
+
+| Mutación | Lo que enrojeció |
+|---|---|
+| `RN-04` · el total sumado a mano en vez de `computeFundPosition` | 5 pruebas, las del total y las de cuadre |
+| El signo solo por el tipo del asiento | 5, entre ellas las dos cuentas |
+| El recaudo del libro sin sus reversos | 4, empezando por «cobrado sin asiento» |
+| La página calcula el fondo por su cuenta | El guardián |
+| Control: un comentario que nombra `computeFundPosition` | **Nada, como debe** |
+
+> «Santa María en pequeño» sigue en verde con la mutación de `RN-04`, y no es hueco: cuando
+> Cartera y el libro coinciden, sumar a mano da el mismo total. La falsación la cazan las
+> otras cinco.
+
+**Un guardián del proyecto corrigió la página:** `las-dos-medidas` enrojeció con un
+`max-w-[60ch]` escrito a mano — el ancho de lectura vive en `--medida-lectura`.
+
+Conteos: `npm test` **1849 → 1863** (12 de la función pura y 2 del guardián); functions
+**856**, sin cambio.
+
+### La predicción, escrita antes de mirar la pantalla
+
+Leída en la base de staging con la misma regla de signo:
+
+- **Conjunto Las Playas:** una cuenta —«Cuenta operativa», BBVA México, corriente— con saldo
+  inicial **$85,000**, entradas **$127,500**, salidas **$137,800** y saldo **$74,700**
+  (53 movimientos). Sin cuenta: **$0 en 2 movimientos**. Si el saldo de fondos es el de
+  Reportes —$74,700—, «cobrado sin asiento» tiene que dar **$0**.
+- **Santa María en staging:** 0 cuentas y 0 asientos. El caso de «cuenta registrada que
+  ningún asiento lleva» solo existe en producción.
 
 ## Puertas
 
