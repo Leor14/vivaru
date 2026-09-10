@@ -183,8 +183,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    exactamente el defecto que ESTE documento prohíbe en su cabecera. Ahora es **una tabla de una
 >    sola medición**, y se reescribe entera.
 >
-> Y **las PRD funcionales son 24**, contadas en el repositorio: el tablero decía VEINTIDÓS y otras
-> fuentes 23. **Se cuentan, no se citan.**
+> **🔴 Y EL TABLERO DE NOTION LLEVABA TRES CIFRAS RANCIAS, las tres cazadas CONTANDO:**
+>
+> | Decía | Es | Cómo se vio |
+> |---|---|---|
+> | «las VEINTIDÓS PRD funcionales» | **24** | `ls docs/prd/funcionales/*.md \| wc -l` |
+> | «el inventario, las 48» | **50** | `COUNT(*)` sobre la base |
+> | «`FLOW-007` en Discovery, la construible» | **dos entregas en producción** desde el 3–4 sep | releerlo entero |
+>
+> La tercera es la peor y es la lección: **no la cazó ninguna consulta, la cazó LEER la línea entera
+> mientras se corregía otra cosa**. Y su causa es de forma — enumerar «las dos últimas» **envejece
+> solo** cada vez que se escribe una ficha nueva —, así que **se retiró la enumeración** en vez de
+> actualizarla. Un dato que se estropea solo no se arregla: se quita de donde no toca.
 >
 > ⚠️ **Al editar esta cabecera, ojo:** «Sigue en pie: una sola sesión que escriba a la vez» aparece
 > **diez veces** en este fichero, una por época histórica. Una sustitución por texto edita la
