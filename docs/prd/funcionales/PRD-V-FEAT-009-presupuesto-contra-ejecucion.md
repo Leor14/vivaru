@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 construida y falseada** (10 sep 2026) · pendiente de verse en staging |
+| **Estado** | **ENTREGA 1 COMPLETA EN STAGING, VISTA EN PANTALLA** (10 sep 2026) · producción pendiente |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -461,11 +461,31 @@ enrojece exactamente la que la sostiene.
 - **Cambiar de conjunto y navegar en seguida CORTA el cambio**: la primera vez la página
   siguió en Palmas. Hay que esperar a que el selector lleve al Panel de Control.
 
-### Pendiente de esta entrega
+### `CA1` y `CA11`, con el visto bueno de David para escribir en staging
 
-**`CA1` y `CA11` en pantalla** —guardar un borrador, que siga al recargar, y que vacío y `0`
-se lean distinto—: escriben en Las Playas de staging, así que esperan el visto bueno de David.
-Y ver el arreglo de `822fa3a` servido.
+Borrador de prueba en Las Playas 2026 —**se deja guardado**, sirve para la entrega 2—:
+
+| Cuenta | Presupuestado | Ejecutado | Diferencia | % | Observación |
+|---|---|---|---|---|---|
+| 1.1 Cuotas | 180,000 | 126,000 | −54,000 | 70 % | Faltante |
+| 2.1 Nómina | 80,000 | 84,000 | +4,000 | 105 % | Sobre-ejecución |
+| 2.3 Mantenimiento | **0** | 9,800 | +9,800 | — | **Presupuestado en cero** · Sobre-ejecución |
+| 2.2 Servicios públicos | **vacío** | 26,400 | — | — | **Sin presupuestar** · Sobre-ejecución |
+
+- **`CA1`**: tras recargar, «Estado: Borrador · 3 cuentas presupuestadas». Resultado
+  presupuestado 180,000 − 80,000 = superávit de 100,000.
+- **`CA11`**: el `0` y el vacío se leen distinto, en la tabla **y en el formulario**: al editar,
+  el `0` vuelve como `0` y no como campo vacío.
+- **El documento, leído en la base y no en la pantalla**: id `conjunto-las-playas_2026`,
+  `year` numérico, `status: borrador`, líneas en **array** con la de importe 0 incluida,
+  `createdBy` y `updatedBy` = la cuenta que guardó, fechas de servidor, y **ningún campo de
+  más**. El formulario lista 18 cuentas: las 18 hijas que tiene el plan de Las Playas.
+- El arreglo de `822fa3a`, **servido y visto**: sin presupuesto, ninguna fila dice
+  «Sobre-ejecución» y el resultado presupuestado dice «Sin presupuesto cargado».
+
+### Pendiente
+
+Llevarla a producción con la bandera apagada: **reglas → front**, como en staging.
 
 ## Puertas
 
