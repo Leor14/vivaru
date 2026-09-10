@@ -162,6 +162,34 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > - **`G5`**: la mantiene el **administrador del conjunto**, sin caducidad. La antigüedad se ve en
 >   el padrón (`committeeSince`), y eso es lo que contiene un consejo rancio.
 >
+> ## LAS FUENTES, TODAS ACTUALIZADAS EL 9 DE SEPTIEMBRE
+>
+> | Qué | Dónde | Estado |
+> |---|---|---|
+> | Traspaso vivo | `docs/pendientes.md` (esta cabecera) | ✅ |
+> | Por qué se decidió así | `docs/roadmap-producto.md` **0.9.61** | ✅ estado y «verificado contra» reescritos, changelog antepuesto |
+> | Estado de las PRD | `docs/prd/README.md` | ✅ `PLAT-004` a producción; `FLOW-007` deja de declarar capacidad muerta |
+> | La ficha | `PRD-V-PLAT-004` §14 | ✅ con las cuatro correcciones que salieron de construir |
+> | Qué existe y dónde corre | Notion — **bitácora** | ✅ fila nueva de la entrega 1 |
+> | Dónde está cada frente | Notion — **tablero** e **inventario** | ✅ los dos |
+> | Cómo se trabaja aquí | `CLAUDE.md` | ✅ ver abajo |
+>
+> **🔴 Y `CLAUDE.md` llevaba DOS defectos propios, de la familia que este proyecto ya conoce:**
+>
+> 1. **«El emulador necesita Java, y esta máquina no lo trae» seguía ahí, EN NEGRITA**, con su
+>    corrección enterrada cuatro líneas más abajo. Esa afirmación bloqueó **diez criterios en seis
+>    documentos**. Se creyó retirada en agosto: **sobrevivió en la copia que nadie volvió a leer.**
+> 2. **El bloque de bancos apilaba CINCO épocas de cifras** —1348, 1449, 1510, 1789…—, que es
+>    exactamente el defecto que ESTE documento prohíbe en su cabecera. Ahora es **una tabla de una
+>    sola medición**, y se reescribe entera.
+>
+> Y **las PRD funcionales son 24**, contadas en el repositorio: el tablero decía VEINTIDÓS y otras
+> fuentes 23. **Se cuentan, no se citan.**
+>
+> ⚠️ **Al editar esta cabecera, ojo:** «Sigue en pie: una sola sesión que escriba a la vez» aparece
+> **diez veces** en este fichero, una por época histórica. Una sustitución por texto edita la
+> copia equivocada — la de la cabecera viva es **la primera**.
+>
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
 ---
