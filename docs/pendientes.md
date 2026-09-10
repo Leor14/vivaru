@@ -90,7 +90,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > 1. ~~Verificar §3.10~~ — ✅ **hecho el 10 sep**: el pase de larga duración con categoría Servicio cubre al
 >    proveedor. Comprobado en el código; falta verlo una vez en pantalla.
-> 2. **`PRD-V-FEAT-010` — TESORERÍA — escrita y LISTA PARA DESARROLLO** (10 sep): saldo por cuenta →
+> 2. **`PRD-V-FEAT-010` — TESORERÍA**: **entrega 1 EN PRODUCCIÓN, apagada** (`5842e33`); **2a (traspasos)
+>    construida**; faltan **2b** (conciliar sus tramos, partida aparte) y la **3** (caja chica). Saldo por cuenta →
 >    traspasos → caja chica con fondo fijo y límite. ⚠️ **`G0` superada por decisión de David, no por
 >    dolor** (son `C7` y `C8`, P2). Tres hallazgos que la ordenan: **un traspaso no es un asiento**
 >    (va en su colección), **el libro no tiene todo lo cobrado** (coincide con Cartera en 2 de 7

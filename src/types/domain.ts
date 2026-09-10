@@ -632,6 +632,37 @@ export interface BillingCampaign {
  * (`2.3`), y en `updateDoc` un punto en la clave es una ruta de campo —
  * `lines.2.3` escribiría `lines → 2 → 3`. Se escribe siempre entero, con `setDoc`.
  */
+/**
+ * `PRD-V-FEAT-010` · un traspaso entre cuentas propias del conjunto.
+ *
+ * **No es un asiento** (`RN-01`): vive fuera de `ledgerEntries` y ningún
+ * consumidor del libro lo lee. Escrito como dos asientos, inflaría ingresos y
+ * egresos a la vez; como tercer tipo de asiento, dos sitios de la conciliación
+ * lo convertirían en gasto o en ingreso sin avisar. Mueve el saldo de dos
+ * cuentas y deja el saldo de fondos igual. No se borra: se anula.
+ */
+export interface TreasuryTransfer {
+  id: string;
+  tenantId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  /** `YYYY-MM-DD`. */
+  date: string;
+  /** La referencia del banco, si la hay. */
+  reference?: string;
+  detail?: string;
+  /** Los de la caja chica (entrega 3) son traspasos con nombre. */
+  kind: "traspaso" | "apertura" | "reposicion" | "cierre";
+  status: "registrado" | "anulado";
+  voidedAt?: unknown;
+  voidedBy?: string;
+  createdAt?: unknown;
+  createdBy?: string;
+  updatedAt?: unknown;
+  updatedBy?: string;
+}
+
 export interface Budget {
   id: string;
   tenantId: string;

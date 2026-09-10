@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 en staging, vista en pantalla** (10 sep 2026) · producción pendiente |
+| **Estado** | **Entrega 1 EN PRODUCCIÓN, apagada** · **entrega 2a construida y falseada** (10 sep 2026) · 2b y 3 pendientes |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -319,7 +319,8 @@ estado financiero** porque nunca entraron en él (`RN-01`).
 | Entrega | Qué | Por qué en este orden |
 |---|---|---|
 | **1** | Saldo por cuenta, con las dos líneas que lo hacen cuadrar | Es la base, y **sirve sola**: hoy nadie sabe dónde está el dinero, y va a enseñar que Santa María no asignó cuenta a ningún asiento |
-| **2** | Traspasos, anulables y conciliables | Sin el saldo, un traspaso no mueve nada visible |
+| **2a** | Traspasos, anulables | Sin el saldo, un traspaso no mueve nada visible |
+| **2b** | La conciliación de sus tramos (`RN-07`) | **Partida el 10 sep por decisión de David**: toca las cinco funciones de conciliación de `FLOW-004`, que está en producción |
 | **3** | Caja chica: fondo fijo, límite, gastos y reposición | Se apoya en las dos: la apertura y la reposición **son** traspasos |
 
 ### Qué se valida dónde
@@ -395,9 +396,62 @@ Leída en la base de staging con la misma regla de signo:
   no tiene cuentas bancarias registradas. Todo su dinero aparece en las líneas de abajo», todo
   en cero y en el formato de moneda del conjunto.
 
-**Pendiente:** llevarla a producción con la bandera apagada —solo front, no hay reglas nuevas— y
-verla en Santa María de producción, donde el saldo por cuenta saldrá casi entero fuera de las
-cuentas: es el caso que la motiva.
+**En producción el 10 sep** (`5842e33`), con la bandera **apagada en los nueve**: solo front, sin
+reglas. Queda verla en Santa María de producción, donde el saldo por cuenta saldrá casi entero
+fuera de las cuentas — leído en la base: Santander con $5.000.000 y **cero** movimientos, y
+−$6.475.000 en 13 movimientos sin cuenta.
+
+## 15 · La entrega 2a: los traspasos (10 de septiembre de 2026)
+
+### Por qué la entrega 2 se partió
+
+Medir antes de escribir código mostró que **`RN-07` no es añadir un candidato**: la conciliación
+empareja **línea del extracto ↔ asiento del libro** en cinco funciones de servidor (asegurar,
+aplicar, rechazar, reabrir y liberar, con sus cascadas), guarda `matchedLedgerEntryId` en la
+línea con las reglas vetando al cliente tocarlo, y tiene un espejo en el front vigilado por su
+propia prueba. **Todo en producción** (`FLOW-004`), con ~87 pruebas encima. Un segundo tipo de
+pareja toca ese circuito entero y exige desplegar functions — y **hoy ningún conjunto tiene dos
+cuentas**, así que ningún traspaso llegaría a conciliarse todavía.
+
+**Decisión de David:** 2a ahora —los traspasos— y **2b sola después**, con su propia falsación
+sobre el circuito vivo. Mientras tanto, la línea del extracto de un traspaso se rechaza con el
+motivo «otro» y un texto, que ya existe.
+
+### Lo construido
+
+- **`treasuryTransfers`**: las reglas exigen dos cuentas **distintas que existan y sean del
+  conjunto** (leídas con `get()`), valor numérico mayor que cero, fecha con forma de fecha, nacer
+  `registrado` con `kind: "traspaso"` —los de la caja chica llegan en la 3— y firma de quien
+  escribe. **Al anular no puede cambiar nada más** que estado, quién y cuándo (`hasOnly`), la hora
+  la pone el servidor, no se anula dos veces y **no se borra nunca**.
+- **`saldosPorCuenta`** mueve las dos cuentas —columna «Traspasos»— y **el total no se entera**,
+  porque el traspaso nunca entra en `computeFundPosition`.
+- **La página**: «Traspasar» (deshabilitado con menos de dos cuentas activas, diciendo por qué),
+  aviso si el origen queda en negativo sin bloquear (`RN-09`), y lista con «Anular» y confirmación.
+- **Guardián de `RN-01`**: siete consumidores del libro —los dos núcleos, el informe mensual, el
+  informe del consejo, el estado financiero, el libro y el presupuesto— no pueden nombrar
+  `treasuryTransfers`.
+
+### La falsación
+
+| Mutación | Lo que enrojeció |
+|---|---|
+| Reglas · el bloque entero | Las 4 positivas, ninguna denegación |
+| Reglas · origen ≠ destino · valor > 0 · cuenta de destino del conjunto | Cada una, su `CA15` |
+| Reglas · nacer registrado · `kind` traspaso · forma de fecha · `createdBy` · `tenantOperable` | Cada una, la suya |
+| Reglas · anular sin `hasOnly` · sin `voidedBy` · sin hora de servidor · sin exigir registrado | Cada una, la suya |
+| Reglas · permitir borrar | `CA16` |
+| Contar los anulados | `RN-05`/`RN-06` |
+| Restar del origen sin sumar al destino | `CA4`, `RN-02` y el de la cuenta que ya no existe |
+| El informe del consejo nombra `treasuryTransfers` | El guardián |
+| Control: un comentario que la nombra | **Nada, como debe** |
+
+Conteos: `npm test` **1863 → 1881**; reglas **404 → 424**, las 20 de traspasos en verde.
+
+### Pendiente
+
+Verla en staging: hace falta **una segunda cuenta** en Las Playas —hoy tiene una— para registrar un
+traspaso, ver las dos cuentas moverse con el total quieto, y anularlo.
 
 ## Puertas
 

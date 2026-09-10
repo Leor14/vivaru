@@ -21,7 +21,7 @@
 import { esRecaudoDeCartera } from "@/features/finanzas/financial-statement";
 import { sumarSaldoInicial } from "@/features/finanzas/use-bank-accounts";
 import { computeFundPosition, movimientoEntraAlFondo } from "@/features/finanzas/use-ledger";
-import type { BankAccount, LedgerEntry } from "@/types/domain";
+import type { BankAccount, LedgerEntry, TreasuryTransfer } from "@/types/domain";
 
 export type CuentaDeTesoreria = Pick<BankAccount, "id" | "label" | "bankName" | "accountType" | "active">;
 
@@ -34,6 +34,8 @@ export type FilaDeTesoreria = {
   saldoInicial: number | null;
   entradas: number;
   salidas: number;
+  /** Neto de los traspasos: lo que entró de otra cuenta propia menos lo que salió a otra. */
+  traspasos: number;
   saldo: number;
   movimientos: number;
 };
@@ -51,19 +53,21 @@ export type Tesoreria = {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-type Acumulado = { inicial: number | null; entradas: number; salidas: number; movimientos: number };
+type Acumulado = { inicial: number | null; entradas: number; salidas: number; traspasos: number; movimientos: number };
 
 export function saldosPorCuenta(entrada: {
   cuentas: ReadonlyArray<CuentaDeTesoreria>;
   saldosIniciales: ReadonlyArray<{ id: string; openingBalance?: number }>;
   asientos: ReadonlyArray<LedgerEntry>;
   cuotaIncome: number;
+  /** Entrega 2a. Solo cuentan los `registrado` (`RN-05`). */
+  traspasos?: ReadonlyArray<Pick<TreasuryTransfer, "fromAccountId" | "toAccountId" | "amount" | "status">>;
 }): Tesoreria {
   const acumulado = new Map<string, Acumulado>();
   const de = (id: string) => {
     let a = acumulado.get(id);
     if (!a) {
-      a = { inicial: null, entradas: 0, salidas: 0, movimientos: 0 };
+      a = { inicial: null, entradas: 0, salidas: 0, traspasos: 0, movimientos: 0 };
       acumulado.set(id, a);
     }
     return a;
@@ -95,6 +99,16 @@ export function saldosPorCuenta(entrada: {
     else a.salidas += Math.abs(importe);
   }
 
+  // `RN-02`: un traspaso baja una cuenta y sube otra en el mismo importe. El
+  // total no se entera, porque nunca entra en `computeFundPosition` (`RN-01`).
+  for (const tr of entrada.traspasos ?? []) {
+    if (tr.status !== "registrado") continue;
+    const importe = Number(tr.amount);
+    if (!Number.isFinite(importe) || importe <= 0) continue;
+    de(tr.fromAccountId).traspasos -= importe;
+    de(tr.toAccountId).traspasos += importe;
+  }
+
   const aFila = (id: string, a: Acumulado, cuenta?: CuentaDeTesoreria): FilaDeTesoreria => ({
     id,
     label: cuenta?.label ?? "Cuentas que ya no están en el conjunto",
@@ -103,13 +117,14 @@ export function saldosPorCuenta(entrada: {
     saldoInicial: a.inicial === null ? null : redondear(a.inicial),
     entradas: redondear(a.entradas),
     salidas: redondear(a.salidas),
-    saldo: redondear((a.inicial ?? 0) + a.entradas - a.salidas),
+    traspasos: redondear(a.traspasos),
+    saldo: redondear((a.inicial ?? 0) + a.entradas - a.salidas + a.traspasos),
     movimientos: a.movimientos,
   });
 
   const porId = new Map(entrada.cuentas.map((c) => [c.id, c]));
   const cuentas: FilaDeTesoreria[] = [];
-  const huerfano: Acumulado = { inicial: null, entradas: 0, salidas: 0, movimientos: 0 };
+  const huerfano: Acumulado = { inicial: null, entradas: 0, salidas: 0, traspasos: 0, movimientos: 0 };
   let hayHuerfanos = false;
   for (const [id, a] of acumulado) {
     const cuenta = porId.get(id);
@@ -121,6 +136,7 @@ export function saldosPorCuenta(entrada: {
     if (a.inicial !== null) huerfano.inicial = (huerfano.inicial ?? 0) + a.inicial;
     huerfano.entradas += a.entradas;
     huerfano.salidas += a.salidas;
+    huerfano.traspasos += a.traspasos;
     huerfano.movimientos += a.movimientos;
   }
   // `RN-13`: una cuenta desactivada sigue aquí mientras tenga dinero. Van detrás.
@@ -148,3 +164,44 @@ export function saldosPorCuenta(entrada: {
     total,
   };
 }
+
+// ── Entrega 2a · el formulario del traspaso ─────────────────────────────────
+
+const FORMA_DE_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function fechaDeHoy(hoy: Date): string {
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Lo que el formulario exige antes de mandar nada. Las reglas comprueban lo
+ * mismo salvo la fecha futura, que no decide dinero.
+ */
+export function errorDeTraspaso(
+  t: { fromAccountId: string; toAccountId: string; amount: string; date: string },
+  hoy: Date,
+): string | null {
+  if (!t.fromAccountId || !t.toAccountId) return "Elige la cuenta de origen y la de destino.";
+  if (t.fromAccountId === t.toAccountId) return "El origen y el destino tienen que ser cuentas distintas.";
+  const importe = Number(t.amount);
+  if (!t.amount.trim() || !Number.isFinite(importe) || importe <= 0) return "El valor tiene que ser un número mayor que cero.";
+  const m = FORMA_DE_FECHA.exec(t.date);
+  if (!m) return "Falta la fecha del traspaso.";
+  const [y, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const f = new Date(y, mes - 1, dia);
+  if (f.getFullYear() !== y || f.getMonth() !== mes - 1 || f.getDate() !== dia) return "Esa fecha no existe.";
+  if (t.date > fechaDeHoy(hoy)) return "La fecha no puede ser posterior a hoy.";
+  return null;
+}
+
+/**
+ * `RN-09`: el saldo con el que quedaría el origen, si queda en negativo. Avisa y
+ * deja continuar: el saldo calculado puede estar incompleto (sin cuenta,
+ * cobrado sin asiento), y bloquear por él frenaría operaciones legítimas.
+ */
+export function saldoNegativoTrasTraspaso(origen: Pick<FilaDeTesoreria, "saldo"> | undefined, importe: number): number | null {
+  if (!origen || !Number.isFinite(importe) || importe <= 0) return null;
+  const queda = Math.round((origen.saldo - importe) * 100) / 100;
+  return queda < 0 ? queda : null;
+}
+

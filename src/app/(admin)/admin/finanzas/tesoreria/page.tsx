@@ -1,19 +1,28 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ArrowLeftRight, ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { watchBankAccountBalances, watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { movimientoEntraAlFondo, watchLedger } from "@/features/finanzas/use-ledger";
+import { anularTraspaso, registrarTraspaso, watchTraspasos } from "@/features/finanzas/use-traspasos";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { repartirRecaudo } from "@/lib/finanzas/conceptos-de-cargo";
-import { saldosPorCuenta, type FilaDeTesoreria } from "@/lib/finanzas/tesoreria";
-import type { BankAccount, LedgerEntry } from "@/types/domain";
+import {
+  errorDeTraspaso,
+  saldoNegativoTrasTraspaso,
+  saldosPorCuenta,
+  type FilaDeTesoreria,
+} from "@/lib/finanzas/tesoreria";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
+import type { BankAccount, LedgerEntry, TreasuryTransfer } from "@/types/domain";
 
 /**
  * `PRD-V-FEAT-010` entrega 1 — dónde está el dinero del conjunto.
@@ -37,8 +46,14 @@ export default function TesoreriaPage() {
   const [asientos, setAsientos] = useState<Leido<LedgerEntry[]>>(null);
   const [cuentas, setCuentas] = useState<Leido<BankAccount[]>>(null);
   const [saldos, setSaldos] = useState<Leido<Array<{ id: string; openingBalance?: number }>>>(null);
+  const [traspasos, setTraspasos] = useState<Leido<TreasuryTransfer[]>>(null);
   const [error, setError] = useState<string | null>(null);
   const [verSinCuenta, setVerSinCuenta] = useState(false);
+  const [formAbierto, setFormAbierto] = useState(false);
+  const [form, setForm] = useState({ fromAccountId: "", toAccountId: "", amount: "", date: "", reference: "", detail: "" });
+  const [errorForm, setErrorForm] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [confirmarAnular, setConfirmarAnular] = useState<string | null>(null);
   const { items: statements } = useBillingStatements(tenantId);
 
   useEffect(() => {
@@ -60,20 +75,81 @@ export default function TesoreriaPage() {
     );
   }, [tenantId]);
 
+  useEffect(() => {
+    if (!tenantId) return;
+    return watchTraspasos(tenantId, (valor) => setTraspasos({ tenantId, valor }), setError);
+  }, [tenantId]);
+
   const cuotaIncome = useMemo(() => repartirRecaudo(statements).total, [statements]);
   const asientosDelConjunto = asientos && asientos.tenantId === tenantId ? asientos.valor : null;
   const cuentasDelConjunto = cuentas && cuentas.tenantId === tenantId ? cuentas.valor : null;
   const saldosDelConjunto = saldos && saldos.tenantId === tenantId ? saldos.valor : null;
+  const traspasosDelConjunto = traspasos && traspasos.tenantId === tenantId ? traspasos.valor : null;
 
   const tesoreria = useMemo(() => {
-    if (!asientosDelConjunto || !cuentasDelConjunto || !saldosDelConjunto) return null;
+    if (!asientosDelConjunto || !cuentasDelConjunto || !saldosDelConjunto || !traspasosDelConjunto) return null;
     return saldosPorCuenta({
       cuentas: cuentasDelConjunto,
       saldosIniciales: saldosDelConjunto,
       asientos: asientosDelConjunto,
       cuotaIncome,
+      traspasos: traspasosDelConjunto,
     });
-  }, [asientosDelConjunto, cuentasDelConjunto, saldosDelConjunto, cuotaIncome]);
+  }, [asientosDelConjunto, cuentasDelConjunto, saldosDelConjunto, traspasosDelConjunto, cuotaIncome]);
+
+  const cuentasActivas = useMemo(() => (cuentasDelConjunto ?? []).filter((c) => c.active !== false), [cuentasDelConjunto]);
+  const nombreDe = useMemo(
+    () => new Map((cuentasDelConjunto ?? []).map((c) => [c.id, c.label])),
+    [cuentasDelConjunto],
+  );
+  const avisoNegativo = saldoNegativoTrasTraspaso(
+    tesoreria?.cuentas.find((f) => f.id === form.fromAccountId),
+    Number(form.amount),
+  );
+
+  function abrirFormulario() {
+    const hoy = new Date();
+    const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+    setForm({ fromAccountId: "", toAccountId: "", amount: "", date: fecha, reference: "", detail: "" });
+    setErrorForm(null);
+    setFormAbierto(true);
+  }
+
+  async function guardarTraspaso() {
+    if (!tenantId || !user?.uid) return;
+    const problema = errorDeTraspaso(form, new Date());
+    setErrorForm(problema);
+    if (problema) return;
+    setGuardando(true);
+    try {
+      await registrarTraspaso(tenantId, user.uid, {
+        fromAccountId: form.fromAccountId,
+        toAccountId: form.toAccountId,
+        amount: Math.round(Number(form.amount) * 100) / 100,
+        date: form.date,
+        reference: form.reference,
+        detail: form.detail,
+      });
+      toast.success("Traspaso registrado");
+      setFormAbierto(false);
+    } catch (e) {
+      toastFirebaseError(e);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function anular(id: string) {
+    if (!user?.uid) return;
+    try {
+      await anularTraspaso(id, user.uid);
+      toast.success("Traspaso anulado. Ya no cuenta en los saldos.");
+    } catch (e) {
+      toastFirebaseError(e);
+    } finally {
+      setConfirmarAnular(null);
+    }
+  }
 
   if (!activa) {
     return (
@@ -117,13 +193,14 @@ export default function TesoreriaPage() {
               </p>
             ) : (
               <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
+                <table className="w-full min-w-[720px] text-sm">
                   <thead>
                     <tr className="border-b border-[var(--slate-200)] text-left text-[var(--slate-600)]">
                       <th className="py-2 pr-4 font-medium">Cuenta</th>
                       <th className="py-2 pr-4 text-right font-medium">Saldo inicial</th>
                       <th className="py-2 pr-4 text-right font-medium">Entradas</th>
                       <th className="py-2 pr-4 text-right font-medium">Salidas</th>
+                      <th className="py-2 pr-4 text-right font-medium">Traspasos</th>
                       <th className="py-2 text-right font-medium">Saldo</th>
                     </tr>
                   </thead>
@@ -137,6 +214,147 @@ export default function TesoreriaPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>Traspasos</CardTitle>
+                <CardDescription className="mt-1">
+                  Dinero que pasa de una cuenta del conjunto a otra. Baja una y sube la otra en el
+                  mismo importe: el saldo de fondos no cambia, y no cuenta como ingreso ni como gasto.
+                </CardDescription>
+              </div>
+              {!formAbierto ? (
+                <Button variant="outline" onClick={abrirFormulario} disabled={cuentasActivas.length < 2}>
+                  <ArrowLeftRight className="mr-2 h-4 w-4" aria-hidden />
+                  Traspasar
+                </Button>
+              ) : null}
+            </div>
+            {cuentasActivas.length < 2 ? (
+              <p className="mt-3 text-sm text-[var(--slate-600)]">
+                Para traspasar hacen falta al menos dos cuentas activas. Este conjunto tiene{" "}
+                {cuentasActivas.length === 1 ? "una" : "ninguna"}.
+              </p>
+            ) : null}
+
+            {formAbierto ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm">
+                  <span className="text-[var(--slate-900)]">Sale de</span>
+                  <select
+                    className="h-10 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                    value={form.fromAccountId}
+                    onChange={(e) => setForm((f) => ({ ...f, fromAccountId: e.target.value }))}
+                  >
+                    <option value="">Elige la cuenta</option>
+                    {cuentasActivas.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label} · {c.bankName}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="text-[var(--slate-900)]">Entra en</span>
+                  <select
+                    className="h-10 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                    value={form.toAccountId}
+                    onChange={(e) => setForm((f) => ({ ...f, toAccountId: e.target.value }))}
+                  >
+                    <option value="">Elige la cuenta</option>
+                    {cuentasActivas.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label} · {c.bankName}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="text-[var(--slate-900)]">Valor</span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="text-[var(--slate-900)]">Fecha</span>
+                  <Input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="text-[var(--slate-900)]">Referencia del banco (opcional)</span>
+                  <Input value={form.reference} onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))} />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="text-[var(--slate-900)]">Detalle (opcional)</span>
+                  <Input value={form.detail} onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))} />
+                </label>
+                {avisoNegativo !== null ? (
+                  <p className="text-sm text-[var(--warning-700)] sm:col-span-2">
+                    Después del traspaso, {nombreDe.get(form.fromAccountId) ?? "la cuenta de origen"} quedaría en{" "}
+                    {formatAmount(avisoNegativo)}. Se puede registrar igual: el saldo calculado puede estar incompleto.
+                  </p>
+                ) : null}
+                {errorForm ? (
+                  <p role="alert" className="text-sm text-[var(--danger-700)] sm:col-span-2">{errorForm}</p>
+                ) : null}
+                <div className="flex gap-2 sm:col-span-2">
+                  <Button onClick={guardarTraspaso} disabled={guardando}>
+                    {guardando ? "Registrando…" : "Registrar traspaso"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setFormAbierto(false)} disabled={guardando}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {traspasosDelConjunto && traspasosDelConjunto.length > 0 ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <tbody>
+                    {traspasosDelConjunto.map((tr) => {
+                      const anulado = tr.status === "anulado";
+                      return (
+                        <tr key={tr.id} className="border-b border-[var(--slate-100)]">
+                          <td className="py-2 pr-4 tabular-nums text-[var(--slate-600)]">{tr.date}</td>
+                          <td className={anulado ? "py-2 pr-4 text-[var(--slate-600)] line-through" : "py-2 pr-4 text-[var(--slate-900)]"}>
+                            {nombreDe.get(tr.fromAccountId) ?? "Cuenta que ya no existe"} →{" "}
+                            {nombreDe.get(tr.toAccountId) ?? "Cuenta que ya no existe"}
+                            {tr.reference || tr.detail ? (
+                              <span className="ml-2 text-[var(--slate-600)]">{[tr.reference, tr.detail].filter(Boolean).join(" · ")}</span>
+                            ) : null}
+                          </td>
+                          <td className={anulado ? "py-2 pr-4 text-right tabular-nums text-[var(--slate-600)] line-through" : "py-2 pr-4 text-right tabular-nums text-[var(--slate-900)]"}>
+                            {formatAmount(tr.amount)}
+                          </td>
+                          <td className="py-2 text-right">
+                            {anulado ? (
+                              <span className="text-[var(--slate-600)]">Anulado</span>
+                            ) : confirmarAnular === tr.id ? (
+                              <span className="inline-flex flex-wrap items-center justify-end gap-2">
+                                <span className="text-[var(--slate-600)]">Deja de contar en los dos saldos. ¿Anular?</span>
+                                <Button variant="danger" onClick={() => anular(tr.id)}>Anular</Button>
+                                <Button variant="ghost" onClick={() => setConfirmarAnular(null)}>No</Button>
+                              </span>
+                            ) : (
+                              <Button variant="ghost" onClick={() => setConfirmarAnular(tr.id)}>Anular</Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-[var(--slate-600)]">Todavía no hay traspasos.</p>
             )}
           </Card>
 
@@ -229,6 +447,9 @@ function FilaDeCuenta({ fila, formatAmount }: { fila: FilaDeTesoreria; formatAmo
       </td>
       <td className="py-2 pr-4 text-right tabular-nums">{formatAmount(fila.entradas)}</td>
       <td className="py-2 pr-4 text-right tabular-nums">{formatAmount(fila.salidas)}</td>
+      <td className="py-2 pr-4 text-right tabular-nums text-[var(--slate-600)]">
+        {fila.traspasos === 0 ? "—" : `${fila.traspasos > 0 ? "+" : "−"}${formatAmount(Math.abs(fila.traspasos))}`}
+      </td>
       <td className="py-2 text-right font-semibold tabular-nums text-[var(--slate-900)]">{formatAmount(fila.saldo)}</td>
     </tr>
   );

@@ -1572,6 +1572,44 @@ service cloud.firestore {
         && resource.data.status == 'borrador';
     }
 
+    // PRD-V-FEAT-010 entrega 2a · el traspaso entre cuentas propias. NO es un
+    // asiento (RN-01): vive fuera del libro. Escritura directa: no mueve dinero de
+    // nadie ni toca el libro, y sus invariantes viven en el propio documento.
+    //
+    // Las dos cuentas tienen que existir y ser del conjunto: se leen con get().
+    // En la entrega 2a solo existe `kind == 'traspaso'`; los de la caja chica
+    // llegan en la 3. No se borra nunca (RN-06): se anula, y al anular no puede
+    // cambiar nada mas que el estado, quien y cuando.
+    match /treasuryTransfers/{docId} {
+      function cuentaDelConjunto(id, tenantId) {
+        return exists(/databases/$(database)/documents/bankAccounts/$(id))
+          && get(/databases/$(database)/documents/bankAccounts/$(id)).data.tenantId == tenantId;
+      }
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && request.resource.data.status == 'registrado'
+        && request.resource.data.kind == 'traspaso'
+        && request.resource.data.amount is number && request.resource.data.amount > 0
+        && request.resource.data.fromAccountId is string
+        && request.resource.data.toAccountId is string
+        && request.resource.data.fromAccountId != request.resource.data.toAccountId
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && cuentaDelConjunto(request.resource.data.fromAccountId, request.resource.data.tenantId)
+        && cuentaDelConjunto(request.resource.data.toAccountId, request.resource.data.tenantId)
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && resource.data.status == 'registrado'
+        && request.resource.data.status == 'anulado'
+        && request.resource.data.voidedBy == request.auth.uid
+        && request.resource.data.voidedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'voidedAt', 'voidedBy', 'updatedAt', 'updatedBy']);
+      allow delete: if false;
+    }
+
     match /monthlyReports/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||

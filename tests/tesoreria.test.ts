@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
-import { saldosPorCuenta, type CuentaDeTesoreria } from "@/lib/finanzas/tesoreria";
+import { errorDeTraspaso, saldoNegativoTrasTraspaso, saldosPorCuenta, type CuentaDeTesoreria } from "@/lib/finanzas/tesoreria";
 import type { LedgerEntry } from "@/types/domain";
 
 /**
@@ -110,3 +110,66 @@ describe("casos límite", () => {
     expect(t.sinExplicar).toBe(0);
   });
 });
+
+describe("entrega 2a · los traspasos", () => {
+  const conTraspasos = (traspasos: Parameters<typeof saldosPorCuenta>[0]["traspasos"]) =>
+    saldosPorCuenta({ cuentas: CUENTAS, saldosIniciales: SALDOS, asientos: ASIENTOS, cuotaIncome: CUOTA, traspasos });
+
+  it("`CA4` · de A a B por 300: A baja a 1200 − 300 = 900 y B sube a −30 + 300 = 270", () => {
+    const t = conTraspasos([{ fromAccountId: "a", toAccountId: "b", amount: 300, status: "registrado" }]);
+    expect(t.cuentas.find((f) => f.id === "a")).toMatchObject({ traspasos: -300, saldo: 900 });
+    expect(t.cuentas.find((f) => f.id === "b")).toMatchObject({ traspasos: 300, saldo: 270 });
+  });
+
+  it("`RN-02` · y el saldo de fondos no se mueve: sigue en 1690, sin nada sin explicar", () => {
+    const t = conTraspasos([{ fromAccountId: "a", toAccountId: "b", amount: 300, status: "registrado" }]);
+    expect(t.total).toBe(1690);
+    expect(t.sinExplicar).toBe(0);
+  });
+
+  it("`RN-05` / `RN-06` · un traspaso ANULADO no cuenta en ningún saldo", () => {
+    const t = conTraspasos([{ fromAccountId: "a", toAccountId: "b", amount: 300, status: "anulado" }]);
+    expect(t.cuentas.find((f) => f.id === "a")).toMatchObject({ traspasos: 0, saldo: 1200 });
+  });
+
+  it("hacia una cuenta que ya no existe: sale de A y aparece en su línea, y el total no cambia", () => {
+    const t = conTraspasos([{ fromAccountId: "a", toAccountId: "fantasma", amount: 50, status: "registrado" }]);
+    expect(t.cuentas.find((f) => f.id === "a")?.saldo).toBe(1150);
+    expect(t.cuentasQueYaNoExisten?.traspasos).toBe(50);
+    expect(t.total).toBe(1690);
+    expect(t.sinExplicar).toBe(0);
+  });
+
+  it("un importe roto (cero o no numérico) se ignora en vez de romper el saldo", () => {
+    const t = conTraspasos([
+      { fromAccountId: "a", toAccountId: "b", amount: 0, status: "registrado" },
+      { fromAccountId: "a", toAccountId: "b", amount: Number.NaN, status: "registrado" },
+    ]);
+    expect(t.cuentas.find((f) => f.id === "a")?.saldo).toBe(1200);
+  });
+});
+
+describe("entrega 2a · el formulario", () => {
+  const hoy = new Date(2026, 8, 10, 23, 30);
+  const bueno = { fromAccountId: "a", toAccountId: "b", amount: "300000", date: "2026-09-10" };
+
+  it("un traspaso correcto no da error", () => {
+    expect(errorDeTraspaso(bueno, hoy)).toBeNull();
+  });
+
+  it("origen y destino distintos, valor positivo, fecha real y no futura", () => {
+    expect(errorDeTraspaso({ ...bueno, toAccountId: "a" }, hoy)).toMatch(/distintas/);
+    expect(errorDeTraspaso({ ...bueno, toAccountId: "" }, hoy)).toMatch(/Elige/);
+    expect(errorDeTraspaso({ ...bueno, amount: "0" }, hoy)).toMatch(/mayor que cero/);
+    expect(errorDeTraspaso({ ...bueno, amount: "abc" }, hoy)).toMatch(/mayor que cero/);
+    expect(errorDeTraspaso({ ...bueno, date: "2026-02-30" }, hoy)).toMatch(/no existe/);
+    expect(errorDeTraspaso({ ...bueno, date: "2026-09-11" }, hoy)).toMatch(/posterior/);
+  });
+
+  it("`RN-09` · avisa del saldo con el que quedaría el origen si queda negativo, y solo entonces", () => {
+    expect(saldoNegativoTrasTraspaso({ saldo: 1200 }, 1500)).toBe(-300);
+    expect(saldoNegativoTrasTraspaso({ saldo: 1200 }, 1200)).toBeNull();
+    expect(saldoNegativoTrasTraspaso(undefined, 100)).toBeNull();
+  });
+});
+
