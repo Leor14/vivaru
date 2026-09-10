@@ -90,14 +90,20 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > 1. ~~Verificar §3.10~~ — ✅ **hecho el 10 sep**: el pase de larga duración con categoría Servicio cubre al
 >    proveedor. Comprobado en el código; falta verlo una vez en pantalla.
-> 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
+> 2. **`PRD-V-FEAT-010` — TESORERÍA — escrita y LISTA PARA DESARROLLO** (10 sep): saldo por cuenta →
+>    traspasos → caja chica con fondo fijo y límite. ⚠️ **`G0` superada por decisión de David, no por
+>    dolor** (son `C7` y `C8`, P2). Tres hallazgos que la ordenan: **un traspaso no es un asiento**
+>    (va en su colección), **el libro no tiene todo lo cobrado** (coincide con Cartera en 2 de 7
+>    conjuntos, así que el total sale de `computeFundPosition` y la diferencia se nombra) y **la caja
+>    chica no es una cuenta bancaria** (el residente la vería como destino de pago).
+> 3. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
-> 3. **Encender `FEAT-008` o `FEAT-009` en algún conjunto de producción** — es decisión de David, y
+> 4. **Encender `FEAT-008` o `FEAT-009` en algún conjunto de producción** — es decisión de David, y
 >    hoy no hay a quién: ningún conjunto real mide consumos ni ha cargado un presupuesto.
-> 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
-> 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
+> 5. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
+> 6. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
 >    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
-> 6. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
+> 7. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
 >    (una línea en el informe mensual).
 >
 > ### Las banderas
