@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   calcularConsumo,
+  idDeCorridaDeConsumo,
+  repartirPorConsumo,
   esPeriodoValido,
   importeDelConsumo,
   periodoAnterior,
@@ -117,5 +119,119 @@ describe("FEAT-008 · el redondeo", () => {
     expect(redondear(3.19999999)).toBe(3.2);
     expect(redondear(12.4567)).toBe(12.457);
     expect(redondear(0.0004)).toBe(0);
+  });
+});
+
+// ── entrega 2 · el reparto ──────────────────────────────────────────────────
+
+const UNIDADES = [
+  { id: "u-101", unitLabel: "EA-101" },
+  { id: "u-102", unitLabel: "EA-102" },
+  { id: "u-103", unitLabel: "EA-103" },
+];
+
+describe("FEAT-008 entrega 2 · el reparto por consumo", () => {
+  it("cada unidad paga SU consumo por la tarifa, y el total es la suma", () => {
+    const r = repartirPorConsumo(
+      [
+        { unitId: "u-101", consumption: 47 },
+        { unitId: "u-102", consumption: 12.5 },
+      ],
+      3200,
+      UNIDADES,
+    );
+    expect(r.lines.map((l) => [l.unitLabel, l.amount])).toEqual([
+      ["EA-101", 150400],
+      ["EA-102", 40000],
+    ]);
+    expect(r.total).toBe(190400);
+    expect(r.totalConsumo).toBe(59.5);
+  });
+
+  it("🔴 `RN-06` · NOMBRA las unidades que no tienen lectura", () => {
+    const r = repartirPorConsumo([{ unitId: "u-101", consumption: 47 }], 3200, UNIDADES);
+    // Un «faltan 2 unidades» a secas obliga a buscarlas a mano entre noventa y tres.
+    expect(r.sinLectura).toEqual(["EA-102", "EA-103"]);
+    expect(r.lines).toHaveLength(1);
+  });
+
+  it("con todas las unidades leídas, no falta ninguna", () => {
+    // El par positivo: sin él, una función que devolviera siempre `[]` en
+    // `sinLectura` pasaría la prueba de arriba.
+    const r = repartirPorConsumo(
+      UNIDADES.map((u) => ({ unitId: u.id, consumption: 10 })),
+      3200,
+      UNIDADES,
+    );
+    expect(r.sinLectura).toEqual([]);
+    expect(r.lines).toHaveLength(3);
+  });
+
+  it("🔴 `RN-04` · una LÍNEA BASE no genera cargo, y no entra como cargo de cero", () => {
+    // Un cargo de cero es un cargo que alguien tiene que mirar y cerrar. La
+    // línea base sale de la lista, no entra con importe 0.
+    const r = repartirPorConsumo(
+      [
+        { unitId: "u-101", consumption: 0, esLineaBase: true },
+        { unitId: "u-102", consumption: 20 },
+      ],
+      3200,
+      UNIDADES,
+    );
+    expect(r.lines.map((l) => l.unitLabel)).toEqual(["EA-102"]);
+    expect(r.total).toBe(64000);
+    // Y su consumo no suma al total del período.
+    expect(r.totalConsumo).toBe(20);
+  });
+
+  it("un consumo CERO tampoco genera cargo", () => {
+    // Nadie consumió: no hay nada que cobrar, y un cargo de $0 sería ruido en
+    // la cartera de esa unidad.
+    const r = repartirPorConsumo([{ unitId: "u-101", consumption: 0 }], 3200, UNIDADES);
+    expect(r.lines).toEqual([]);
+    expect(r.total).toBe(0);
+  });
+
+  it("las líneas salen ordenadas por unidad, no por el orden de lectura", () => {
+    // Se recorren los medidores en el orden del edificio, que no es el orden en
+    // que se leen. La corrida se revisa mirándola.
+    const r = repartirPorConsumo(
+      [
+        { unitId: "u-103", consumption: 5 },
+        { unitId: "u-101", consumption: 5 },
+        { unitId: "u-102", consumption: 5 },
+      ],
+      1000,
+      UNIDADES,
+    );
+    expect(r.lines.map((l) => l.unitLabel)).toEqual(["EA-101", "EA-102", "EA-103"]);
+  });
+
+  it("una unidad con lectura que ya no está activa no rompe: usa su id como etiqueta", () => {
+    const r = repartirPorConsumo([{ unitId: "u-borrada", consumption: 3 }], 1000, UNIDADES);
+    expect(r.lines[0].unitLabel).toBe("u-borrada");
+  });
+});
+
+describe("FEAT-008 entrega 2 · `CA15` · la corrida no se duplica", () => {
+  it("🔴 el id es una función PURA de sus argumentos, y por eso se exige su valor exacto", () => {
+    // **Esta prueba comparaba dos llamadas seguidas y era CIEGA.** Falsarla
+    // metiendo un `Date.now()` en el id **pasó en verde**: dos llamadas en el
+    // mismo milisegundo dan lo mismo, así que no distinguía un id estable de uno
+    // que solo lo parece — y de esa estabilidad depende `CA15`, que es no
+    // cobrarle el agua dos veces a nadie.
+    //
+    // Exigir el valor exacto caza cualquier componente variable que se cuele.
+    expect(idDeCorridaDeConsumo("tenant-palmas-cdmx", "agua-fria", "2026-10")).toBe(
+      "consumo_tenant-palmas-cdmx_agua-fria_2026-10",
+    );
+  });
+
+  it("y períodos distintos dan ids distintos", () => {
+    expect(idDeCorridaDeConsumo("t", "s", "2026-10")).not.toBe(idDeCorridaDeConsumo("t", "s", "2026-11"));
+  });
+
+  it("sanea los caracteres que Firestore no admite en un id", () => {
+    expect(idDeCorridaDeConsumo("t/enant", "ser/vicio", "2026-10")).not.toContain("/");
   });
 });

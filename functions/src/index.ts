@@ -89,7 +89,7 @@ import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
 import { aplicarMarcaDeConsejo } from "./rol-consejo";
-import { cerrarPeriodo, reabrirPeriodo, registrarLectura } from "./medicion-de-consumos";
+import { cerrarPeriodo, generarCorridaDeConsumo, reabrirPeriodo, registrarLectura } from "./medicion-de-consumos";
 import {
   anularCuota,
   anularEgresoConCuotas,
@@ -2020,6 +2020,60 @@ export const reopenMeterPeriod = onCall<MeterPeriodInput>(
     await writeAuditLog(actor.tenantId, request.auth.uid, "reopen_meter_period", {
       serviceId, period, lecturas: r.lecturas,
     });
+    return r;
+  },
+);
+
+type BillConsumptionInput = {
+  tenantId: string; serviceId: string; period: string; dueDate?: string; dryRun?: boolean;
+};
+
+/**
+ * `FEAT-008` entrega 2 · cobra el consumo del período.
+ *
+ * **Callable sin discusión**: escribe en tres colecciones a la vez —campaña,
+ * cargos y las lecturas que pasan a `cobrado`—, mueve dinero y no puede ser
+ * falsificable. Es el mismo camino de `distributeExpense`.
+ */
+export const billConsumptionPeriod = onCall<BillConsumptionInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const d = request.data;
+    const tenantId = normalizeText(d?.tenantId);
+    const serviceId = normalizeText(d?.serviceId);
+    const period = normalizeText(d?.period);
+    if (!tenantId || !serviceId || !period) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto, el servicio o el período.");
+    }
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    await assertFeatureEnabled("producto-medicion-de-consumos", actor.tenantId);
+
+    const r = await generarCorridaDeConsumo(
+      {
+        tenantId: actor.tenantId,
+        serviceId,
+        period,
+        dueDate: normalizeText(d?.dueDate) || undefined,
+        dryRun: d?.dryRun === true,
+      },
+      request.auth.uid,
+    );
+
+    // **La vista previa no se audita**: no cambia nada, y llenar el registro de
+    // no-actos entierra los que sí lo son. Un reintento idempotente tampoco.
+    if (!r.dryRun && r.created) {
+      await writeAuditLog(actor.tenantId, request.auth.uid, "bill_consumption_period", {
+        serviceId,
+        period,
+        campaignId: r.campaignId ?? "",
+        unidades: r.lines.length,
+        total: r.total,
+        sinLectura: r.sinLectura.length,
+      });
+    }
+
     return r;
   },
 );
