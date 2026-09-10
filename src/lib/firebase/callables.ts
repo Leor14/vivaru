@@ -1784,3 +1784,48 @@ export async function setCommitteeMembershipCallable(input: SetCommitteeMembersh
   );
   return executeCallable(callable, input, "No fue posible cambiar la marca de consejo.");
 }
+
+export type RegisterMeterReadingInput = {
+  tenantId: string;
+  serviceId: string;
+  unitId: string;
+  /** `YYYY-MM`. */
+  period: string;
+  current: number;
+  photoUrl?: string;
+};
+
+/**
+ * `PRD-V-FEAT-008` · registra la lectura de un medidor.
+ *
+ * **De aquí NO sale `previous` ni `consumption`.** La lectura anterior la busca
+ * el servidor en el período pasado y el consumo lo deriva él: si viajaran en la
+ * petición, quien llame podría fijar el consumo que quisiera — y el consumo es
+ * lo que se multiplica por la tarifa para cobrar.
+ */
+export async function registerMeterReadingCallable(input: RegisterMeterReadingInput) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    RegisterMeterReadingInput,
+    { ok: true; consumption: number; reinicio: boolean; esLineaBase: boolean }
+  >(functions, "registerMeterReading");
+  return executeCallable(callable, input, "No fue posible registrar la lectura.");
+}
+
+export type MeterPeriodInput = { tenantId: string; serviceId: string; period: string };
+
+/**
+ * Cierra el período. **Aquí muerde la foto** (`RN-09`): si falta alguna, el
+ * servidor deniega **nombrando las unidades**, y ese mensaje se enseña tal cual.
+ */
+export async function closeMeterPeriodCallable(input: MeterPeriodInput) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<MeterPeriodInput, { ok: true; lecturas: number }>(functions, "closeMeterPeriod");
+  return executeCallable(callable, input, "No fue posible cerrar el período.");
+}
+
+export async function reopenMeterPeriodCallable(input: MeterPeriodInput) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<MeterPeriodInput, { ok: true; lecturas: number }>(functions, "reopenMeterPeriod");
+  return executeCallable(callable, input, "No fue posible reabrir el período.");
+}

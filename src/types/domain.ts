@@ -609,6 +609,54 @@ export interface BillingCampaign {
 }
 
 /**
+ * `PRD-V-FEAT-008` — un servicio que el conjunto mide y cobra por consumo.
+ *
+ * **No confundir con `Service`**, que son las ZONAS COMUNES reservables. El
+ * nombre invita a confundirlas y por eso se dice aquí: `/admin/services` es el
+ * salón comunal; esto es el medidor del agua.
+ */
+export interface MeteredService {
+  id: string;
+  tenantId: string;
+  name: string;
+  /** Unidad de medida del contador. */
+  unit: "m3" | "kwh" | "gal";
+  /** Lo que cuesta cada unidad consumida, en la moneda del conjunto. */
+  rate: number;
+  /** Cuenta del plan del conjunto donde cae el ingreso (`RN-08`). */
+  accountCode: string;
+  active: boolean;
+}
+
+/**
+ * La lectura de un medidor en un período.
+ *
+ * **`previous` y `consumption` los escribe SOLO el servidor** (`RN-02`, `RN-10`).
+ * No es una restricción de estilo: los dos deciden dinero juntos, y dejar
+ * `previous` en manos del cliente permitiría fijar el consumo sin tocar el campo
+ * calculado.
+ */
+export interface MeterReading {
+  id: string;
+  tenantId: string;
+  serviceId: string;
+  unitId: string;
+  /** `YYYY-MM`. */
+  period: string;
+  previous: number;
+  current: number;
+  consumption: number;
+  /** `RN-04` — la primera lectura de una unidad no genera cargo. */
+  esLineaBase?: boolean;
+  /** `RN-03` — el medidor completó su vuelta; el consumo no se pudo derivar. */
+  reinicio?: boolean;
+  /** `RN-09` — obligatoria para CERRAR el período, no para guardar la lectura. */
+  photoUrl?: string;
+  status: "abierto" | "cerrado" | "cobrado" | "anulado";
+  readBy?: string;
+}
+
+/**
  * `PRD-V-FEAT-004` — el certificado de paz y salvo.
  *
  * **Lo escribe SOLO el servidor** y las reglas cierran la escritura del todo,

@@ -75,6 +75,14 @@ const STATUS_LABELS: Record<string, string> = {
   used: "Ya utilizada",
   applied: "Aplicado",
   anulado: "Anulado",
+  // `FEAT-008` — los estados del período de lectura del medidor. `anulado` ya
+  // estaba, de las corridas de cobro. Los tres nuevos entran aquí porque este
+  // guardián los reclamó: **no basta con que la clave YA esté en español**, y
+  // esa es la gracia — `getStatusLabel` cae en silencio a la clave cruda, así
+  // que «cobrado» se habría visto casi bien y nadie lo habría mirado nunca.
+  abierto: "Abierto",
+  cerrado: "Cerrado",
+  cobrado: "Cobrado",
 };
 
 export function getStatusLabel(status: string) {

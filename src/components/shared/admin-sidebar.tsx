@@ -3,28 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ComponentType } from "react";
-import {
-  BarChart2,
-  BookOpen,
-  Building2,
-  CalendarCheck,
-  ChevronDown,
-  ClipboardList,
-  FileText,
-  LifeBuoy,
-  Grid3X3,
-  Home,
-  Lock,
-  LogOut,
-  MessageSquare,
-  Package,
-  Receipt,
-  Scale,
-  ScrollText,
-  Store,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { BarChart2, BookOpen, Building2, CalendarCheck, ChevronDown, ClipboardList, FileText, Gauge, Grid3X3, Home, LifeBuoy, Lock, LogOut, MessageSquare, Package, Receipt, Scale, ScrollText, Store, Users, Wallet } from "lucide-react";
 
 import { NotificationsBell } from "@/components/shared/notifications-bell";
 import { SidebarBrandHeader } from "@/components/shared/sidebar-brand-header";
@@ -77,6 +56,11 @@ export const ADMIN_SIDEBAR_GROUPS: AdminSidebarGroup[] = [
     label: "FINANCIERO",
     items: [
       { href: "/admin/billing", label: "Cartera", icon: Wallet },
+      // `FEAT-008`. Va junto a Cartera porque **alimenta el cobro**: se miden los
+      // medidores y de ahí sale el cargo del mes. La entrada se pinta siempre y
+      // es la PÁGINA la que dice si el conjunto no tiene la función activa —
+      // mismo patrón que Conciliación, que también vive tras bandera.
+      { href: "/admin/finanzas/medidores", label: "Medidores", icon: Gauge },
       { href: "/admin/finanzas/egresos", label: "Egresos", icon: Receipt },
       { href: "/admin/finanzas", label: "Libro y fondos", icon: BookOpen },
       { href: "/admin/finanzas/conciliacion", label: "Conciliación", icon: Scale },
