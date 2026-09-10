@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — `TBD-A` y `TBD-B` cerradas el 9 sep; entrega 1 en curso |
+| **Estado** | **ENTREGA 1 EN STAGING Y VISTA EN PANTALLA** (10 sep 2026). Producción, todavía no |
 | **Dependencias** | `PRD-V-FLOW-001` (reparto por coeficiente, **de donde sale la estructura**) · `PRD-V-PLAT-003` (plan de cuentas) |
 | **Riesgo** | Medio — toca dinero, pero no toca permisos ni el modelo de la unidad |
 | **Reversibilidad** | Reversible por bandera **salvo los cargos ya emitidos** (§13) |
@@ -337,6 +337,51 @@ solo *abren* colecciones que no existen, no restringen nada vigente.
 - **En staging:** los quince criterios, los de reglas contra el emulador (**sí hay Java**).
 - **Solo en producción, y con ojos:** que la foto se vea en el estado de cuenta del
   residente desde un teléfono — que es como se toma y como se mira.
+
+---
+
+## 14 · Lo que se vio al construir y validar la entrega 1 (10 de septiembre de 2026)
+
+### Observado con ojos en staging · `tenant-palmas-cdmx`, 25 unidades
+
+| Qué | Visto |
+|---|---|
+| `CA1` · declarar el servicio | «Agua fría · $3.200/m³», y la tabla con las 25 unidades |
+| `CA3` · la lectura anterior **la pone el sistema** | Octubre trajo `1200` de septiembre sin teclearlo |
+| **`CA5` · el cálculo** | 1247 − 1200 = **47 m³** → **$150.400**, exacto a la predicción escrita antes |
+| `CA8` · `RN-04` línea base | «primera lectura registrada. No genera cargo», consumo 0 |
+| `RN-09` · la foto para cerrar | «Faltan 1 foto para poder cerrar», **antes** de intentarlo |
+| `RN-10` · en el DATO, no en el pixel | `previous=1200` escrito por el servidor, `esLineaBase=false` |
+
+**Sin observar todavía:** `CA2` (la foto subida de verdad, que pide un archivo real),
+`CA7` (el residente ve la suya — es la entrega 3) y todo lo de cobro, que es la entrega 2.
+
+### 🔴 Un defecto que encontró MIRAR, y que ninguna prueba podía ver
+
+Al cambiar de septiembre a octubre, **el campo conservaba la lectura del mes
+anterior**: la fila decía «—» en anterior, consumo e importe —octubre estaba
+vacío— **y el campo enseñaba el `1200` de septiembre**. Quien lo mirara daría el
+mes por registrado y **se saltaría el mes entero**, que aquí significa no
+cobrarle el agua a nadie.
+
+**No era un error de tipos ni de lógica: era una identidad de nodo.** El campo es
+no controlado (`defaultValue`, que React solo lee al montar) y la `key` no
+llevaba el período, así que React reutilizaba el input. Typecheck en 0 y 1806
+pruebas en verde no podían verlo.
+
+Corregido y con guardián que **mide el código**
+(`tests/campo-no-controlado-con-periodo.test.ts`), con su propio control para no
+medir la nada, y falsado reintroduciendo el defecto exacto.
+
+### Y tres guardianes que ya existían corrigieron el trabajo
+
+- **`clave-de-unidad-guarda`** — nada comprobaba que la unidad existiera.
+- **`page-identity`** — el encabezado de nivel 1 lo pone el shell. Y volvió a
+  enrojecer **con el comentario que lo explicaba**, porque cuenta la etiqueta
+  escrita en comentarios: el gemelo de Tailwind resucitando una clase nombrada.
+- **`status-mapper-cobertura`** — los tres estados nuevos faltaban en el mapa.
+  **No bastaba con que la clave ya estuviera en español**: `getStatusLabel` cae en
+  silencio a la clave cruda, y «cobrado» se habría visto casi bien para siempre.
 
 ---
 
