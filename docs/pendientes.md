@@ -148,7 +148,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    `FLOW-007` y **`FLOW-006` entera**.
 > 5. **Si nada de eso:** 37 P1 / 42 P2 / 12 P3 de los 108 candidatos · **siete huecos** de la
 >    administradora (los dos siguientes: **foto del medidor** §3.5 y **presupuesto contra
->    ejecución** §3.6 — **pero éste encaja DENTRO del informe mensual**) · `FIX-001` entrega 2.
+>    ejecución** **§3.8** — **pero éste encaja DENTRO del informe mensual**) · `FIX-001` entrega 2.
+>
+>    > ⚠️ **La referencia correcta es §3.8, no §3.6.** Este traspaso dijo «§3.6» desde el 4 de
+>    > septiembre y **se copió sin verificar** hasta el 9. **§3.6 es «corte de acceso por
+>    > morosidad»**, que es otro hueco — y uno sobre el que `FLOW-006` ya decidió **en contra**
+>    > (`RN-13`: restringir exige una notificación previa de 5 días que es otra ficha). Confundirlos
+>    > mandaba a construir lo que está vetado. Se cazó **abriendo el documento**, no releyendo el
+>    > traspaso.
 >
 > ### Las banderas
 >
@@ -339,7 +346,7 @@ Verificados **con ojos en producción**, con las predicciones escritas antes de 
 >    - **37 P1, 42 P2 y 12 P3** de los 108 candidatos;
 >    - de los **diez huecos** de la administradora quedan siete. Los dos siguientes de su propio
 >      orden son **la foto del medidor** (§3.5, su cuello de botella declarado, `medidor` = 0
->      ficheros) y **presupuesto contra ejecución** (§3.6) — **pero éste encaja DENTRO del informe
+>      ficheros) y **presupuesto contra ejecución** (§3.6 → **es §3.8**, ver la cabecera) — **pero éste encaja DENTRO del informe
 >      mensual, así que hacerlo antes obliga a rehacer parte**;
 >    - **`PRD-V-PLAT-004`** (alcance del rol Consejo) **nunca se escribió** y ya lo piden ocho fichas:
 >      hoy `committee` solo llega a `/admin/documents`;
