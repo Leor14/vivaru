@@ -65,32 +65,48 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 - Tests app: `npm test` (vitest)
 - Tests functions: `npm --prefix functions test` — banco propio desde ago 2026 (`functions/tests/`, config en `functions/vitest.config.mts`). No se pueden poner en `tests/` de la raíz: importar `functions/` desde ahí rompe el build de App Hosting.
 - Tests functions con emulador: `npm --prefix functions run test:emulator` (`*.emulator.test.ts`, config aparte). Requieren el emulador de Firestore levantado — ver la sección de más abajo. Van separados para que la suite normal no falle sin él.
-- **El emulador necesita JAVA, y esta máquina no lo trae.** `/usr/bin/java` existe pero es
-  solo el stub de macOS: responde «Unable to locate a Java Runtime» y el emulador muere
-  antes de arrancar, con un error que no menciona Java hasta el final. No hay Homebrew ni
-  ninguna app con un JDK dentro. **El JDK está en `~/.local/jdk`** (Temurin 21 LTS, arm64,
-  instalado el 26 de agosto de 2026 sin tocar el sistema ni pedir contraseña). Antes de
-  levantar el emulador:
+- **EL EMULADOR NECESITA JAVA, Y ESTA MÁQUINA SÍ LO TIENE.** Esta línea decía «no lo trae»,
+  **en negrita y durante semanas**, con la corrección enterrada cuatro líneas más abajo — y
+  esa afirmación falsa **bloqueó diez criterios repartidos en seis documentos**. Lo que
+  confunde es que `/usr/bin/java` **existe pero es el stub de macOS**: responde «Unable to
+  locate a Java Runtime», así que la comprobación rápida dice que no hay. **Una herramienta
+  solo está muerta si algo la EJERCITÓ.**
 
   ```bash
   export JAVA_HOME="$HOME/.local/jdk/jdk-21.0.12.1+1/Contents/Home"
   export PATH="$JAVA_HOME/bin:$PATH"
-  firebase emulators:start --only firestore --project hogaru-1-test
+  firebase emulators:start --only firestore,storage --project hogaru-1-test
   ```
 
-  Con eso corren los **nueve** ficheros de emulador (180 pruebas) y `npm run test:rules`
-  (208). Ninguno de los dos entra en `npm test`, así que **un cambio en `firestore.rules` o
-  en una callable puede pasar el gate normal y estar roto**: los cuatro bancos son
-  `npm test` (**1348** el 28 de agosto de 2026), `npm --prefix functions test` (568), el emulador
-  (180) y las reglas (208). **Estos números crecen: contarlos, no citarlos de aquí** — el primero
-  decía 1198 y llevaba trece guardianes de retraso. **Medidos el 30 de agosto de 2026, con el
-  emulador levantado: `npm test` 1449 · functions 720 · emulador **260** · reglas **249**.
-  **Vueltos a medir el 1 de septiembre SIN emulador: `npm test` **1510** · functions **741**** —los
-  otros dos no se midieron ese día, así que siguen siendo los del 30 y hay que contarlos—.
-  **SIN emulador `npm test` sale en VERDE** (desde el 2 sep 2026): `push-tokens.rules.test.ts`
-  estuvo fuera de la lista de exclusiones junto a sus dos hermanas y enrojecía el banco entero sin
-  emulador, y un banco que enrojece por el entorno enseña a ignorar su color. Las tres corren con
-  `npm run test:rules:all`, con el emulador levantado.
+  Hay **dos** instalaciones locales al usuario y las dos sirven: `~/.local/jdk` (Temurin 21 JDK,
+  el de arriba) y `~/.local/java` (un JRE). Ninguna tocó el sistema ni pidió contraseña.
+
+  ⚠️ **Levantarlo `--only firestore` deja `storage.rules.test.ts` en ROJO** por
+  `ECONNREFUSED :9199`. Es entorno, no código: para el banco entero hacen falta **los dos**
+  emuladores.
+
+- **LOS CUATRO BANCOS, y ninguno de estos números se cita: se cuenta.**
+
+  | Banco | Comando | Última medición |
+  |---|---|---|
+  | App | `npm test` | **1804** (9 sep 2026) |
+  | Functions | `npm --prefix functions test` | **832** |
+  | Reglas | `npm run test:rules:all` | **358** *(pide emulador)* |
+  | Emulador de functions | `npm --prefix functions run test:emulator` | **340 de 342** *(pide emulador)* |
+
+  **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
+  `payments.emulator.test.ts`. Confirmados el 9 de septiembre de 2026.
+
+  **Este bloque llegó a apilar CINCO épocas de cifras** —1348, 1449, 1510, 1789…— y así no se
+  puede saber cuál manda. Se reescribe entero cada vez, como la cabecera de `pendientes.md`.
+
+  🔴 **Los dos últimos NO entran en `npm test`, y esa exclusión hay que mantenerla A MANO en dos
+  sitios**: un `*.rules.test.ts` va en el `include` de `vitest.rules.config.ts` **y** en el
+  `exclude` de `vitest.config.ts`. Faltar en el segundo pone rojo el banco entero en una máquina
+  sin emulador, **y un rojo que no es del código enseña a ignorar el color**. Ha pasado **tres
+  veces**, la última el 9 de septiembre pese al comentario que lo advierte tres líneas antes:
+  lo cazó el CONTEO, no leerlo. Desde entonces hay guardián que **mide el disco**,
+  `tests/bancos-de-reglas-en-las-dos-listas.test.ts`.
 
 ## Ambientes desplegados
 
@@ -841,16 +857,12 @@ que **parece un error de código**), `firebase login --reauth` (índices y despl
 
 ## Pruebas de reglas de Firestore (emulador)
 
-Java está instalado **local al usuario**, sin sudo, en `~/.local/java/`. El
-emulador no arranca sin él, y por eso `tests/firestore.rules.test.ts` estuvo
-meses sin ejecutarse — sus fallos pasaban por "preexistentes".
+**Cómo se levanta el emulador y cuántas pruebas hay: en el apartado de comandos, arriba.**
+Aquí solo lo que no cabe allí. *(Esta sección repetía el arranque con la OTRA ruta de JDK y su
+propio bloque `bash`; dos copias de la misma instrucción son dos sitios donde envejecer.)*
 
-```bash
-export JAVA_HOME="$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
-firebase emulators:start --only firestore,storage --project hogaru-1-test   # en otra terminal
-npm run test:rules:all
-```
+`tests/firestore.rules.test.ts` estuvo **meses sin ejecutarse** y sus fallos pasaban por
+«preexistentes», que es el precio de un banco que nadie corre.
 
 Tres trampas:
 - `firebase emulators:exec "npx vitest ..."` NO sirve: la CLI corre el script con

@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.60 |
-| **Fecha** | 6 de septiembre de 2026 |
-| **Estado** | **`PRD-V-FLOW-007` Y `PRD-V-FLOW-008` ESTÁN COMPLETAS EN PRODUCCIÓN Y ENCENDIDAS EN LOS NUEVE** —salvo la entrega 3 de `FLOW-007`, que espera al abogado ecuatoriano—. **NO QUEDA NADA CONSTRUIBLE ABIERTO.** Lo del 6 de septiembre son **tres defectos del informe del consejo, cerrados y verificados con ojos en producción** (`69ff374`, `e8f3c37`, `ac26068`): el informe **tiraba los pagos parciales** —dos pantallas daban «Saldo de fondos» distinto el mismo día, −675.000 contra 725.000—, la morosidad daba **«106% de unidades · 19/18»**, y el pie explicaba el denominador viejo. **Ninguno lo vio una suite: los tres los encontró MIRAR.** **`PRD-V-PLAT-004` (alcance del rol Consejo) está ESCRITA y en Discovery, bloqueada por `G5`** —quién mantiene el consejo al día cuando la asamblea lo renueva—, y medirla destapó que **el rol `committee` no se puede conceder por ninguna vía y no lo tiene nadie (0 de 41)**, con `FLOW-007` dejando **capacidad muerta en producción**. **Lo siguiente es responder `G5` o elegir frente. `PRD-V-FLOW-006` sigue BLOQUEADA** por `G5` y por el abogado, las dos de David. **Lo anterior, vigente:** un asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; `PLAT-005` pendiente de un Android; Albert espera el contrato de `vivaruWonSignals`; `PLAT-006` espera saber de quién es `dann…@outlook.com`; y quedan **37 P1, 42 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, midiendo y mirando la pantalla, con las predicciones escritas ANTES de mirar.** Se replicó `computeFundPosition` sobre los datos reales y dio **exactamente** −675.000 y 725.000, las dos cifras del defecto; en pantalla, las dos vistas coinciden hoy en **$725.000** y la morosidad en **100% · 19/19** con `T1-202` **todavía en «Mayores deudores»** con sus $2.240.000 —que es lo que valida haber ensanchado el denominador en vez de filtrar—. **Control negativo hecho:** los siete conjuntos de staging no se movieron. Despliegue verificado **por procedencia del build**: `build-2026-09-06-003`, `READY`, del commit `ac26068`. Bancos: `npm test` **1789** · functions **832**. **Reglas y emulador NO se corrieron, y a propósito: los tres commits no tocan `firestore.rules`, `storage.rules` ni `functions/`.** ⚠️ **La línea anterior de este campo decía «este equipo no tiene Java» y era FALSA**: el JDK está en `~/.local/jdk` y `CLAUDE.md` lo documenta. Los últimos datos de esos dos bancos son **394** y **329**, y son viejos: contarlos, no citarlos |
+| **Versión** | 0.9.61 |
+| **Fecha** | 9 de septiembre de 2026 |
+| **Estado** | **`PRD-V-PLAT-004` ENTREGA 1 ESTÁ EN PRODUCCIÓN Y STAGING, ENCENDIDA Y VISTA EN PANTALLA** (9 sep, `8db685b`). **`G5` la cerró David: el consejo lo mantiene al día el ADMINISTRADOR del conjunto**, sin caducidad — y con eso **la capacidad muerta que `FLOW-007` dejó en producción YA SE PUEDE EJERCER**: `identidadParaFirmar` lee la marca `isCommittee`, así que el consejo puede firmar el informe. La marca es un **ATRIBUTO y no un valor de `role`** (`RN-01`), porque `role: "committee"` le quitaría al consejero su unidad y el portal del residente entero. 🔴 **EL FRENO QUE QUEDA NO ES CÓDIGO, ES UN NÚMERO: de 68 personas del padrón de producción solo 10 tienen cuenta, y SOLO SANTA MARÍA (8) PUEDE FORMAR UN CONSEJO de 3–7** — Bromelias y Privada Las Playas tienen 1, y los otros **seis conjuntos, cero**. Encender la bandera fuera de Santa María sería un control que no puede nombrar a nadie: es «encendido sobre tablas vacías» por cuarta vez, **y la primera que se ve ANTES de encender**. **Lo siguiente:** observar `CA2`, `CA3` y `CA4` entrando como el consejero (staging/Palmas, dejado nombrado a propósito), o la **entrega 2** — los cinco sitios del front y `TBD-B`. **`PRD-V-FLOW-006` y la entrega 3 de `FLOW-007` siguen BLOQUEADAS por el abogado ecuatoriano**, confirmado sin contestar el 9 de septiembre. **Lo anterior, vigente:** el asiento de producción con `accountCode: null` que solo puede corregir David —verificado ese día con la ADC viva, **sigue en `null`**—; el tope de gasto de la IA sin mirarse; `PLAT-005` pendiente de un Android; Albert espera el contrato de `vivaruWonSignals`; `PLAT-006` espera saber de quién es `dann…@outlook.com`; y quedan **37 P1, 42 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Los dos ambientes, midiendo y mirando la pantalla, con la predicción escrita ANTES de mirar.** Functions verificadas **por nombre** (`setCommitteeMembership` y `signMonthlyReport` listadas en los dos proyectos); reglas con **el ruleset VIVO diferenciado contra el repo — «idéntico al repo: SÍ» en ambos**; front **por procedencia del build**: `build-2026-09-09-001`, `READY`, commit `8db685b`. **La bandera se verificó RESOLVIENDO con `functions/lib/feature-flags.js` compilado, no leyendo documentos**: 🟢 `tenant-santa-maria` en producción y 🟢 `tenant-palmas-cdmx` en staging, **los demás apagados y la global `false`**. En pantalla, ciclo entero **nombrar → retirar → nombrar** sobre un residente real de staging: `CA1`, `CA5` y `CA6` vistos, y **`RN-01` comprobado en el DATO** (`role: "resident"` y `unitId` intactos), con **2 líneas de auditoría** y los dos campos de fecha **borrados** al retirar. ⚠️ **Y casi da un falso negativo**: la sesión abrió en un conjunto con la bandera apagada — **antes de verificar, comprobar que el sujeto puede distinguir el antes del después**. Bancos, los cuatro: `npm test` **1804** · functions **832** · reglas **358** · emulador **340 de 342**, con `CA12` y `D-B` de `payments.emulator.test.ts` **preexistentes y confirmados** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,26 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.61 — 9 de septiembre de 2026 — el consejo existe de verdad, y el freno es un número
+
+- **`PRD-V-PLAT-004` entrega 1 en producción y staging** (`0150d2e`, `5969b8c`), encendida en un
+  conjunto de cada ambiente y **vista en pantalla**. `G5` cerrada por David: **el administrador del
+  conjunto** mantiene el consejo al día, sin caducidad automática.
+- **La capacidad muerta de `FLOW-007` dejó de serlo.** `identidadParaFirmar` lee `isCommittee`, así
+  que la firma del informe por el consejo **ya se puede ejercer**.
+- 🔴 **El freno que queda no es código: solo Santa María puede tener consejo.** 68 personas en el
+  padrón de producción y **10 con cuenta** — Santa María 8, Bromelias 1, Privada Las Playas 1, los
+  otros **seis a cero**. Es captura de datos, no ingeniería.
+- **Tres cosas que corrigió CONSTRUIR y que la ficha decía mal:** el control va en el **padrón** y no
+  en `admin/users` —que filtra fuera a los residentes—; los sitios que leen `role === "committee"`
+  son **once y no cuatro**; y **`CA14` era un hueco REAL**, medido ejecutándolo contra las reglas de
+  `HEAD`: un `tenant_admin` podía escribirse `isCommittee: true` desde el navegador.
+- **Dos lecciones de método, las dos incómodas.** Un aviso escrito **tres líneas más arriba** no
+  evitó por tercera vez que un banco de reglas se colara en `npm test`: lo cazó **el conteo**
+  (1789 → 1804), y ahora hay guardián que **mide el disco**. Y **se escribió en un comentario una
+  causa que era FALSA** —el `evaluation error` del emulador es preexistente—; la cazó reproducirlo
+  contra `HEAD`, y corregir el comentario fue parte del arreglo.
 
 ### 0.9.60 — 6 de septiembre de 2026 — tres defectos del informe del consejo, cerrados y en producción
 
