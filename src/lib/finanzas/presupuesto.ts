@@ -277,3 +277,47 @@ export function valoresDesdeLineas(lineas: unknown): Record<string, string> {
   for (const [code, amount] of leerLineas(lineas).validas) valores[code] = String(amount);
   return valores;
 }
+
+// ── Entrega 2 · la fecha del acta ────────────────────────────────────────────
+
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+const FORMA_DE_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * La fecha del acta, `YYYY-MM-DD`, en palabras. **Sin pasar por `Date`**, a
+ * propósito: `new Date("2026-03-01")` se lee en UTC, y en Quito o Bogotá se
+ * pinta como el 28 de febrero — el acta saldría firmada un día antes.
+ */
+export function fechaDelActa(iso: string | undefined): string | null {
+  const m = FORMA_DE_FECHA.exec(iso ?? "");
+  if (!m) return null;
+  const mes = MESES[Number(m[2]) - 1];
+  if (!mes) return null;
+  return `${Number(m[3])} de ${mes} de ${m[1]}`;
+}
+
+/** `YYYY-MM-DD` con las partes LOCALES de la fecha, por la misma razón. */
+export function fechaLocal(hoy: Date): string {
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Lo que el formulario exige a la fecha del acta: que esté, que exista y que no
+ * sea futura. Las reglas solo pueden comprobar la forma; esto no decide dinero,
+ * así que basta con que lo compruebe el formulario.
+ */
+export function errorDeFechaDelActa(iso: string, hoy: Date): string | null {
+  if (!iso) return "Falta la fecha del acta de la asamblea.";
+  const m = FORMA_DE_FECHA.exec(iso);
+  if (!m) return "La fecha no se entiende.";
+  const [y, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const f = new Date(y, mes - 1, dia);
+  if (f.getFullYear() !== y || f.getMonth() !== mes - 1 || f.getDate() !== dia) return "Esa fecha no existe.";
+  if (iso > fechaLocal(hoy)) return "La fecha del acta no puede ser posterior a hoy.";
+  return null;
+}
+

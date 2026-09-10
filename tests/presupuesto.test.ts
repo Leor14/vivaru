@@ -4,6 +4,9 @@ import {
   anioSinMovimientos,
   compararPresupuesto,
   cuentasPresupuestables,
+  errorDeFechaDelActa,
+  fechaDelActa,
+  fechaLocal,
   leerLineas,
   lineasDesdeFormulario,
   porcentajeDelAnio,
@@ -236,3 +239,30 @@ describe("`RN-07` y `RN-08` · el año", () => {
     expect(porcentajeDelAnio(new Date(2026, 8, 10), 2027)).toBe(0);
   });
 });
+
+describe("entrega 2 · la fecha del acta", () => {
+  it("se escribe en palabras sin pasar por Date: el 1 de marzo NO se vuelve 28 de febrero", () => {
+    expect(fechaDelActa("2026-03-01")).toBe("1 de marzo de 2026");
+    expect(fechaDelActa("2026-12-31")).toBe("31 de diciembre de 2026");
+  });
+
+  it("una fecha mal formada no se pinta", () => {
+    expect(fechaDelActa("15/03/2026")).toBeNull();
+    expect(fechaDelActa("2026-13-01")).toBeNull();
+    expect(fechaDelActa(undefined)).toBeNull();
+  });
+
+  it("el formulario exige fecha, real y no futura", () => {
+    const hoy = new Date(2026, 8, 10, 23, 30);
+    expect(errorDeFechaDelActa("", hoy)).toMatch(/Falta/);
+    expect(errorDeFechaDelActa("2026-02-30", hoy)).toMatch(/no existe/);
+    expect(errorDeFechaDelActa("2026-09-11", hoy)).toMatch(/posterior/);
+    expect(errorDeFechaDelActa("2026-09-10", hoy)).toBeNull();
+    expect(errorDeFechaDelActa("2026-03-15", hoy)).toBeNull();
+  });
+
+  it("fechaLocal usa la fecha LOCAL: las 23:30 del 10 de septiembre siguen siendo el 10", () => {
+    expect(fechaLocal(new Date(2026, 8, 10, 23, 30))).toBe("2026-09-10");
+  });
+});
+

@@ -58,3 +58,32 @@ export async function guardarBorrador(input: {
     updatedBy: input.uid,
   });
 }
+
+/**
+ * Entrega 2 · aprobar. Reescribe el documento entero con **las mismas líneas**
+ * que tenía —las reglas lo comprueban: al aprobar no se cuela un cambio—, la
+ * fecha del acta, quién aprueba y la hora del servidor. Después ya no se toca.
+ */
+export async function aprobarPresupuesto(input: {
+  tenantId: string;
+  year: number;
+  uid: string;
+  previo: Budget;
+  approvedAt: string;
+}) {
+  const ahora = serverTimestamp();
+  await setDoc(doc(assertDb(), "budgets", idDelPresupuesto(input.tenantId, input.year)), {
+    tenantId: input.tenantId,
+    year: input.year,
+    lines: input.previo.lines,
+    status: "aprobado",
+    approvedAt: input.approvedAt,
+    approvedBy: input.uid,
+    approvedRecordedAt: ahora,
+    createdAt: input.previo.createdAt ?? ahora,
+    createdBy: input.previo.createdBy ?? input.uid,
+    updatedAt: ahora,
+    updatedBy: input.uid,
+  });
+}
+

@@ -7,12 +7,12 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, Timestamp, where } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 
 /**
- * `PRD-V-FEAT-009` entrega 1 · las reglas de `budgets`.
- * Cubre `CA12`, `CA13`, `CA14`, `CA15`, `CA16` y `CA18`.
+ * `PRD-V-FEAT-009` entregas 1 y 2 · las reglas de `budgets`.
+ * Cubre `CA12`, `CA13`, `CA14`, `CA15`, `CA16`, `CA17` y `CA18`.
  *
  * **Cada denegación va con su pareja positiva.** Una prueba de denegación pasa
  * igual sin ninguna regla —la satisface el deny por defecto—, así que sola no
@@ -59,6 +59,7 @@ async function sembrar() {
     }
 
     await setDoc(doc(db, "budgets", `${CONJUNTO}_2026`), borrador(CONJUNTO, 2026));
+    await setDoc(doc(db, "budgets", `${CONJUNTO}_2024`), { ...borrador(CONJUNTO, 2024), lines: [] });
     // Sembrado con las reglas apagadas: en la entrega 1 no hay forma de aprobar
     // desde el cliente, pero el documento aprobado tiene que existir para probar
     // que NO se toca (`RN-04`).
@@ -156,7 +157,7 @@ describe("FEAT-009 · editar, y `RN-04`: lo aprobado no se toca", () => {
     setDoc(doc(admin(), "budgets", `${CONJUNTO}_2025`), borrador(CONJUNTO, 2025)),
   ));
 
-  it("la aprobación no existe aún desde el cliente: un borrador no pasa a aprobado", () => assertFails(
+  it("un borrador no pasa a aprobado A SECAS: sin fecha, firma ni hora", () => assertFails(
     setDoc(doc(admin(), "budgets", `${CONJUNTO}_2026`), { ...borrador(CONJUNTO, 2026), status: "aprobado" }),
   ));
 
@@ -173,3 +174,56 @@ describe("FEAT-009 · editar, y `RN-04`: lo aprobado no se toca", () => {
     await assertFails(deleteDoc(doc(admin(), "budgets", `${CONJUNTO}_2025`)));
   });
 });
+
+describe("FEAT-009 entrega 2 · aprobar, y `CA17`", () => {
+  const aprobacion = (extra: Record<string, unknown> = {}) => ({
+    ...borrador(CONJUNTO, 2026),
+    status: "aprobado",
+    approvedAt: "2026-03-15",
+    approvedBy: "admin-1",
+    approvedRecordedAt: serverTimestamp(),
+    ...extra,
+  });
+  const ref = (db: ReturnType<typeof admin>) => doc(db, "budgets", `${CONJUNTO}_2026`);
+
+  it("el administrador aprueba su borrador con la fecha del acta", () => assertSucceeds(
+    setDoc(ref(admin()), aprobacion()),
+  ));
+
+  it("`CA17` · NO con un approvedBy ajeno", () => assertFails(
+    setDoc(ref(admin()), aprobacion({ approvedBy: "alguien-mas" })),
+  ));
+
+  it("`CA17` · NI con la hora de registro inventada", () => assertFails(
+    setDoc(ref(admin()), aprobacion({ approvedRecordedAt: Timestamp.fromDate(new Date("2026-03-15T12:00:00Z")) })),
+  ));
+
+  it("NO colando un cambio de líneas al aprobar", () => assertFails(
+    setDoc(ref(admin()), aprobacion({ lines: [{ accountCode: "2.3", amount: 1 }] })),
+  ));
+
+  it("NI sin fecha del acta", () => {
+    const sinFecha: Record<string, unknown> = aprobacion();
+    delete sinFecha.approvedAt;
+    return assertFails(setDoc(ref(admin()), sinFecha));
+  });
+
+  it("NI con una fecha que no tiene forma de fecha", () => assertFails(
+    setDoc(ref(admin()), aprobacion({ approvedAt: "15/03/2026" })),
+  ));
+
+  it("NI un presupuesto SIN líneas", () => assertFails(
+    setDoc(doc(admin(), "budgets", `${CONJUNTO}_2024`), { ...aprobacion(), year: 2024, lines: [] }),
+  ));
+
+  it("el administrador de otro conjunto no aprueba, y el residente tampoco", async () => {
+    await assertFails(setDoc(ref(adminAjeno()), aprobacion({ approvedBy: "admin-2", updatedBy: "admin-2" })));
+    await assertFails(setDoc(ref(residente()), aprobacion({ approvedBy: "residente-101", updatedBy: "residente-101" })));
+  });
+
+  it("`CA7` / `RN-04` · y una vez aprobado, ya no se toca: ni volver a aprobar con otra fecha", async () => {
+    await assertSucceeds(setDoc(ref(admin()), aprobacion()));
+    await assertFails(setDoc(ref(admin()), aprobacion({ approvedAt: "2026-03-20" })));
+  });
+});
+

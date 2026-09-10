@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **ENTREGA 1 EN LOS DOS AMBIENTES** (10 sep 2026) · en producción con la bandera **apagada en los nueve** |
+| **Estado** | Entrega 1 en los dos ambientes, **apagada en los nueve** · **entrega 2 construida y falseada** (10 sep 2026), pendiente de verse en staging |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -501,6 +501,49 @@ Borrador de prueba en Las Playas 2026 —**se deja guardado**, sirve para la ent
   real llega en el **primer trimestre de 2027**, revisando 2026 — y exige cargar antes el
   presupuesto de 2026 que la asamblea ya aprobó en papel.
 - **Entrega 2**: aprobar con la fecha del acta, bloquear, y la vista imprimible.
+
+## 15 · La entrega 2: aprobar, bloquear e imprimir (10 de septiembre de 2026)
+
+### Lo construido
+
+- **Reglas: `aprobacionValida`, la única salida del borrador.** Aprueba **exactamente las
+  líneas que había** —al aprobar no se cuela ningún cambio—, exige al menos una línea, firma
+  quien aprueba (`approvedBy == request.auth.uid`), la hora la pone el servidor
+  (`approvedRecordedAt == request.time`) y la fecha del acta tiene que tener forma
+  `YYYY-MM-DD`. Que no sea futura lo comprueba el formulario: no decide dinero.
+- **La fecha del acta NO pasa por `Date`.** `new Date("2026-03-01")` se lee en UTC y, en
+  Quito, Bogotá o Ciudad de México, se pinta como el 28 de febrero. Se escribe en palabras
+  desde las partes de la cadena, y «hoy» se toma de las partes LOCALES.
+- **La hoja imprimible**, calcada de `/admin/reports`: al imprimir se esconde todo menos
+  `#presupuesto-imprimible` —con nombre del conjunto, año, estado y fecha de corte— y
+  dentro de él los botones. Las tablas pierden su ancho mínimo en papel.
+- Aprobado, la pantalla dice **«Aprobado por la asamblea el …»** y deja de ofrecer editar.
+
+### La falsación
+
+| Mutación | Lo que enrojeció |
+|---|---|
+| Sin exigir las mismas líneas | «NO colando un cambio de líneas al aprobar» |
+| Sin exigir que haya líneas | «NI un presupuesto SIN líneas» |
+| Sin `approvedBy` | `CA17` · approvedBy ajeno |
+| Sin la hora del servidor | `CA17` · hora inventada |
+| Sin la forma de la fecha | «NI con una fecha que no tiene forma de fecha» |
+| Sin la rama `aprobacionValida` | Las dos positivas de aprobar |
+| Update sin exigir borrador | Las dos de `CA14` y «no volver a aprobar» |
+| `fechaDelActa` pasando por `Date` | «el 1 de marzo NO se vuelve 28 de febrero» y la mal formada |
+| `fechaLocal` con `toISOString` | Las 23:30 del 10 de septiembre, y el tope de hoy |
+| Sin el tope de hoy | «fecha, real y no futura» |
+
+> **La trampa de la fecha solo se puede falsar donde existe:** el equipo corre en
+> `America/Mexico_City` (−06:00). En una máquina en UTC las dos mutaciones de fecha
+> pasarían en verde y no probarían nada — se comprobó el huso ANTES de falsar.
+
+Conteos: `npm test` **1845 → 1849**; reglas **395 → 404**, las 30 de `budgets` en verde.
+
+### Pendiente de esta entrega
+
+Verla en staging: aprobar el borrador de Las Playas con una fecha de acta (`CA7`), que ya
+no se pueda editar, y **la hoja impresa mirada, no deducida** (`CA8`).
 
 ## Puertas
 

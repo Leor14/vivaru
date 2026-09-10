@@ -641,6 +641,8 @@ export interface Budget {
   /** La fecha DEL ACTA de la asamblea, `YYYY-MM-DD`. Entrega 2. */
   approvedAt?: string;
   approvedBy?: string;
+  /** La hora en que se registró la aprobación. La pone el servidor; las reglas lo exigen. */
+  approvedRecordedAt?: unknown;
   createdAt?: unknown;
   createdBy?: string;
   updatedAt?: unknown;

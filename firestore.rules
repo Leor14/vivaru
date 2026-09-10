@@ -1527,9 +1527,8 @@ service cloud.firestore {
     // el tenantId aisla la lectura, no el id. Sin esa linea, un administrador
     // podria ocupar el id del presupuesto de otro conjunto.
     //
-    // Entrega 1: solo existe el borrador. Un documento que no esta en borrador
-    // no se toca desde el cliente (RN-04); la transicion a `aprobado` llega en
-    // la entrega 2, con su propia rama.
+    // Un documento que no esta en borrador no se toca desde el cliente (RN-04).
+    // La UNICA salida del borrador es `aprobacionValida` (entrega 2).
     //
     // `resource == null` en la lectura, por lo mismo que en `chartOfAccounts`:
     // la pantalla escucha el documento del ano antes de que exista.
@@ -1541,6 +1540,21 @@ service cloud.firestore {
           && d.status == 'borrador'
           && d.lines is list && d.lines.size() <= 200;
       }
+      // Entrega 2 · aprobar. Aprueba EXACTAMENTE las lineas que habia —al
+      // aprobar no se cuela ningun cambio—, firma quien aprueba y la hora la pone
+      // el servidor. La fecha del acta la teclea el administrador: aqui solo se
+      // exige que tenga forma de fecha; que no sea futura lo comprueba el
+      // formulario, porque no decide dinero. Un presupuesto vacio no se aprueba.
+      function aprobacionValida() {
+        let d = request.resource.data;
+        return d.status == 'aprobado'
+          && d.lines == resource.data.lines
+          && resource.data.lines.size() > 0
+          && d.approvedBy == request.auth.uid
+          && d.approvedRecordedAt == request.time
+          && d.approvedAt is string
+          && d.approvedAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+      }
       allow read: if signedIn() && (resource == null || tenantAdminOrSuper(resource.data.tenantId));
       allow create: if tenantOperable(request.resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
@@ -1551,7 +1565,7 @@ service cloud.firestore {
         && resource.data.status == 'borrador'
         && request.resource.data.tenantId == resource.data.tenantId
         && request.resource.data.year == resource.data.year
-        && presupuestoBienFormado(docId)
+        && (presupuestoBienFormado(docId) || aprobacionValida())
         && request.resource.data.updatedBy == request.auth.uid;
       allow delete: if tenantOperable(resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(resource.data.tenantId)

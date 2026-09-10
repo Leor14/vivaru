@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { CheckCircle2, Pencil, Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,7 +9,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-context";
 import { useChartOfAccounts } from "@/features/finanzas/use-chart-of-accounts";
-import { guardarBorrador, watchPresupuesto } from "@/features/finanzas/use-presupuesto";
+import { aprobarPresupuesto, guardarBorrador, watchPresupuesto } from "@/features/finanzas/use-presupuesto";
 import { useCommitteeReport } from "@/features/reports/use-committee-report";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
@@ -17,6 +17,9 @@ import {
   anioSinMovimientos,
   compararPresupuesto,
   cuentasPresupuestables,
+  errorDeFechaDelActa,
+  fechaDelActa,
+  fechaLocal,
   lineasDesdeFormulario,
   porcentajeDelAnio,
   valoresDesdeLineas,
@@ -70,6 +73,9 @@ export default function PresupuestoPage() {
   const [valores, setValores] = useState<Record<string, string>>({});
   const [erroresForm, setErroresForm] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const [aprobandoAnio, setAprobandoAnio] = useState<number | null>(null);
+  const [fechaActa, setFechaActa] = useState("");
+  const [errorActa, setErrorActa] = useState<string | null>(null);
 
   const rango = useMemo(() => ({ start: `${anio}-01-01`, end: `${anio}-12-31` }), [anio]);
   const informe = useCommitteeReport(user?.tenantId, rango);
@@ -83,6 +89,8 @@ export default function PresupuestoPage() {
   const cargado = leido?.anio === anio;
   const presupuesto = cargado ? leido.presupuesto : null;
   const editando = editandoAnio === anio;
+  const aprobando = aprobandoAnio === anio;
+  const aprobado = presupuesto?.status === "aprobado";
   const cargandoEjecutado = informe.loading || informe.sectionLoading.financial;
 
   const cuentasDelFormulario = useMemo(
@@ -120,6 +128,32 @@ export default function PresupuestoPage() {
     }
   }
 
+  async function aprobar() {
+    if (!user?.tenantId || !user.uid || !presupuesto) return;
+    const error = errorDeFechaDelActa(fechaActa, new Date());
+    setErrorActa(error);
+    if (error) return;
+    setGuardando(true);
+    try {
+      await aprobarPresupuesto({
+        tenantId: user.tenantId, year: anio, uid: user.uid, previo: presupuesto, approvedAt: fechaActa,
+      });
+      toast.success(`Presupuesto ${anio} aprobado. Ya no se puede editar.`);
+      setAprobandoAnio(null);
+    } catch (e) {
+      toastFirebaseError(e);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  // `CA7`: aprobado, la pantalla dice por quién y cuándo, y deja de ofrecer editar.
+  const estado = !presupuesto
+    ? null
+    : aprobado
+      ? `Aprobado por la asamblea el ${fechaDelActa(presupuesto.approvedAt) ?? presupuesto.approvedAt ?? "—"}`
+      : "Borrador";
+
   if (!activa) {
     return (
       <div className="space-y-4">
@@ -136,6 +170,18 @@ export default function PresupuestoPage() {
 
   return (
     <div className="space-y-6">
+      {/*
+        `CA8` · la hoja para la asamblea. Calcada de `/admin/reports`: al imprimir se
+        esconde todo menos el bloque imprimible, y dentro de él los botones.
+      */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #presupuesto-imprimible, #presupuesto-imprimible * { visibility: visible; }
+          #presupuesto-imprimible { position: absolute; inset: 0; padding: 24px; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
       {/* El encabezado de nivel 1 lo pone el shell, con el nombre del menú. */}
       <Card className="p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -145,9 +191,7 @@ export default function PresupuestoPage() {
               Lo presupuestado contra lo ejecutado, por cuenta. Lo ejecutado es el mismo que
               ves en Reportes para el año entero.
             </CardDescription>
-            {presupuesto ? (
-              <p className="mt-2 text-sm text-[var(--slate-600)]">Estado: Borrador</p>
-            ) : null}
+            {estado ? <p className="mt-2 text-sm text-[var(--slate-600)]">Estado: {estado}</p> : null}
           </div>
           <div role="group" aria-label="Año" className="flex gap-2">
             {[anioActual, anioActual - 1].map((a) => (
@@ -242,17 +286,71 @@ export default function PresupuestoPage() {
         </Card>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="no-print flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-[var(--slate-600)]">
               {presupuesto
                 ? `${presupuesto.lines.length} cuentas presupuestadas.`
                 : `Aún no hay presupuesto para ${anio}. Lo ejecutado ya se ve por cuenta; cárgalo para compararlo.`}
             </p>
-            <Button variant="outline" onClick={empezarAEditar}>
-              <Pencil className="mr-2 h-4 w-4" aria-hidden />
-              {presupuesto ? "Editar presupuesto" : "Cargar presupuesto"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {!aprobado ? (
+                <Button variant="outline" onClick={empezarAEditar}>
+                  <Pencil className="mr-2 h-4 w-4" aria-hidden />
+                  {presupuesto ? "Editar presupuesto" : "Cargar presupuesto"}
+                </Button>
+              ) : null}
+              {presupuesto && !aprobado && comparacion.hayPresupuesto ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFechaActa("");
+                    setErrorActa(null);
+                    setAprobandoAnio(anio);
+                  }}
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
+                  Marcar como aprobado
+                </Button>
+              ) : null}
+              {!cargandoEjecutado && !sinMovimientos ? (
+                <Button variant="outline" onClick={() => window.print()}>
+                  <Printer className="mr-2 h-4 w-4" aria-hidden />
+                  Imprimir
+                </Button>
+              ) : null}
+            </div>
           </div>
+
+          {aprobando && presupuesto && !aprobado ? (
+            <Card className="no-print p-6">
+              <CardTitle>Marcar el presupuesto {anio} como aprobado</CardTitle>
+              <CardDescription className="mt-1">
+                Pon la fecha del acta de la asamblea que lo aprobó. Después ya no se puede editar:
+                lo que se compara con lo ejecutado es lo que aprobó la asamblea.
+              </CardDescription>
+              <label className="mt-4 grid max-w-xs gap-1 text-sm">
+                <span className="text-[var(--slate-900)]">Fecha del acta</span>
+                <Input
+                  type="date"
+                  max={fechaLocal(new Date())}
+                  value={fechaActa}
+                  onChange={(e) => setFechaActa(e.target.value)}
+                  aria-invalid={Boolean(errorActa)}
+                />
+              </label>
+              {errorActa ? (
+                <p role="alert" className="mt-2 text-sm text-[var(--danger-700)]">{errorActa}</p>
+              ) : null}
+              <div className="mt-4 flex gap-2">
+                <Button onClick={aprobar} disabled={guardando}>
+                  {guardando ? "Aprobando…" : "Aprobar"}
+                </Button>
+                <Button variant="ghost" onClick={() => setAprobandoAnio(null)} disabled={guardando}>
+                  Cancelar
+                </Button>
+              </div>
+            </Card>
+          ) : null}
 
           {cargandoEjecutado ? (
             <Card className="p-6 text-sm text-[var(--slate-600)]">Calculando lo ejecutado…</Card>
@@ -265,7 +363,14 @@ export default function PresupuestoPage() {
               </CardDescription>
             </Card>
           ) : (
-            <>
+            <div id="presupuesto-imprimible" className="space-y-6">
+              <div className="hidden print:block">
+                <p className="text-lg font-bold text-[var(--slate-900)]">{user?.tenantName ?? "Conjunto"}</p>
+                <p className="text-base text-[var(--slate-900)]">Presupuesto {anio} contra lo ejecutado</p>
+                <p className="text-sm text-[var(--slate-600)]">
+                  Estado: {estado ?? "Sin presupuesto cargado"} · Corte: {fechaDelActa(fechaLocal(new Date()))}
+                </p>
+              </div>
               <TablaDeComparacion titulo="Ingresos" filas={comparacion.ingresos} formatAmount={formatAmount} />
               <TablaDeComparacion titulo="Egresos" filas={comparacion.egresos} formatAmount={formatAmount} />
 
@@ -333,7 +438,7 @@ export default function PresupuestoPage() {
                   </p>
                 ) : null}
               </Card>
-            </>
+            </div>
           )}
         </>
       )}
@@ -356,8 +461,8 @@ function TablaDeComparacion({
       {filas.length === 0 ? (
         <p className="mt-3 text-sm text-[var(--slate-600)]">Sin movimientos ni presupuesto.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
+        <div className="mt-4 overflow-x-auto print:overflow-visible">
+          <table className="w-full min-w-[720px] text-sm print:min-w-0">
             <thead>
               <tr className="border-b border-[var(--slate-200)] text-left text-[var(--slate-600)]">
                 <th className="py-2 pr-4 font-medium">Cuenta</th>
