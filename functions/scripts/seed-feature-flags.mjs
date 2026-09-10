@@ -147,6 +147,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-presupuesto-anual",
+    area: "producto",
+    label: "Presupuesto anual contra lo ejecutado",
+    origen: "PRD-V-FEAT-009 entrega 1",
+    // Nace apagada y se enciende por conjunto. Es inerte hasta que alguien
+    // cargue un presupuesto: la colección es nueva y no la lee nadie más.
+    enabled: false,
+  },
+  {
     key: "producto-rol-consejo",
     area: "producto",
     label: "El consejo de administración existe de verdad",

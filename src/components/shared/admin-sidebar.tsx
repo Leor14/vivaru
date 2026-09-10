@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ComponentType } from "react";
-import { BarChart2, BookOpen, Building2, CalendarCheck, ChevronDown, ClipboardList, FileText, Gauge, Grid3X3, Home, LifeBuoy, Lock, LogOut, MessageSquare, Package, Receipt, Scale, ScrollText, Store, Users, Wallet } from "lucide-react";
+import { BarChart2, BookOpen, Building2, CalendarCheck, ChevronDown, ClipboardList, FileText, Gauge, Grid3X3, Home, LifeBuoy, Lock, LogOut, MessageSquare, Package, PiggyBank, Receipt, Scale, ScrollText, Store, Users, Wallet } from "lucide-react";
 
 import { NotificationsBell } from "@/components/shared/notifications-bell";
 import { SidebarBrandHeader } from "@/components/shared/sidebar-brand-header";
@@ -63,6 +63,9 @@ export const ADMIN_SIDEBAR_GROUPS: AdminSidebarGroup[] = [
       { href: "/admin/finanzas/medidores", label: "Medidores", icon: Gauge },
       { href: "/admin/finanzas/egresos", label: "Egresos", icon: Receipt },
       { href: "/admin/finanzas", label: "Libro y fondos", icon: BookOpen },
+      // `FEAT-009`. Detrás de Libro y fondos porque lee lo mismo que él, pero del
+      // año entero. Se pinta siempre, como Medidores: la página dice si falta la bandera.
+      { href: "/admin/finanzas/presupuesto", label: "Presupuesto", icon: PiggyBank },
       { href: "/admin/finanzas/conciliacion", label: "Conciliación", icon: Scale },
     ],
   },

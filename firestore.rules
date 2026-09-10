@@ -1519,6 +1519,45 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // PRD-V-FEAT-009 · el presupuesto del ano. Escritura DIRECTA: no mueve
+    // dinero y todos sus invariantes viven en el propio documento, asi que estas
+    // reglas los sostienen enteros.
+    //
+    // El id se comprueba (RN-10): un id de documento es global a la coleccion y
+    // el tenantId aisla la lectura, no el id. Sin esa linea, un administrador
+    // podria ocupar el id del presupuesto de otro conjunto.
+    //
+    // Entrega 1: solo existe el borrador. Un documento que no esta en borrador
+    // no se toca desde el cliente (RN-04); la transicion a `aprobado` llega en
+    // la entrega 2, con su propia rama.
+    //
+    // `resource == null` en la lectura, por lo mismo que en `chartOfAccounts`:
+    // la pantalla escucha el documento del ano antes de que exista.
+    match /budgets/{docId} {
+      function presupuestoBienFormado(id) {
+        let d = request.resource.data;
+        return d.year is int && d.year >= 2000 && d.year <= 2100
+          && id == d.tenantId + '_' + string(d.year)
+          && d.status == 'borrador'
+          && d.lines is list && d.lines.size() <= 200;
+      }
+      allow read: if signedIn() && (resource == null || tenantAdminOrSuper(resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && presupuestoBienFormado(docId)
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && resource.data.status == 'borrador'
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.year == resource.data.year
+        && presupuestoBienFormado(docId)
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow delete: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && resource.data.status == 'borrador';
+    }
+
     match /monthlyReports/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||

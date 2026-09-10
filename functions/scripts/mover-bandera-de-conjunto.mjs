@@ -52,6 +52,7 @@ const CLAVES = [
   "producto-egresos-en-cuotas",
   "producto-rol-consejo",
   "producto-medicion-de-consumos",
+  "producto-presupuesto-anual",
   "producto-anticipos",
   "producto-expediente-conciliacion",
   "producto-notificaciones-push",

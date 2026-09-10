@@ -624,6 +624,29 @@ export interface BillingCampaign {
  * nombre invita a confundirlas y por eso se dice aquí: `/admin/services` es el
  * salón comunal; esto es el medidor del agua.
  */
+/**
+ * `PRD-V-FEAT-009` · el presupuesto del año, uno por conjunto y año.
+ *
+ * Id `${tenantId}_${year}`, y las reglas lo comprueban (`RN-10`). Las líneas van
+ * en ARRAY y no en un mapa por código, a propósito: los códigos llevan punto
+ * (`2.3`), y en `updateDoc` un punto en la clave es una ruta de campo —
+ * `lines.2.3` escribiría `lines → 2 → 3`. Se escribe siempre entero, con `setDoc`.
+ */
+export interface Budget {
+  id: string;
+  tenantId: string;
+  year: number;
+  lines: Array<{ accountCode: string; amount: number }>;
+  status: "borrador" | "aprobado";
+  /** La fecha DEL ACTA de la asamblea, `YYYY-MM-DD`. Entrega 2. */
+  approvedAt?: string;
+  approvedBy?: string;
+  createdAt?: unknown;
+  createdBy?: string;
+  updatedAt?: unknown;
+  updatedBy?: string;
+}
+
 export interface MeteredService {
   id: string;
   tenantId: string;

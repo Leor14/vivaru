@@ -37,6 +37,7 @@ export default defineConfig({
       // reglas, en verde solo porque el emulador estaba levantado.
       "**/rol-consejo.rules.test.ts",
       "**/medicion-de-consumos.rules.test.ts",
+      "**/presupuesto.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

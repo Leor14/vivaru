@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **Discovery — LISTA PARA DESARROLLO** (10 sep 2026) |
+| **Estado** | **Entrega 1 construida y falseada** (10 sep 2026) · pendiente de verse en staging |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -248,7 +248,7 @@ al año. Un aviso de «sobre-ejecución» mensual sería otra ficha, y nadie lo 
 | `CA7` | Aprobado con fecha de acta, la pantalla pasa a solo lectura y dice la fecha |
 | `CA8` | La vista impresa lleva conjunto, año, estado, fecha de corte, tabla, totales y la nota de proveedores, **sin menú ni botones** — mirada en la vista previa de impresión, no deducida del código |
 | `CA9` | Todas las cifras en la moneda del conjunto |
-| `CA10` | Con la bandera apagada no hay entrada en el menú y la ruta dice que no está disponible |
+| `CA10` | Con la bandera apagada no hay entrada en el menú y la ruta dice que no está disponible || `CA10` | Con la bandera apagada la página dice que la función no está activa. **La entrada del menú se pinta igual**: es la convención de Medidores y Conciliación, y se corrigió al construir |
 | `CA11` | Una cuenta con `0` tecleado y gasto dice «Presupuestado en cero», **distinto** de «Sin presupuestar» (`RN-03`) |
 
 ### **Deben fallar**
@@ -367,6 +367,61 @@ colección que no existe, no restringen nada vigente.
   rango. Y `CA8` en la vista previa de impresión.
 
 ---
+
+## 14 · Lo que se vio al construir la entrega 1 (10 de septiembre de 2026)
+
+### Tres correcciones a esta ficha, hechas al construir
+
+- **`CA10` pedía quitar la entrada del menú con la bandera apagada, y el menú no funciona
+  así.** La entrada se pinta siempre y es la página la que dice que la función no está
+  activa: es la convención de Medidores y Conciliación, escrita en `admin-sidebar.tsx`.
+  `CA10` se reescribió para seguirla.
+- **La falsación de reglas estaba mal descrita**, aquí y en `FEAT-008`: «borrar el bloque y
+  comprobar que enrojecen las denegaciones». Borrar el bloque **no enrojece ninguna
+  denegación** —el deny por defecto las satisface— y sí las **siete parejas positivas**.
+  Lo que falsea cada denegación es **quitar SU cláusula**. Se hizo así, abajo.
+- **`CA20` no lo caza `CA3`, lo caza el guardián.** `CA3` —las cuotas ejecutadas— no se puede
+  probar sobre la función pura precisamente porque la función **no calcula** lo ejecutado:
+  se ve en pantalla. Lo que impide calcularlo desde el libro es
+  `presupuesto-lee-lo-ejecutado-del-informe.test.ts`, que mide el código sin comentarios.
+
+### La falsación, mutación por mutación
+
+| Mutación | Lo que enrojeció |
+|---|---|
+| **`CA19`** · filtrar lo ejecutado por las cuentas presupuestadas | `CA4`, el ingreso sin presupuesto y el orden del plan (3) |
+| **`RN-02`** · totales ejecutados = suma de las filas presupuestadas | `CA4`/`RN-02` y los dos de `CA5` (3) |
+| **`CA20`** · la página deja de llamar a `useCommitteeReport` | El guardián (1) |
+| **`CA20`** · la página importa `buildFinancialStatement` | El guardián (1) |
+| Control: un **comentario** que nombra lo prohibido | **Nada, como debe** |
+| Reglas · el bloque entero | Las 7 positivas, ninguna denegación |
+| Reglas · `resource.data.status == 'borrador'` en el update | Las dos de `CA14` |
+| Reglas · la comprobación del id | Las dos de `CA16` |
+| Reglas · `status == 'borrador'` en el cuerpo | `CA15` y «un borrador no pasa a aprobado» |
+| Reglas · `createdBy == request.auth.uid` | La firma ajena |
+| Reglas · `tenantOperable` en el create | `CA18` |
+| Reglas · `lines is list` | Las líneas en un mapa |
+| Reglas · la rama `resource == null` de la lectura | Escuchar un año que aún no existe |
+
+> **Una falsación en verde, y es redundancia, no hueco.** Quitar
+> `request.resource.data.tenantId == resource.data.tenantId` del update deja las 21 en verde:
+> el id `${tenantId}_${year}` **ya impide** mudar el documento de conjunto. Se conserva como
+> defensa en profundidad, **sabiendo que ninguna prueba la sostiene**.
+
+### Los conteos, y uno que no cuadraba
+
+- `npm test`: **1812 → 1841**. La memoria decía 1808 y **estaba vieja**; la base se midió
+  sobre `HEAD` en un worktree aparte. De las 29 nuevas, 27 son de los dos bancos de esta
+  ficha y **2 las genera el guardián de las dos listas**, una por lista, por el banco de
+  reglas nuevo. Hasta localizarlas por nombre, sobraban dos.
+- Reglas: **374 → 395**, las 21 de `budgets` en verde. `storage.rules.test.ts` no carga
+  porque **el emulador de Storage (9199) no está levantado** —solo el de Firestore, en el
+  8080—. Es el ambiente, no el código: esta ficha no toca `storage.rules`.
+
+### Pendiente de esta entrega
+
+Verla en staging: `CA1`, **`CA2` —la identidad con `/admin/reports`, cuenta a cuenta—**,
+`CA6`, `CA9`, `CA10` y `CA11`, en pantalla.
 
 ## Puertas
 

@@ -84,6 +84,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Apagada = no hay catálogo de servicios medidos ni lecturas. Las lecturas ya
     // registradas y sus fotos se quedan. Ver el catálogo en `src/`.
     "producto-medicion-de-consumos": false,
+    // Apagada = no se ve la pantalla de presupuesto. Ningún callable la consulta:
+    // el presupuesto se escribe directo y no altera ninguna cifra. Ver `src/`.
+    "producto-presupuesto-anual": false,
     // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
     // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
     "producto-anticipos": false,

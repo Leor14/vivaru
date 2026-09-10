@@ -48,6 +48,8 @@ const STATUS_LABELS: Record<string, string> = {
   published: "Publicado",
   valid: "Válido",
   borrador: "Borrador",
+  // `PRD-V-FEAT-009` · el presupuesto aprobado por la asamblea.
+  aprobado: "Aprobado",
   emitido: "Emitido",
   enviado: "Enviado",
   nuevo: "Nuevo",

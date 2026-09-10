@@ -84,6 +84,7 @@ export type FeatureFlagKey =
   | "producto-egresos-en-cuotas"
   | "producto-rol-consejo"
   | "producto-medicion-de-consumos"
+  | "producto-presupuesto-anual"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -441,6 +442,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FEAT-008 entrega 1",
     alApagar:
       "Desaparecen el catálogo de servicios medidos y la pantalla de lecturas. Las lecturas ya registradas NO se borran y las fotos siguen en su sitio. Los cargos ya emitidos desde un consumo tampoco se tocan: apagar esto no anula dinero cobrado — para eso se anula la corrida.",
+  },
+  "producto-presupuesto-anual": {
+    key: "producto-presupuesto-anual",
+    area: "producto",
+    label: "Presupuesto anual contra lo ejecutado",
+    description:
+      "El administrador carga el presupuesto del año por cuenta del plan y lo ve contra lo ejecutado, que sale del MISMO cálculo que el informe del consejo. Sale de §3.8 de la sesión con la administradora: la asamblea ordinaria revisa cada primer trimestre si el presupuesto estuvo bien hecho y si hay déficit.",
+    // Nace apagada. Solo gobierna lo que se VE: ninguna función de servidor la
+    // comprueba, y no hace falta — un presupuesto no altera ninguna otra cifra
+    // del conjunto. Se escribe aquí para que nadie crea que es un freno.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-009 entrega 1",
+    alApagar:
+      "Desaparece la pantalla de presupuesto. Los presupuestos guardados se quedan, y no alteran ninguna otra cifra del conjunto.",
   },
   "producto-rol-consejo": {
     key: "producto-rol-consejo",
