@@ -22,33 +22,61 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > functions **340 de 342** (`CA12` y `D-B` de `payments`, **preexistentes**). `storage.rules.test.ts`
 > enrojece aparte si el emulador se levanta **solo con Firestore**: es entorno, no código.
 >
-> ## `PRD-V-FEAT-008` — MEDICIÓN DE CONSUMOS CON FOTO — ENTREGA 1 DESPLEGADA
+> ## `PRD-V-FEAT-008` — MEDICIÓN DE CONSUMOS CON FOTO — ENTREGAS 1 Y 2
 >
-> **Producción: functions, reglas (Firestore y Storage) y front, con la BANDERA APAGADA EN LOS
-> NUEVE** — verificado **resolviendo** con `functions/lib/feature-flags.js`, no leyendo documentos:
-> global `false`, encendida en **ninguno**. **Staging: encendida solo en `tenant-palmas-cdmx`**, que
-> tiene 25 unidades activas.
+> **Producción tiene la ENTREGA 1** —functions, reglas y front— **con la bandera APAGADA en los
+> nueve**, verificado **resolviendo** con `functions/lib/feature-flags.js`. **La ENTREGA 2 está solo
+> en STAGING**, encendida en `tenant-palmas-cdmx` (25 unidades activas).
 >
 > **Sale de §3.5 de la sesión con la administradora**, que es su cuello de botella declarado y la
-> respuesta a «¿qué le lleva más trabajo?»: recorre los medidores, los fotografía y **manda las
-> fotos por correo en un archivo aparte**. Y hay ventaja que tomar y no solo igualar: Habitanto
+> respuesta a «¿qué le lleva más trabajo?». Y hay ventaja que tomar, no solo igualar: Habitanto
 > tiene la pantalla y —textual— **«no nos calcula»**.
 >
-> ### Visto en pantalla en staging, con la predicción escrita ANTES
+> ### El ciclo entero, visto en pantalla con la predicción escrita ANTES
 >
-> | Criterio | Visto |
+> | Paso | Visto |
 > |---|---|
-> | `CA1` · declarar el servicio | «Agua fría · $3.200/m³» con las 25 unidades |
+> | `CA1` · declarar el servicio | «Agua fría · $3.200/m³», tabla con las 25 unidades |
 > | `CA3` · la anterior **la pone el sistema** | Octubre trajo `1200` de septiembre sin teclearlo |
-> | **`CA5` · el cálculo** | 1247 − 1200 = **47 m³ → $150.400**, exacto |
+> | `CA5` · el cálculo | 1247 − 1200 = **47 m³ → $150.400**, exacto |
 > | `CA8` · `RN-04` línea base | «No genera cargo», consumo 0 |
-> | `RN-09` · la foto para cerrar | «Faltan 1 foto», **antes** de intentarlo |
-> | `RN-10` · en el DATO | `previous=1200` escrito por el servidor |
+> | `CA2` · la foto | «Foto de EA-101 guardada», y el aviso que faltaba **desapareció solo** |
+> | `RN-09` · cerrar | Antes se negaba **nombrando** la unidad; con la foto, «cerrado con 1 lectura» |
+> | **La vista previa** | **«24 unidades no tienen lectura y no se les va a cobrar»**, nombradas |
+> | `CA15` · tras cobrar | El botón pasa a **«Ya cobrado»** y no deja reabrir |
 >
-> **Quedan sin ver:** `CA2` (subir una foto de verdad, pide un archivo y un teléfono), `CA7` (el
-> residente, que es la entrega 3) y todo el cobro (entrega 2). **Los datos de prueba se DEJARON en
-> staging/Palmas a propósito** para poder mirarlo.
+> **En el DATO, no en el pixel:** cargo con `accountCode: 1.11` —no «otros ingresos»—, consumo
+> **congelado** en `distributionBasisValue: 47`, campaña con `distributionBasis: "consumption"` y
+> `unitAmount: 0`, lectura sellada como `cobrado`.
 >
+> **Y la cadena cierra con el número exacto:** la Cartera enseña **$163.200 pendientes**, que son
+> **$150.400 del consumo + $12.800** de lo que ya había. **Control negativo:** septiembre siguió
+> `abierto` y sin tocar.
+>
+> ### 🔴 TRES DEFECTOS PROPIOS, Y CADA UNO LO CAZÓ ALGO DISTINTO
+>
+> 1. **La cuenta `1.11` iba a quedarse VACÍA PARA SIEMPRE.** La entrega 1 la creó sin el concepto de
+>    cargo, y **`aplicarPago` resuelve la cuenta del asiento desde el CONCEPTO**, no del
+>    `accountCode`. Lo cazó **medir antes de construir**, y el precedente estaba escrito palabra por
+>    palabra en el comentario de la cuota de vigilancia: *«la cuenta sola no bastaba»*.
+> 2. **El orden de dos guardas hacía INALCANZABLE la idempotencia**: el segundo clic contestaba «ese
+>    período ya se cobró» a quien acababa de cobrarlo. Lo cazó **una prueba**. Misma lección que
+>    `assertTenantOperable`: dentro de un guardián, el orden decide qué mensaje recibe cada caso.
+> 3. 🔴 **UNA PRUEBA MÍA ERA CIEGA.** La de `CA15` comparaba dos llamadas seguidas, así que falsarla
+>    metiendo un `Date.now()` en el id **PASÓ EN VERDE** — dos llamadas en el mismo milisegundo dan
+>    lo mismo. Lo cazó **falsarla**, y de esa estabilidad depende no cobrar dos veces.
+>
+> > Y una guarda del script de edición evitó un cuarto: **`| "vigilancia"` aparece DOS veces en
+> > `domain.ts`** —en `BillingConcept` y en `ExpenseCategory`—, así que un reemplazo sin comprobar
+> > unicidad habría metido el concepto de cobro entre las categorías de gasto. La colisión que
+> > `R11` existe para impedir.
+>
+> ### Lo que queda de la ficha
+>
+> **Entrega 3:** el residente ve sus lecturas y su foto. ⚠️ **Su consulta —`tenantId` + `unitId`— NO
+> se ha ejercitado contra un índice real**; las tres del administrador sí. En este repo eso ya
+> mordió: un `orderBy` sin índice tumbó un script de verificación esta misma sesión.
+
 > ## 🔴 EL DEFECTO DEL DÍA, Y NINGUNA PRUEBA PODÍA VERLO
 >
 > Al cambiar de septiembre a octubre, **el campo conservaba la lectura del mes anterior**: la fila
