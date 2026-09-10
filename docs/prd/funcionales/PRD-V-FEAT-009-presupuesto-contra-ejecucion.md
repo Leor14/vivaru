@@ -418,10 +418,54 @@ colección que no existe, no restringen nada vigente.
   porque **el emulador de Storage (9199) no está levantado** —solo el de Firestore, en el
   8080—. Es el ambiente, no el código: esta ficha no toca `storage.rules`.
 
+### Vista en staging (10 de septiembre de 2026)
+
+**Palmas no sirvió para verla, y el aviso era VERDAD:** «Falta el plan de cuentas». Medido en
+la base: en staging Palmas tiene **0 cuentas**; el único conjunto de staging con plan es
+Conjunto Las Playas (20 cuentas, 18 con `parentCode` — las dos sin él son las raíces). En
+producción los nueve lo tienen sembrado. Antes de dar el aviso por defecto se comprobó que la
+semilla sí escribe `parentCode`: el filtro de `RN-05` estaba bien.
+
+Sobre **Conjunto Las Playas** (55 asientos y 50 cargos de 2026), sesión de administrador:
+
+| Criterio | Visto |
+|---|---|
+| **`CA2`** | **Idéntico a `/admin/reports` con el rango 2026-01-01 → 2026-12-31, cuenta a cuenta**: 126,000 · 1,500 · 84,000 · 26,400 · 9,800 · 3,100 · 14,500; ingresos 127,500, egresos 137,800, resultado −10,300 en las dos pantallas |
+| **`CA3`** | Las cuotas de administración salen ejecutadas —$126,000.00—, **que no están en los asientos que suma el núcleo** |
+| `CA5` | «Déficit de $10,300.00», escrito |
+| **`CA6`** | 2025: «No hay movimientos registrados en 2025», sin tabla de ceros |
+| `CA9` | Las cifras en el formato de moneda del conjunto, el mismo que Reportes |
+| **`CA10`** | En El Nogal, con la bandera apagada: «Esta función no está activa en tu conjunto» |
+| `RN-08` | «Va transcurrido el 69 % del año» |
+| `RN-09` | «$33,150.00 comprometidos con proveedores y aún no pagados» |
+
+### 🔴 Dos defectos que encontró MIRAR, y que ninguna prueba podía ver
+
+Con **ningún presupuesto cargado**:
+
+1. **Cada egreso decía «Sin presupuestar · Sobre-ejecución».** Sin presupuesto no hay contra
+   qué comparar, y una alarma en todas las filas deja de significar nada.
+2. **«Resultado presupuestado: equilibrio»** y «ejecutados de **$0.00** presupuestados».
+   Nadie presupuestó un año equilibrado: era un no-op que se leía como afirmación.
+
+Ninguna prueba los veía porque **ninguna miraba el caso sin presupuesto** — y es justo el
+estado en que abre la pantalla por primera vez cualquier conjunto. Arreglado en `822fa3a`
+con `hayPresupuesto` (al menos una línea legible); cuatro pruebas nuevas, y quitar la guarda
+enrojece exactamente la que la sostiene.
+
+### Dos tropiezos del método, anotados para no repetirlos
+
+- **El vigilante del rollout estaba roto**: llamaba al script de estado sin sus dos
+  argumentos, recibía el mensaje de uso y lo contaba como «esperando». Nunca habría podido
+  acertar. El nuevo **aborta si el script falla**.
+- **Cambiar de conjunto y navegar en seguida CORTA el cambio**: la primera vez la página
+  siguió en Palmas. Hay que esperar a que el selector lleve al Panel de Control.
+
 ### Pendiente de esta entrega
 
-Verla en staging: `CA1`, **`CA2` —la identidad con `/admin/reports`, cuenta a cuenta—**,
-`CA6`, `CA9`, `CA10` y `CA11`, en pantalla.
+**`CA1` y `CA11` en pantalla** —guardar un borrador, que siga al recargar, y que vacío y `0`
+se lean distinto—: escriben en Las Playas de staging, así que esperan el visto bueno de David.
+Y ver el arreglo de `822fa3a` servido.
 
 ## Puertas
 
