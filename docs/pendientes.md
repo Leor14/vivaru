@@ -4,7 +4,7 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` ENTREGA 1 EN LOS DOS AMBIENTES)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` ENTREGAS 1 Y 2)
 
 > # LO CONSTRUIBLE DE HABITANTO SE ACABÓ SALVO DOS HUECOS. El resto lo frenan DATOS o decisiones propias.
 >
