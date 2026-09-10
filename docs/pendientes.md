@@ -8,36 +8,47 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > # EL FRENO DE `PLAT-004` NO ES CÓDIGO: **SOLO SANTA MARÍA PUEDE TENER CONSEJO**. Está medido.
 >
-> **Estado: leer los remotos con `git ls-remote`, no de aquí.** Al cerrar, `develop` local iba
-> **cinco commits por delante** del remoto y **el push quedó SIN HACER** —lo bloqueó el
-> clasificador, es de David—. `origin/master` seguía en `ac26068` y producción servía
-> `build-2026-09-06-003` de ese commit, verificado con
-> `node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru`.
+> **Estado: leer los remotos con `git ls-remote`, no de aquí.** Al cerrar, `master` y `develop`
+> iban los dos a `8db685b` y **los dos ambientes servían `build-2026-09-09-001` de ese commit**,
+> `READY`, verificado por procedencia con `functions/scripts/estado-de-apphosting.mjs`.
 >
 > **Bancos medidos hoy, los cuatro:** `npm test` **1804** (119 ficheros) · functions **832** ·
 > reglas **358** · emulador de functions **340 de 342**. Los dos rojos son **`CA12` y `D-B` de
 > `payments.emulator.test.ts`, PREEXISTENTES** y confirmados hoy. `storage.rules.test.ts` enrojece
 > aparte si el emulador se levanta **solo con Firestore**: es entorno, no código.
 >
-> ## 🔴 LO PRIMERO: `PLAT-004` ESTÁ DESPLEGADA A MEDIAS, Y A PROPÓSITO
+> ## `PLAT-004` ENTREGA 1: EN LOS DOS AMBIENTES, ENCENDIDA Y **VISTA EN PANTALLA**
 >
-> **Staging tiene functions y reglas** (desplegadas y verificadas el 9 sep: `setCommitteeMembership`
-> listada por nombre, ruleset vivo **idéntico al repo**). **El front NO**, porque el push se quedó
-> sin hacer. **Es inofensivo** —la bandera `producto-rol-consejo` está apagada en todas partes—
-> pero **la entrega no se puede probar en ningún sitio hasta empujar**.
+> Desplegada entera el 9 sep: functions (`setCommitteeMembership` y `signMonthlyReport` listadas
+> **por nombre**), reglas (**ruleset vivo idéntico al repo** en los dos) y front
+> (`build-2026-09-09-001`, `READY`, commit `8db685b` en producción y staging).
 >
-> **Producción no tiene NADA de esto.** El ciclo pendiente, y termina en `checkout develop`:
+> **Encendida en UN conjunto de cada ambiente**, verificado **resolviendo con
+> `functions/lib/feature-flags.js`** y no leyendo documentos: 🟢 `tenant-santa-maria` en producción
+> (los otros 8 off) · 🟢 `tenant-palmas-cdmx` en staging (los otros 9 off) · global `false` en ambos.
 >
-> ```bash
-> git push origin develop && git ls-remote origin refs/heads/develop
-> firebase deploy --only functions --project hogaru-1
-> firebase deploy --only firestore:rules --project hogaru-1
-> node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
-> git checkout master && git merge --ff-only develop && git push origin master && git checkout develop
-> ```
+> ### `CA1`, `CA5` y `CA6` OBSERVADOS con ojos en staging (Palmas, Carmen García Vidal)
 >
-> **El orden es functions → reglas → front** porque la regla RESTRINGE (blinda tres campos de
-> `tenantUsers`) y porque la callable tiene que existir antes de que el front la llame.
+> Ciclo entero **nombrar → retirar → nombrar**, con la predicción escrita antes de mirar:
+>
+> | Qué | Visto |
+> |---|---|
+> | `CA1` · el control aparece | «Nombrar consejo» en el menú de fila, solo con la bandera |
+> | `CA6` · la marca y su fecha | Badge **«Consejo desde sept de 2026»** bajo el nombre |
+> | `RN-01` · **conserva su condición de residente** | En el dato: `role: "resident"`, `unitId: ea-101` |
+> | `CA5` · al retirar conserva lo suyo | `role`, `unitId` y `status` intactos |
+> | Al retirar se **borran** los dos campos | `committeeSince` y `committeeGrantedBy` **BORRADOS** |
+> | `RN-08` · auditoría | **2 líneas**, conceder y retirar |
+>
+> ⚠️ **Y una trampa que casi da un falso negativo:** la sesión abrió en **El Nogal**, donde la
+> bandera está apagada. Mirar ahí habría dicho «no funciona». **Hubo que cambiar de conjunto con el
+> selector** — el sujeto tiene que poder distinguir el antes del después.
+>
+> ### Lo que SIGUE SIN OBSERVAR, y pide otra sesión
+>
+> **`CA2` (leer un informe emitido), `CA3` (firmarlo) y `CA4` (que el consejero siga viendo su
+> unidad EN PANTALLA)** necesitan entrar **como Carmen García Vidal** en staging/Palmas — la dejé
+> nombrada a propósito para eso. `CA4` está comprobado en el DATO, no en la pantalla.
 >
 > ## 🔴 EL NÚMERO QUE DECIDE DÓNDE SE ENCIENDE
 >
