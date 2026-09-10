@@ -4,7 +4,7 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` ENTREGAS 1 Y 2)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026 (`FEAT-008` COMPLETA EN STAGING)
 
 > # LO CONSTRUIBLE DE HABITANTO SE ACABÓ SALVO DOS HUECOS. El resto lo frenan DATOS o decisiones propias.
 >
@@ -71,11 +71,52 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > > unicidad habría metido el concepto de cobro entre las categorías de gasto. La colisión que
 > > `R11` existe para impedir.
 >
+> ### La ENTREGA 3, vista con la sesión del residente
+>
+> Con **Carmen García Vidal** (Palmas, EA-101), que es además la consejera de `PLAT-004`: **una
+> sesión verificó las dos fichas**.
+>
+> | Qué | Visto |
+> |---|---|
+> | `CA7` · la tarjeta | «Tus consumos medidos», dos filas, lo reciente arriba |
+> | Octubre | **47 m³ · $150.400** con su foto a tamaño completo |
+> | Septiembre · `RN-04` | **«primera lectura»**: se dice POR QUÉ no se cobra, no un cero que parece error |
+> | **`RN-07`** | **FALSADO con dato real**: 99 m³ sembrados en la unidad del vecino, y Carmen siguió viendo solo lo suyo |
+> | **`RN-01` de `PLAT-004`** | Carmen es consejera y **conserva su unidad y su estado de cuenta** |
+>
+> 🔴 **`RN-07` no se dio por bueno con la regla escrita ni con la prueba del emulador.** Se metió el
+> dato del vecino y se comprobó que no aparece: es la diferencia entre «la consulta filtra» y **«el
+> vecino no lo ve»**, y solo lo segundo es la promesa.
+>
+> Y **`RN-01` cierra el hueco de ayer**: era el invariante que **ninguna de las 374 pruebas de
+> reglas puede demostrar**, porque hay que ver a un consejero SEGUIR entrando a su portal.
+>
+> ### Dos cosas medidas ANTES de escribir la entrega 3, y las dos decidieron el diseño
+>
+> 1. **`tenantId + unitId + orderBy(period)` EXIGE índice compuesto**; sin orden, no. Y un índice
+>    que falta **NO da error**: Firestore rechaza la consulta entera y el residente vería «no tienes
+>    lecturas» teniendo doce. Por eso el orden va **en memoria**, patrón `watchLedger`, con guardián.
+> 2. **El `unitId` de las lecturas CASA con el de las membresías** (1 de 1). Si no casaran,
+>    `residentOwnUnit` rechazaría y el residente vería vacío: `FIX-002` con otro nombre.
+>
+> ### 🔴 Y un guardián nació roto POR TERCERA VEZ esta semana: contaba su propio comentario
+>
+> El que explica por qué no se usa `orderBy` escribe `orderBy(` literal. Gemelo de `page-identity`
+> enrojeciendo con el comentario que lo explicaba, y de Tailwind resucitando una clase nombrada para
+> explicarla. **Resuelto de raíz con un `sinComentarios()`, y la regla queda escrita: si un guardián
+> mide texto del código, el texto de los COMENTARIOS no es código.** Hay al menos dos guardianes más
+> en el repo con ese mismo problema sin arreglar.
+>
 > ### Lo que queda de la ficha
 >
-> **Entrega 3:** el residente ve sus lecturas y su foto. ⚠️ **Su consulta —`tenantId` + `unitId`— NO
-> se ha ejercitado contra un índice real**; las tres del administrador sí. En este repo eso ya
-> mordió: un `orderBy` sin índice tumbó un script de verificación esta misma sesión.
+> **Nada construible.** Las tres entregas están en staging y vistas. **Producción solo tiene la
+> entrega 1**, con la bandera apagada — promover las otras dos es inofensivo y dejaría los dos
+> ambientes iguales, que se razona mejor que tenerlos divergidos.
+>
+> ℹ️ **La clave de `carmen.garcia@privadapalmas.mx` en STAGING quedó siendo `TU_CLAVE_AQUI`** —el
+> marcador del comando se copió literal—. Es una cuenta de demostración en un ambiente sin clientes;
+> se cambia con `functions/scripts/poner-clave-en-staging.mjs`, que lleva el proyecto **clavado** y
+> no como argumento.
 
 > ## 🔴 EL DEFECTO DEL DÍA, Y NINGUNA PRUEBA PODÍA VERLO
 >
