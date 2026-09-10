@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | Entrega 1 en los dos ambientes, **apagada en los nueve** · **entrega 2 construida y falseada** (10 sep 2026), pendiente de verse en staging |
+| **Estado** | Entrega 1 en los dos ambientes, **apagada en los nueve** · **entrega 2 en staging, vista en pantalla** (10 sep 2026) · su producción, pendiente |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -540,10 +540,38 @@ Borrador de prueba en Las Playas 2026 —**se deja guardado**, sirve para la ent
 
 Conteos: `npm test` **1845 → 1849**; reglas **395 → 404**, las 30 de `budgets` en verde.
 
-### Pendiente de esta entrega
+### Vista en staging, sobre Las Playas (10 de septiembre de 2026)
 
-Verla en staging: aprobar el borrador de Las Playas con una fecha de acta (`CA7`), que ya
-no se pueda editar, y **la hoja impresa mirada, no deducida** (`CA8`).
+**Por decisión de David se aprobó el de 2025 y NO el de 2026**, que sigue editable para otras
+pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó antes.
+
+- **El formulario frena lo que debe**, probado ANTES de la aprobación válida y por separado:
+  fecha vacía → «Falta la fecha del acta de la asamblea.»; fecha futura → «La fecha del acta
+  no puede ser posterior a hoy.» Las dos dejan el estado en «Borrador». Se separó a propósito:
+  **las reglas aceptan una fecha futura bien formada**, así que si el formulario hubiera
+  fallado el 2025 habría quedado aprobado con una fecha falsa y sin arreglo desde la app.
+- **`CA7`**: «Estado: Aprobado por la asamblea el 15 de marzo de 2025», el aviso «Ya no se
+  puede editar», **sin botones de editar ni de aprobar**, y así sigue al recargar.
+- **En la base**, no en la pantalla: `approvedAt` «2025-03-15», `approvedBy` = la cuenta que
+  aprobó, `approvedRecordedAt` puesta por el servidor —igual al milisegundo que
+  `updatedAt`—, y las líneas **intactas**. El borrador de 2026, sin tocar.
+- **`CA8`**, la hoja: se simuló la impresión convirtiendo las reglas `@media print` en reglas
+  de pantalla —incluidas las anidadas de Tailwind— y se miró. Cabecera «Conjunto Las Playas ·
+  Presupuesto 2026 contra lo ejecutado · Estado: Borrador · Corte: 10 de septiembre de
+  2026», las dos tablas, el resultado del año y la nota de proveedores. **Ningún elemento
+  visible fuera del bloque, ningún botón dentro.**
+
+> ⚠️ **La simulación no es el motor de impresión**: no ve el tamaño de página, los márgenes
+> ni los saltos. Queda una mirada con `⌘P` en la vista previa real para cerrar `CA8` del todo.
+
+> **Un tropiezo del método:** el primer intento de cargar el borrador de 2025 no escribió
+> nada — el importe no llegó al campo, y la comprobación de antes de guardar lo mostró vacío.
+> Se confirmó en la base que no había quedado ningún documento a medias antes de repetir.
+
+### Pendiente
+
+- La vista previa real de impresión (`⌘P`), para cerrar `CA8`.
+- **La entrega 2 a producción**, en el mismo orden: reglas → front.
 
 ## Puertas
 
