@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
 | **Responsable** | David |
-| **Estado** | **ENTREGA 1 EN STAGING Y VISTA EN PANTALLA** (10 sep 2026). Producción, todavía no |
+| **Estado** | **ENTREGAS 1 Y 2 EN STAGING, VISTAS EN PANTALLA** · entrega 1 también en producción, con la bandera apagada |
 | **Dependencias** | `PRD-V-FLOW-001` (reparto por coeficiente, **de donde sale la estructura**) · `PRD-V-PLAT-003` (plan de cuentas) |
 | **Riesgo** | Medio — toca dinero, pero no toca permisos ni el modelo de la unidad |
 | **Reversibilidad** | Reversible por bandera **salvo los cargos ya emitidos** (§13) |
@@ -382,6 +382,38 @@ medir la nada, y falsado reintroduciendo el defecto exacto.
 - **`status-mapper-cobertura`** — los tres estados nuevos faltaban en el mapa.
   **No bastaba con que la clave ya estuviera en español**: `getStatusLabel` cae en
   silencio a la clave cruda, y «cobrado» se habría visto casi bien para siempre.
+
+---
+
+## 15 · La entrega 2, vista de punta a punta (10 de septiembre de 2026)
+
+El ciclo entero en staging/Palmas, con la predicción escrita antes de cada paso:
+
+| Paso | Visto |
+|---|---|
+| `CA2` · subir la foto | «Foto de EA-101 guardada», el aviso de la foto que faltaba **desapareció solo** |
+| `RN-09` · cerrar | Antes se negaba nombrando la unidad; con la foto, «Período cerrado con 1 lectura» |
+| **La vista previa** | **«24 unidades no tienen lectura y no se les va a cobrar este mes»**, nombradas una a una, arriba y en ámbar |
+| `CA5` · el importe | 1 unidad · 47 m³ · **$150.400** |
+| `CA15` · después de cobrar | El botón pasa a **«Ya cobrado»** y no deja reabrir |
+
+**En el dato, no en el pixel:** el cargo con `accountCode: 1.11` —no «otros ingresos»—, el consumo **congelado** en `distributionBasisValue: 47`, la campaña con `distributionBasis: "consumption"` y `unitAmount: 0`, y la lectura sellada como `cobrado` con su campaña.
+
+**Y la cadena cierra con el número exacto:** la Cartera enseña **$163.200 pendientes**, que son **$150.400 del consumo + $12.800** de lo que ya había. Del medidor al cargo, y del cargo a la cartera.
+
+**Control negativo:** septiembre siguió `abierto` y sin tocar. La corrida de octubre no perturbó lo que no le tocaba.
+
+### Tres defectos propios, cazados por tres cosas distintas
+
+1. **La cuenta `1.11` iba a quedarse vacía para siempre.** La entrega 1 la creó sin el concepto de cargo, y `aplicarPago` resuelve la cuenta del asiento **desde el concepto**, no del `accountCode`. Lo cazó **medir antes de construir**, y el precedente estaba escrito palabra por palabra en el comentario de la cuota de vigilancia: *«la cuenta sola no bastaba»*.
+2. **El orden de dos guardas hacía inalcanzable la idempotencia**: el segundo clic decía «ese período ya se cobró» a quien acababa de cobrarlo. Lo cazó **una prueba**.
+3. 🔴 **Una prueba mía era CIEGA.** La de `CA15` comparaba dos llamadas seguidas, así que falsarla metiendo un `Date.now()` en el id **pasó en verde** — dos llamadas en el mismo milisegundo dan lo mismo. Lo cazó **falsarla**, y de esa estabilidad depende no cobrar dos veces.
+
+> Y una guarda del propio script de edición evitó un cuarto: `| "vigilancia"` aparece **dos veces** en `domain.ts` —en `BillingConcept` y en `ExpenseCategory`—, así que un reemplazo sin comprobar unicidad habría metido el concepto de cobro entre las categorías de gasto. La colisión exacta que `R11` existe para impedir.
+
+### Lo que queda
+
+**Entrega 3:** el residente ve sus lecturas y su foto. ⚠️ Su consulta —`tenantId` + `unitId`— **no se ha ejercitado contra un índice real**; las tres del administrador sí, y funcionan.
 
 ---
 
