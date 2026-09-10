@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES** (10 sep 2026) · en producción con la bandera **apagada en los nueve** · falta la vista previa real de impresión |
+| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS** (10 sep 2026) · en producción con la bandera **apagada en los nueve** |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -562,7 +562,8 @@ pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó ante
   visible fuera del bloque, ningún botón dentro.**
 
 > ⚠️ **La simulación no es el motor de impresión**: no ve el tamaño de página, los márgenes
-> ni los saltos. Queda una mirada con `⌘P` en la vista previa real para cerrar `CA8` del todo.
+> ni los saltos. **Por eso `CA8` se cerró con la vista previa REAL**: David la abrió con `⌘P`
+> sobre Presupuesto 2026 de Las Playas en staging y se ve bien (10 sep 2026).
 
 > **Un tropiezo del método:** el primer intento de cargar el borrador de 2025 no escribió
 > nada — el importe no llegó al campo, y la comprobación de antes de guardar lo mostró vacío.
@@ -579,7 +580,7 @@ pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó ante
 
 ### Pendiente
 
-- **La vista previa real de impresión (`⌘P`)**, para cerrar `CA8`.
+- ~~La vista previa real de impresión~~ — ✅ vista por David con `⌘P`: `CA8` cerrado.
 - Encenderla en un conjunto de producción cuando haya quien cargue el presupuesto de 2026.
 - Fase 2: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D` (línea en el informe).
 
