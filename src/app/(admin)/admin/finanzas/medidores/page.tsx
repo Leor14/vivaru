@@ -1,9 +1,10 @@
 "use client";
 
-import { Camera, Check, Gauge, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
+import { Camera, Check, Gauge, Lock, LockOpen, Plus, Receipt, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { CobrarConsumoDialog } from "@/components/features/medidores/CobrarConsumoDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -61,6 +62,7 @@ export default function MedidoresPage() {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<string | null>(null);
   const [cerrando, setCerrando] = useState(false);
+  const [cobrandoAbierto, setCobrandoAbierto] = useState(false);
   const [nuevo, setNuevo] = useState({ name: "", unit: "m3" as MeteredService["unit"], rate: "" });
   const inputFoto = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -343,10 +345,19 @@ export default function MedidoresPage() {
                 {yaCobrado ? "Ya cobrado" : "Reabrir"}
               </Button>
             ) : (
-              <Button disabled={cerrando || lecturas.length === 0} onClick={() => void cerrar()}>
+              <Button variant="outline" disabled={cerrando || lecturas.length === 0} onClick={() => void cerrar()}>
                 <Lock className="mr-1 h-4 w-4" /> Cerrar período
               </Button>
             )}
+            {/* Cobrar es el acto final del mes, así que va como acción principal
+                y **solo aparece con el período cerrado**: cerrar es lo que
+                garantiza que están todas las fotos (`RN-09`), y un cargo sin la
+                evidencia detrás es un cargo que nadie puede defender. */}
+            {periodoCerrado && !yaCobrado ? (
+              <Button onClick={() => setCobrandoAbierto(true)}>
+                <Receipt className="mr-1 h-4 w-4" /> Cobrar el período
+              </Button>
+            ) : null}
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--slate-600)]">
@@ -466,10 +477,28 @@ export default function MedidoresPage() {
             </table>
           </div>
 
+          {yaCobrado ? (
+            <p className="mt-4 text-sm text-[var(--slate-600)]">
+              Este período ya se cobró. Los cargos están en <b>Cartera</b>, y las lecturas
+              quedaron selladas: no se editan.
+            </p>
+          ) : null}
+
           {activas.length === 0 ? (
             <p className="mt-4 text-sm text-[var(--slate-600)]">
               Este conjunto todavía no tiene unidades activas.
             </p>
+          ) : null}
+
+          {user?.tenantId ? (
+            <CobrarConsumoDialog
+              open={cobrandoAbierto}
+              onClose={() => setCobrandoAbierto(false)}
+              tenantId={user.tenantId}
+              serviceId={servicio.id}
+              period={periodo}
+              onCobrado={() => setCobrandoAbierto(false)}
+            />
           ) : null}
         </Card>
       ) : null}

@@ -1829,3 +1829,46 @@ export async function reopenMeterPeriodCallable(input: MeterPeriodInput) {
   const callable = httpsCallable<MeterPeriodInput, { ok: true; lecturas: number }>(functions, "reopenMeterPeriod");
   return executeCallable(callable, input, "No fue posible reabrir el período.");
 }
+
+export type BillConsumptionInput = {
+  tenantId: string;
+  serviceId: string;
+  /** `YYYY-MM`. */
+  period: string;
+  dueDate?: string;
+  /** `true` = solo la vista previa. No se escribe nada. */
+  dryRun?: boolean;
+};
+
+export type BillConsumptionResult = {
+  ok: true;
+  dryRun: boolean;
+  campaignId?: string;
+  /** `false` en un reintento: la corrida ya existía y no se cobró dos veces. */
+  created?: boolean;
+  rate: number;
+  serviceName: string;
+  lines: Array<{ unitId: string; unitLabel: string; consumption: number; amount: number }>;
+  total: number;
+  totalConsumo: number;
+  /** Unidades activas SIN lectura en el período. Se enseñan, no se ocultan. */
+  sinLectura: string[];
+};
+
+/**
+ * `PRD-V-FEAT-008` entrega 2 · cobra el consumo del período.
+ *
+ * **Se llama dos veces a propósito:** primero con `dryRun` para ver el reparto
+ * —y sobre todo **a quién NO se le va a cobrar**—, y después sin él para
+ * confirmar. Es el mismo flujo en dos tiempos de la corrida por coeficiente, y
+ * por el mismo motivo: esto crea cargos de dinero sobre veintitantas unidades de
+ * golpe.
+ *
+ * **Un segundo clic no cobra dos veces:** el id de la corrida deriva del período,
+ * así que el reintento devuelve la que ya existe con `created: false`.
+ */
+export async function billConsumptionPeriodCallable(input: BillConsumptionInput) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<BillConsumptionInput, BillConsumptionResult>(functions, "billConsumptionPeriod");
+  return executeCallable(callable, input, "No fue posible cobrar el consumo del período.");
+}
