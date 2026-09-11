@@ -18,6 +18,7 @@ import {
 import {
   createTenantAdminCallable,
   createTenantWorkspaceCallable,
+  setTenantAdminAccessCallable,
   updateTenantAdminCallable,
 } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
@@ -92,7 +93,10 @@ export interface AdminWorkspaceItem {
   fullName: string;
   email: string;
   role: "tenant_admin";
+  /** `users.tenantId`: el conjunto espejo, «el último conocido». */
   tenantId: string;
+  /** `PLAT-002` entrega 2: TODOS los conjuntos donde es admin, leídos de sus membresías. */
+  tenantIds: string[];
   status: "active" | "inactive";
   lastLoginAt?: string;
   updatedAt: string;
@@ -360,13 +364,25 @@ export async function updatePlanWorkspace(
 export async function listTenantAdmins(tenantId?: string) {
   const firestore = assertDb();
 
+  // `PLAT-002` entrega 2: una persona puede administrar VARIOS conjuntos, así que la fila
+  // lleva todos —leídos de las membresías, que son la autoridad— y el filtro busca por
+  // membresía. Filtrar por `users.tenantId` escondía al admin en sus otros conjuntos.
   const constraints: QueryConstraint[] = [where("role", "==", "tenant_admin"), limit(250)];
-  if (tenantId) {
-    constraints.push(where("tenantId", "==", tenantId));
+  const [perfiles, membresias] = await Promise.all([
+    getDocs(query(collection(firestore, "users"), ...constraints)),
+    getDocs(query(collection(firestore, "tenantUsers"), where("role", "in", ["tenant_admin", "admin_tenant"]), limit(2000))),
+  ]);
+
+  const conjuntosDe = new Map<string, string[]>();
+  for (const membresia of membresias.docs) {
+    const data = membresia.data() as Record<string, unknown>;
+    const uid = typeof data.uid === "string" ? data.uid : "";
+    const conjunto = typeof data.tenantId === "string" ? data.tenantId : "";
+    if (!uid || !conjunto) continue;
+    conjuntosDe.set(uid, [...(conjuntosDe.get(uid) ?? []), conjunto]);
   }
 
-  const snapshot = await getDocs(query(collection(firestore, "users"), ...constraints));
-  return snapshot.docs.map((docItem) => {
+  const items = perfiles.docs.map((docItem) => {
     const data = docItem.data() as Record<string, unknown>;
     return {
       uid: docItem.id,
@@ -374,28 +390,72 @@ export async function listTenantAdmins(tenantId?: string) {
       email: typeof data.email === "string" ? data.email : "",
       role: "tenant_admin",
       tenantId: typeof data.tenantId === "string" ? data.tenantId : "",
+      tenantIds: conjuntosDe.get(docItem.id) ?? [],
       status: data.status === "inactive" ? "inactive" : "active",
       lastLoginAt: toIsoString(data.lastLoginAt) || undefined,
       updatedAt: toIsoString(data.updatedAt),
     } as AdminWorkspaceItem;
   });
+  return tenantId ? items.filter((admin) => admin.tenantIds.includes(tenantId)) : items;
 }
 
 export async function createTenantAdminWorkspace(input: {
-  tenantId: string;
+  tenantIds: string[];
   fullName: string;
   email: string;
   status: "active" | "inactive";
 }) {
-  return createTenantAdminCallable(input);
+  // `tenantId` va también, con el primero: el servidor de antes solo conoce ése.
+  return createTenantAdminCallable({ ...input, tenantId: input.tenantIds[0] ?? "" });
 }
 
+/** Nombre, correo y estado. **Ya no cambia de conjunto**: eso es `setTenantAdminAccessWorkspace`. */
 export async function updateTenantAdminWorkspace(input: {
   uid: string;
-  tenantId: string;
   fullName: string;
   email: string;
   status: "active" | "inactive";
 }) {
   return updateTenantAdminCallable(input);
+}
+
+export type CuentaPorCorreo = { uid: string; role: string; tenantId: string; fullName: string };
+
+/**
+ * `PLAT-002` entrega 2 · antes de crear, la consola mira si el correo ya tiene cuenta:
+ * un admin recibe los conjuntos marcados, un residente pasa por el aviso, y portería o
+ * superadmin se rechazan. Sin esto, crear con un correo existente era un rechazo seco.
+ */
+export async function buscarCuentaPorCorreo(email: string): Promise<CuentaPorCorreo | null> {
+  const firestore = assertDb();
+  const snap = await getDocs(query(collection(firestore, "users"), where("email", "==", email.trim().toLowerCase()), limit(1)));
+  const docItem = snap.docs[0];
+  if (!docItem) return null;
+  const data = docItem.data() as Record<string, unknown>;
+  return {
+    uid: docItem.id,
+    role: typeof data.role === "string" ? data.role : "",
+    tenantId: typeof data.tenantId === "string" ? data.tenantId : "",
+    fullName: typeof data.fullName === "string" ? data.fullName : "",
+  };
+}
+
+/** Da y quita conjuntos de admin. Con `simular`, devuelve el plan y su aviso sin tocar nada. */
+export async function setTenantAdminAccessWorkspace(input: Parameters<typeof setTenantAdminAccessCallable>[0]) {
+  return setTenantAdminAccessCallable(input);
+}
+
+/**
+ * Los conjuntos donde `uid` es admin HOY, leídos de sus membresías. Al crear con el correo
+ * de un admin que ya existe, lo marcado se SUMA a esto: sacarlo de la lista de la pantalla
+ * fallaría con un filtro puesto, y el plan le quitaría sus conjuntos sin que nadie lo pidiera.
+ */
+export async function conjuntosDeAdministrador(uid: string): Promise<string[]> {
+  const firestore = assertDb();
+  const snap = await getDocs(query(collection(firestore, "tenantUsers"), where("uid", "==", uid)));
+  return snap.docs
+    .map((docItem) => docItem.data() as Record<string, unknown>)
+    .filter((m) => m.role === "tenant_admin" || m.role === "admin_tenant")
+    .map((m) => (typeof m.tenantId === "string" ? m.tenantId : ""))
+    .filter(Boolean);
 }

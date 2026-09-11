@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` que lleva más de un conjunto |
 | **Usuarios secundarios** | `superadmin` · `resident` |
 | **Responsable** | David |
-| **Estado** | 🟡 **ENTREGA 2 LISTA PARA DESARROLLO** (11 sep 2026, §16): el superadmin da acceso a varios conjuntos por persona desde la pestaña Admins. Va **después** de `FIX-004`. **Y esta celda estaba mal en la bandera:** `producto-multiconjunto` está **ENCENDIDA por el valor global en los diez conjuntos de producción**, medido el 11 sep con `resolveFeatureFlag`. Decía «apagada y su documento no existe». **EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`) — versión 1.2. Validada antes en pantalla contra staging. §11.2 completa (eran **dieciocho** sitios, no once) · sesión con varias membresías, `lastActiveTenantId` y **selector** construidos y verificados por navegador con una cuenta de seis conjuntos: CA2, CA3, CA4, CA5, CA10 y **un cobro real en el segundo conjunto**. El **paso 3 está hecho** (entidad `managementCompanies`, sus dos callables de superadmin y `/superadmin/administradoras`) y **la medición de `storage.rules` se cerró**: las reglas entre servicios no funcionan en el servicio real, así que el claim **sigue** al conjunto activo — ver §11.3. **Desplegado y verificado contra su fuente**, con el radio del cambio de autoridad medido en **0** con el predicado real. **La bandera sigue APAGADA y su documento no existe** en producción, y **CA1 sigue sin observarse**: nadie tiene dos membresías, así que está cumplido por construcción y no visto |
+| **Estado** | 🟡 **ENTREGA 2 CONSTRUIDA, SIN DESPLEGAR** (11 sep 2026, rama `trabajo/admins-multiconjunto`, §16): el superadmin da acceso a varios conjuntos por persona desde la pestaña Admins. Servidor (`setTenantAdminAccess` con modo `simular`, alta con varios conjuntos, edición que ya no muda, E2-R8 en las tres acciones de `/admin/users`), consola y `/admin/users`. 35 pruebas de servidor con **ocho falsaciones** y 11 de pantalla con tres. Va **después** de `FIX-004`. **Y esta celda estaba mal en la bandera:** `producto-multiconjunto` está **ENCENDIDA por el valor global en los diez conjuntos de producción**, medido el 11 sep con `resolveFeatureFlag`. Decía «apagada y su documento no existe». **EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`) — versión 1.2. Validada antes en pantalla contra staging. §11.2 completa (eran **dieciocho** sitios, no once) · sesión con varias membresías, `lastActiveTenantId` y **selector** construidos y verificados por navegador con una cuenta de seis conjuntos: CA2, CA3, CA4, CA5, CA10 y **un cobro real en el segundo conjunto**. El **paso 3 está hecho** (entidad `managementCompanies`, sus dos callables de superadmin y `/superadmin/administradoras`) y **la medición de `storage.rules` se cerró**: las reglas entre servicios no funcionan en el servicio real, así que el claim **sigue** al conjunto activo — ver §11.3. **Desplegado y verificado contra su fuente**, con el radio del cambio de autoridad medido en **0** con el predicado real. **La bandera sigue APAGADA y su documento no existe** en producción, y **CA1 sigue sin observarse**: nadie tiene dos membresías, así que está cumplido por construcción y no visto |
 | **Dependencias** | **Ninguna para el MVP.** La consolidación financiera depende del plan de cuentas gobernado (§4) |
 | **Riesgo** | **Alto.** Toca la resolución de identidad. Un error aquí es un error de permisos |
 | **Reversibilidad** | **Parcial.** El selector y la entidad son reversibles; el cambio de autoridad de §11.2 **no se revierte apagando una bandera**. Y **eran DIECIOCHO sitios, no once** — esta fila decía «once» y la auditoría de agosto buscó donde el número señalaba, dejando vivas **las seis del dinero** en `payments.ts` y `advances.ts` |
@@ -502,7 +502,8 @@ conjunto. **Confirmable en construcción**, no bloquea.
 
 ## 16. Entrega 2 — el superadmin da acceso a varios conjuntos (11 sep 2026)
 
-**Estado: lista para desarrollo. Va DESPUÉS de `PRD-V-FIX-004`**, que cierra el camino por el que
+**Estado: construida, sin desplegar** (11 sep 2026, rama `trabajo/admins-multiconjunto`). **Va DESPUÉS
+de `PRD-V-FIX-004`**, que cierra el camino por el que
 hoy un conjunto cambia el rol de una cuenta ajena sin permiso ni aviso. Esta entrega le da esa
 potestad **solo al superadmin, y con aviso**.
 
@@ -626,9 +627,14 @@ una sola callable (§16.11).
 
 - **Sin colecciones nuevas.** Las membresías de admin las crea y las borra la callable nueva, con la
   forma de `sembrar-membresias-multiconjunto.mjs:117-128`.
-- **Sin campos nuevos en `tenantUsers`, a propósito.** Su regla de `update` es una lista blanca al
-  revés (`firestore.rules:271-312`), así que todo campo nuevo nacería **escribible por el propio
-  admin** sobre su membresía. El registro de quién dio cada acceso vive en `auditLogs`.
+- **Un solo campo nuevo en `tenantUsers`, `compartida`, y es de SOLO presentación.** *(Corregido al
+  construir: esta línea decía «sin campos nuevos».)* La lista de `/admin/users` de un conjunto **no
+  puede saber** si una persona tiene otros conjuntos: las reglas no le dejan leer membresías ajenas.
+  Así que el servidor escribe `compartida` en cada membresía de admin al dar o quitar acceso. La regla
+  de `update` de `tenantUsers` es una lista blanca al revés (`firestore.rules:271-312`) y el propio
+  admin puede reescribirlo **en la suya**; no importa, porque **no sostiene ningún permiso**: E2-R8
+  consulta las membresías reales, y lo más que consigue es esconder o enseñar una etiqueta. Quién dio
+  cada acceso vive en `auditLogs`.
 - **El lado de residente:**
   - **En otro conjunto:** su membresía de residente **no se toca**. Mientras `users.role` sea
     `tenant_admin`, la sesión no la carga (`auth-context.tsx:275`). Volver a residente es reapuntar
@@ -711,14 +717,21 @@ vivir en el cliente. **No hay cambio de reglas:** las membresías solo las escri
 cliente ya tiene `create, delete: if superadmin()`, `firestore.rules:269`), y la lista del conjunto
 lee `tenantUsers`, que las reglas ya le permiten al admin de ese conjunto (`:263-267`).
 
-- **Callable nueva de superadmin, declarativa:** recibe la persona y **el conjunto de conjuntos**
-  marcados, calcula la diferencia y aplica E2-R1…R7 sobre **el estado final**. Así es idempotente, se
-  audita en una sola operación, y «el último conjunto» se decide sobre lo que queda y no sobre cada
-  paso. El orden es el de `revocarAccesoDeResidente`: **primero las membresías y `users`**, después
-  el claim y la revocación de sesiones.
-- **`createTenantAdmin`:** acepta varios conjuntos. Con un correo que ya existe responde
-  `already-exists` **con el tipo de cuenta y sus conjuntos** —solo al superadmin, que ya lo ve todo—,
-  para que la interfaz ofrezca añadir o muestre el aviso.
+- **Callable nueva de superadmin, declarativa: `setTenantAdminAccess`.** Recibe la persona y **el
+  conjunto de conjuntos** marcados, calcula la diferencia y aplica E2-R1…R7 sobre **el estado
+  final**. Así es idempotente, se audita en una sola operación, y «el último conjunto» se decide sobre
+  lo que queda y no sobre cada paso. El orden es el de `revocarAccesoDeResidente`: **primero las
+  membresías y `users`**, después el claim y la revocación de sesiones. *(Añadido al construir:)*
+  **tiene un modo `simular`** que devuelve el plan —qué nace, qué se va, qué vuelve a residente, el
+  rol final— y **su aviso**, sin tocar nada. La consola pinta ESE texto antes de confirmar, así que lo
+  que lee el superadmin sale del mismo sitio que decide. La lógica vive en
+  `functions/src/acceso-de-administradores.ts`.
+- **`createTenantAdmin`:** acepta varios conjuntos. *(Corregido al construir:)* con un correo que ya
+  existe **sigue respondiendo `already-exists` a secas**, como red para la carrera o la cuenta sin
+  perfil. Quien ofrece añadir o muestra el aviso es la consola: **busca la cuenta por correo antes de
+  crear** —el superadmin puede leer `users`— y le pide el plan a `setTenantAdminAccess`. A un admin
+  que ya existe, lo marcado se le **suma** a sus conjuntos actuales, leídos de sus membresías y no de
+  la lista filtrada de la pantalla: con un filtro puesto, el plan le habría quitado los suyos.
 - **`updateTenantAdmin`:** deja de mudar. Sigue para nombre y estado.
 - **`setOperationalUserStatus`, `updateOperationalUser` y `deleteOperationalUser`:** rechazan si el
   destino tiene membresías en otros conjuntos (E2-R8).

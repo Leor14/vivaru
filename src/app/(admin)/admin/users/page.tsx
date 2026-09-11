@@ -32,6 +32,12 @@ type TenantUserItem = {
   email?: string;
   role?: "tenant_admin" | "security_guard" | string;
   status?: "active" | "inactive" | string;
+  /**
+   * `PLAT-002` entrega 2: tiene acceso a otros conjuntos. La escribe el servidor al dar
+   * o quitar acceso, porque desde aquí no se pueden leer las membresías de otros
+   * conjuntos. Es de SOLO presentación: quien decide (E2-R8) consulta las reales.
+   */
+  compartida?: boolean;
 };
 
 export default function AdminUsersPage() {
@@ -50,11 +56,19 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const usersQuery = query(collection(db, "users"), where("tenantId", "==", user.tenantId));
+    // `PLAT-002` entrega 2 (E2-R9): la lista sale de las MEMBRESÍAS del conjunto, no de
+    // `users` por `users.tenantId`. Ese campo es de un solo valor —«el último conjunto
+    // conocido»—, así que un admin compartido no aparecía en sus otros conjuntos.
+    const tenantId = user.tenantId;
+    const membresiasQuery = query(collection(db, "tenantUsers"), where("tenantId", "==", tenantId));
     const unsub = onSnapshot(
-      usersQuery,
+      membresiasQuery,
       (snapshot) => {
-        const rows = snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<TenantUserItem, "id">) }));
+        const rows = snapshot.docs.map((item) => {
+          const data = item.data() as Omit<TenantUserItem, "id"> & { uid?: string };
+          // Las acciones van por uid; el id del documento es `{conjunto}_{uid}`.
+          return { ...data, id: data.uid || item.id.slice(tenantId.length + 1) };
+        });
         setItems(rows);
         setLoading(false);
       },
@@ -182,6 +196,18 @@ export default function AdminUsersPage() {
   }
 
   function renderRowActions(item: TenantUserItem) {
+    // E2-R8: desactivar, editar o borrar actúan sobre la CUENTA entera, y el servidor
+    // los rechaza para quien tiene acceso a otros conjuntos. Aquí no se ofrecen.
+    if (item.compartida) {
+      return (
+        <span
+          className="text-xs text-[var(--slate-500)]"
+          title="Esta persona tiene acceso a otros conjuntos; su acceso lo gestiona Vivaru."
+        >
+          Lo gestiona Vivaru
+        </span>
+      );
+    }
     const busy = statusBusy === item.id;
     // Patrón unificado (VIV-003): el toggle de estado queda inline (conserva el
     // tooltip de bloqueo de auto-desactivación, VIV-1602); Editar, Reenviar
@@ -348,6 +374,9 @@ export default function AdminUsersPage() {
             pager.pageItems.map((item) => (
               <div key={item.id} className="rounded-xl border border-[var(--slate-200)] px-4 py-3">
                 <p className="text-sm font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</p>
+                {item.compartida ? (
+                  <p className="text-xs text-[var(--slate-500)]">También administra otros conjuntos</p>
+                ) : null}
                 <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">{item.email ?? "-"}</p>
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -398,7 +427,12 @@ export default function AdminUsersPage() {
 
               {!loading && pager.pageItems.map((item) => (
                 <tr key={item.id} className="border-t border-[var(--slate-200)]">
-                  <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</td>
+                  <td className="px-3 py-2 font-medium text-[var(--slate-900)]">
+                    {item.fullName ?? "-"}
+                    {item.compartida ? (
+                      <span className="block text-xs font-normal text-[var(--slate-500)]">También administra otros conjuntos</span>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2">{item.email ?? "-"}</td>
                   <td className="px-3 py-2">
                     {item.role === "security_guard" ? "Guarda de seguridad" : "Admin"}

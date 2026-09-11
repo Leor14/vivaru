@@ -39,7 +39,10 @@ type CreateTenantWorkspaceInput = {
 };
 
 type CreateTenantAdminInput = {
+  /** El primero de `tenantIds`; se manda también para los servidores de antes. */
   tenantId: string;
+  /** `PLAT-002` entrega 2: el admin nace con uno o varios conjuntos. */
+  tenantIds?: string[];
   fullName: string;
   email: string;
   temporaryPassword?: string;
@@ -48,7 +51,8 @@ type CreateTenantAdminInput = {
 
 type UpdateTenantAdminInput = {
   uid: string;
-  tenantId: string;
+  /** Ya no se manda: la edición no muda de conjunto (`PLAT-002` entrega 2). */
+  tenantId?: string;
   fullName: string;
   email: string;
   status: "active" | "inactive";
@@ -468,6 +472,45 @@ export async function updateTenantAdminCallable(input: UpdateTenantAdminInput) {
 
   const callable = httpsCallable<UpdateTenantAdminInput, { uid: string }>(functions, "updateTenantAdmin");
   return executeCallable(callable, input, "No fue posible actualizar el admin de tenant.");
+}
+
+/**
+ * Espejo del `PlanDeAcceso` de `functions/src/acceso-de-administradores.ts`. Espejo y no
+ * import: `src/` no puede importar `functions/` sin romper el build de App Hosting.
+ */
+export type PlanDeAccesoDeAdministrador = {
+  crear: string[];
+  convertir: string[];
+  quitar: string[];
+  devolverAResidente: string[];
+  conjuntosDeAdmin: string[];
+  rolFinal: "tenant_admin" | "resident";
+  cambiaRol: boolean;
+  requiereConfirmacion: boolean;
+  conjuntoActivo: string;
+  aviso: string | null;
+};
+
+/**
+ * `PRD-V-PLAT-002` entrega 2 — dar y quitar acceso de administrador a varios conjuntos.
+ * Con `simular`, el servidor devuelve el plan y su aviso sin tocar nada: es lo que la
+ * consola enseña antes de confirmar, para que el texto salga del mismo sitio que decide.
+ */
+export async function setTenantAdminAccessCallable(input: {
+  uid: string;
+  tenantIds: string[];
+  confirmarCambioDeRol?: boolean;
+  simular?: boolean;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { plan: PlanDeAccesoDeAdministrador; aplicado: boolean }>(
+    functions,
+    "setTenantAdminAccess",
+  );
+  return executeCallable(callable, input, "No fue posible cambiar los conjuntos del administrador.");
 }
 
 export async function createTenantOperationalUserCallable(input: CreateTenantOperationalUserInput) {

@@ -194,6 +194,13 @@ describe("3 · el inventario del servidor está pinchado", () => {
    * tiene que ser una decisión consciente, no un descubrimiento de dentro de un mes.
    */
   const INVENTARIO = [
+    // `PRD-V-PLAT-002` entrega 2. **No construye ninguna clave: COPIA la que ya está** en
+    // la membresía (`tenantUsers.unitId`, canónica desde `FIX-002`) o en la ficha del
+    // residente (`people.unitId`), para devolver a residente a quien pasó a admin. Una
+    // membresía que cambia de rol conserva la suya por `merge`. No resuelve ni lee
+    // `units`, así que no hay nada que pasar por `claveDeUnidad(...)`: mismo caso que
+    // `estado-de-cuenta-adjunto.ts`.
+    "functions/src/acceso-de-administradores.ts",
     "functions/src/advances.ts",
     "functions/src/clave-de-unidad.ts",
     "functions/src/clearance-certificates.ts",

@@ -28,8 +28,11 @@ export const tenantCreateSchema = z.object({
 
 export const tenantUpdateSchema = tenantCreateSchema;
 
+// `PLAT-002` entrega 2: el admin tiene UNA LISTA de conjuntos, no uno. En la edición la
+// lista puede quedar vacía —el residente convertido que vuelve a residente—, y quien lo
+// decide es el servidor (E2-R6), no el formulario.
 export const adminCreateSchema = z.object({
-  tenantId: z.string().trim().min(1, "Selecciona tenant"),
+  tenantIds: z.array(z.string().trim().min(1)).min(1, "Marca al menos un conjunto"),
   fullName: z.string().trim().min(3, "Nombre minimo 3 caracteres"),
   email: z.string().trim().email("Correo invalido"),
   status: z.enum(["active", "inactive"]),
@@ -37,7 +40,7 @@ export const adminCreateSchema = z.object({
 
 export const adminUpdateSchema = z.object({
   uid: z.string().trim().min(1),
-  tenantId: z.string().trim().min(1, "Selecciona tenant"),
+  tenantIds: z.array(z.string().trim().min(1)),
   fullName: z.string().trim().min(3, "Nombre minimo 3 caracteres"),
   email: z.string().trim().email("Correo invalido"),
   status: z.enum(["active", "inactive"]),
