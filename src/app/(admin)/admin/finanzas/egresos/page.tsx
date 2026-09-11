@@ -41,6 +41,7 @@ import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgre
 import { CuotasDelEgresoPanel } from "@/components/features/finanzas/CuotasDelEgresoPanel";
 import { PlanDeCuotasField } from "@/components/features/finanzas/PlanDeCuotasField";
 import { pagadoDelEgreso, proximaCuota } from "@/features/finanzas/cuotas-del-egreso";
+import { cuentasDeSalida } from "@/features/finanzas/cuentas-de-salida";
 import { sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { saveExpensePlanCallable } from "@/lib/firebase/callables";
@@ -141,9 +142,9 @@ export default function AdminEgresosPage() {
   const watchedStatus = form.watch("status");
   const watchedCuenta = form.watch("bankAccountId");
   // La que ya lleva el egreso se ofrece aunque esté desactivada o cerrada: si
-  // no, el selector la borraría en silencio al guardar.
-  const bancosDeSalida = bancos.filter((b) => b.active !== false || b.id === watchedCuenta);
-  const cajasDeSalida = cajas.filter((c) => c.status === "abierta" || c.id === watchedCuenta);
+  // no, el selector la borraría en silencio al guardar. La regla vive en
+  // `cuentasDeSalida`, compartida con el pago de una cuota.
+  const { bancos: bancosDeSalida, cajas: cajasDeSalida } = cuentasDeSalida(bancos, cajas, watchedCuenta);
 
   useEffect(() => {
     if (!user?.tenantId) {
@@ -764,6 +765,7 @@ export default function AdminEgresosPage() {
             <CuotasDelEgresoPanel
               egreso={items.find((e) => e.id === editingItem.id) ?? editingItem}
               formatAmount={formatAmount}
+              salida={tesoreria ? { bancos, cajas, cajaChica } : null}
             />
           </div>
         ) : null}

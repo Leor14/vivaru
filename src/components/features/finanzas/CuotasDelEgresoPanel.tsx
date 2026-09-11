@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
+import { cuentasDeSalida } from "@/features/finanzas/cuentas-de-salida";
+import { capitalizar } from "@/lib/config/vocabulario-pais";
 import {
   payExpenseInstallmentCallable,
   voidExpenseInstallmentCallable,
 } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
-import type { Expense } from "@/types/domain";
+import type { BankAccount, Expense, PettyCashFund } from "@/types/domain";
 import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /**
@@ -25,6 +27,11 @@ import { toDateInputValue } from "@/utils/datetimeValidation";
  *
  * **Ni el importe ni el estado resultante viajan desde aquí**, a propósito: si lo
  * hicieran, bajar la deuda del conjunto sería editar un número.
+ *
+ * **Y de dónde sale el dinero, sí** (`PRD-V-FEAT-010`, 11 sep 2026). El panel no mandaba
+ * cuenta, así que toda cuota pagada quedaba «sin cuenta» en la tesorería mientras el egreso
+ * normal sí la elegía. Ofrece lo mismo que «Sale de» en el formulario (`cuentasDeSalida`), y el
+ * servidor lo vuelve a comprobar (`comprobarCuentaDeSalida`).
  */
 
 // Local, no UTC: por la tarde en México la cuota se proponía pagada mañana.
@@ -33,14 +40,21 @@ const hoy = () => toDateInputValue(new Date());
 export function CuotasDelEgresoPanel({
   egreso,
   formatAmount,
+  salida,
 }: {
   egreso: Expense;
   formatAmount: (n: number) => string;
+  /**
+   * De qué cuentas y cajas puede salir el pago, y cómo se llama la caja en el país del
+   * conjunto. `null` con la tesorería apagada: sin selector y sin cuenta, como antes.
+   */
+  salida: { bancos: BankAccount[]; cajas: PettyCashFund[]; cajaChica: string } | null;
 }) {
   const cuotas = egreso.installments ?? [];
   const [ocupada, setOcupada] = useState<number | null>(null);
   const [pagando, setPagando] = useState<number | null>(null);
   const [fecha, setFecha] = useState(hoy());
+  const [cuenta, setCuenta] = useState("");
   const [anulando, setAnulando] = useState<number | null>(null);
   const [motivo, setMotivo] = useState("");
 
@@ -50,6 +64,8 @@ export function CuotasDelEgresoPanel({
   const vivas = cuotas.filter((c) => c.status === "pendiente");
   const debe = vivas.reduce((a, c) => a + c.amount, 0);
   const cerrado = egreso.status === "anulado";
+  // Un pago nuevo: sin «la que ya lleva», solo lo activo y lo abierto.
+  const opciones = salida ? { ...cuentasDeSalida(salida.bancos, salida.cajas), cajaChica: salida.cajaChica } : null;
 
   async function conAviso(n: number, accion: () => Promise<void>) {
     setOcupada(n);
@@ -98,6 +114,7 @@ export function CuotasDelEgresoPanel({
                       setPagando(pagando === c.number ? null : c.number);
                       setAnulando(null);
                       setFecha(hoy());
+                      setCuenta("");
                     }}
                   >
                     <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
@@ -135,6 +152,39 @@ export function CuotasDelEgresoPanel({
                   Fecha del pago
                   <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
                 </label>
+                {opciones ? (
+                  <label className="mt-2 block text-xs text-[var(--slate-700)]">
+                    Sale de
+                    <select
+                      className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                      value={cuenta}
+                      onChange={(e) => setCuenta(e.target.value)}
+                    >
+                      <option value="">Sin indicar</option>
+                      {opciones.bancos.length > 0 ? (
+                        <optgroup label="Cuentas bancarias">
+                          {opciones.bancos.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.label} · {b.bankName}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ) : null}
+                      {opciones.cajas.length > 0 ? (
+                        <optgroup label={capitalizar(opciones.cajaChica)}>
+                          {opciones.cajas.map((caja) => (
+                            <option key={caja.id} value={caja.id}>
+                              {caja.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ) : null}
+                    </select>
+                    <span className="mt-1 block text-xs text-[var(--slate-600)]">
+                      La cuenta o la {opciones.cajaChica} de la que salió el dinero. Con ella, Tesorería sabe qué saldo baja.
+                    </span>
+                  </label>
+                ) : null}
                 <p className="mt-1 text-xs text-[var(--slate-600)]">
                   Se registrará un movimiento en el libro por {formatAmount(c.amount)} con esta fecha.
                 </p>
@@ -149,6 +199,7 @@ export function CuotasDelEgresoPanel({
                           expenseId: egreso.id,
                           installmentNumber: c.number,
                           paidAt: fecha,
+                          bankAccountId: cuenta || undefined,
                         });
                         setPagando(null);
                         toast.success(
