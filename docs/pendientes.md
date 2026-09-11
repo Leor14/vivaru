@@ -4,9 +4,9 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, noche (`FEAT-010` ENTREGAS 1, 2a Y 3 EN PRODUCCIÓN)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, noche (`FEAT-010` COMPLETA EN PRODUCCIÓN)
 
-> # LA TESORERÍA ESTÁ EN PRODUCCIÓN SALVO LA 2b. Lo construible de Habitanto sigue hecho.
+> # LA TESORERÍA ESTÁ ENTERA EN PRODUCCIÓN, APAGADA. Lo construible de Habitanto sigue hecho.
 >
 > **Estado: leer los remotos con `git ls-remote`, y esta cabecera NO lleva el sha a propósito** —
 > el commit que la escribe es posterior al que describe, así que nace viejo. Al cerrar, `master`
@@ -19,12 +19,12 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
 > ```
 >
-> **Bancos CONTADOS hoy, no citados:** `npm test` **1931** · functions **856** · reglas **453**
+> **Bancos CONTADOS hoy, no citados:** `npm test` **1935** · functions **870** · reglas **457**
 > (medido con solo Firestore: `storage.rules.test.ts` enrojece aparte sin su emulador en el 9199,
-> y es entorno) · emulador de functions **353 de 355** — los dos rojos son `CA12` y `D-B` de
+> y es entorno) · emulador de functions **365 de 367** — los dos rojos son `CA12` y `D-B` de
 > `payments.emulator.test.ts`, **preexistentes y confirmados por nombre**.
 >
-> ## `PRD-V-FEAT-010` — TESORERÍA — ENTREGAS 1, 2a Y 3 EN PRODUCCIÓN, APAGADA
+> ## `PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN, APAGADA
 >
 > Saldo por cuenta, traspasos entre cuentas propias y caja chica con fondo fijo. **`G0` superada por
 > DECISIÓN de David, no por dolor** (son `C7` y `C8`, P2): se construye para llegar listos.
@@ -35,12 +35,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | 1 | Saldo por cuenta, con el total = saldo de fondos | Al centavo contra una predicción leída de la base |
 > | 2a | Traspasos entre cuentas propias; se anulan, no se borran | +10,000 / −10,000 con el total quieto; anulado, vuelve |
 > | 3 | Caja chica: abrir, gastar desde ella, reponer, cerrar | El ciclo entero en Las Playas, al centavo, con Libro y fondos igual |
-> | **2b** | **Conciliar los tramos de un traspaso** | **Pendiente**: toca las cinco funciones de `FLOW-004` en producción |
+> | 2b | Conciliar cada tramo de un traspaso en el extracto de su banco | Los dos tramos casados sin asiento nuevo; anulado, las líneas vuelven a pendientes |
 >
 > **Lo que midió la 3 antes de escribir:** 🔴 **el egreso NO elegía cuenta** —`bankAccountId` existía y
 > ningún control lo pedía— y se construyó «Sale de»; y **`RN-10` no necesitó servidor**: todo pago de
 > residente pasa por `aplicarPago`, que solo lee `bankAccounts`, y la caja vive en `pettyCashFunds`
 > (`CA17` lo fija). **Cerrar exige saldo cero y una regla no puede sumarlo**: lo sostiene la pantalla.
+>
+> **La 2b:** un tramo **no es un asiento** —tipo propio con el efecto ya calculado; nunca pasa por
+> `efectoContable`— y su cuenta es **estricta**: el lado de la caja nunca casa. Anular un traspaso
+> conciliado suelta antes sus tramos (`traspaso_anulado`). La falsación cazó dos huecos reales: anular
+> con solo la ENTRADA casada, y liberar una línea que ya apunta a otra cosa —el id de una línea se
+> deriva de su contenido, así que borrada y reimportada vuelve con el mismo id—.
 >
 > **Mirar encontró dos cosas que ninguna prueba veía:** la historia de la caja salía desordenada
 > —arreglado: dentro del día, por hora de registro— y, **preexistente**, el formulario de egresos toma
@@ -50,7 +56,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **Datos de prueba en staging, Las Playas, con permiso de David:** la cuenta `mL3tSoEC1W2V2SqVBE7I`
 > «Cuenta de ahorros (prueba)» —**visible para los residentes al elegir a qué cuenta pagaron**—, el
 > traspaso anulado de la 2a, la caja `HDMmec3CyMjnJfqsqUBx` **cerrada** con su apertura, reposición y
-> cierre, y el egreso `n7aHPvUksBG3oa3HFrNz` de 800 **pagado desde la caja**.
+> cierre, y el egreso `n7aHPvUksBG3oa3HFrNz` de 800 **pagado desde la caja**. De la 2b, el traspaso
+> anulado `lAFu0QuqyFfJjLLgSUhB` y dos líneas de 1,500 **pendientes**, una en cada extracto.
 >
 > ## `PRD-V-FEAT-009` Y `PRD-V-FEAT-008` — EN LOS DOS AMBIENTES, APAGADAS
 >
@@ -79,20 +86,17 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE
 >
-> 1. **`FEAT-010` entrega 2b** —conciliar los tramos de un traspaso—, **en sesión nueva**: toca las cinco
->    funciones de `FLOW-004` en producción. Mientras, la línea del extracto de un traspaso se rechaza
->    con motivo «otro».
-> 2. **El «hoy» en UTC** del formulario de egresos, propuesto como tarea aparte. Ojo al alcance: hay
+> 1. **El «hoy» en UTC** del formulario de egresos, propuesto como tarea aparte. Ojo al alcance: hay
 >    **42** `toISOString().slice(0, 10)` en `src/`, y no todos quieren el día local.
-> 3. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
+> 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
-> 4. **Encender `FEAT-008`, `FEAT-009` o `FEAT-010` en algún conjunto de producción** — es decisión de
+> 3. **Encender `FEAT-008`, `FEAT-009` o `FEAT-010` en algún conjunto de producción** — es decisión de
 >    David, y hoy no hay a quién: ningún conjunto real mide consumos, ha cargado un presupuesto o
 >    tiene dos cuentas.
-> 5. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
-> 6. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
+> 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
+> 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
 >    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
-> 7. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
+> 6. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
 >    (una línea en el informe mensual). Y de `FEAT-010`: el pago de una cuota
 >    de `FLOW-008` tampoco manda cuenta (`payExpenseInstallment` la acepta sin comprobarla).
 >

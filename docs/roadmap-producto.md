@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.63 |
+| **Versión** | 0.9.64 |
 | **Fecha** | 10 de septiembre de 2026 |
-| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — ENTREGAS 1, 2a Y 3 EN PRODUCCIÓN, CON LA BANDERA APAGADA EN LOS NUEVE** (10 sep, `c1d7282`): cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **Falta la 2b**, conciliar los tramos de un traspaso, que va en sesión aparte porque toca las cinco funciones de `FLOW-004` en producción. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, apagadas. **Lo siguiente:** la 2b; el «hoy» en UTC del formulario de egresos, que fecha mañana lo registrado por la tarde en México; `PLAT-004` entrega 2; y decidir si se enciende alguna de las tres en un conjunto. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`8807cc95` en staging, `f551b415` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-002` desde `c1d7282`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: reglas 29 de 30 cláusulas (la otra es equivalente), código 12 de 12 tras cerrar los tres huecos que la propia falsación destapó. Bancos **contados, no citados**: `npm test` **1931** · functions **856** · reglas **453** · emulador **353 de 355**, con `CA12` y `D-B` **preexistentes** |
+| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN, CON LA BANDERA APAGADA EN LOS NUEVE** (10 sep, `b415636`): cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **La 2b cerró el circuito**: cada tramo de un traspaso se concilia contra el extracto de su banco, y **el libro no se entera**. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, apagadas. **Lo siguiente:** el «hoy» en UTC del formulario de egresos, que fecha mañana lo registrado por la tarde en México; `PLAT-004` entrega 2; y decidir si se enciende alguna de las tres en un conjunto. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`c55fc54a` en staging, `f2afe2d9` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-003` desde `b415636`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: la 3, reglas 29 de 30 (la otra es equivalente) y código 12 de 12; la 2b, 23 mutaciones de reglas, servidor y espejo, con los dos huecos que destapó cerrados. **La 2b, vista también en staging**: los dos tramos casados, **ningún asiento nuevo**, y anular devolvió las dos líneas a pendientes con `traspaso_anulado`, leído en la base. Bancos **contados, no citados**: `npm test` **1935** · functions **870** · reglas **457** · emulador **365 de 367**, con `CA12` y `D-B` **preexistentes** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,22 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.64 — 10 de septiembre de 2026 — la 2b: los tramos de un traspaso se concilian
+
+- **`PRD-V-FEAT-010` entrega 2b en producción** (`b415636`; reglas `f2afe2d9` y las cuatro callables de
+  conciliación), con `producto-tesoreria` apagada en los nueve. **`FEAT-010` queda entera desplegada.**
+- **`RN-07` · `CA7`**: cada tramo de un traspaso es candidato en el extracto de SU banco, junto a los
+  asientos. **Un tramo no es un asiento**: tiene tipo propio con el efecto ya calculado y nunca pasa
+  por `efectoContable` ni `comoAsiento`, que habrían convertido el traspaso en gasto o ingreso.
+- **La cuenta del tramo es estricta**: el lado de una caja chica nunca casa, porque la caja no tiene
+  extracto. **Anular un traspaso conciliado** lo veta la regla; la tesorería suelta antes los tramos y
+  cada expediente queda en `reversado` con un motivo nuevo, `traspaso_anulado`.
+- **La falsación cazó dos huecos reales**: anular con solo la entrada casada, y liberar una línea que
+  ya apunta a otra cosa — alcanzable porque el id de una línea se deriva de su contenido.
+- **Vista en staging contra una predicción escrita antes**: importada, cada línea nació propuesta con
+  el tramo como único candidato; conciliada, **ningún asiento nuevo**; anulado el traspaso, las dos
+  líneas volvieron a pendientes, leído también en la base.
 
 ### 0.9.63 — 10 de septiembre de 2026 — la tesorería: saldo por cuenta, traspasos y caja chica
 
