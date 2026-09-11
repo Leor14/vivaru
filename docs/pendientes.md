@@ -4,9 +4,19 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, noche (`FEAT-010` COMPLETA EN PRODUCCIÓN)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 10 de septiembre de 2026 (madrugada del 11)
 
-> # LA TESORERÍA ESTÁ ENTERA EN PRODUCCIÓN, Y LAS PLAYAS YA ENSEÑA LO QUE ESTABA SOBRE TABLAS VACÍAS.
+> # TESORERÍA ENTERA, DEMO EN LAS PLAYAS Y EL «HOY» EN UTC ARREGLADO EN TODO EL FRONT. NO QUEDA NADA A MEDIAS.
+>
+> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por
+> qué lo frena, está en **«LO QUE SIGUE»** más abajo. Lo del 10 en una línea: `FEAT-010` entregas 3 y
+> 2b a producción, la demo sembrada en Las Playas, el reporte «Habitanto frente a Vivaru» y la guía
+> «Frente por frente», el tablero de Notion podado, y el «hoy» en UTC arreglado en dos tandas
+> (`b850dd4` egresos, `d91e1af` el resto del front), las dos vistas antes/después en producción.
+>
+> **Lo que sirve cada ambiente al cerrar:** producción `build-2026-09-11-005` desde `d91e1af`; staging,
+> el mismo código más dos commits de documentación. **Reglas y functions no se tocaron el 10 después de
+> la 2b**: ruleset vivo `f2afe2d9` en producción y `c55fc54a` en staging, idénticos al repo al desplegarlos.
 >
 > **Estado: leer los remotos con `git ls-remote`, y esta cabecera NO lleva el sha a propósito** —
 > el commit que la escribe es posterior al que describe, así que nace viejo. Al cerrar, `master`
@@ -137,28 +147,52 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > ⚠️ **La referencia del presupuesto es §3.8, NO §3.6.** §3.6 es el corte de acceso, que está
 > VETADO; esa confusión vivió cinco días en este documento.
 >
-> ## LO QUE SIGUE
+> ## LO QUE SIGUE — el menú para elegir frente
 >
-> 1. **Lo que queda del «hoy» en UTC, y ninguno es sustituir a ciegas.** (a) **La lista de hoy de la
->    portería** (`GuardDashboard`): mezcla reservas, guardadas con el día local, y visitas creadas por
->    invitación, que `invitations.ts` guarda con el día **UTC** —`use-visitor-passes` ya guarda el local—.
->    Hoy casan por casualidad; arreglar solo la comparación rompe la mitad que funciona, y hay datos
->    guardados de por medio. (b) **El servidor**: su «hoy» solo decide si un cargo está vencido
->    (`calcularSaldo`, `hoyDe` en anticipos) y lo marca **unas horas antes**, desde las 18:00 de México
->    el día que vence. Arreglarlo exige una zona por conjunto que no existe —hay `country`, y México
->    tiene varias—. **Recomendación: esperar a un cliente real; decisión de David.** Su espejo del cliente,
->    `computeBalanceStatus`, se mueve con él.
-> 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
->    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
-> 3. **Encenderlas en un conjunto REAL** — en Las Playas ya lo están, pero es de ejemplo y lo que tiene
->    es demo. El primer uso real sigue sin dueño: ningún cliente mide consumos, ha cargado un
->    presupuesto o tiene dos cuentas.
-> 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
-> 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
+> **Agrupado por lo que lo frena**, porque es lo que decide si se puede empezar hoy. Criterio vigente
+> (24 ago): **cerrar frentes antes que abrirlos** — lo desplegado y a medias cuenta como abierto.
+>
+> **A · Construible ya, sin esperar a nadie**
+>
+> 1. **La lista de hoy de la portería** (`GuardDashboard`) — ⭐ el defecto vivo. Desde las 18:00 de
+>    México la portería ve las **reservas de mañana**, porque compara con el «hoy» UTC. No se arregló
+>    con el resto porque la misma función filtra **visitas**, y las creadas por invitación
+>    (`invitations.ts`) guardan el día **UTC** —las de `use-visitor-passes` ya guardan el local—: dos
+>    errores que hoy casan. Hay que decidir el día de la visita, arreglar las dos escrituras y la
+>    comparación a la vez, y **medir los datos guardados** antes. Es flujo de visitantes, no de dinero.
+> 2. **`PLAT-004` entrega 2** — ⭐ el frente abierto (entrega 1 en producción, Santa María). Los cinco
+>    sitios del front que aún leen `role === "committee"`, y observar `CA2`, `CA3` y `CA4` **entrando
+>    como la consejera** (Carmen, staging/Palmas — su clave hay que ponerla antes, ver abajo).
+> 3. **`payExpenseInstallment` acepta la cuenta de pago sin comprobarla** — hueco que dejó `FEAT-010`
+>    en el pago de una cuota de `FLOW-008`. Pequeño y de dinero.
+> 4. **`FIX-001` entrega 2** — la política de reservas por área (van 10 de 11 criterios). Es Fase 2.
+> 5. **`UX-006`**: sus cuatro criterios pendientes **sí se pueden correr** (hay Java en `~/.local/jdk`).
+>    Y `UX-005` (tableros configurables) sigue en exploración.
+> 6. **El hueco de cobertura del «hoy»**: el mes y el «ayer» del panel y la fecha mínima de mudanza salen
+>    de una variable y no los ve el guardián ni ninguna prueba. Media hora.
+>
+> **B · Espera una decisión de David**
+>
+> 7. **El «vencido» del servidor en UTC** (`calcularSaldo`, `hoyDe`): marca vencido un cargo unas horas
+>    antes, desde las 18:00 de México el día que vence. Esperar a un cliente real (recomendado) o derivar
+>    la zona del `country` del conjunto —México tiene varias—. Su espejo `computeBalanceStatus` va con él.
+> 8. **Encender presupuesto, medidor o tesorería en un conjunto REAL** — no hay ninguno: los nueve son de
+>    ejemplo. En Las Playas ya están, con la demo.
+> 9. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
 >    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
-> 6. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
->    (una línea en el informe mensual). Y de `FEAT-010`: el pago de una cuota
->    de `FLOW-008` tampoco manda cuenta (`payExpenseInstallment` la acepta sin comprobarla).
+> 10. **Las dos categorías de egreso fuera del tipo** — el tablero de Notion dice 48 de 130 egresos con
+>     un nombre que ya no existe (**medirlo antes de citarlo**: la cifra no es de hoy).
+> 11. **El tope de gasto de la IA**, en la consola: `ia-proveedor-real` lleva encendida desde el 17 ago y
+>     nadie lo ha mirado. Es de consola, no de código.
+>
+> **C · Espera a un tercero o a un dato**
+>
+> 12. **El abogado ecuatoriano** — bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
+> 13. **Albert** — el contrato de su `vivaruWonSignals`.
+> 14. **Fase 2 de `FEAT-009`**, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
+>     (una línea en el informe mensual).
+> 15. **`PH-003` `CA4`** — la carrera; pide dos personas y dos teléfonos a la vez.
+> 16. **Habitanto: 33 P1, 41 P2 y 12 P3** de los 108 candidatos, en el backlog largo de Notion.
 >
 > ### Las banderas
 >
