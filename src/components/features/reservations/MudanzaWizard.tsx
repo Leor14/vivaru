@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils/cn";
 import { createMudanzaReservation } from "@/features/reservations/use-reservations";
-import { combineDateAndTime, getMinAllowedDateTime, isDateTimeValid, toDateInputValue } from "@/utils/datetimeValidation";
+import { combineDateAndTime, isDateTimeValid, primerDiaReservable } from "@/utils/datetimeValidation";
 
 type MudanzaWizardProps = {
   tenantId: string;
@@ -92,10 +92,8 @@ export function MudanzaWizard({
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const minDateAttribute = useMemo(() => {
-    const minDateTime = getMinAllowedDateTime("reservation");
-    return toDateInputValue(minDateTime);
-  }, []);
+  // Del calendario local, con el margen de la reserva: ver `primerDiaReservable`.
+  const minDateAttribute = useMemo(() => primerDiaReservable("reservation"), []);
 
   function validateStep1(): string | null {
     if (!date) return "Selecciona la fecha de la mudanza.";

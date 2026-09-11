@@ -54,6 +54,7 @@ import { useAgreementsComplianceSummary } from "@/features/committee-agreements/
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { formatUnitInline } from "@/lib/utils/unit";
 import { lecturaDePorcentaje } from "@/lib/dashboard/indicadores";
+import { mesLocal, ventanasDelPanel } from "@/lib/dashboard/fechas-del-panel";
 import { toDateInputValue } from "@/utils/datetimeValidation";
 
 function asText(value: unknown, fallback = "Sin dato") {
@@ -105,11 +106,6 @@ function toDate(value: unknown) {
   return null;
 }
 
-/** Clave de fecha YYYY-MM-DD en hora LOCAL (no UTC). Evita off-by-one en "hoy". */
-function dateKeyLocal(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 function asDateLabel(value: unknown) {
   // Si ya es un string YYYY-MM-DD (como guardan los módulos), respetarlo tal cual
   // (es fecha local). Solo convertir a clave local cuando viene como Date/Timestamp.
@@ -118,7 +114,8 @@ function asDateLabel(value: unknown) {
   }
   const parsed = toDate(value);
   if (parsed) {
-    return dateKeyLocal(parsed);
+    // Clave del calendario LOCAL. Aquí había una copia a mano de `toDateInputValue`.
+    return toDateInputValue(parsed);
   }
   return "Fecha no disponible";
 }
@@ -140,16 +137,12 @@ function formatPeriodLabel(period: string) {
   return new Intl.DateTimeFormat("es-CO", { month: "short", year: "2-digit" }).format(date);
 }
 
-function monthKey(date: Date) {
-  return toDateInputValue(date).slice(0, 7);
-}
-
 function countOnDay<T>(items: T[], getDate: (item: T) => unknown, dayIso: string): number {
   return items.filter((item) => asDateLabel(getDate(item)) === dayIso).length;
 }
 
 function countInMonth<T>(items: T[], getDate: (item: T) => unknown, month: string): number {
-  return items.filter((item) => monthKey(toDate(getDate(item)) ?? new Date(0)) === month).length;
+  return items.filter((item) => mesLocal(toDate(getDate(item)) ?? new Date(0)) === month).length;
 }
 
 function percentageDelta(current: number, previous: number): number | null {
@@ -296,17 +289,15 @@ export default function AdminDashboardPage() {
     loadingBilling || loadingReservations || loadingTickets || loadingPackages || loadingVisitors || loadingCommunications;
 
   const todayDate = new Date();
-  const todayIso = dateKeyLocal(todayDate);
-  const todayMonth = monthKey(todayDate);
-  const previousMonthDate = new Date(todayDate);
-  previousMonthDate.setMonth(previousMonthDate.getMonth() - 1);
-  const previousMonth = monthKey(previousMonthDate);
-  const previousPreviousMonthDate = new Date(todayDate);
-  previousPreviousMonthDate.setMonth(previousPreviousMonthDate.getMonth() - 2);
-  const previousPreviousMonth = monthKey(previousPreviousMonthDate);
-  const yesterdayDate = new Date(todayDate);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayIso = toDateInputValue(yesterdayDate);
+  // Del calendario LOCAL, y los meses anteriores desde el día 1: con `setMonth` sobre hoy,
+  // el 31 de marzo el «mes pasado» salía marzo. Ver `src/lib/dashboard/fechas-del-panel.ts`.
+  const {
+    hoy: todayIso,
+    ayer: yesterdayIso,
+    mes: todayMonth,
+    mesAnterior: previousMonth,
+    mesAntesDelAnterior: previousPreviousMonth,
+  } = ventanasDelPanel(todayDate);
 
   // Grupo "Actividad", gobernado por el filtro Hoy / Este mes / Mes pasado.
   const isToday = dashboardPeriod === "today";

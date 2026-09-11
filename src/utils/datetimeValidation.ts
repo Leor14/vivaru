@@ -35,6 +35,16 @@ export function getMinAllowedDateTime(type: DateTimeValidationType, now = getNow
   return minDateTime;
 }
 
+/**
+ * El primer día que un formulario deja elegir, `YYYY-MM-DD` del calendario LOCAL: el de ahora más el
+ * margen. Pasadas las 23:30, con los 30 minutos de una reserva, ya es mañana; y a las 19:00 en México
+ * sigue siendo hoy, aunque en UTC ya sea el día siguiente. Lo usa la mudanza, y vivía dentro del
+ * componente, donde ninguna prueba lo alcanzaba.
+ */
+export function primerDiaReservable(type: DateTimeValidationType, now = getNow()) {
+  return toDateInputValue(getMinAllowedDateTime(type, now));
+}
+
 export function isDateTimeValid(selectedDateTime: Date, type: DateTimeValidationType, now = getNow()) {
   return selectedDateTime.getTime() >= getMinAllowedDateTime(type, now).getTime();
 }
