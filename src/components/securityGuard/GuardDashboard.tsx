@@ -7,12 +7,7 @@ import { usePackages } from "@/features/packages/use-packages";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { splitTowerUnit } from "@/lib/utils/unit-display";
-
-function isTodayDate(dateValue: string | undefined) {
-  if (!dateValue) return false;
-  const today = new Date().toISOString().slice(0, 10);
-  return dateValue.slice(0, 10) === today;
-}
+import { reservasActivasHoy, visitasEsperadasHoy } from "@/components/securityGuard/lista-de-hoy";
 
 function formatHourRange(start?: string, end?: string, fallback?: string) {
   if (start && end) return `${start} - ${end}`;
@@ -24,15 +19,9 @@ export function GuardDashboard({ tenantId }: { tenantId?: string }) {
   const { items: reservations, loading: loadingReservations } = useReservations(tenantId);
   const { items: packages, loading: loadingPackages } = usePackages(tenantId);
 
-  const visitorsToday = useMemo(
-    () => visitors.filter((visitor) => isTodayDate(visitor.date || visitor.visitDate) && visitor.status !== "completed"),
-    [visitors],
-  );
+  const visitorsToday = useMemo(() => visitasEsperadasHoy(visitors), [visitors]);
 
-  const reservationsToday = useMemo(
-    () => reservations.filter((reservation) => isTodayDate(reservation.date) && reservation.status !== "cancelled"),
-    [reservations],
-  );
+  const reservationsToday = useMemo(() => reservasActivasHoy(reservations), [reservations]);
 
   const pendingPackages = useMemo(
     () => packages.filter((pkg) => pkg.status === "pending"),

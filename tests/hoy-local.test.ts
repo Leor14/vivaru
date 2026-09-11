@@ -96,17 +96,18 @@ describe("el reporte de comité agrupa un momento por su día local", () => {
 
 describe("guardián · ningún «hoy» del front sale de UTC", () => {
   /**
-   * Las dos que quedan, cada una con su motivo. Si alguna se arregla, esta prueba
-   * pide sacarla de aquí: una excepción que ya no hace falta es una puerta abierta.
+   * La que queda, con su motivo. Si se arregla, esta prueba pide sacarla de aquí: una
+   * excepción que ya no hace falta es una puerta abierta. Así salió la de la portería
+   * (`GuardDashboard`), arreglada junto con el día que guardan las invitaciones
+   * (`tests/porteria-hoy-local.test.ts`).
+   *
+   * Y este guardián solo ve `new Date()`: un día sacado de `toISOString()` sobre una
+   * VARIABLE se le escapa — lo demostró la propia extracción de la portería.
    */
   const EXCEPCIONES: Record<string, string> = {
     // Espejo declarado de `calcularSaldo` (`tests/flow-002-espejos.test.ts`): su
     // «vencido» sigue al del servidor, que corre en UTC. Se mueven juntos o ninguno.
     "src/features/finanzas/use-payments.ts": "espejo del servidor",
-    // Filtra a la vez visitas y reservas, y las visitas creadas por invitación
-    // guardan el día UTC (`invitations.ts`). Arreglar solo la comparación rompería
-    // la mitad que hoy casa por casualidad: es un flujo aparte, con datos guardados.
-    "src/components/securityGuard/GuardDashboard.tsx": "visitantes, flujo aparte",
   };
   const PATRON = /new Date\(\)\.toISOString\(\)\.(slice\(0, ?(10|7)\)|split\("T"\)\[0\])/;
   // Sin comentarios: el que explica el defecto no puede ponerlo en rojo.

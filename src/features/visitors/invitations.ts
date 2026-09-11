@@ -17,7 +17,7 @@ import { FirebaseError } from "firebase/app";
 
 import { db } from "@/lib/firebase/client";
 import { createTenantDocument } from "@/lib/firebase/realtime-helpers";
-import { isDateTimeValid } from "@/utils/datetimeValidation";
+import { isDateTimeValid, toDateInputValue } from "@/utils/datetimeValidation";
 import type { VisitorInvitation, VisitorInvitationStatus } from "features/visitors/types";
 
 export type CreateInvitationInput = {
@@ -199,8 +199,11 @@ export async function createResidentInvitation(input: CreateInvitationInput) {
       hostResidentName: input.authorizedByName,
       tower: towerValue?.trim() || "-",
       unit: unitValue?.trim() || normalizedUnitLabel,
-      date: input.startAt.toISOString().slice(0, 10),
-      eventDate: input.startAt.toISOString().slice(0, 10),
+      // El día LOCAL de la visita, como el resto de escritores de `visitorPasses`. Salía de
+      // `toISOString()`, que es el de UTC: una visita a las 19:30 en México quedaba guardada
+      // al día siguiente, y la lista de hoy de la portería y el panel la ponían en mañana.
+      date: toDateInputValue(input.startAt),
+      eventDate: toDateInputValue(input.startAt),
       scheduledTime: input.startAt.toISOString(),
       status: "scheduled",
       checkInAt: null,
