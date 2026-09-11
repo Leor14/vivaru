@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 EN PRODUCCIÓN, apagada** · **entrega 2a construida y falseada** (10 sep 2026) · 2b y 3 pendientes |
+| **Estado** | **Entrega 1 EN PRODUCCIÓN, apagada** · **entrega 2a en staging, vista en pantalla** (10 sep 2026) · 2b y 3 pendientes |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -448,10 +448,35 @@ motivo «otro» y un texto, que ya existe.
 
 Conteos: `npm test` **1863 → 1881**; reglas **404 → 424**, las 20 de traspasos en verde.
 
+### Vista en staging, sobre Las Playas (10 de septiembre de 2026)
+
+Con el visto bueno de David se creó **una segunda cuenta de prueba** —«Cuenta de ahorros (prueba)»,
+BBVA México, ahorros, MXN, saldo inicial 0— y un traspaso de prueba que después se anuló.
+
+| | Antes | Con el traspaso | Anulado |
+|---|---|---|---|
+| Cuenta de ahorros (prueba) | $0.00 | **+$10,000.00 → $10,000.00** | $0.00 |
+| Cuenta operativa | $74,700.00 | **−$10,000.00 → $64,700.00** | $74,700.00 |
+| Saldo de fondos | $74,700.00 | **$74,700.00** | $74,700.00 |
+
+- **`CA4`** y **`RN-02`**: las dos cuentas se mueven el mismo importe y el total no.
+- **`CA5`**, el libro no se entera: con el traspaso registrado, «Libro y fondos» siguió en saldo de
+  fondos **$74,700.00**, ingresos por cuotas **$127,500.00** y egresos **$137,800.00** — los mismos.
+- **`CA6`**: la confirmación dice «Deja de contar en los dos saldos. ¿Anular?»; anulado, las cuentas
+  vuelven y la fila queda **tachada** con «Anulado».
+- **En la base**, no en la pantalla: `zswGJzzGaO0SL3khQglt`, `kind: traspaso`, `status: anulado`,
+  creado y anulado por la misma cuenta, `voidedAt` puesta por el servidor, y **sin campo
+  `reference`** — la referencia vacía no se manda, que es lo que evita que Firestore rechace el
+  documento por un `undefined`.
+
+> ⚠️ **La cuenta de prueba es una cuenta bancaria normal y activa**, así que los residentes de Las
+> Playas en staging la ven al elegir a qué cuenta pagaron. Es dato de staging; se deja porque sirve
+> para la entrega 3.
+
 ### Pendiente
 
-Verla en staging: hace falta **una segunda cuenta** en Las Playas —hoy tiene una— para registrar un
-traspaso, ver las dos cuentas moverse con el total quieto, y anularlo.
+- **Producción de la 2a**, en su orden: **reglas → front** (la regla abre una colección nueva).
+- **La 2b** —conciliar los tramos— y **la 3** —caja chica—.
 
 ## Puertas
 
