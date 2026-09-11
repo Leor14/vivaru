@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entregas 1, 2a y 3 EN PRODUCCIÓN, apagadas** (10 sep 2026) · 2b pendiente |
+| **Estado** | **Entregas 1, 2a y 3 EN PRODUCCIÓN, apagadas** · **2b construida, falseada y vista en staging** (10 sep 2026) |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -656,6 +656,20 @@ ahorros, con la fecha del traspaso.
 3. Lo mismo con la línea de ahorros y la **entrada**: «Conciliada la salida y la entrada».
 4. Anular el traspaso avisa de que suelta la conciliación; después, las dos líneas vuelven a
    pendientes, cada expediente en `reversado` con `traspaso_anulado`, y ya **sin candidato**.
+
+### Vista en staging, contra la predicción (10 de septiembre de 2026)
+
+Con permiso de David, en Las Playas: reglas `c55fc54a` (idénticas al repo) → las cuatro callables →
+front `0f30ea1`. El traspaso `lAFu0QuqyFfJjLLgSUhB` y un extracto de una línea por cuenta, importados
+desde la pantalla.
+
+| Punto | En pantalla | En la base |
+|---|---|---|
+| 1 | Cada línea cayó en «Con un movimiento que encaja (1)»; el modal ofreció **solo** el tramo —«Traspaso: Cuenta operativa → Cuenta de ahorros (prueba)», −1,500.00, «sale de esta cuenta; no es un gasto ni un ingreso»— | Expediente nacido `propuesto` con `candidateTransferLegs` = el tramo |
+| 2 y 3 | «Con el traspaso … · salida» y «· entrada»; Tesorería: «Conciliada la salida y la entrada en el banco» | `propuesto → aplicado`; **0 asientos nuevos** en el libro |
+| 4 | La confirmación avisó de que suelta la conciliación; anulado, la operativa volvió a 73,900.00 y ahorros a 0.00; las dos líneas, a «Sin movimiento que les corresponda» con «Se deshizo sola» | `aplicado → reversado` con `traspaso_anulado`; el traspaso, sin tramos casados |
+
+**Datos que quedan en staging:** el traspaso anulado y las dos líneas de 1,500, **pendientes**.
 
 ## Puertas
 
