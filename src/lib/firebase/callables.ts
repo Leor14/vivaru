@@ -514,7 +514,9 @@ export async function revokeResidentAccessCallable(input: { tenantId: string; pe
     typeof input,
     {
       revoked: boolean;
-      accion: "sin-cuenta" | "revocar-y-borrar" | "revocar-y-conservar";
+      // `sin-membresia` (`PRD-V-FIX-004`): la ficha apuntaba a una cuenta que no es
+      // residente de este conjunto y el servidor no la tocó. La ficha se borra igual.
+      accion: "sin-cuenta" | "sin-membresia" | "revocar-y-borrar" | "revocar-y-conservar";
       motivo: string;
       uid: string | null;
     }

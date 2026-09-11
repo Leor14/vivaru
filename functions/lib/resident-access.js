@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.MENSAJE_CUENTA_DE_OTRO_ROL = void 0;
 exports.planearRevocacion = planearRevocacion;
+exports.esResidenteDeEsteConjunto = esResidenteDeEsteConjunto;
 exports.revocarAccesoDeResidente = revocarAccesoDeResidente;
+exports.cuentaReutilizableParaResidente = cuentaReutilizableParaResidente;
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
@@ -40,6 +43,15 @@ const https_1 = require("firebase-functions/v2/https");
  * 2. **La cuenta resulta ser de un admin o un guarda.** Se rechaza y se manda a
  *    la pantalla de usuarios operativos. Borrar un residente no puede dejar al
  *    conjunto sin administrador por un descuido.
+ *
+ * **Y un tercero que el patrón tampoco cubría, cerrado por `PRD-V-FIX-004`:**
+ *
+ * 3. **La ficha apunta a una cuenta que no es de este conjunto.** El `authUid` lo
+ *    podía escribir el administrador desde el navegador, y la guarda del punto 2
+ *    solo funcionaba si la membresía de AQUÍ existía. Sin ella, la cuenta se
+ *    reapuntaba o se borraba según sus OTROS conjuntos — y la del superadmin, que
+ *    no tiene ninguno, se borraba entera. Ahora, sin membresía aquí, la cuenta solo
+ *    se toca si ella misma dice ser residente de este conjunto.
  */
 const db = () => (0, firestore_1.getFirestore)();
 const texto = (valor) => (typeof valor === "string" ? valor.trim() : "");
@@ -60,6 +72,21 @@ function planearRevocacion(input) {
     if (rol && ROLES_OPERATIVOS.has(rol)) {
         throw new https_1.HttpsError("failed-precondition", "Esa cuenta es de un administrador o un guarda del conjunto. Gestiónala desde Usuarios operativos, no desde Residentes.");
     }
+    // `FIX-004` R2: solo se revoca una membresía de RESIDENTE. Un rol que no está en la
+    // lista de operativos —el alias viejo `security`, el `committee` que no concede
+    // nadie— pasaba de largo y seguía hacia el borrado.
+    if (rol && rol !== "resident") {
+        throw new https_1.HttpsError("failed-precondition", "Esa cuenta no es de un residente de este conjunto. Gestiónala desde Usuarios operativos, no desde Residentes.");
+    }
+    // `FIX-004` `D-B`: sin membresía aquí, la cuenta solo es de este conjunto si ella lo
+    // dice. La ficha no basta: su `authUid` lo podía escribir el administrador, y así una
+    // ficha apuntando al superadmin —que no tiene membresías— le borraba la cuenta.
+    if (!rol && !input.cuentaEsResidenteDeEsteConjunto) {
+        return {
+            accion: "sin-membresia",
+            motivo: "la ficha apuntaba a una cuenta que no es residente de este conjunto; la cuenta no se tocó",
+        };
+    }
     const otras = input.membresiasEnOtrosConjuntos.filter((m) => texto(m.tenantId));
     if (otras.length > 0) {
         const restante = otras[0];
@@ -71,6 +98,18 @@ function planearRevocacion(input) {
         };
     }
     return { accion: "revocar-y-borrar", motivo: "era su única pertenencia" };
+}
+/**
+ * `PRD-V-FIX-004` · ¿La cuenta es, POR SU PROPIO REGISTRO, residente de este conjunto?
+ *
+ * Mira las dos fuentes que solo escribe el servidor: `users/{uid}` y el claim. Basta
+ * una: un alta a medias deja el claim sin documentos —se escribe antes—, y unos datos
+ * viejos pueden traer `users` sin claim. **Lo que no vale es lo que escribe el
+ * cliente**, el `authUid` de la ficha, que es justo en lo que se confiaba.
+ */
+function esResidenteDeEsteConjunto(cuenta, tenantId) {
+    const deAqui = (rol, conjunto) => texto(rol) === "resident" && texto(conjunto) === tenantId;
+    return deAqui(cuenta.perfil?.role, cuenta.perfil?.tenantId) || deAqui(cuenta.claims?.role, cuenta.claims?.tenantId);
 }
 /**
  * Ejecuta el plan. El orden importa y no es casual: **primero se cierra la
@@ -115,8 +154,35 @@ async function revocarAccesoDeResidente(input, actorUid) {
         return { tenantId: texto(data.tenantId), role: texto(data.role) };
     })
         .filter((m) => m.tenantId && m.tenantId !== tenantId);
-    const plan = planearRevocacion({ authUid: targetUid, rolEnEsteConjunto, membresiasEnOtrosConjuntos });
     const authApi = (0, auth_1.getAuth)();
+    // Sin membresía aquí, se le pregunta a la cuenta de quién es (`FIX-004`). Con
+    // membresía no hace falta: ese documento solo lo escribe el servidor.
+    let cuentaEsResidenteDeEsteConjunto = false;
+    if (!membershipSnap.exists) {
+        const [perfilSnap, registro] = await Promise.all([
+            firestore.collection("users").doc(targetUid).get(),
+            authApi.getUser(targetUid).catch((error) => {
+                if (codigoDe(error) === "auth/user-not-found")
+                    return null;
+                throw error;
+            }),
+        ]);
+        cuentaEsResidenteDeEsteConjunto = esResidenteDeEsteConjunto({
+            perfil: perfilSnap.exists ? perfilSnap.data() : null,
+            claims: registro?.customClaims ?? null,
+        }, tenantId);
+    }
+    const plan = planearRevocacion({
+        authUid: targetUid,
+        rolEnEsteConjunto,
+        membresiasEnOtrosConjuntos,
+        cuentaEsResidenteDeEsteConjunto,
+    });
+    // Una cuenta que no es de este conjunto no se toca: ni membresía, ni sesiones, ni
+    // claim. La ficha sigue su camino y se borra.
+    if (plan.accion === "sin-membresia") {
+        return { revoked: false, accion: plan.accion, motivo: plan.motivo, uid: null };
+    }
     // 1. La puerta, primero. Quitar la membresía es lo que de verdad cierra el
     //    acceso, porque la regla concede por existencia de ese documento.
     if (membershipSnap.exists) {
@@ -144,10 +210,53 @@ async function revocarAccesoDeResidente(input, actorUid) {
  * estado al que queremos llegar. Cualquier otro error sí sube.
  */
 function ignorarSiNoExiste(error) {
-    const code = typeof error === "object" && error !== null && "code" in error
-        ? String(error.code)
-        : "";
-    if (code === "auth/user-not-found")
+    if (codigoDe(error) === "auth/user-not-found")
         return;
     throw error;
+}
+function codigoDe(error) {
+    return typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "";
+}
+/**
+ * `PRD-V-FIX-004` `D-A` — el texto con el que «Enviar acceso» rechaza una cuenta de
+ * otro rol.
+ *
+ * **No dice qué conjunto ni qué rol exacto** (`R5`): quien lo lee es el administrador
+ * de OTRO conjunto, y no tiene por qué saber dónde administra otra persona. Sí le dice
+ * qué hacer.
+ */
+exports.MENSAJE_CUENTA_DE_OTRO_ROL = "Ese correo ya tiene una cuenta de administración o portería en Vivaru, y una cuenta no puede ser además residente. Registra al residente con otro correo.";
+/**
+ * `PRD-V-FIX-004` `D-A` — la cuenta que «Enviar acceso» puede reutilizar para este
+ * correo, o `null` si no hay ninguna. **Lanza si existe y es de otro rol**, y lo hace
+ * antes de que nadie escriba nada. Hasta el 11 sep 2026 `upsertResidentTemporaryAccess`
+ * la reutilizaba sin mirar: le cambiaba la clave y la convertía en residente, y así
+ * perdía el panel un administrador de otro conjunto y la consola el superadmin.
+ *
+ * Mira las DOS fuentes del rol, `users/{uid}.role` y el claim: las dos las escribe solo
+ * el servidor, y basta con que una diga «no residente» para que la cuenta sea de otra
+ * persona. Una cuenta sin rol en ningún lado —huérfana— se reutiliza, como hoy: es la
+ * única forma de recuperarla.
+ */
+async function cuentaReutilizableParaResidente(email) {
+    const existente = await (0, auth_1.getAuth)()
+        .getUserByEmail(email)
+        .catch((error) => {
+        if (codigoDe(error) === "auth/user-not-found")
+            return null;
+        throw error;
+    });
+    if (!existente)
+        return null;
+    const perfil = await db().collection("users").doc(existente.uid).get();
+    const roles = [
+        perfil.exists ? texto(perfil.data().role) : "",
+        texto(existente.customClaims?.role),
+    ];
+    if (roles.some((rol) => rol && rol !== "resident")) {
+        throw new https_1.HttpsError("failed-precondition", exports.MENSAJE_CUENTA_DE_OTRO_ROL);
+    }
+    return existente;
 }

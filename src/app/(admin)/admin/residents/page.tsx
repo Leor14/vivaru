@@ -9,7 +9,8 @@ import { Building2, FilterX, KeyRound, Search, ShieldCheck, Upload, UserCheck, U
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { normalizeFirebaseError, toastFirebaseError } from "@/lib/utils/error-handler";
+import { resumirEnvioDeAccesos, type EnvioFallido } from "@/features/residents/envio-de-accesos";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 
@@ -767,7 +768,9 @@ export default function AdminResidentsPage() {
           personId: primaryPersonId,
           error: provisionError,
         });
-        toast.warning("Unidad y titular creados. No se pudo configurar el acceso automáticamente — usa «Enviar acceso» desde la tabla de personas.");
+        // El motivo real, no uno genérico (`FIX-004` `CA6`): si el correo es de una cuenta
+        // de administración, reintentar con «Enviar acceso» fallaría igual.
+        toast.warning(`Unidad y titular creados, pero sin acceso: ${normalizeFirebaseError(provisionError)}`);
       }
 
       for (const member of familyMembers) {
@@ -880,11 +883,17 @@ export default function AdminResidentsPage() {
         }
 
         const personId = await createPerson(user.tenantId, user.uid, payload);
-        await provisionResidentTemporaryAccessCallable({
-          tenantId: user.tenantId,
-          personId,
-        });
-        toast.success("Persona creada. Se le envió un correo para que defina su contraseña de acceso.");
+        try {
+          await provisionResidentTemporaryAccessCallable({
+            tenantId: user.tenantId,
+            personId,
+          });
+          toast.success("Persona creada. Se le envió un correo para que defina su contraseña de acceso.");
+        } catch (provisionError) {
+          // La ficha YA existe: un error aquí no es «no se guardó». Decir las dos cosas
+          // evita que el administrador la cree otra vez (`FIX-004`).
+          toast.warning(`Persona creada, pero sin acceso: ${normalizeFirebaseError(provisionError)}`);
+        }
       }
       setPersonModalOpen(false);
     } catch (error) {
@@ -941,7 +950,9 @@ export default function AdminResidentsPage() {
     const total = sinAcceso.length;
     setEnviandoAccesos({ hechos: 0, total });
     let ok = 0;
-    const fallidas: string[] = [];
+    // Con su motivo (`FIX-004` `CA7`): el servidor ya dice qué hacer con cada rechazo,
+    // y un `catch` vacío lo tiraba.
+    const fallidas: EnvioFallido[] = [];
 
     for (const [i, person] of sinAcceso.entries()) {
       try {
@@ -950,20 +961,16 @@ export default function AdminResidentsPage() {
           personId: person.id,
         });
         ok += 1;
-      } catch {
-        fallidas.push(person.fullName);
+      } catch (error) {
+        fallidas.push({ nombre: person.fullName, motivo: normalizeFirebaseError(error) });
       }
       setEnviandoAccesos({ hechos: i + 1, total });
     }
 
     setEnviandoAccesos(null);
-    if (fallidas.length === 0) {
-      toast.success(`Acceso enviado a ${ok} persona${ok !== 1 ? "s" : ""}.`);
-    } else {
-      toast.warning(
-        `Acceso enviado a ${ok} de ${total}. No se pudo con: ${fallidas.slice(0, 3).join(", ")}${fallidas.length > 3 ? ` y ${fallidas.length - 3} más` : ""}.`,
-      );
-    }
+    const resumen = resumirEnvioDeAccesos(ok, total, fallidas);
+    if (resumen.tipo === "exito") toast.success(resumen.texto);
+    else toast.warning(resumen.texto);
   }
 
   async function handleResetTemporaryPassword(person: PersonItem) {

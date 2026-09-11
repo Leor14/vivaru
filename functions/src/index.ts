@@ -71,6 +71,7 @@ import {
   type ResolverAutorizacionInput,
 } from "./visita-no-anunciada";
 import {
+  cuentaReutilizableParaResidente,
   revocarAccesoDeResidente,
   type RevocarAccesoInput,
 } from "./resident-access";
@@ -880,20 +881,10 @@ async function upsertResidentTemporaryAccess(input: {
   }
 
   const authApi = getAuth();
-  const existingUser = await authApi
-    .getUserByEmail(email)
-    .then((user) => user)
-    .catch((error: unknown) => {
-      const code =
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        typeof (error as { code?: unknown }).code === "string"
-          ? String((error as { code: string }).code)
-          : "";
-      if (code === "auth/user-not-found") return null;
-      throw error;
-    });
+  // `PRD-V-FIX-004` `D-A`: solo se reutiliza una cuenta de residente. Una de
+  // administración, portería o superadmin se rechaza aquí, antes de cambiarle la clave
+  // o el claim — hasta el 11 sep 2026 se reutilizaba sin mirar su rol.
+  const existingUser = await cuentaReutilizableParaResidente(email);
 
   // Onboarding por enlace: la cuenta nace con una clave aleatoria que nadie conoce.
   // El residente define su contrasena via el correo de restablecimiento (sendPasswordResetEmail),
@@ -2183,6 +2174,15 @@ export const revokeResidentAccess = onCall<RevocarAccesoInput>(
       await writeAuditLog(actor.tenantId, request.auth.uid, "revoke_resident_access", {
         personId: normalizeText(request.data?.personId),
         uid: resultado.uid,
+        accion: resultado.accion,
+        motivo: resultado.motivo,
+      });
+    } else if (resultado.accion === "sin-membresia") {
+      // `PRD-V-FIX-004`: una ficha que apuntaba a una cuenta ajena SÍ se anota. No hubo
+      // nada que cerrar, pero es la huella de un puntero falso: con la regla de `people`
+      // cerrada, solo puede venir de datos viejos o de un intento.
+      await writeAuditLog(actor.tenantId, request.auth.uid, "revoke_resident_access_skipped", {
+        personId: normalizeText(request.data?.personId),
         accion: resultado.accion,
         motivo: resultado.motivo,
       });

@@ -411,9 +411,19 @@ service cloud.firestore {
       // importación masiva, que escribe `people` con `writeBatch` desde el
       // navegador — y un padrón importado es la forma más rápida de meter mil
       // direcciones de desconocidos en un conjunto de demostración.
+      //
+      // `PRD-V-FIX-004` R3 — **`authUid` lo escribe SOLO el servidor**, en las dos
+      // ramas. Es el puntero que la revocación usa para saber qué cuenta cerrar, y
+      // hasta el 11 sep 2026 el administrador podía escribirlo a mano: una ficha
+      // apuntando al superadmin le borraba la cuenta al «Quitar acceso». Nadie echó
+      // de menos esta puerta porque **el front nunca lo escribe** — que no se
+      // escriba no es que no se pueda. Esta regla cierra la puerta del cliente; el
+      // invariante lo sostiene `revocarAccesoDeResidente`, que ya no toca una cuenta
+      // que no sea residente de este conjunto.
       allow create: if tenantOperable(request.resource.data.tenantId)
         && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId))
-        && puertaDeBuzonesPermite(request.resource.data.tenantId, request.resource.data.get('email', ''));
+        && puertaDeBuzonesPermite(request.resource.data.tenantId, request.resource.data.get('email', ''))
+        && !('authUid' in request.resource.data);
 
       // Al ACTUALIZAR, solo si el correo CAMBIA. `updateDoc` fusiona y la regla
       // evalúa el documento RESULTANTE, así que mirar el correo siempre
@@ -425,7 +435,10 @@ service cloud.firestore {
         && (
           request.resource.data.get('email', '') == resource.data.get('email', '')
           || puertaDeBuzonesPermite(request.resource.data.tenantId, request.resource.data.get('email', ''))
-        );
+        )
+        // Compara, no prohíbe que exista: reescribir la ficha con el MISMO puntero no
+        // lo cambia y sigue permitido.
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['authUid']);
 
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }

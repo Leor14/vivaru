@@ -608,20 +608,10 @@ async function upsertResidentTemporaryAccess(input) {
         /* usa el fallback legible */
     }
     const authApi = (0, auth_1.getAuth)();
-    const existingUser = await authApi
-        .getUserByEmail(email)
-        .then((user) => user)
-        .catch((error) => {
-        const code = typeof error === "object" &&
-            error !== null &&
-            "code" in error &&
-            typeof error.code === "string"
-            ? String(error.code)
-            : "";
-        if (code === "auth/user-not-found")
-            return null;
-        throw error;
-    });
+    // `PRD-V-FIX-004` `D-A`: solo se reutiliza una cuenta de residente. Una de
+    // administración, portería o superadmin se rechaza aquí, antes de cambiarle la clave
+    // o el claim — hasta el 11 sep 2026 se reutilizaba sin mirar su rol.
+    const existingUser = await (0, resident_access_1.cuentaReutilizableParaResidente)(email);
     // Onboarding por enlace: la cuenta nace con una clave aleatoria que nadie conoce.
     // El residente define su contrasena via el correo de restablecimiento (sendPasswordResetEmail),
     // por lo que la cedula deja de funcionar como credencial.
@@ -1604,6 +1594,16 @@ exports.revokeResidentAccess = (0, https_1.onCall)({ cors: http_config_1.callabl
         await writeAuditLog(actor.tenantId, request.auth.uid, "revoke_resident_access", {
             personId: normalizeText(request.data?.personId),
             uid: resultado.uid,
+            accion: resultado.accion,
+            motivo: resultado.motivo,
+        });
+    }
+    else if (resultado.accion === "sin-membresia") {
+        // `PRD-V-FIX-004`: una ficha que apuntaba a una cuenta ajena SÍ se anota. No hubo
+        // nada que cerrar, pero es la huella de un puntero falso: con la regla de `people`
+        // cerrada, solo puede venir de datos viejos o de un intento.
+        await writeAuditLog(actor.tenantId, request.auth.uid, "revoke_resident_access_skipped", {
+            personId: normalizeText(request.data?.personId),
             accion: resultado.accion,
             motivo: resultado.motivo,
         });

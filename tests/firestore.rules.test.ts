@@ -3686,3 +3686,75 @@ describe("FLOW-004 · el expediente de conciliación", () => {
     });
   });
 });
+
+/**
+ * `PRD-V-FIX-004` R3 — **`people.authUid` solo lo escribe el servidor.**
+ *
+ * Es el puntero que la revocación usa para saber QUÉ cuenta cerrar. La regla dejaba
+ * al administrador escribirlo a mano —solo miraba conjunto operable, rol y correo—, y
+ * nadie echó de menos la puerta porque **el front nunca lo escribe**: que no se escriba
+ * no es que no se pueda. Con una ficha apuntando al superadmin, «Quitar acceso» borraba
+ * su cuenta.
+ *
+ * **La regla cierra la puerta del cliente; el invariante lo sostiene el servidor**
+ * (`revocarAccesoDeResidente` ya no toca una cuenta que no sea residente de este
+ * conjunto). Las dos mitades hacen falta: esta sola dejaría vivo el camino con datos
+ * viejos; aquélla sola dejaría escribir punteros falsos sin consecuencia visible.
+ */
+describe("FIX-004 · people.authUid solo lo escribe el servidor", () => {
+  const T = "tenant-fix004";
+  const ADMIN = "admin-fix004";
+  const admin = () => testEnv.authenticatedContext(ADMIN, { role: "tenant_admin", tenantId: T });
+  const ficha = (extra: Record<string, unknown> = {}) => ({
+    tenantId: T,
+    fullName: "Ficha",
+    email: "ficha.fix004@hogaru.test",
+    unitId: "u-fix004",
+    status: "active",
+    ...extra,
+  });
+
+  beforeAll(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "tenants", T), { name: "Conjunto FIX-004", status: "active" });
+      await setDoc(doc(db, "tenantUsers", `${T}_${ADMIN}`), { uid: ADMIN, tenantId: T, role: "tenant_admin", status: "active" });
+      await setDoc(doc(db, "users", ADMIN), { uid: ADMIN, tenantId: T, role: "tenant_admin", status: "active" });
+      await setDoc(doc(db, "people", "p-fix004-con-cuenta"), ficha({ authUid: "uid-residente-fix004" }));
+      await setDoc(doc(db, "people", "p-fix004-sin-cuenta"), ficha());
+    });
+  });
+
+  it("el administrador da de alta una ficha sin authUid, como hoy", async () => {
+    await assertSucceeds(setDoc(doc(admin().firestore(), "people", "p-fix004-nueva"), ficha()));
+  });
+
+  it("CF4 · pero no puede darla de alta con authUid", async () => {
+    await assertFails(setDoc(doc(admin().firestore(), "people", "p-fix004-forjada"), ficha({ authUid: "uid-superadmin" })));
+  });
+
+  it("edita el teléfono de una ficha con cuenta sin tocar su authUid, como hoy", async () => {
+    await assertSucceeds(updateDoc(doc(admin().firestore(), "people", "p-fix004-con-cuenta"), { phone: "3000000000" }));
+  });
+
+  it("CF4 · no puede cambiarle el authUid", async () => {
+    await assertFails(updateDoc(doc(admin().firestore(), "people", "p-fix004-con-cuenta"), { authUid: "uid-superadmin" }));
+  });
+
+  it("CF4 · ni quitárselo", async () => {
+    await assertFails(updateDoc(doc(admin().firestore(), "people", "p-fix004-con-cuenta"), { authUid: deleteField() }));
+  });
+
+  it("CF4 · ni ponérselo a una ficha que no lo tenía", async () => {
+    await assertFails(updateDoc(doc(admin().firestore(), "people", "p-fix004-sin-cuenta"), { authUid: "uid-superadmin" }));
+  });
+
+  // La regla compara, no prohíbe que el campo exista: reescribir la ficha entera con el
+  // MISMO puntero no lo cambia. Si esto fallara, la regla estaría mirando la presencia
+  // y rompería cualquier guardado que arrastre el documento completo.
+  it("reescribir la ficha entera con el MISMO authUid sigue permitido", async () => {
+    await assertSucceeds(
+      setDoc(doc(admin().firestore(), "people", "p-fix004-con-cuenta"), ficha({ authUid: "uid-residente-fix004" })),
+    );
+  });
+});
