@@ -19,10 +19,26 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
 > ```
 >
-> **Bancos CONTADOS hoy, no citados:** `npm test` **1935** · functions **870** · reglas **457**
+> **Bancos CONTADOS hoy, no citados:** `npm test` **1947** · functions **870** · reglas **457**
 > (medido con solo Firestore: `storage.rules.test.ts` enrojece aparte sin su emulador en el 9199,
 > y es entorno) · emulador de functions **365 de 367** — los dos rojos son `CA12` y `D-B` de
 > `payments.emulator.test.ts`, **preexistentes y confirmados por nombre**.
+>
+> ## EL «HOY» EN UTC DE LOS EGRESOS — ARREGLADO Y EN PRODUCCIÓN (10 sep, `b850dd4`)
+>
+> `toISOString().slice(0, 10)` es el día **UTC**: desde las 18:00 de México ya es mañana, y el egreso
+> —con su asiento— nacía fechado al día siguiente; el último día del mes, en el mes siguiente. Cinco
+> sitios del flujo pasan a `toDateInputValue` (`src/utils/datetimeValidation.ts`), **el gemelo que ya
+> lo hacía bien**: fecha de emisión por defecto, `paidAt` al pagar, fecha del reverso de CUALQUIER
+> asiento, fecha propuesta al pagar una cuota y el mes por defecto de «Repartir». **Y un segundo defecto
+> en la misma línea**: editar un egreso ya pagado le volvía a sellar `paidAt = hoy`, así que corregir la
+> descripción de un gasto de agosto lo movía —con su asiento— al mes en curso. Ahora conserva el previo.
+>
+> **Visto en producción, antes y después, en el mismo formulario de Santa María**: a las 22:39 del 10 el
+> build viejo proponía `2026-09-11`; a las 22:44, con `b850dd4` (`build-2026-09-11-004`), propone
+> `2026-09-10`. Solo front, sin bandera. Prueba en `tests/egresos-fecha-local.test.ts` **con la zona
+> fijada en el propio fichero** —en una máquina en UTC, como la de CI, no distinguiría nada— y falsada
+> en siete mutaciones.
 >
 > ## `PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN
 >
@@ -51,7 +67,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **Mirar encontró dos cosas que ninguna prueba veía:** la historia de la caja salía desordenada
 > —arreglado: dentro del día, por hora de registro— y, **preexistente**, el formulario de egresos toma
 > «hoy» en **UTC**: a las siete de la tarde en México el egreso quedó fechado al día siguiente, y a fin
-> de mes eso cambia el mes del gasto. **Propuesto como tarea aparte.**
+> de mes eso cambia el mes del gasto. **Arreglado el mismo día — ver arriba.**
 >
 > **Datos de prueba en staging, Las Playas, con permiso de David:** la cuenta `mL3tSoEC1W2V2SqVBE7I`
 > «Cuenta de ahorros (prueba)» —**visible para los residentes al elegir a qué cuenta pagaron**—, el
@@ -106,8 +122,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE
 >
-> 1. **El «hoy» en UTC** del formulario de egresos, propuesto como tarea aparte. Ojo al alcance: hay
->    **42** `toISOString().slice(0, 10)` en `src/`, y no todos quieren el día local.
+> 1. **El mismo «hoy» en UTC en los otros flujos de dinero** —el de egresos ya está arreglado—. En el
+>    front: `RecordPaymentModal`, `use-payments`, `use-payment-receipts`, `use-billing-statements`,
+>    `AdvancesPanel` y los tableros de cuentas por pagar, flujo de caja y liquidez. En el servidor, los
+>    tres `hoy` de `payments.ts`: **caso por caso**, porque allí el reloj ES UTC. Ojo al alcance: no
+>    todos los `toISOString().slice(0, 10)` quieren el día local.
 > 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
 > 3. **Encenderlas en un conjunto REAL** — en Las Playas ya lo están, pero es de ejemplo y lo que tiene

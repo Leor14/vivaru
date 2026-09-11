@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.65 |
+| **Versión** | 0.9.66 |
 | **Fecha** | 10 de septiembre de 2026 |
-| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN** (10 sep, `b415636`), encendida **solo en Las Playas, donde se sembró una demo**: cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **La 2b cerró el circuito**: cada tramo de un traspaso se concilia contra el extracto de su banco, y **el libro no se entera**. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, también encendidas solo en Las Playas con la demo. **Lo siguiente:** el «hoy» en UTC del formulario de egresos, que fecha mañana lo registrado por la tarde en México; `PLAT-004` entrega 2; y el primer conjunto REAL que use alguna de las tres. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`c55fc54a` en staging, `f2afe2d9` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-003` desde `b415636`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: la 3, reglas 29 de 30 (la otra es equivalente) y código 12 de 12; la 2b, 23 mutaciones de reglas, servidor y espejo, con los dos huecos que destapó cerrados. **La 2b, vista también en staging**: los dos tramos casados, **ningún asiento nuevo**, y anular devolvió las dos líneas a pendientes con `traspaso_anulado`, leído en la base. Bancos **contados, no citados**: `npm test` **1935** · functions **870** · reglas **457** · emulador **365 de 367**, con `CA12` y `D-B` **preexistentes** |
+| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN** (10 sep, `b415636`), encendida **solo en Las Playas, donde se sembró una demo**: cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **La 2b cerró el circuito**: cada tramo de un traspaso se concilia contra el extracto de su banco, y **el libro no se entera**. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, también encendidas solo en Las Playas con la demo. **Y el «hoy» de los egresos dejó de ir en UTC** (10 sep, `b850dd4`, en producción): lo registrado por la tarde en México ya no se fecha mañana, y editar un egreso pagado ya no lo mueve al mes en curso. **Lo siguiente:** el mismo «hoy» en UTC en los otros flujos de dinero —cobros, recibos, anticipos, tres tableros y, en el servidor, `payments.ts`—; `PLAT-004` entrega 2; y el primer conjunto REAL que use alguna de las tres. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`c55fc54a` en staging, `f2afe2d9` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-003` desde `b415636`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: la 3, reglas 29 de 30 (la otra es equivalente) y código 12 de 12; la 2b, 23 mutaciones de reglas, servidor y espejo, con los dos huecos que destapó cerrados. **La 2b, vista también en staging**: los dos tramos casados, **ningún asiento nuevo**, y anular devolvió las dos líneas a pendientes con `traspaso_anulado`, leído en la base. **El arreglo del «hoy», antes y después en producción**: el mismo formulario de Santa María propuso `2026-09-11` a las 22:39 con el build viejo y `2026-09-10` a las 22:44 con `b850dd4` (`build-2026-09-11-004`). Bancos **contados, no citados**: `npm test` **1947** · functions **870** · reglas **457** · emulador **365 de 367**, con `CA12` y `D-B` **preexistentes** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,22 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.66 — 10 de septiembre de 2026 — el «hoy» de los egresos, en el calendario local
+
+- **Arreglado y en producción** (`b850dd4`, solo front, sin bandera). `toISOString().slice(0, 10)` da el día
+  **UTC**: desde las 18:00 de México ya es mañana, y el egreso —con su asiento— nacía fechado al día
+  siguiente; a fin de mes, en el mes siguiente. Visto en staging el 10 con el egreso de la caja chica.
+- **Cinco sitios, un gemelo que ya existía**: `toDateInputValue` (`src/utils/datetimeValidation.ts`), que
+  usaban diez pantallas de reservas y visitas. Fecha de emisión por defecto, `paidAt` al pagar, fecha del
+  reverso de cualquier asiento, fecha propuesta al pagar una cuota y el mes por defecto de «Repartir».
+- **Un segundo defecto en la misma línea**: editar un egreso ya pagado le volvía a sellar `paidAt = hoy`.
+  Corregir la descripción de un gasto de agosto lo movía —con su asiento— al mes en curso. Conserva el previo.
+- **Verificado**: 12 pruebas con el reloj a las 19:00 de Ciudad de México y **la zona fijada en el propio
+  fichero** —en una máquina en UTC no distinguirían nada—, falsadas en siete mutaciones. En producción,
+  antes y después en el mismo formulario: `2026-09-11` a las 22:39 con el build viejo, `2026-09-10` a las
+  22:44 con el nuevo. `npm test` **1947**.
+- **Queda**: el mismo cálculo en cobros, recibos, anticipos, tres tableros y, en el servidor, `payments.ts`.
 
 ### 0.9.65 — 10 de septiembre de 2026 — la demo: lo que estaba sobre tablas vacías, visible
 

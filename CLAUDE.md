@@ -89,7 +89,7 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **1935** (10 sep 2026) |
+  | App | `npm test` | **1947** (10 sep 2026) |
   | Functions | `npm --prefix functions test` | **870** |
   | Reglas | `npm run test:rules:all` | **457** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
   | Emulador de functions | `npm --prefix functions run test:emulator` | **365 de 367** *(pide emulador)* |
@@ -291,6 +291,12 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   `.font-semibold` y `.font-bold` incluidos—. **Están retiradas**, y `globals.css` no tiene ya
   ningún `!important`. El suelo de peso de los encabezados vive en `@layer base` **a propósito**:
   sin capa le ganaría a cualquier utilidad de Tailwind y sería la misma cárcel con otro nombre.
+- **`toISOString().slice(0, 10)` es el día UTC, no el de quien usa la app.** Desde las 18:00 de México
+  ya es mañana: el formulario de egresos fechaba así lo registrado por la tarde, con su asiento, y a fin
+  de mes cambiaba el mes del gasto (arreglado el 10 sep, `b850dd4`). Para «hoy» en un formulario,
+  `toDateInputValue(new Date())` de `src/utils/datetimeValidation.ts`. **Y la prueba fija
+  `process.env.TZ` en su propio fichero**: en CI, que corre en UTC, no distinguiría nada. Quedan
+  sitios en cobros, anticipos y tableros — ver `docs/pendientes.md`.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
 ## Seguridad
