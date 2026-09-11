@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` que lleva más de un conjunto |
 | **Usuarios secundarios** | `superadmin` · `resident` |
 | **Responsable** | David |
-| **Estado** | **EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`) — versión 1.2. Validada antes en pantalla contra staging. §11.2 completa (eran **dieciocho** sitios, no once) · sesión con varias membresías, `lastActiveTenantId` y **selector** construidos y verificados por navegador con una cuenta de seis conjuntos: CA2, CA3, CA4, CA5, CA10 y **un cobro real en el segundo conjunto**. El **paso 3 está hecho** (entidad `managementCompanies`, sus dos callables de superadmin y `/superadmin/administradoras`) y **la medición de `storage.rules` se cerró**: las reglas entre servicios no funcionan en el servicio real, así que el claim **sigue** al conjunto activo — ver §11.3. **Desplegado y verificado contra su fuente**, con el radio del cambio de autoridad medido en **0** con el predicado real. **La bandera sigue APAGADA y su documento no existe** en producción, y **CA1 sigue sin observarse**: nadie tiene dos membresías, así que está cumplido por construcción y no visto |
+| **Estado** | 🟡 **ENTREGA 2 LISTA PARA DESARROLLO** (11 sep 2026, §16): el superadmin da acceso a varios conjuntos por persona desde la pestaña Admins. Va **después** de `FIX-004`. **Y esta celda estaba mal en la bandera:** `producto-multiconjunto` está **ENCENDIDA por el valor global en los diez conjuntos de producción**, medido el 11 sep con `resolveFeatureFlag`. Decía «apagada y su documento no existe». **EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`) — versión 1.2. Validada antes en pantalla contra staging. §11.2 completa (eran **dieciocho** sitios, no once) · sesión con varias membresías, `lastActiveTenantId` y **selector** construidos y verificados por navegador con una cuenta de seis conjuntos: CA2, CA3, CA4, CA5, CA10 y **un cobro real en el segundo conjunto**. El **paso 3 está hecho** (entidad `managementCompanies`, sus dos callables de superadmin y `/superadmin/administradoras`) y **la medición de `storage.rules` se cerró**: las reglas entre servicios no funcionan en el servicio real, así que el claim **sigue** al conjunto activo — ver §11.3. **Desplegado y verificado contra su fuente**, con el radio del cambio de autoridad medido en **0** con el predicado real. **La bandera sigue APAGADA y su documento no existe** en producción, y **CA1 sigue sin observarse**: nadie tiene dos membresías, así que está cumplido por construcción y no visto |
 | **Dependencias** | **Ninguna para el MVP.** La consolidación financiera depende del plan de cuentas gobernado (§4) |
 | **Riesgo** | **Alto.** Toca la resolución de identidad. Un error aquí es un error de permisos |
 | **Reversibilidad** | **Parcial.** El selector y la entidad son reversibles; el cambio de autoridad de §11.2 **no se revierte apagando una bandera**. Y **eran DIECIOCHO sitios, no once** — esta fila decía «once» y la auditoría de agosto buscó donde el número señalaba, dejando vivas **las seis del dinero** en `payments.ts` y `advances.ts` |
@@ -497,3 +497,273 @@ conjunto. **Confirmable en construcción**, no bloquea.
 
 **Lista para desarrollo**, con una condición explícita: **la auditoría de las once callables de
 §11.2 es la primera tarea del MVP** y se despliega sola, antes que nada del resto.
+
+---
+
+## 16. Entrega 2 — el superadmin da acceso a varios conjuntos (11 sep 2026)
+
+**Estado: lista para desarrollo. Va DESPUÉS de `PRD-V-FIX-004`**, que cierra el camino por el que
+hoy un conjunto cambia el rol de una cuenta ajena sin permiso ni aviso. Esta entrega le da esa
+potestad **solo al superadmin, y con aviso**.
+
+### 16.1 Por qué ahora
+
+David, 11 sep 2026: «un mail de admin no puede estar en más de un solo conjunto… debería existir la
+opción desde super admin, en la pestaña de admins, de seleccionar a qué conjuntos podría tener
+acceso». **Lo que se vive como una regla no lo es**; es un efecto de tres cosas:
+
+- `createTenantAdmin` rechaza **cualquier correo que ya tenga cuenta**, sea del rol que sea: «Ya
+  existe un usuario con ese correo.» (`functions/src/index.ts:1338-1340`).
+- `updateTenantAdmin` **muda** al administrador en vez de añadirle un conjunto: borra la membresía
+  anterior (`:1483-1485`).
+- El formulario de la pestaña Admins tiene **un solo** selector de conjunto
+  (`src/app/(superadmin)/superadmin/admin-users/page.tsx:329-337`).
+
+§3 prometía que el superadmin «asigna y quita membresías», y `D1` opción B que el propio admin lo
+haga en sus otros conjuntos: **ninguna de las dos se construyó**. La única vía hoy es un script
+(`functions/scripts/sembrar-membresias-multiconjunto.mjs`). Así se validó el MVP en staging, donde
+`david.macar.18@hotmail.com` administra siete conjuntos.
+
+### 16.2 Lo que ya funciona y lo que falta — medido el 11 sep 2026
+
+**Ya funciona, sin tocar:** la membresía `tenantUsers/{conjunto}_{uid}` como autoridad, las reglas y
+las comprobaciones del servidor por membresía, la sesión con varias membresías, `lastActiveTenantId`,
+el selector y `switchActiveTenant`. **`producto-multiconjunto` está encendida** en los diez conjuntos
+de producción, por el valor global.
+
+**Falta:**
+
+| Pieza | Hoy | Referencia |
+|---|---|---|
+| Pestaña Admins | Un conjunto por formulario; lista y filtro por `users.tenantId` | `admin-users/page.tsx:189, 211, 329-337` · `services.ts:360-382` |
+| Alta con un correo existente | Rechazo en seco | `index.ts:1338-1340` |
+| Edición | Muda al admin | `index.ts:1483-1485` |
+| `/admin/users` del conjunto | Lista `users` por `users.tenantId`: **el admin compartido no aparece en su segundo conjunto** | `(admin)/admin/users/page.tsx:53` · `firestore.rules:319` |
+| Acciones de un conjunto sobre un colega | **Actúan sobre la cuenta entera**: desactivar deshabilita la cuenta de Auth, borrar la borra, y cambiar el rol reescribe `users.role` y el claim | `index.ts:1728-1735`, `:2125-2127`, `:1823`, `:1832` |
+| Un solo `users.role` | Una cuenta no puede ser residente en un conjunto y admin en otro | `auth-context.tsx:275` · `index.ts:416-423` |
+
+**Las acciones sobre la cuenta entera hoy son inofensivas**, porque nadie tiene dos conjuntos. **El
+día que alguien los tenga, el admin de un conjunto dejaría fuera de todos al admin compartido.** Por
+eso entran aquí y no después.
+
+**Baseline de producción:** 9 admins (Santa María tiene 2; Lomas de Sayilbedra y Tenant E2E, 0),
+**nadie con dos membresías de admin**, 1 administradora (Sayil, con Lomas de Sayilbedra) y 1 cuenta
+de residente en dos conjuntos (`david.macar.18@gmail.com`). **Ninguna cuenta mezcla roles.**
+
+### 16.3 Decisiones de David — 11 sep 2026
+
+| # | Decisión |
+|---|---|
+| **E2-D1** | El acceso se da **por persona**, desde la pestaña Admins, con una lista de conjuntos para marcar. **No por administradora**: R6 y R7 siguen en pie (el asistente con 3 de 16). La administradora es un **atajo para marcar** sus conjuntos, y no sigue los que se le asocien después |
+| **E2-D2** | **Solo el superadmin**, en esta entrega. `D1` opción B sigue decidida y va en la siguiente: **esto no reabre `D1`** |
+| **E2-D3** | Un **residente** puede recibir acceso de admin **con aviso previo** del superadmin. Pasa a admin y no ve su portal de residente mientras lo sea. **Su lado de residente se guarda**: si le quitan todos sus conjuntos de admin, vuelve a ser residente como antes |
+| **E2-D4** | **La portería, no.** Su cuenta suele ser la del dispositivo de la puerta, a menudo compartido: se rechaza con el motivo |
+| **E2-D5** | El defecto del alta de residente va **antes y aparte**: `PRD-V-FIX-004` |
+
+### 16.4 Roles y permisos de esta entrega
+
+| Rol | Puede | **NO puede** |
+|---|---|---|
+| `superadmin` | Marcar y desmarcar los conjuntos de admin de una persona. Dar acceso de admin a una cuenta de residente, tras el aviso. Desactivar la cuenta entera, como hoy | Dar acceso de admin a una cuenta de **portería** o de **superadmin**. Dejar a un admin **sin lado de residente** con cero conjuntos: para eso está «Desactivar» |
+| `tenant_admin` con varios conjuntos | Operar cada uno con sus permisos y cambiar con el selector, como en el MVP | Darse acceso a otro conjunto: en esta entrega lo da solo el superadmin |
+| `tenant_admin` que comparte conjunto con él | Ver al admin compartido en la lista de usuarios de su conjunto, **marcado como compartido** | Desactivarlo, cambiarle el rol o borrarlo: **su acceso lo gestiona Vivaru** |
+| Residente convertido en admin | Entrar como admin de sus conjuntos | Ver su portal de residente mientras sea admin, algo que el superadmin conoce por el aviso |
+| `security_guard` | Sin cambios | Recibir acceso de admin |
+
+### 16.5 Flujo funcional
+
+**Pestaña Admins (superadmin):**
+
+- **Una fila por persona**, con **todos** sus conjuntos de admin, leídos de `tenantUsers`. El filtro
+  por conjunto busca por membresía, no por `users.tenantId`.
+- **Crear** pide nombre, correo, estado y **«Conjuntos con acceso»**, uno o más. Según el correo:
+  - **no tiene cuenta** → como hoy, con una membresía por conjunto marcado;
+  - **es un admin** → no se rechaza en seco: «Ese correo ya administra {sus conjuntos}. ¿Darle
+    también acceso a {los marcados}?». Confirmar añade las membresías **sin tocar las que tiene**;
+  - **es un residente** → el aviso de E2-D3, con su conjunto y su unidad, y el botón «Entiendo,
+    darle acceso»;
+  - **es portería o superadmin** → rechazo con el motivo.
+- **Editar:** el selector único se sustituye por la lista para marcar. **Desmarcar quita solo ese
+  acceso**, y ya no se muda a nadie. Si es su último conjunto:
+  - **admin sin lado de residente** → no se permite; se ofrece «Desactivar»;
+  - **residente convertido** → aviso: «Volverá a ser residente de {conjunto}, unidad {X}»; al
+    confirmar, vuelve a residente.
+- **Atajo de administradora:** en la lista para marcar, los conjuntos van agrupados por
+  administradora, con «Marcar los N de {administradora}». **Solo marca casillas.**
+- **Desactivar / Activar** siguen siendo de la **cuenta entera**, y el botón lo dice: «todos sus
+  conjuntos».
+
+**El aviso del residente**, con este texto:
+
+> «Esta cuenta es residente de {conjunto}, unidad {X}. Si le das acceso de administrador, entrará
+> como administrador y no verá su portal de residente mientras lo sea. Su ficha, su unidad y sus
+> cargos no cambian. Si le quitas todos sus conjuntos de administrador, vuelve a ser residente
+> como antes. Si necesita las dos cosas a la vez, dale el acceso de administrador con otro correo.»
+
+**Al quitarle a alguien su conjunto activo**, su claim, `users.tenantId` y `lastActiveTenantId`
+pasan a otro de sus conjuntos, y se le revocan las sesiones para que el claim nuevo se aplique. El
+gemelo que ya lo hace es `resident-access.ts:166-175`.
+
+**`/admin/users` de cada conjunto:** la lista sale de `tenantUsers` de ese conjunto, así que el admin
+compartido aparece en todos los suyos con la marca «También administra otros conjuntos». Sus
+acciones se rechazan **en el servidor** con «Esta persona tiene acceso a otros conjuntos; su acceso
+lo gestiona Vivaru.», y la interfaz las deshabilita.
+
+### 16.6 Estados de la cuenta
+
+| Desde → hacia | Quién | Condición |
+|---|---|---|
+| Admin con N conjuntos ⇄ N ± 1 | superadmin | Un admin sin lado de residente conserva al menos uno |
+| Residente → admin | superadmin | **Con aviso confirmado**, que el servidor exige |
+| Admin ex-residente → residente | superadmin | Al quitarle su último conjunto de admin, con aviso |
+| Portería → admin | — | **Prohibida** |
+| Cualquier admin → desactivado | superadmin | Como hoy: la cuenta entera |
+
+**Todas las transiciones de esta entrega son del superadmin.** Ninguna queda a medias: cada una es
+una sola callable (§16.11).
+
+### 16.7 Contrato de datos y multi-tenancy
+
+- **Sin colecciones nuevas.** Las membresías de admin las crea y las borra la callable nueva, con la
+  forma de `sembrar-membresias-multiconjunto.mjs:117-128`.
+- **Sin campos nuevos en `tenantUsers`, a propósito.** Su regla de `update` es una lista blanca al
+  revés (`firestore.rules:271-312`), así que todo campo nuevo nacería **escribible por el propio
+  admin** sobre su membresía. El registro de quién dio cada acceso vive en `auditLogs`.
+- **El lado de residente:**
+  - **En otro conjunto:** su membresía de residente **no se toca**. Mientras `users.role` sea
+    `tenant_admin`, la sesión no la carga (`auth-context.tsx:275`). Volver a residente es reapuntar
+    `users` y el claim a ella.
+  - **En el mismo conjunto:** la membresía es **el mismo documento** (`{conjunto}_{uid}`) y pasa a
+    `tenant_admin`. El lado de residente **se reconstruye de su ficha en `people`** —`authUid` y
+    `unitId`—, que desde `FIX-004` solo escribe el servidor. **Por eso esta entrega depende de
+    `FIX-004`**: con `authUid` escribible desde el cliente, la restauración creería a quien lo
+    escribió.
+  - Si al restaurar **ya no hay ficha**, la cuenta **se desactiva, no se borra**, y el aviso lo dice.
+    *(Recomendación, confirmable en construcción.)*
+- **`users.role`** es `tenant_admin` mientras la persona tenga al menos un conjunto de admin.
+- **Suspendido, vencido y en prueba:** dar acceso se permite en cualquier estado. La operación ahí
+  sigue las reglas de siempre —solo lectura en suspendido o vencido (`CA10`)— y **no se envía correo**,
+  así que la regla B y la puerta de buzones no entran en juego.
+
+### 16.8 Reglas de negocio
+
+| # | Regla |
+|---|---|
+| **E2-R1** | Dar o quitar acceso de admin a un conjunto crea o borra **solo la membresía de ese conjunto**. Nunca toca las demás ni la cuenta |
+| **E2-R2** | En esta entrega, **solo el superadmin** da o quita acceso de admin a una persona que ya existe |
+| **E2-R3** | Una cuenta de **portería** o de **superadmin** no recibe acceso de admin |
+| **E2-R4** | Una cuenta de **residente** recibe acceso de admin **solo con la confirmación del aviso**, y **la exige el servidor**, no la interfaz |
+| **E2-R5** | El lado de residente de una cuenta convertida **se conserva** y vuelve cuando le quitan su último conjunto de admin |
+| **E2-R6** | Un admin **sin lado de residente** conserva al menos un conjunto. Quitarle el último es desactivarlo |
+| **E2-R7** | Al quitar el conjunto activo, **el claim, `users.tenantId` y `lastActiveTenantId` pasan a otro** de sus conjuntos, y sus sesiones se revocan |
+| **E2-R8** | Desde un conjunto **no se desactiva, ni se cambia de rol, ni se borra** una cuenta con acceso a otros conjuntos |
+| **E2-R9** | El admin compartido **aparece** en la lista de usuarios de cada conjunto donde tiene acceso |
+| **E2-R10** | La administradora **solo marca casillas**: no crea vínculo persona–administradora ni da acceso a los conjuntos que se le asocien después (R6, R7) |
+| **E2-R11** | Cada alta y baja de acceso queda en `auditLogs` **del conjunto afectado**, con quién la hizo |
+
+### 16.9 Notificaciones y correo
+
+**Sin correo nuevo** (§9). Una cuenta nueva recibe la invitación de hoy. **Un admin existente al que
+se le da otro conjunto lo verá en su selector** al entrar. Si hace falta avisarle, va con `D1`-B,
+que es cuando lo dará otra persona y no Vivaru. *(Recomendación.)*
+
+### 16.10 Criterios de aceptación
+
+**Deben pasar:**
+
+| # | Criterio |
+|---|---|
+| CA13 | El superadmin crea un admin nuevo con dos conjuntos marcados → entra y **ve el selector con los dos** |
+| CA14 | Marca un tercer conjunto a un admin existente → **aparece en su selector** y los otros dos siguen |
+| CA15 | Crear con el correo de un admin existente **ofrece añadirle** los conjuntos marcados; confirmar lo hace **sin tocar sus membresías previas** |
+| CA16 | Desmarcar un conjunto quita **solo ese** acceso: `CF1` lo deniega ahí y los demás siguen operables |
+| CA17 | Desmarcar su **conjunto activo** → al volver a entrar aterriza en otro de sus conjuntos, sin error |
+| CA18 | La pestaña Admins lista al admin **una vez**, con sus N conjuntos; filtrar por cualquiera lo encuentra |
+| CA19 | «Marcar los N de {administradora}» marca **exactamente** los conjuntos asociados a ella |
+| CA20 | Residente → admin: el aviso nombra **su conjunto y su unidad**; tras confirmar entra como admin, y su ficha, su unidad y sus cargos no cambian |
+| CA21 | Ese residente convertido, al quitarle su último conjunto de admin, **vuelve a entrar como residente** de su unidad, con su estado de cuenta |
+| CA22 | CA21 **en el mismo conjunto** (residente de A → admin de A → se le quita) → vuelve a residente de su unidad en A |
+| CA23 | El admin compartido **aparece en `/admin/users` de cada uno** de sus conjuntos, marcado como compartido |
+| CA24 | **Un admin de un solo conjunto no nota nada** (`CA1`): sin selector, y su lista y sus acciones como hoy |
+
+**Deben fallar:**
+
+| # | Criterio |
+|---|---|
+| CF9 | Dar acceso de admin a una cuenta de **portería** → rechazado, con el motivo |
+| CF10 | Dar acceso de admin a la cuenta del **superadmin** → rechazado |
+| CF11 | Llamar a la callable **sin la confirmación** sobre una cuenta de residente → **rechazado por el servidor** |
+| CF12 | Un `tenant_admin` llama a la callable de dar acceso → **`permission-denied`** |
+| CF13 | Desde `/admin/users` de un conjunto, **desactivar** a un admin compartido → rechazado; su cuenta sigue activa en todos sus conjuntos |
+| CF14 | Ídem **borrarlo** → rechazado; la cuenta y sus membresías siguen |
+| CF15 | Ídem **cambiarle el rol** → rechazado; su claim y `users.role` intactos |
+| CF16 | Desmarcar el último conjunto de un admin **sin lado de residente** → rechazado |
+| CF17 | Asociar un conjunto nuevo a la administradora **no da acceso** a quien se marcó antes con el atajo |
+| CF18 | Desde Residentes, **quitar el acceso** de la ficha de un residente convertido en admin de ese conjunto → rechazado por la guarda existente (`resident-access.ts:73`), y **conserva la membresía de admin** |
+
+**CF11, CF13 y CF15 son los que prueban que la entrega es segura**, y van **en rojo contra el código
+de hoy** antes de escribir nada.
+
+### 16.11 Arquitectura y dependencias
+
+**Cliente o callable: callable.** Toca cuentas, claims y varias colecciones, y R4 y R8 no pueden
+vivir en el cliente. **No hay cambio de reglas:** las membresías solo las escribe el servidor (el
+cliente ya tiene `create, delete: if superadmin()`, `firestore.rules:269`), y la lista del conjunto
+lee `tenantUsers`, que las reglas ya le permiten al admin de ese conjunto (`:263-267`).
+
+- **Callable nueva de superadmin, declarativa:** recibe la persona y **el conjunto de conjuntos**
+  marcados, calcula la diferencia y aplica E2-R1…R7 sobre **el estado final**. Así es idempotente, se
+  audita en una sola operación, y «el último conjunto» se decide sobre lo que queda y no sobre cada
+  paso. El orden es el de `revocarAccesoDeResidente`: **primero las membresías y `users`**, después
+  el claim y la revocación de sesiones.
+- **`createTenantAdmin`:** acepta varios conjuntos. Con un correo que ya existe responde
+  `already-exists` **con el tipo de cuenta y sus conjuntos** —solo al superadmin, que ya lo ve todo—,
+  para que la interfaz ofrezca añadir o muestre el aviso.
+- **`updateTenantAdmin`:** deja de mudar. Sigue para nombre y estado.
+- **`setOperationalUserStatus`, `updateOperationalUser` y `deleteOperationalUser`:** rechazan si el
+  destino tiene membresías en otros conjuntos (E2-R8).
+- **`/admin/users`:** lista `tenantUsers` con `where("tenantId", "==", activo)`.
+- **Sin bandera nueva.** Es una herramienta de superadmin, y el selector ya va con
+  `producto-multiconjunto`, encendida.
+- **Dependencia dura: `FIX-004` desplegada antes** (§16.7).
+
+### 16.12 Riesgos y mitigaciones
+
+| Riesgo | Mitigación | Señal |
+|---|---|---|
+| **Error de permisos** (G3 de esta ficha: alto) | CF9–CF18 en rojo antes, falsación de cada guarda, emulador | Denegaciones inesperadas en `logClientError` |
+| Quitar el conjunto activo deja el claim apuntando fuera, y Storage deniega | E2-R7, con el gemelo de la revocación de residentes | CA17 |
+| Un conjunto deja fuera de todos al admin compartido | E2-R8 en el servidor | CF13–CF15 |
+| La restauración del residente no encuentra su ficha | Se desactiva, no se borra, y el aviso lo dice | Auditoría de la baja |
+| Dos pestañas en conjuntos distintos se pisan | Precio conocido de §11.3; no cambia | — |
+
+### 16.13 Despliegue, rollback y validación
+
+**Orden:** `FIX-004` entera → functions (callable nueva, `createTenantAdmin`, `updateTenantAdmin` y
+las tres operativas) → front (pestaña Admins y `/admin/users`). **Sin reglas.**
+
+**Rollback:** functions y front del commit anterior. **Las membresías dadas son datos válidos** y no
+se deshacen con el rollback: se desmarcan, o se retiran con el script (`--retirar`).
+
+**Validación:**
+
+- **Emulador:** los CF en rojo antes y en verde después.
+- **Staging:** con la cuenta de siete conjuntos y con **una cuenta de residente desechable** para
+  CA20–CA22, creada **con permiso de David**.
+- **Producción:** `updateTime` de cada function y el build del front. **Sin datos de prueba** salvo
+  permiso expreso: el primer uso real es la validación.
+
+**Story Map:** **entrega 2** = esto · **entrega 3** = `D1`-B, el admin da acceso en sus otros
+conjuntos · **Fase 2** = cartera y el residente ve su administradora, sin cambios.
+
+### 16.14 Puertas de la entrega 2
+
+| Puerta | Estado |
+|---|---|
+| **G0 Necesidad** | ✅ Pedida por David el 11 sep; el hueco está medido: **ninguna vía del producto**, solo un script |
+| **G1 Valor** | ✅ Baseline: **0** personas con dos conjuntos de admin en producción. Métrica: dar acceso a N conjuntos **desde la consola**, sin script ni soporte |
+| **G2 Datos y permisos** | ✅ Sin datos nuevos; prohibiciones por rol en §16.4 |
+| **G3 Riesgo** | ✅ **Con condición: `FIX-004` va antes.** Reversible salvo las membresías dadas, que se desmarcan |
+| **G4 Aceptación** | ✅ 12 que pasan y 10 que deben fallar; tres de ellos en rojo antes de construir |
+| **G5 Operación** | ✅ La opera el superadmin (David) hasta `D1`-B |
+| **G6 Escala** | ✅ Una lectura de `tenantUsers` por conjunto; una operación por persona
