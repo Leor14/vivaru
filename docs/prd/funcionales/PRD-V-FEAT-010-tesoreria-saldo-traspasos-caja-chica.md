@@ -684,6 +684,36 @@ En su orden, **reglas → functions → front**:
 - `producto-tesoreria` resuelta con el compilado: **apagada en los nueve**. Producción tiene **0
   traspasos y 0 cajas**, así que ningún tramo llegará a la bandeja hasta que haya dos cuentas.
 
+## 18 · El pago de una cuota, con su cuenta — 11 de septiembre de 2026
+
+La entrega 3 construyó «Sale de» en el formulario de egresos y **se dejó fuera el pago de una cuota
+de `FLOW-008`**. El panel de cuotas no mandaba cuenta, así que toda cuota pagada quedaba **«sin
+cuenta»** en la tesorería (`RN-03`); y el servidor, si le llegaba una, la copiaba **sin
+comprobarla**. Dos mitades del mismo hueco, cerradas el mismo día:
+
+| Mitad | Qué | Commit |
+|---|---|---|
+| Servidor | `comprobarCuentaDeSalida` (`functions/src/egresos-en-cuotas.ts`) la lee **dentro de la transacción**: cuenta bancaria activa o caja abierta, las dos del conjunto. Un id inexistente, ajeno, inactivo o de una caja cerrada se rechaza **sin asiento y con la cuota pendiente** | `63c0fde` |
+| Pantalla | El panel de cuotas ofrece «Sale de» con la tesorería encendida, con **la misma regla** que el formulario: `cuentasDeSalida`, que salió de dentro de la página de egresos | `75c346a` |
+
+**No es la función de `aplicarPago`, a propósito**: lo que paga un residente nunca entra a la caja
+(`RN-08`), y un egreso sí puede salir de ella (§7). El saldo no se mira (`RN-09`).
+
+**Pruebas:** 8 de emulador y 5 del front, falsadas en 6 y 5 mutaciones. **Visto en staging, antes y
+después**, Santa María, «Mantenimiento del ascensor 2026», abriendo el pago de la cuota 1 sin
+registrarlo: con `63c0fde` el formulario pedía solo la fecha, **sin «Sale de»**; con `75c346a`
+(`build-2026-09-11-023`) aparece «Sale de» con **una sola opción, «Sin indicar»**, que es lo que se
+predijo leyendo la base antes de mirar: Santa María no tiene en staging ni cuentas ni cajas. Que
+ofrezca las cuentas correctas lo fijan las pruebas; que el selector se esconda con la tesorería
+apagada no lo alcanza ninguna (vitest corre sin DOM).
+
+### Lo que queda, y no se construyó
+
+- 🔴 **Las reglas de `expenses` y `ledgerEntries` no comprueban `bankAccountId`.** Es el mismo hueco
+  por el camino del cliente: «Sale de» y los asientos manuales escriben directo, y la regla no mira que
+  la cuenta sea del conjunto. `cuentaDelConjunto` existe y solo la usan los traspasos y la caja.
+  Tocarlo es restringir colecciones centrales: medir antes a quién afectaría.
+
 ## Puertas
 
 | Puerta | Estado |
