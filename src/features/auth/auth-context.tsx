@@ -53,6 +53,8 @@ interface SessionProfile {
   memberships: TenantMembership[];
   /** `PRD-V-FEAT-007`. Ausente = sin elegir; se pinta claro. */
   tema?: "claro" | "oscuro";
+  /** `PRD-V-PLAT-004`. La marca de consejo de la membresía que se leyó. */
+  isCommittee: boolean;
 }
 
 export interface AuthSession {
@@ -101,7 +103,10 @@ function mapRole(raw: unknown): AppRole | null {
   if (raw === "super_admin" || raw === "superadmin") return "superadmin";
   if (raw === "admin_tenant" || raw === "tenant_admin") return "tenant_admin";
   if (raw === "security_guard" || raw === "security") return "security_guard";
-  if (raw === "resident" || raw === "committee") return raw;
+  // `committee` ya no es un rol (`PRD-V-PLAT-004`, `RN-01`): el consejo es una MARCA de la
+  // membresía de residente, que la sesión lee aparte (`isCommittee`). Como rol no lo tenía
+  // nadie —0 de 41 en producción el 4 sep 2026— y aquí solo abría `/admin/documents`.
+  if (raw === "resident") return raw;
   return null;
 }
 
@@ -129,6 +134,7 @@ function toSessionUser(profile: SessionProfile): SessionUser {
     passwordStatus: profile.passwordStatus,
     status: profile.status,
     tema: profile.tema,
+    isCommittee: profile.isCommittee,
   };
 }
 
@@ -189,6 +195,7 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
   let temporaryPassword = false;
   let passwordStatus: "temporary" | "updated" = "updated";
   let memberships: TenantMembership[] = [];
+  let isCommittee = false;
 
   if (role === "superadmin" || firebaseUser.email === "superadmin@hogaru.co") {
     role = "superadmin";
@@ -348,6 +355,9 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
         fullName = membershipData.fullName;
       }
       profileStatus = mapStatus(membershipData.status);
+      // `PRD-V-PLAT-004`: la marca va en la MISMA membresía que da el rol y la unidad. Solo
+      // `true` cuenta: el campo no existe en casi ninguna membresía, y ausente es sin marca.
+      isCommittee = membershipData.isCommittee === true;
       debugAuth("[auth.profile] tenantUsers-doc", {
         uid: firebaseUser.uid,
         membershipMustChangePassword: membershipData.mustChangePassword === true,
@@ -449,6 +459,7 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
     status: profileStatus,
     memberships,
     tema: temaDelPerfil,
+    isCommittee,
   };
 
   debugAuth("[auth.profile] resolved", {
@@ -489,6 +500,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         memberships: cached.memberships ?? [],
         unitId: cached.unitId,
         unitLabel: cached.unitLabel,
+        isCommittee: cached.isCommittee === true,
       },
       resolved: true,
       isConfigured: isFirebaseConfigured,
@@ -543,6 +555,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             memberships: cached.memberships ?? [],
             unitId: cached.unitId,
             unitLabel: cached.unitLabel,
+            isCommittee: cached.isCommittee === true,
           },
           resolved: true,
           isConfigured: true,

@@ -53,7 +53,7 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
   //     ninguna prueba hasta hoy. Ahora lo vigila
   //     `tests/admin-navigation-contract.test.ts`.
   //
-  //     El resto de roles —resident, security, superadmin, committee— SÍ salen de
+  //     El resto de roles —resident, security, superadmin— SÍ salen de
   //     aquí, vía `buildRoleSidebarGroups`.
   // ───────────────────────────────────────────────────────────────────────────
   admin_tenant: [
@@ -104,6 +104,9 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/resident/surveys", label: "Encuestas" },
     { href: "/resident/regulations", label: "Reglamento" },
     { href: "/resident/agreements", label: "Acuerdos de comité" },
+    // `PRD-V-PLAT-004` entrega 2. **Solo la ve el consejo**: `buildRoleSidebarGroups` la
+    // esconde a quien no tiene la marca, igual que esconde los módulos que el conjunto apaga.
+    { href: "/resident/informes", label: "Informes del conjunto" },
     { href: "/resident/packages", label: "Paquetería" },
     { href: "/resident/pqrs", label: "PQRS" },
     { href: "/resident/profile", label: "Perfil" },
@@ -122,5 +125,4 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/guard/packages/new", label: "Registrar paquete" },
     { href: "/guard/packages", label: "Paquetes recibidos" },
   ],
-  committee: [{ href: "/admin/documents", label: "Asambleas" }],
 };

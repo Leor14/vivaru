@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
+import { ResumenDelInforme } from "@/components/features/finanzas/ResumenDelInforme";
 import { useAuth } from "@/features/auth/auth-context";
-import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { rotuloDelPeriodo } from "@/features/finanzas/informe-mensual-texto";
 import {
   watchMonthlyReports,
   type MonthlyReport,
@@ -34,28 +35,9 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
  * los enviara, el informe diría lo que dijera el navegador.
  */
 
-/** `YYYY-MM` → «marzo de 2026». El período es lo que la gente reconoce del informe. */
-function rotuloDelPeriodo(period: string): string {
-  const [y, m] = period.split("-");
-  const d = new Date(Number(y), Number(m) - 1, 1);
-  if (Number.isNaN(d.getTime())) return period;
-  const texto = d.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
-
-function fecha(sello: { seconds: number } | undefined): string {
-  if (!sello?.seconds) return "";
-  return new Date(sello.seconds * 1000).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export function InformeMensualCard() {
   const { user } = useAuth();
   const tenantId = user?.tenantId ?? undefined;
-  const { formatAmount } = useTenantCurrency();
 
   const [informes, setInformes] = useState<MonthlyReport[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -204,8 +186,12 @@ export function InformeMensualCard() {
                         disabled={ocupado !== null || yaFirme}
                         onClick={() =>
                           conAviso(informe.id, async () => {
-                            await signMonthlyReportCallable({ tenantId: tenantId!, reportId: informe.id });
-                            toast.success("Firma registrada.");
+                            const r = await signMonthlyReportCallable({ tenantId: tenantId!, reportId: informe.id });
+                            if (r.pdfActualizado === false) {
+                              toast.warning("Firma registrada. El PDF no se pudo actualizar ahora; se actualizará con la próxima firma.");
+                            } else {
+                              toast.success("Firma registrada.");
+                            }
                           })
                         }
                       >
@@ -229,52 +215,7 @@ export function InformeMensualCard() {
                 </div>
               </div>
 
-              {/* `RN-14` · un informe anulado se conserva y **se ve anulado, con su motivo**. */}
-              {informe.status === "anulado" && informe.voidReason && (
-                <p className="mt-2 text-sm text-[var(--mapa-rojo-texto-1)]">
-                  Anulado el {fecha(informe.voidedAt)}: {informe.voidReason}
-                </p>
-              )}
-
-              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
-                <div>
-                  <dt className="text-[var(--slate-500)]">Saldo inicial</dt>
-                  {/* `CA4` · sin dato NO se escribe «$0»: nadie afirmó ese cero. */}
-                  <dd className="font-medium text-[var(--slate-900)]">
-                    {informe.openingBalanceSource === "registrado" ? (
-                      formatAmount(informe.openingBalance)
-                    ) : (
-                      <span className="text-[var(--slate-500)]">Sin saldo de apertura</span>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--slate-500)]">Resultado del mes</dt>
-                  <dd className="font-medium text-[var(--slate-900)]">{formatAmount(informe.netResult)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--slate-500)]">Saldo final</dt>
-                  <dd className="font-medium text-[var(--slate-900)]">{formatAmount(informe.closingBalance)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--slate-500)]">Por cobrar</dt>
-                  <dd className="font-medium text-[var(--slate-900)]">{formatAmount(informe.receivables?.total ?? 0)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--slate-500)]">Deuda a proveedores</dt>
-                  <dd className="font-medium text-[var(--slate-900)]">{formatAmount(informe.payables?.total ?? 0)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--slate-500)]">Firmas</dt>
-                  <dd className="font-medium text-[var(--slate-900)]">
-                    {firmas.length === 0 ? (
-                      <span className="text-[var(--slate-500)]">Sin firmar</span>
-                    ) : (
-                      firmas.map((f) => f.name).join(", ")
-                    )}
-                  </dd>
-                </div>
-              </dl>
+              <ResumenDelInforme informe={informe} />
 
               {anulando === informe.id && (
                 <div className="mt-3 rounded-lg bg-[var(--slate-100)] p-3">

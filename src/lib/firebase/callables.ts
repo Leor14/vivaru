@@ -1640,7 +1640,9 @@ export async function signMonthlyReportCallable(input: SignMonthlyReportInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
   }
-  const callable = httpsCallable<SignMonthlyReportInput, { ok: true; yaFirmado: boolean }>(
+  // `pdfActualizado` (`PRD-V-PLAT-004`): el servidor rehace el PDF con la firma DESPUÉS de
+  // sellarla. Si eso falla la firma sigue en pie, y la respuesta lo dice en vez de lanzar.
+  const callable = httpsCallable<SignMonthlyReportInput, { ok: true; yaFirmado: boolean; pdfActualizado?: boolean }>(
     functions,
     "signMonthlyReport",
   );

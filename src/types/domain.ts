@@ -182,6 +182,12 @@ export interface SessionUser {
   memberships?: TenantMembership[];
   unitId?: string;
   unitLabel?: string;
+  /**
+   * `PRD-V-PLAT-004` (`RN-01`) — la marca de consejo de la membresía activa. **Es un
+   * atributo, no un rol**: quien la tiene sigue siendo `resident`, con su unidad, y además
+   * ve las pantallas del consejo (`veLasPantallasDelConsejo`). Ausente = sin marca.
+   */
+  isCommittee?: boolean;
   documentNumber?: string;
   mustChangePassword?: boolean;
   temporaryPassword?: boolean;

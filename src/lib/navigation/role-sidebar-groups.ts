@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarCheck,
   ClipboardList,
+  FileSignature,
   FileText,
   Grid3X3,
   Home,
@@ -22,6 +23,7 @@ import {
 
 import { roleNavigation } from "@/lib/constants/navigation";
 import type { AppRole } from "@/lib/constants/roles";
+import { RUTA_DE_INFORMES_DEL_CONSEJO } from "@/lib/auth/consejo";
 import { ADMIN_SIDEBAR_GROUPS, type AdminSidebarGroup } from "@/components/shared/admin-sidebar";
 import { type ResidentModules, DEFAULT_RESIDENT_MODULES } from "@/features/admin/services";
 import type { FinanceVariant } from "@/lib/config/module-variants";
@@ -63,6 +65,7 @@ const ICON_BY_HREF: Record<string, IconComponent> = {
   "/resident/services": Store,
   "/resident/surveys": ClipboardList,
   "/resident/regulations": ScrollText,
+  [RUTA_DE_INFORMES_DEL_CONSEJO]: FileSignature,
   "/resident/packages": Package,
   "/resident/pqrs": FileText,
   "/resident/profile": Users,
@@ -79,7 +82,6 @@ const GROUP_LABEL_BY_ROLE: Record<string, string | undefined> = {
   security_guard: "PORTERIA",
   super_admin: "PLATAFORMA",
   superadmin: "PLATAFORMA",
-  committee: "COMITE",
 };
 
 /** Maps resident module keys to the hrefs they control in the resident sidebar. */
@@ -104,13 +106,26 @@ const RESIDENT_MODULE_HREFS: Record<keyof ResidentModules, string> = {
  * falsa, y ese es el único riesgo real del portal del residente en un trial.
  * El resto sigue visible — el administrador necesita evaluar la experiencia
  * completa, y en prueba no se invita a residentes reales (Regla B).
+ *
+ * Los informes del consejo también son de firma, y además en prueba no los hay: el
+ * servidor no emite un informe mensual a un conjunto sin contratar.
  */
-const SIGNATURE_HREFS_HIDDEN_IN_TRIAL = ["/resident/regulations", "/resident/agreements"];
+const SIGNATURE_HREFS_HIDDEN_IN_TRIAL = [
+  "/resident/regulations",
+  "/resident/agreements",
+  RUTA_DE_INFORMES_DEL_CONSEJO,
+];
 
 export function buildRoleSidebarGroups(
   role: AppRole,
   residentModules?: ResidentModules,
   isTrialTenant = false,
+  /**
+   * `PRD-V-PLAT-004` — si la sesión ve las pantallas del consejo (`veLasPantallasDelConsejo`).
+   * Por defecto NO: la entrada existe en `roleNavigation.resident` y se esconde a quien no
+   * tiene la marca, igual que los módulos que el conjunto apaga.
+   */
+  esConsejo = false,
 ): AdminSidebarGroup[] {
   const items = roleNavigation[role] ?? [];
   if (items.length === 0) return [];
@@ -128,6 +143,10 @@ export function buildRoleSidebarGroups(
 
   if (role === "resident" && isTrialTenant) {
     for (const href of SIGNATURE_HREFS_HIDDEN_IN_TRIAL) hiddenHrefs.add(href);
+  }
+
+  if (role === "resident" && !esConsejo) {
+    hiddenHrefs.add(RUTA_DE_INFORMES_DEL_CONSEJO);
   }
 
   const filteredItems = items.filter((item) => !hiddenHrefs.has(item.href));

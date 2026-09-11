@@ -26,6 +26,8 @@ import { isTicketPending } from "@/features/pqrs/ticket-status";
 import { useTickets } from "@/features/pqrs/use-tickets";
 import { endRouteVeil } from "@/features/onboarding/route-transition";
 import { canAccessPath, routeByRole } from "@/lib/auth/routing";
+import { veLasPantallasDelConsejo } from "@/lib/auth/consejo";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { type AppRole } from "@/lib/constants/roles";
 import { db } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils/cn";
@@ -102,6 +104,9 @@ export function AppShell({
   const isAdminRole = role === "tenant_admin" || role === "admin_tenant";
   const navTenantId = isAdminRole ? user?.tenantId : undefined;
   const trial = useTenantTrial(user?.tenantId);
+  // `PRD-V-PLAT-004`: la entrada del consejo en el menú del residente. Va aquí, antes de
+  // cualquier `return`, como todos los hooks.
+  const banderaDelConsejo = useFeatureFlag("producto-rol-consejo");
 
   /** Marca con candado los módulos que en la prueba son solo vista previa. */
   const markLocked = useCallback(
@@ -272,7 +277,7 @@ export function AppShell({
   if (!user) return null;
 
   const isTenantLayout = role === "tenant_admin" || role === "admin_tenant";
-  const shellRole: AppRole = isTenantLayout && (user.role === "security_guard" || user.role === "security" || user.role === "committee") ? user.role : role;
+  const shellRole: AppRole = isTenantLayout && (user.role === "security_guard" || user.role === "security") ? user.role : role;
   const shellTitle = user.role === "security_guard" || user.role === "security" ? "Panel de Porteria" : title;
 
   /**
@@ -287,6 +292,7 @@ export function AppShell({
         shellRole,
         branding?.residentModules ?? DEFAULT_RESIDENT_MODULES,
         trial.isTrial || trial.isExpired,
+        veLasPantallasDelConsejo(user, banderaDelConsejo),
       );
 
   const pageIdentity = resolvePageIdentity(pathname, sidebarGroups);
