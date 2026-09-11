@@ -14,6 +14,9 @@ exports.prepararEmision = prepararEmision;
 exports.sellarEmision = sellarEmision;
 exports.firmarInforme = firmarInforme;
 exports.anularInforme = anularInforme;
+exports.instantaneaDeUnInformeSellado = instantaneaDeUnInformeSellado;
+exports.zonaParaPintarFechas = zonaParaPintarFechas;
+exports.firmasParaElPdf = firmasParaElPdf;
 exports.filasDeCabecera = filasDeCabecera;
 exports.seccionesDelInforme = seccionesDelInforme;
 exports.formatearMonto = formatearMonto;
@@ -475,6 +478,71 @@ async function anularInforme(input) {
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         });
         return { ok: true, yaAnulado: false };
+    });
+}
+// ── Rehacer el PDF de un informe ya sellado (`PRD-V-PLAT-004`) ─────────────────
+//
+// Al emitir, el PDF se archiva con el bloque de firmas VACÍO (`CA13` pide que salga y no
+// se omita), y firmar solo tocaba el documento del informe: **el papel no nombraba nunca a
+// nadie**, y `CA3` de `PLAT-004` pedía justo eso. Ahora `signMonthlyReport` lo rehace tras
+// cada firma, con estas tres piezas.
+/**
+ * La instantánea de un informe YA SELLADO, leída de su propio documento.
+ *
+ * `sellarEmision` escribe la instantánea entera en el documento, así que el PDF se rehace
+ * desde ahí **sin recalcular nada**: las cifras de un informe emitido están congeladas, y
+ * volver a calcularlas al firmar podría cambiarlas bajo una firma que aprobó otras. Lee con
+ * valores por defecto porque lo que llega es `doc.data()`.
+ */
+function instantaneaDeUnInformeSellado(d) {
+    const n = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+    const lista = (v) => (Array.isArray(v) ? v : []);
+    const cobrar = (d.receivables ?? {});
+    const pagar = (d.payables ?? {});
+    return {
+        openingBalance: n(d.openingBalance),
+        // `CA4`: la ausencia de dato sigue siendo ausencia, no «$0».
+        openingBalanceSource: d.openingBalanceSource === "registrado" ? "registrado" : "ausente",
+        closingBalance: n(d.closingBalance),
+        income: lista(d.income),
+        expenses: lista(d.expenses),
+        totalIncome: n(d.totalIncome),
+        totalExpenses: n(d.totalExpenses),
+        netResult: n(d.netResult),
+        receivables: { total: n(cobrar.total), byUnit: lista(cobrar.byUnit) },
+        payables: { total: n(pagar.total), overdue: n(pagar.overdue), byVendor: lista(pagar.byVendor) },
+    };
+}
+/**
+ * La zona en la que se ESCRIBE una fecha para el conjunto, sacada de su país.
+ *
+ * **Solo para pintar, no para decidir nada**: el servidor sigue calculando en UTC a
+ * propósito —el «vencido» espera una decisión de David (`docs/pendientes.md`)—. Pero una
+ * firma puesta a las 19:30 en México no puede salir en el papel con la fecha del día
+ * siguiente, que es lo que escribiría UTC. México tiene varias zonas: se usa la de la capital.
+ */
+function zonaParaPintarFechas(country) {
+    if (country === "CO")
+        return "America/Bogota";
+    if (country === "EC")
+        return "America/Guayaquil";
+    return "America/Mexico_City";
+}
+/** Las firmas tal como van al papel: nombre, cargo y fecha, escrita en la zona del conjunto. */
+function firmasParaElPdf(firmas, zona) {
+    const formato = new Intl.DateTimeFormat("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: zona,
+    });
+    return (Array.isArray(firmas) ? firmas : []).map((f) => {
+        const fecha = typeof f?.signedAt?.toDate === "function" ? f.signedAt.toDate() : undefined;
+        return {
+            name: typeof f?.name === "string" ? f.name : "",
+            role: typeof f?.role === "string" ? f.role : "",
+            signedAt: fecha ? formato.format(fecha) : "",
+        };
     });
 }
 // ── Cómo se LEE el informe en el PDF ────────────────────────────────────────

@@ -4144,6 +4144,54 @@ exports.issueMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableC
     await writeAuditLog(tenantId, uid, "issue_monthly_report", { period, documentId });
     return { ok: true, reportId: (0, informe_mensual_1.idDelInforme)(tenantId, period), created: true };
 });
+/**
+ * `PRD-V-PLAT-004` `CA3` — rehace el PDF de un informe emitido con las firmas que lleva.
+ *
+ * Se reconstruye con las cifras CONGELADAS del documento (`instantaneaDeUnInformeSellado`),
+ * sin recalcular nada, y se archiva con el MISMO id que la emisión: la ruta de Storage y la
+ * fila de `documents` se sobrescriben, así que el `documentId` del informe sigue valiendo.
+ * Lo que no está emitido o publicado no se toca: un borrador no tiene PDF, y un anulado ya
+ * no se firma.
+ */
+async function rehacerPdfDelInforme(tenantId, reportId) {
+    const snap = await db.collection("monthlyReports").doc(reportId).get();
+    const informe = snap.data();
+    if (!informe || informe.tenantId !== tenantId)
+        return;
+    if (informe.status !== "emitido" && informe.status !== "publicado")
+        return;
+    const period = String(informe.period ?? "");
+    const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+    const tenant = tenantSnap.data();
+    const instantanea = (0, informe_mensual_1.instantaneaDeUnInformeSellado)(informe);
+    const firmas = (0, informe_mensual_1.firmasParaElPdf)(informe.signatures, (0, informe_mensual_1.zonaParaPintarFechas)(tenant?.country));
+    const pdf = await (0, pdf_resumen_1.buildInformeMensualPdf)({
+        tenantName: tenant?.name ?? tenantId,
+        period,
+        logo: await descargarLogo(tenant?.branding?.logoUrl),
+        statusLabel: informe.status === "publicado" ? "Publicado" : "Emitido",
+        headline: (0, informe_mensual_1.filasDeCabecera)(instantanea),
+        sections: (0, informe_mensual_1.seccionesDelInforme)(instantanea),
+        signatures: firmas,
+        footNote: informe_mensual_1.PIE_DEL_INFORME,
+    });
+    await archiveBuffer({
+        tenantId,
+        systemKey: "monthly_reports",
+        fileName: `Informe-mensual-${period}.pdf`,
+        ext: "pdf",
+        contentType: "application/pdf",
+        buffer: pdf,
+        description: `Informe económico mensual ${period} (emitido, ${firmas.length} ${firmas.length === 1 ? "firma" : "firmas"})`,
+        source: "monthly_report",
+        sourceId: period,
+        category: "informe_mensual",
+        // El documento al que el informe YA apunta; si faltara, el mismo id que usa la emisión.
+        stableId: typeof informe.documentId === "string" && informe.documentId
+            ? informe.documentId
+            : `informe_${(0, informe_mensual_1.idDelInforme)(tenantId, period)}`,
+    });
+}
 exports.signMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     const uid = request.auth?.uid;
     if (!uid)
@@ -4170,7 +4218,23 @@ exports.signMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableCo
     if (!r.yaFirmado) {
         await writeAuditLog(tenantId, uid, "sign_monthly_report", { reportId, role: quien.role });
     }
-    return r;
+    // `PRD-V-PLAT-004` `CA3`: el papel se rehace DESPUÉS de sellar la firma, y en cada
+    // llamada —también si ya había firmado—, así que un reintento lo repara. **Si falla, la
+    // firma sigue en pie y la respuesta lo dice en vez de lanzar**: un error sobre una firma
+    // que sí quedó haría creer que no se firmó (la lección de «un error después del commit»).
+    let pdfActualizado = true;
+    try {
+        await rehacerPdfDelInforme(tenantId, reportId);
+    }
+    catch (error) {
+        pdfActualizado = false;
+        logger.error("informe-mensual: no se pudo rehacer el PDF tras firmar", {
+            tenantId,
+            reportId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+    return { ...r, pdfActualizado };
 });
 exports.voidMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     const uid = request.auth?.uid;
