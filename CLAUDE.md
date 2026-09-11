@@ -89,7 +89,7 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **1947** (10 sep 2026) |
+  | App | `npm test` | **1955** (10 sep 2026) |
   | Functions | `npm --prefix functions test` | **870** |
   | Reglas | `npm run test:rules:all` | **457** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
   | Emulador de functions | `npm --prefix functions run test:emulator` | **365 de 367** *(pide emulador)* |
@@ -293,10 +293,11 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   sin capa le ganaría a cualquier utilidad de Tailwind y sería la misma cárcel con otro nombre.
 - **`toISOString().slice(0, 10)` es el día UTC, no el de quien usa la app.** Desde las 18:00 de México
   ya es mañana: el formulario de egresos fechaba así lo registrado por la tarde, con su asiento, y a fin
-  de mes cambiaba el mes del gasto (arreglado el 10 sep, `b850dd4`). Para «hoy» en un formulario,
+  de mes cambiaba el mes del gasto (arreglado en todo el front el 10 sep, `b850dd4` y `d91e1af`). Para «hoy» en un formulario,
   `toDateInputValue(new Date())` de `src/utils/datetimeValidation.ts`. **Y la prueba fija
-  `process.env.TZ` en su propio fichero**: en CI, que corre en UTC, no distinguiría nada. Quedan
-  sitios en cobros, anticipos y tableros — ver `docs/pendientes.md`.
+  `process.env.TZ` en su propio fichero**: en CI, que corre en UTC, no distinguiría nada. El guardián
+  `tests/hoy-local.test.ts` recorre todo `src/` con **dos excepciones declaradas** —la portería y el espejo de
+  `calcularSaldo`—, y el servidor sigue en UTC a propósito — ver `docs/pendientes.md`.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
 ## Seguridad

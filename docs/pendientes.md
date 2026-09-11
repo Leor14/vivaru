@@ -19,12 +19,12 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
 > ```
 >
-> **Bancos CONTADOS hoy, no citados:** `npm test` **1947** · functions **870** · reglas **457**
+> **Bancos CONTADOS hoy, no citados:** `npm test` **1955** · functions **870** · reglas **457**
 > (medido con solo Firestore: `storage.rules.test.ts` enrojece aparte sin su emulador en el 9199,
 > y es entorno) · emulador de functions **365 de 367** — los dos rojos son `CA12` y `D-B` de
 > `payments.emulator.test.ts`, **preexistentes y confirmados por nombre**.
 >
-> ## EL «HOY» EN UTC DE LOS EGRESOS — ARREGLADO Y EN PRODUCCIÓN (10 sep, `b850dd4`)
+> ## EL «HOY» EN UTC — ARREGLADO EN TODO EL FRONT Y EN PRODUCCIÓN (10 sep, `b850dd4` y `d91e1af`)
 >
 > `toISOString().slice(0, 10)` es el día **UTC**: desde las 18:00 de México ya es mañana, y el egreso
 > —con su asiento— nacía fechado al día siguiente; el último día del mes, en el mes siguiente. Cinco
@@ -39,6 +39,23 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > `2026-09-10`. Solo front, sin bandera. Prueba en `tests/egresos-fecha-local.test.ts` **con la zona
 > fijada en el propio fichero** —en una máquina en UTC, como la de CI, no distinguiría nada— y falsada
 > en siete mutaciones.
+>
+> **Y el resto del front, `d91e1af`**, con el mismo gemelo: la fecha propuesta del cobro, la fecha contable
+> al aprobar un recibo y al cruzar un anticipo (el servidor usa la que manda el cliente), el asiento
+> manual, el formulario de cargo de Cartera y su período, la campaña por coeficiente, los tres
+> tableros, la tarjeta de vencimientos, y el estado y `lastPaymentAt` que escribe el cliente —**un cargo
+> que vence HOY dejaba de estar `pending` por la tarde**—. Operativo: comunicados, acuerdos, la fecha
+> mínima de mudanza y de encuestas, el panel, y desactivar un área, que **dejaba sin cancelar las
+> reservas de hoy**. El reporte de comité agrupa un momento por su día local; los asientos no pasan por
+> ahí —su `date` es texto: 95 de 95 en producción y 109 de 109 en staging, medido antes de tocarlo—.
+> **Visto antes y después en producción**, Santa María: «Libro y fondos» y Cartera pasaron de
+> `2026-09-11` (23:12, build viejo) a `2026-09-10` (23:19, `build-2026-09-11-005`).
+>
+> **Guardián sobre TODO `src/`** (`tests/hoy-local.test.ts`) con dos excepciones declaradas, y pide
+> sacar la que ya no haga falta. Falsado en nueve mutaciones. **Hueco dicho**: el mes y el «ayer» del
+> panel y la fecha mínima de mudanza salen de una VARIABLE, no de `new Date()`; no los ve el guardián
+> ni ninguna prueba. Y un rojo que no era del código: `imp01-imp02` simulaba `datetimeValidation`
+> ENTERA, y la simulación pasó a parcial.
 >
 > ## `PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN
 >
@@ -122,11 +139,15 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE
 >
-> 1. **El mismo «hoy» en UTC en los otros flujos de dinero** —el de egresos ya está arreglado—. En el
->    front: `RecordPaymentModal`, `use-payments`, `use-payment-receipts`, `use-billing-statements`,
->    `AdvancesPanel` y los tableros de cuentas por pagar, flujo de caja y liquidez. En el servidor, los
->    tres `hoy` de `payments.ts`: **caso por caso**, porque allí el reloj ES UTC. Ojo al alcance: no
->    todos los `toISOString().slice(0, 10)` quieren el día local.
+> 1. **Lo que queda del «hoy» en UTC, y ninguno es sustituir a ciegas.** (a) **La lista de hoy de la
+>    portería** (`GuardDashboard`): mezcla reservas, guardadas con el día local, y visitas creadas por
+>    invitación, que `invitations.ts` guarda con el día **UTC** —`use-visitor-passes` ya guarda el local—.
+>    Hoy casan por casualidad; arreglar solo la comparación rompe la mitad que funciona, y hay datos
+>    guardados de por medio. (b) **El servidor**: su «hoy» solo decide si un cargo está vencido
+>    (`calcularSaldo`, `hoyDe` en anticipos) y lo marca **unas horas antes**, desde las 18:00 de México
+>    el día que vence. Arreglarlo exige una zona por conjunto que no existe —hay `country`, y México
+>    tiene varias—. **Recomendación: esperar a un cliente real; decisión de David.** Su espejo del cliente,
+>    `computeBalanceStatus`, se mueve con él.
 > 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
 > 3. **Encenderlas en un conjunto REAL** — en Las Playas ya lo están, pero es de ejemplo y lo que tiene
