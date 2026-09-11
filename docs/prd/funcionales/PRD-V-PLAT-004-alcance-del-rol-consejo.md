@@ -9,7 +9,7 @@
 | **Usuario principal** | Miembro del consejo de administración |
 | **Usuarios secundarios** | `tenant_admin` (concede el rol), `superadmin` (soporte) |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 CONSTRUIDA** (9 sep 2026) · sin desplegar · entregas 2 y 3 pendientes |
+| **Estado** | **Entrega 1 EN PRODUCCIÓN Y STAGING** (9 sep 2026, `8db685b`), encendida en Santa María (producción) y Palmas (staging) · entregas 2 y 3 pendientes |
 | **Dependencias** | `PRD-V-FLOW-007` (firma del informe, **ya en producción**) · `PRD-V-PLAT-002` (multiconjunto) |
 | **Riesgo** | Medio-alto — toca permisos y el padrón |
 | **Reversibilidad** | Reversible por bandera **salvo el modelo de datos** (ver §13) |

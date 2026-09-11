@@ -72,6 +72,13 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **Es demo, no uso**: cobrar el consumo o pagar un gasto desde la caja se hace en vivo, y eso sí toca
 > Cartera y el libro.
 >
+> **Para enseñarlo y validarlo, dos documentos** (artefactos privados de David): el reporte
+> [«Habitanto frente a Vivaru»](https://claude.ai/code/artifact/d5368e64-405f-4c21-a594-86eb0033bb18)
+> y la guía [«Frente por frente»](https://claude.ai/code/artifact/fb485a85-da60-492c-a474-d9daff19fd24):
+> de las trece capacidades, qué es cada una, cómo lo hacía Habitanto, dónde está en Vivaru y cómo
+> validarla paso a paso, marcando lo que escribe datos. ⚠️ En la demo, servicios públicos va **por
+> encima del ritmo del año** (88 % con el 70 % transcurrido), **no pasada**.
+>
 > ## `PRD-V-FEAT-009` Y `PRD-V-FEAT-008` — EN LOS DOS AMBIENTES, ENCENDIDAS SOLO EN LAS PLAYAS
 >
 > Presupuesto contra ejecución (§3.8) y la foto del medidor (§3.5). Lo ejecutado del presupuesto **se

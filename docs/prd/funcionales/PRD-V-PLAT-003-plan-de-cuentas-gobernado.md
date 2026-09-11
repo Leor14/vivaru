@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `committee` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **En construcción** — versión **1.2**. D1 y D2 cerradas el 21 ago 2026. La 1.1 (22 ago) corrigió dos huecos que salieron al leer el código antes de construir: la semilla no cubría los conceptos de cargo (§2) y el cambio introducía un doble conteo (§2 y §5.2). **La 1.2 (22 ago, tarde) sale de construir la corrección: los sitios del doble conteo eran TRES y no dos (§2), el reverso del pago es la misma mina en negativo (R13), y la exclusión puede desplegarse sola y antes (§13)** |
+| **Estado** | **EN PRODUCCIÓN y ENCENDIDA en los nueve** (25 ago 2026), entregas 1b y 2; 189 cuentas sembradas, 21 por conjunto. *(Esta celda decía «en construcción» y se quedó atrás.)* Historia: versión **1.2**. D1 y D2 cerradas el 21 ago 2026. La 1.1 (22 ago) corrigió dos huecos que salieron al leer el código antes de construir: la semilla no cubría los conceptos de cargo (§2) y el cambio introducía un doble conteo (§2 y §5.2). **La 1.2 (22 ago, tarde) sale de construir la corrección: los sitios del doble conteo eran TRES y no dos (§2), el reverso del pago es la misma mina en negativo (R13), y la exclusión puede desplegarse sola y antes (§13)** |
 | **Dependencias** | Ninguna. **Habilita** el consolidado entre conjuntos de `PRD-V-PLAT-002`. **Secuencia obligatoria: va ANTES que `PRD-V-FLOW-002`** — las dos modifican `aplicarPago` y no pueden estar en vuelo a la vez |
 | **Riesgo** | **Alto.** Toca la categoría de todos los asientos del libro |
 | **Reversibilidad** | **Parcial.** La corrección de §5.2 **cambia lo que muestra el estado financiero** y no se deshace con una bandera (§13) |
