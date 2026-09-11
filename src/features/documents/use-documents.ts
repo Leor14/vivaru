@@ -48,7 +48,9 @@ export const CATEGORIAS_SOLO_ADMINISTRACION = [
   "legal",
   // `PRD-V-FLOW-007`. **Aquí hasta la entrega 3**, que es la que lo publica al
   // residente — y su alcance espera al abogado (`RN-11`). Mientras tanto el
-  // informe se emite y se firma, y solo lo ven la administración y el consejo.
+  // informe se emite y se firma, y el PDF lo abre SOLO la administración: el
+  // consejo lee los totales en su pantalla y firma, porque el PDF lista la
+  // cartera por unidad y con `K2` cerrado no le toca (`PRD-V-PLAT-004`, 11 sep 2026).
   "informe_mensual",
 ] as const;
 

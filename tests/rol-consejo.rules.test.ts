@@ -120,26 +120,29 @@ describe("PLAT-004 · la marca CONCEDE de verdad", () => {
     await assertFails(getDoc(doc(residente(), "clearanceCertificates", `${CONJUNTO}_pz-1`)));
   });
 
-  it("y abre el PDF del informe (`informe_mensual`), que el residente no ve", async () => {
-    await assertSucceeds(getDoc(doc(consejero(), "documents", `${CONJUNTO}_informe-2026-02`)));
-    await assertFails(getDoc(doc(residente(), "documents", `${CONJUNTO}_informe-2026-02`)));
-  });
-
   // **Hasta el 11 de septiembre de 2026 esta prueba afirmaba lo CONTRARIO**: que la marca
   // abría un `financiero`. La regla le daba al consejo todos los documentos porque su única
   // pantalla era `/admin/documents`; con `TBD-B` entra por el portal del residente, y «todo»
-  // incluía la hoja «Morosos». Decisión de David: cerrado.
-  it("pero NO abre un `financiero` —la cartera de terceros espera al abogado—, y el administrador sí", async () => {
+  // incluía la hoja «Morosos». Decisión de David: el consejero lee lo que un residente.
+  it("la marca NO abre un `financiero` —la cartera de terceros espera al abogado—, y el administrador sí", async () => {
     await assertFails(getDoc(doc(consejero(), "documents", `${CONJUNTO}_doc-1`)));
     await assertSucceeds(getDoc(doc(admin(), "documents", `${CONJUNTO}_doc-1`)));
   });
 
-  it("la consulta de su pantalla, que NOMBRA la categoría, pasa; sin nombrarla se rechaza entera", async () => {
+  it("tampoco el PDF del informe (`informe_mensual`): lista la cartera por unidad y `K2` está cerrado", async () => {
+    await assertFails(getDoc(doc(consejero(), "documents", `${CONJUNTO}_informe-2026-02`)));
+    await assertSucceeds(getDoc(doc(admin(), "documents", `${CONJUNTO}_informe-2026-02`)));
+  });
+
+  it("su consulta de documentos es la del residente: por la lista blanca pasa; pidiendo el informe, no", async () => {
     const documentos = collection(consejero(), "documents");
+    const listaBlanca = ["asamblea", "comunicado", "acuerdo", "reglamento", "plano", "memoria", "otro"];
     await assertSucceeds(
+      getDocs(query(documentos, where("tenantId", "==", CONJUNTO), where("category", "in", listaBlanca))),
+    );
+    await assertFails(
       getDocs(query(documentos, where("tenantId", "==", CONJUNTO), where("category", "in", ["informe_mensual"]))),
     );
-    await assertFails(getDocs(query(documentos, where("tenantId", "==", CONJUNTO))));
   });
 
   it("`role: \"committee\"` sigue valiendo: la compatibilidad no se rompió", async () => {

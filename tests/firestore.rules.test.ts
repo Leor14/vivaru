@@ -2787,18 +2787,18 @@ describe("documentos · el residente no alcanza los archivos financieros", () =>
   });
 
   /**
-   * **El consejo YA NO lee todo** (`PRD-V-PLAT-004`, 11 sep 2026). Esta prueba
-   * afirmaba lo contrario —«todo, y no es una concesion nueva»— porque su unica
-   * pantalla era `/admin/documents` y consultaba sin filtrar. Con `TBD-B` el
-   * consejero entra por el portal del residente, y «todo» incluia la cartera de
-   * terceros. Lee lo del residente mas el PDF del informe (`informe_mensual`);
-   * lo demas, solo la administracion. Va con el `role: "committee"` de antes,
-   * que las reglas aun admiten; la marca la prueba `rol-consejo.rules.test.ts`.
+   * **Ser consejo ya no abre documentos** (`PRD-V-PLAT-004`, 11 sep 2026). Esta
+   * prueba afirmaba lo contrario —«todo, y no es una concesion nueva»— porque la
+   * unica pantalla del consejo era `/admin/documents` y consultaba sin filtrar.
+   * Con `TBD-B` el consejero es un residente que entra por su portal y lee por la
+   * rama del residente; la marca la prueba `rol-consejo.rules.test.ts`. El
+   * `role: "committee"` de antes —que no tiene nadie— se queda sin documentos:
+   * no es residente.
    */
-  it("el consejo NO lee lo financiero y su consulta sin categoria se rechaza; lo compartible si", async () => {
+  it("el `role: committee` de antes ya no lee documentos, tampoco lo financiero", async () => {
     const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
     await assertFails(getDoc(doc(com.firestore(), "documents", "doc-a-cartera")));
-    await assertSucceeds(getDoc(doc(com.firestore(), "documents", "doc-a-reglamento")));
+    await assertFails(getDoc(doc(com.firestore(), "documents", "doc-a-reglamento")));
     await assertFails(
       getDocs(query(collection(com.firestore(), "documents"), where("tenantId", "==", "tenant-a"))),
     );

@@ -127,4 +127,9 @@ describe("la pantalla pregunta por los informes que el consejo PUEDE leer", () =
   it("y no pregunta sin la marca: la puerta va antes de la consulta", () => {
     expect(codigo).toMatch(/veLasPantallasDelConsejo\(/);
   });
+
+  it("y no abre el PDF: no consulta `documents` (con `K2` cerrado, el PDF lleva la cartera por unidad)", () => {
+    expect(codigo).not.toMatch(/["']documents["']/);
+    expect(codigo).not.toMatch(/informe_mensual/);
+  });
 });
