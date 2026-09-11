@@ -86,6 +86,9 @@ async function sembrar() {
     await setDoc(doc(db, "documents", `${CONJUNTO}_doc-1`), {
       tenantId: CONJUNTO, category: "financiero", name: "Cartera de agosto",
     });
+    await setDoc(doc(db, "documents", `${CONJUNTO}_informe-2026-02`), {
+      tenantId: CONJUNTO, category: "informe_mensual", name: "Informe-mensual-2026-02.pdf",
+    });
   });
 }
 
@@ -117,9 +120,26 @@ describe("PLAT-004 · la marca CONCEDE de verdad", () => {
     await assertFails(getDoc(doc(residente(), "clearanceCertificates", `${CONJUNTO}_pz-1`)));
   });
 
-  it("y abre un documento `financiero`, que NO está en la lista blanca del residente", async () => {
-    await assertSucceeds(getDoc(doc(consejero(), "documents", `${CONJUNTO}_doc-1`)));
-    await assertFails(getDoc(doc(residente(), "documents", `${CONJUNTO}_doc-1`)));
+  it("y abre el PDF del informe (`informe_mensual`), que el residente no ve", async () => {
+    await assertSucceeds(getDoc(doc(consejero(), "documents", `${CONJUNTO}_informe-2026-02`)));
+    await assertFails(getDoc(doc(residente(), "documents", `${CONJUNTO}_informe-2026-02`)));
+  });
+
+  // **Hasta el 11 de septiembre de 2026 esta prueba afirmaba lo CONTRARIO**: que la marca
+  // abría un `financiero`. La regla le daba al consejo todos los documentos porque su única
+  // pantalla era `/admin/documents`; con `TBD-B` entra por el portal del residente, y «todo»
+  // incluía la hoja «Morosos». Decisión de David: cerrado.
+  it("pero NO abre un `financiero` —la cartera de terceros espera al abogado—, y el administrador sí", async () => {
+    await assertFails(getDoc(doc(consejero(), "documents", `${CONJUNTO}_doc-1`)));
+    await assertSucceeds(getDoc(doc(admin(), "documents", `${CONJUNTO}_doc-1`)));
+  });
+
+  it("la consulta de su pantalla, que NOMBRA la categoría, pasa; sin nombrarla se rechaza entera", async () => {
+    const documentos = collection(consejero(), "documents");
+    await assertSucceeds(
+      getDocs(query(documentos, where("tenantId", "==", CONJUNTO), where("category", "in", ["informe_mensual"]))),
+    );
+    await assertFails(getDocs(query(documentos, where("tenantId", "==", CONJUNTO))));
   });
 
   it("`role: \"committee\"` sigue valiendo: la compatibilidad no se rompió", async () => {

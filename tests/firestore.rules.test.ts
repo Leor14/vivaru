@@ -2787,21 +2787,24 @@ describe("documentos · el residente no alcanza los archivos financieros", () =>
   });
 
   /**
-   * El consejo conserva TODO, y no es una concesion nueva: `canAccessPath` le
-   * deja solo en `/admin/documents`, esa pantalla consulta sin filtrar, y los
-   * reportes de comite son suyos. Cerrarle por categoria lo dejaria sin su
-   * unica pantalla.
+   * **El consejo YA NO lee todo** (`PRD-V-PLAT-004`, 11 sep 2026). Esta prueba
+   * afirmaba lo contrario —«todo, y no es una concesion nueva»— porque su unica
+   * pantalla era `/admin/documents` y consultaba sin filtrar. Con `TBD-B` el
+   * consejero entra por el portal del residente, y «todo» incluia la cartera de
+   * terceros. Lee lo del residente mas el PDF del informe (`informe_mensual`);
+   * lo demas, solo la administracion. Va con el `role: "committee"` de antes,
+   * que las reglas aun admiten; la marca la prueba `rol-consejo.rules.test.ts`.
    */
-  it("el consejo lee todo, incluido lo financiero", async () => {
+  it("el consejo NO lee lo financiero y su consulta sin categoria se rechaza; lo compartible si", async () => {
     const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
-    await assertSucceeds(getDoc(doc(com.firestore(), "documents", "doc-a-cartera")));
+    await assertFails(getDoc(doc(com.firestore(), "documents", "doc-a-cartera")));
     await assertSucceeds(getDoc(doc(com.firestore(), "documents", "doc-a-reglamento")));
-    await assertSucceeds(
+    await assertFails(
       getDocs(query(collection(com.firestore(), "documents"), where("tenantId", "==", "tenant-a"))),
     );
   });
 
-  it("el administrador tambien", async () => {
+  it("el administrador si lee lo financiero", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(getDoc(doc(admin.firestore(), "documents", "doc-a-cartera")));
   });

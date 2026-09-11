@@ -1132,11 +1132,13 @@ service cloud.firestore {
     //
     // Se nombran los roles, como en `advances` y `bankAccounts`:
     // - **Administracion y superadmin:** todo.
-    // - **Consejo:** todo, y no es una concesion nueva. `canAccessPath` le deja
-    //   SOLO en `/admin/documents`, esa pantalla consulta sin filtrar por
-    //   categoria, y los reportes de comite son precisamente suyos. Cerrarle por
-    //   categoria le rechazaria la consulta entera y lo dejaria sin su unica
-    //   pantalla.
+    // - **Consejo:** lo del residente MAS `informe_mensual`, el PDF del informe
+    //   que firma (`PRD-V-PLAT-004`, `FLOW-007`). **Hasta el 11 de septiembre de
+    //   2026 era TODO**, porque su unica pantalla era `/admin/documents` y
+    //   consultaba sin filtrar. Con `TBD-B` el consejero entra por el portal del
+    //   residente, esa razon desaparecio, y «todo» incluia `financiero` y
+    //   `reporte` con la hoja «Morosos»: cartera de terceros, que la ficha excluye
+    //   y que espera al abogado. Cerrado por decision de David.
     // - **Residente:** solo las categorias compartibles. Es LISTA BLANCA: con
     //   lista negra, una categoria nueva se publicaria sola.
     // - **Porteria:** nada. Ninguna pantalla de `/guard` lee esta coleccion.
@@ -1145,13 +1147,15 @@ service cloud.firestore {
     // la rechaza entera aunque todos los documentos fueran compartibles: evalua
     // la consulta contra la regla **sin ejecutarla**. Lo hace
     // `features/documents/use-documents.ts` con un `where in` sobre esta misma
-    // lista. Si las dos se separan, la pantalla deja de cargar.
+    // lista, y la pantalla de informes del consejo con `informe_mensual`. Si se
+    // separan, la pantalla deja de cargar.
     match /documents/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        esConsejo(resource.data.tenantId) ||
         (tenantRole(resource.data.tenantId, 'resident') &&
-          resource.data.get('category', '') in ['asamblea', 'comunicado', 'acuerdo', 'reglamento', 'plano', 'memoria', 'otro'])
+          resource.data.get('category', '') in ['asamblea', 'comunicado', 'acuerdo', 'reglamento', 'plano', 'memoria', 'otro']) ||
+        (esConsejo(resource.data.tenantId) &&
+          resource.data.get('category', '') in ['asamblea', 'comunicado', 'acuerdo', 'reglamento', 'plano', 'memoria', 'otro', 'informe_mensual'])
       );
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
