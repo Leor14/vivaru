@@ -22,7 +22,10 @@
  * Cero líneas de diff es la única prueba de que lo desplegado es lo que se lee.
  */
 import { GoogleAuth } from "google-auth-library";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const proyecto = process.argv[2];
 if (!proyecto) {
@@ -54,13 +57,25 @@ console.log(`creado          : ${ruleset.data.createTime}`);
 console.log(`idéntico al repo: ${iguales ? "SÍ" : "NO"}`);
 
 if (!iguales) {
-  const a = normalizar(vivo).split("\n");
-  const b = normalizar(repo).split("\n");
-  const enVivoNoEnRepo = a.filter((l) => !b.includes(l));
-  const enRepoNoEnVivo = b.filter((l) => !a.includes(l));
-  console.log(`\nlíneas solo en lo DESPLEGADO (${enVivoNoEnRepo.length}):`);
-  for (const l of enVivoNoEnRepo.slice(0, 40)) console.log("  -", l);
-  console.log(`\nlíneas solo en el REPOSITORIO (${enRepoNoEnVivo.length}):`);
-  for (const l of enRepoNoEnVivo.slice(0, 40)) console.log("  +", l);
+  // **Diff de SECUENCIA, con `diff -u`, y no de conjuntos.** Hasta el 11 de septiembre de
+  // 2026 esto listaba «las líneas de un lado que no están en el otro» con `includes`, y una
+  // línea quitada que existiera IGUAL en otro sitio del fichero no salía nunca. Pasó con la
+  // única línea de regla de un despliegue —`esConsejo(resource.data.tenantId) ||` en
+  // `documents`, gemela de la de `clearanceCertificates`—: el informe enseñó solo comentarios
+  // y la regla que cambiaba de verdad no aparecía. Un medidor que calla la línea que importa
+  // da un resultado plausible, no uno cierto.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reglas-"));
+  const desplegado = path.join(dir, "desplegado.rules");
+  const repositorio = path.join(dir, "repositorio.rules");
+  fs.writeFileSync(desplegado, `${normalizar(vivo)}\n`);
+  fs.writeFileSync(repositorio, `${normalizar(repo)}\n`);
+  const salida = spawnSync("diff", ["-u", desplegado, repositorio], { encoding: "utf8" }).stdout ?? "";
+  fs.rmSync(dir, { recursive: true, force: true });
+
+  const lineas = salida.split("\n").filter((l) => /^[-+@]/.test(l) && !/^(---|\+\+\+) /.test(l));
+  const cambiadas = lineas.filter((l) => !l.startsWith("@@")).length;
+  console.log(`\ndiff desplegado → repositorio (${cambiadas} líneas; «-» solo en lo desplegado, «+» solo en el repo):`);
+  for (const l of lineas.slice(0, 120)) console.log(`  ${l}`);
+  if (lineas.length > 120) console.log(`  … y ${lineas.length - 120} más`);
   process.exitCode = 1;
 }
