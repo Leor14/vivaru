@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entregas 1, 2a y 3 EN PRODUCCIÓN, apagadas** · **2b construida, falseada y vista en staging** (10 sep 2026) |
+| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN, con la bandera apagada** (10 sep 2026) |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -670,6 +670,19 @@ desde la pantalla.
 | 4 | La confirmación avisó de que suelta la conciliación; anulado, la operativa volvió a 73,900.00 y ahorros a 0.00; las dos líneas, a «Sin movimiento que les corresponda» con «Se deshizo sola» | `aplicado → reversado` con `traspaso_anulado`; el traspaso, sin tramos casados |
 
 **Datos que quedan en staging:** el traspaso anulado y las dos líneas de 1,500, **pendientes**.
+
+### Producción (10 de septiembre de 2026)
+
+En su orden, **reglas → functions → front**:
+
+- **Reglas**: ruleset `f2afe2d9`, «idéntico al repo: SÍ». Solo restringen campos que en producción
+  aún no existen, así que ir primero no rompe nada.
+- **Functions**: las cuatro que cambian —`reconcileCase`, `reopenReconciliationCase`,
+  `releaseReconciliation` y `ensureReconciliationCases`—, las cuatro con «Successful update
+  operation».
+- **Front**: `master` en `b415636`, servido por `build-2026-09-11-003`.
+- `producto-tesoreria` resuelta con el compilado: **apagada en los nueve**. Producción tiene **0
+  traspasos y 0 cajas**, así que ningún tramo llegará a la bandeja hasta que haya dos cuentas.
 
 ## Puertas
 
