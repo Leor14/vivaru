@@ -267,6 +267,72 @@ describe("FLOW-008 · `CA7` · anular el egreso CONSERVA lo pagado", () => {
   });
 });
 
+/**
+ * `PRD-V-FEAT-010` · la cuenta de la que SALE el pago de una cuota se COMPRUEBA.
+ *
+ * Hasta el 11 de septiembre de 2026 el id iba al asiento tal como llegaba: uno inexistente o de
+ * OTRO conjunto dejaba un egreso que la tesorería resta de una cuenta ajena, o de ninguna (`RN-05`).
+ * Vale lo que ofrece «Sale de» en el formulario de egresos: una cuenta bancaria activa o una caja
+ * chica abierta, las dos del conjunto. Cada rechazo se mira también por lo que NO pasó: sin
+ * asiento y con la cuota pendiente.
+ */
+describe("FEAT-010 · la cuenta de la que sale el pago de una cuota", () => {
+  const CUENTA = "flow008-cuenta";
+  const INACTIVA = "flow008-cuenta-inactiva";
+  const AJENA = "flow008-cuenta-ajena";
+  const CAJA = "flow008-caja";
+  const CAJA_CERRADA = "flow008-caja-cerrada";
+  const CAJA_AJENA = "flow008-caja-ajena";
+  const OTRO = "flow008-otro-conjunto";
+
+  beforeEach(async () => {
+    await db.collection("bankAccounts").doc(CUENTA).set({ tenantId: T, label: "Cuenta principal", active: true });
+    await db.collection("bankAccounts").doc(INACTIVA).set({ tenantId: T, label: "Cuenta vieja", active: false });
+    await db.collection("bankAccounts").doc(AJENA).set({ tenantId: OTRO, label: "Cuenta ajena", active: true });
+    await db.collection("pettyCashFunds").doc(CAJA).set({ tenantId: T, name: "Caja de portería", status: "abierta" });
+    await db.collection("pettyCashFunds").doc(CAJA_CERRADA).set({ tenantId: T, name: "Caja vieja", status: "cerrada" });
+    await db.collection("pettyCashFunds").doc(CAJA_AJENA).set({ tenantId: OTRO, name: "Caja ajena", status: "abierta" });
+  });
+
+  const pagar = (bankAccountId?: string) =>
+    pagarCuota({ tenantId: T, expenseId: ID, installmentNumber: 1, paidAt: "2026-01-16", bankAccountId }, ADMIN);
+
+  const cuotaUno = async () =>
+    ((await db.collection("expenses").doc(ID).get()).data()?.installments as {
+      number: number;
+      status: string;
+      bankAccountId?: string | null;
+    }[]).find((c) => c.number === 1)!;
+
+  it("una cuenta bancaria activa del conjunto va al asiento y a la cuota", async () => {
+    await pagar(CUENTA);
+    expect((await asientos())[0].bankAccountId).toBe(CUENTA);
+    expect((await cuotaUno()).bankAccountId).toBe(CUENTA);
+  });
+
+  it("una caja chica abierta también: un gasto de la caja lleva su id en `bankAccountId`", async () => {
+    await pagar(CAJA);
+    expect((await asientos())[0].bankAccountId).toBe(CAJA);
+  });
+
+  it("sin cuenta, el asiento va sin cuenta, como antes", async () => {
+    await pagar();
+    expect((await asientos())[0].bankAccountId).toBeNull();
+  });
+
+  it.each([
+    ["una cuenta que no existe", "flow008-no-existe", "not-found"],
+    ["una cuenta de OTRO conjunto", AJENA, "permission-denied"],
+    ["una cuenta inactiva", INACTIVA, "failed-precondition"],
+    ["una caja cerrada", CAJA_CERRADA, "failed-precondition"],
+    ["una caja de OTRO conjunto", CAJA_AJENA, "permission-denied"],
+  ])("%s se rechaza: no nace asiento y la cuota sigue pendiente", async (_caso, id, codigo) => {
+    await expect(pagar(id)).rejects.toMatchObject({ code: codigo });
+    expect(await asientos()).toHaveLength(0);
+    expect((await cuotaUno()).status).toBe("pendiente");
+  });
+});
+
 describe("FLOW-008 · las guardas que no dependen del conjunto", () => {
   it("un egreso de OTRO conjunto no se toca, aunque se sepa su id", async () => {
     await expect(

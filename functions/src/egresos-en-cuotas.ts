@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, FieldValue, Timestamp, type Transaction } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import {
@@ -187,6 +187,10 @@ export async function pagarCuota(input: PagarCuotaInput, uid: string): Promise<P
       );
     }
 
+    // La cuenta de la que sale el dinero se COMPRUEBA, y aquí, antes de escribir
+    // nada: una transacción de Firestore no admite leer después de escribir.
+    const cuentaDeSalida = await comprobarCuentaDeSalida(tx, input.tenantId, input.bankAccountId);
+
     // El asiento, **con la MISMA forma que el del egreso sin plan**.
     tx.set(asientoRef, {
       tenantId: input.tenantId,
@@ -203,7 +207,7 @@ export async function pagarCuota(input: PagarCuotaInput, uid: string): Promise<P
       // se perdía en todos, no solo en los viejos. R9 manda que los informes
       // agrupen por código y solo caigan en la categoría si falta.
       accountCode: cuentaParaCategoriaDeEgreso(egreso.category).code,
-      bankAccountId: input.bankAccountId ?? null,
+      bankAccountId: cuentaDeSalida,
       sourceType: "expense",
       sourceId: input.expenseId,
       installmentNumber: cuota.number,
@@ -221,7 +225,7 @@ export async function pagarCuota(input: PagarCuotaInput, uid: string): Promise<P
       paidAt: input.paidAt,
       paidBy: uid,
       paymentMethod: input.paymentMethod || null,
-      bankAccountId: input.bankAccountId || null,
+      bankAccountId: cuentaDeSalida,
       ledgerEntryId: asientoRef.id,
     };
     const paidAmount = sumarPagado(actualizadas);
@@ -240,6 +244,58 @@ export async function pagarCuota(input: PagarCuotaInput, uid: string): Promise<P
 
     return { ok: true as const, ledgerEntryId: asientoRef.id, paidAmount, expenseStatus, yaPagada: false };
   });
+}
+
+// ── La cuenta de la que sale el dinero ───────────────────────────────────────
+
+/**
+ * Comprueba la cuenta de la que SALE el pago de una cuota y devuelve su id, o `null`.
+ *
+ * **Se comprueba, no se copia tal cual** —el hueco que dejó `PRD-V-FEAT-010`—. El id iba al
+ * asiento sin mirar nada, y uno inexistente o de OTRO conjunto dejaba un egreso que la
+ * tesorería resta de una cuenta ajena, o de ninguna (`RN-05`). Es la comprobación que
+ * `aplicarPago` hace con lo que ENTRA (`payments.ts`), con una diferencia de modelo: **un
+ * egreso puede salir de la caja chica**, que lleva su id en `bankAccountId` (`FEAT-010` §7).
+ * Así que aquí vale lo mismo que ofrece «Sale de» en el formulario de egresos: una cuenta
+ * bancaria activa o una caja abierta, las dos del conjunto. Lo que paga un residente, en
+ * cambio, nunca entra a la caja (`RN-08`), y por eso no es la misma función.
+ *
+ * **El saldo no se mira**: con la tesorería incompleta, un saldo corto avisa y no bloquea
+ * (`RN-09`).
+ */
+export async function comprobarCuentaDeSalida(
+  tx: Transaction,
+  tenantId: string,
+  idCrudo: string | undefined,
+): Promise<string | null> {
+  const id = typeof idCrudo === "string" ? idCrudo.trim() : "";
+  if (!id) return null;
+
+  const cuenta = await tx.get(db().collection("bankAccounts").doc(id));
+  if (cuenta.exists) {
+    const c = cuenta.data() as { tenantId?: string; active?: boolean };
+    if (c.tenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "Esa cuenta bancaria pertenece a otro conjunto.");
+    }
+    if (c.active === false) {
+      throw new HttpsError("failed-precondition", "Esa cuenta bancaria está inactiva.");
+    }
+    return id;
+  }
+
+  const caja = await tx.get(db().collection("pettyCashFunds").doc(id));
+  if (caja.exists) {
+    const c = caja.data() as { tenantId?: string; status?: string };
+    if (c.tenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "Esa caja chica pertenece a otro conjunto.");
+    }
+    if (c.status !== "abierta") {
+      throw new HttpsError("failed-precondition", "Esa caja chica está cerrada: ya no paga gastos.");
+    }
+    return id;
+  }
+
+  throw new HttpsError("not-found", "Esa cuenta no existe: no es una cuenta bancaria ni una caja chica del conjunto.");
 }
 
 // ── Anular una cuota ─────────────────────────────────────────────────────────
