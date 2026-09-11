@@ -8,11 +8,13 @@ import { db } from "@/lib/firebase/client";
 import { codigoDeCategoriaDeEgreso } from "@/lib/finanzas/conceptos-de-cargo";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense, LedgerEntry } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 import { esRecaudoDeCartera } from "./financial-statement";
 import type { LedgerEntryFormValues } from "./schemas";
 
-const today = () => new Date().toISOString().slice(0, 10);
+// «Hoy» local, no UTC: por la tarde en México el reverso se fechaba mañana.
+const today = () => toDateInputValue(new Date());
 
 /**
  * Suscripción en tiempo real al libro de movimientos del tenant. El orden se

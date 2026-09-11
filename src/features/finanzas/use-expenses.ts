@@ -8,6 +8,7 @@ import { codigoDeCategoriaDeEgreso } from "@/lib/finanzas/conceptos-de-cargo";
 
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 import {
   createExpenseLedgerEntry,
@@ -17,7 +18,10 @@ import {
 } from "./use-ledger";
 import type { ExpenseFormValues } from "./schemas";
 
-const today = () => new Date().toISOString().slice(0, 10);
+// «Hoy» en el calendario de quien registra, no en UTC: a las 19:00 de Ciudad de
+// México ya es mañana en UTC, y el egreso caía en el día —y a fin de mes, en el
+// mes— siguiente.
+const today = () => toDateInputValue(new Date());
 
 /**
  * Suscripción en tiempo real a los egresos del tenant. El orden se aplica del
@@ -133,7 +137,11 @@ export async function updateExpense(prev: Expense, userId: string, values: Expen
     throw new Error("Firebase no esta configurado en este entorno.");
   }
   const payload = normalizeExpensePayload(values);
-  const paidAt = payload.status === "pagado" ? today() : null;
+  // Editar un egreso que YA estaba pagado no cambia cuándo se pagó. Antes esto
+  // volvía a sellar «hoy» en cada edición, y corregir la descripción de un gasto
+  // pagado en agosto lo movía —a él y a su asiento— al mes en curso.
+  const paidAt =
+    payload.status !== "pagado" ? null : prev.status === "pagado" && prev.paidAt ? prev.paidAt : today();
 
   await updateDoc(doc(db, "expenses", prev.id), {
     ...payload,

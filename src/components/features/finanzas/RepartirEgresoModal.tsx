@@ -16,6 +16,7 @@ import {
 import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { BillingConcept, Expense } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /**
  * `PRD-V-FLOW-001` — repartir un egreso entre las unidades.
@@ -50,7 +51,7 @@ const RELACIONES = [
 ] as const;
 
 function mesDe(fecha?: string) {
-  return fecha && fecha.length >= 7 ? fecha.slice(0, 7) : new Date().toISOString().slice(0, 7);
+  return fecha && fecha.length >= 7 ? fecha.slice(0, 7) : toDateInputValue(new Date()).slice(0, 7);
 }
 
 export function RepartirEgresoModal({

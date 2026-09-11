@@ -46,6 +46,7 @@ import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { saveExpensePlanCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { BankAccount, Expense, ExpenseCategory, ExpenseStatus, PettyCashFund } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   nomina: "Nómina",
@@ -78,7 +79,10 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   otro: "Otro",
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+// «Hoy» en el calendario de quien registra, no en UTC: a las 19:00 de Ciudad de
+// México ya es mañana en UTC, y el egreso caía en el día —y a fin de mes, en el
+// mes— siguiente.
+const today = () => toDateInputValue(new Date());
 
 const EMPTY_DEFAULTS: Partial<ExpenseFormValues> = {
   category: "proveedores",

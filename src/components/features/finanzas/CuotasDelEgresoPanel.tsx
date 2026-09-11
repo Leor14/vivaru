@@ -14,6 +14,7 @@ import {
 } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Expense } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /**
  * `PRD-V-FLOW-008` entrega 2 — pagar y anular las cuotas de una factura.
@@ -26,7 +27,8 @@ import type { Expense } from "@/types/domain";
  * hicieran, bajar la deuda del conjunto sería editar un número.
  */
 
-const hoy = () => new Date().toISOString().slice(0, 10);
+// Local, no UTC: por la tarde en México la cuota se proponía pagada mañana.
+const hoy = () => toDateInputValue(new Date());
 
 export function CuotasDelEgresoPanel({
   egreso,
