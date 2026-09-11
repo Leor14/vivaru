@@ -663,6 +663,32 @@ export interface TreasuryTransfer {
   updatedBy?: string;
 }
 
+/**
+ * `PRD-V-FEAT-010` entrega 3 · la caja chica —«caja menor» en Colombia—.
+ *
+ * **Fuera de `bankAccounts` a propósito (`RN-08`)**: el residente lee las cuentas
+ * activas para decir a qué cuenta pagó, y la regla le concede el documento
+ * entero; una caja guardada ahí le aparecería como destino de pago. El saldo no
+ * vive aquí: sale de los egresos que la llevan en `bankAccountId` y de sus
+ * traspasos con nombre (apertura, reposición, cierre).
+ */
+export interface PettyCashFund {
+  id: string;
+  tenantId: string;
+  name: string;
+  /** El fondo fijo: hasta dónde se repone. */
+  limit: number;
+  /** La cuenta bancaria de la que sale el dinero y a la que vuelve al cerrar. */
+  sourceAccountId: string;
+  status: "abierta" | "cerrada";
+  closedAt?: unknown;
+  closedBy?: string;
+  createdAt?: unknown;
+  createdBy?: string;
+  updatedAt?: unknown;
+  updatedBy?: string;
+}
+
 export interface Budget {
   id: string;
   tenantId: string;

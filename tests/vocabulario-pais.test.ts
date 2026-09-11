@@ -146,3 +146,15 @@ describe("capitalizar", () => {
     expect(capitalizar("alícuota")).toBe("Alícuota");
   });
 });
+
+describe("`PRD-V-FEAT-010` `RN-12` · el fondo de gastos menores", () => {
+  it("`CA12` · Colombia dice caja menor; Ecuador y México, caja chica", () => {
+    expect(terminosDePais("CO").cajaChica).toBe("caja menor");
+    expect(terminosDePais("EC").cajaChica).toBe("caja chica");
+    expect(terminosDePais("MX").cajaChica).toBe("caja chica");
+  });
+
+  it("sin país: caja chica, que es la palabra de dos de los tres", () => {
+    expect(terminosDePais(undefined).cajaChica).toBe("caja chica");
+  });
+});

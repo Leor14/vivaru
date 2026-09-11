@@ -1572,33 +1572,60 @@ service cloud.firestore {
         && resource.data.status == 'borrador';
     }
 
-    // PRD-V-FEAT-010 entrega 2a · el traspaso entre cuentas propias. NO es un
+    // PRD-V-FEAT-010 · la tesoreria: traspasos y caja chica. Nada de esto es un
     // asiento (RN-01): vive fuera del libro. Escritura directa: no mueve dinero de
-    // nadie ni toca el libro, y sus invariantes viven en el propio documento.
+    // nadie ni toca el libro, y sus invariantes viven en los propios documentos.
     //
-    // Las dos cuentas tienen que existir y ser del conjunto: se leen con get().
-    // En la entrega 2a solo existe `kind == 'traspaso'`; los de la caja chica
-    // llegan en la 3. No se borra nunca (RN-06): se anula, y al anular no puede
-    // cambiar nada mas que el estado, quien y cuando.
+    // Las cuentas se leen con get(): tienen que existir y ser del conjunto.
+    function cuentaDelConjunto(id, tenantId) {
+      return exists(/databases/$(database)/documents/bankAccounts/$(id))
+        && get(/databases/$(database)/documents/bankAccounts/$(id)).data.tenantId == tenantId;
+    }
+    // La caja, del conjunto y abierta DESPUES de escribir: la apertura nace en el
+    // MISMO lote que la caja, y get() todavia no la veria.
+    function cajaAbiertaTrasEscribir(id, tenantId) {
+      return existsAfter(/databases/$(database)/documents/pettyCashFunds/$(id))
+        && getAfter(/databases/$(database)/documents/pettyCashFunds/$(id)).data.tenantId == tenantId
+        && getAfter(/databases/$(database)/documents/pettyCashFunds/$(id)).data.status == 'abierta';
+    }
+    // El cierre, al reves: va en el lote que CIERRA la caja, asi que se mira
+    // como estaba antes de escribir.
+    function cajaAbiertaAntes(id, tenantId) {
+      return exists(/databases/$(database)/documents/pettyCashFunds/$(id))
+        && get(/databases/$(database)/documents/pettyCashFunds/$(id)).data.tenantId == tenantId
+        && get(/databases/$(database)/documents/pettyCashFunds/$(id)).data.status == 'abierta';
+    }
+
+    // Entrega 2a, el traspaso; entrega 3, los de la caja, que son traspasos con
+    // nombre. Cada nombre fija de donde a donde va el dinero:
+    //   traspaso              banco -> banco
+    //   apertura, reposicion  banco -> caja abierta
+    //   cierre                caja abierta -> banco
+    // No se borra nunca (RN-06): se anula, y al anular no puede cambiar nada mas
+    // que el estado, quien y cuando.
     match /treasuryTransfers/{docId} {
-      function cuentaDelConjunto(id, tenantId) {
-        return exists(/databases/$(database)/documents/bankAccounts/$(id))
-          && get(/databases/$(database)/documents/bankAccounts/$(id)).data.tenantId == tenantId;
-      }
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
       allow create: if tenantOperable(request.resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
         && request.resource.data.status == 'registrado'
-        && request.resource.data.kind == 'traspaso'
         && request.resource.data.amount is number && request.resource.data.amount > 0
         && request.resource.data.fromAccountId is string
         && request.resource.data.toAccountId is string
         && request.resource.data.fromAccountId != request.resource.data.toAccountId
         && request.resource.data.date is string
         && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-        && cuentaDelConjunto(request.resource.data.fromAccountId, request.resource.data.tenantId)
-        && cuentaDelConjunto(request.resource.data.toAccountId, request.resource.data.tenantId)
-        && request.resource.data.createdBy == request.auth.uid;
+        && request.resource.data.createdBy == request.auth.uid
+        && (
+          (request.resource.data.kind == 'traspaso'
+            && cuentaDelConjunto(request.resource.data.fromAccountId, request.resource.data.tenantId)
+            && cuentaDelConjunto(request.resource.data.toAccountId, request.resource.data.tenantId))
+          || (request.resource.data.kind in ['apertura', 'reposicion']
+            && cuentaDelConjunto(request.resource.data.fromAccountId, request.resource.data.tenantId)
+            && cajaAbiertaTrasEscribir(request.resource.data.toAccountId, request.resource.data.tenantId))
+          || (request.resource.data.kind == 'cierre'
+            && cajaAbiertaAntes(request.resource.data.fromAccountId, request.resource.data.tenantId)
+            && cuentaDelConjunto(request.resource.data.toAccountId, request.resource.data.tenantId))
+        );
       allow update: if tenantOperable(resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
         && resource.data.status == 'registrado'
@@ -1607,6 +1634,35 @@ service cloud.firestore {
         && request.resource.data.voidedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['status', 'voidedAt', 'voidedBy', 'updatedAt', 'updatedBy']);
+      allow delete: if false;
+    }
+
+    // PRD-V-FEAT-010 entrega 3 · la caja chica, FUERA de bankAccounts (RN-08): el
+    // residente lee las cuentas activas para decir a cual pago, y una caja
+    // guardada ahi le apareceria como destino de pago. Aqui solo la administracion.
+    //
+    // Cerrarla exige saldo cero, y eso NO lo puede comprobar una regla: el saldo
+    // se suma de los egresos y los traspasos. Lo sostiene la pantalla, que manda
+    // la devolucion del saldo en el mismo lote que el cierre. La regla sostiene lo
+    // que si puede: que se cierra una vez, sin cambiar nada mas, y que no se borra.
+    match /pettyCashFunds/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && request.resource.data.status == 'abierta'
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.limit is number && request.resource.data.limit > 0
+        && request.resource.data.sourceAccountId is string
+        && cuentaDelConjunto(request.resource.data.sourceAccountId, request.resource.data.tenantId)
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && resource.data.status == 'abierta'
+        && request.resource.data.status == 'cerrada'
+        && request.resource.data.closedBy == request.auth.uid
+        && request.resource.data.closedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'closedAt', 'closedBy', 'updatedAt', 'updatedBy']);
       allow delete: if false;
     }
 

@@ -62,6 +62,12 @@ export type TerminosPais = {
    * pagar. Ver `PRD-V-FEAT-003` §7.
    */
   identificadorCuenta: { label: string; placeholder: string; maxLength?: number };
+  /**
+   * El fondo fijo para gastos menores (`PRD-V-FEAT-010` `RN-12`). En Colombia es
+   * «caja menor»; en Ecuador y México, «caja chica». En minúscula, para dentro
+   * de frase.
+   */
+  cajaChica: string;
 };
 
 /** Términos neutros: país desconocido o fuera de los mercados abiertos. */
@@ -77,6 +83,7 @@ const NEUTRO: TerminosPais = {
   pazYSalvo: "certificado de no adeudo",
   pazYSalvoArticulo: "el",
   pazYSalvoTitulo: "CERTIFICADO DE NO ADEUDO",
+  cajaChica: "caja chica",
 };
 
 const POR_PAIS: Record<string, TerminosPais> = {
@@ -93,6 +100,7 @@ const POR_PAIS: Record<string, TerminosPais> = {
     pazYSalvo: "paz y salvo",
     pazYSalvoArticulo: "el",
     pazYSalvoTitulo: "CERTIFICADO DE PAZ Y SALVO",
+    cajaChica: "caja menor",
   },
   // Ecuador — Ley de Propiedad Horizontal. OJO: «alícuota» nombra **las dos
   // cosas**, el porcentaje y la cuota mensual. Es ambigüedad del propio idioma
@@ -110,6 +118,7 @@ const POR_PAIS: Record<string, TerminosPais> = {
     pazYSalvo: "certificado de expensas",
     pazYSalvoArticulo: "el",
     pazYSalvoTitulo: "CERTIFICADO DE EXPENSAS",
+    cajaChica: "caja chica",
   },
   // México — Ley de Propiedad en Condominio (varía por estado; «indiviso» es
   // el término común en todas). La cuenta se identifica por CLABE.
@@ -125,6 +134,7 @@ const POR_PAIS: Record<string, TerminosPais> = {
     pazYSalvo: "constancia de no adeudo",
     pazYSalvoArticulo: "la",
     pazYSalvoTitulo: "CONSTANCIA DE NO ADEUDO",
+    cajaChica: "caja chica",
   },
 };
 

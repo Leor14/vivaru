@@ -4,6 +4,7 @@ import { ArrowLeftRight, ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { CajasChicasCard } from "@/components/features/finanzas/CajasChicasCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,8 +12,11 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { watchBankAccountBalances, watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { movimientoEntraAlFondo, watchLedger } from "@/features/finanzas/use-ledger";
+import { watchCajas } from "@/features/finanzas/use-cajas";
 import { anularTraspaso, registrarTraspaso, watchTraspasos } from "@/features/finanzas/use-traspasos";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { capitalizar } from "@/lib/config/vocabulario-pais";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { repartirRecaudo } from "@/lib/finanzas/conceptos-de-cargo";
 import {
@@ -22,7 +26,7 @@ import {
   type FilaDeTesoreria,
 } from "@/lib/finanzas/tesoreria";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
-import type { BankAccount, LedgerEntry, TreasuryTransfer } from "@/types/domain";
+import type { BankAccount, LedgerEntry, PettyCashFund, TreasuryTransfer } from "@/types/domain";
 
 /**
  * `PRD-V-FEAT-010` entrega 1 — dónde está el dinero del conjunto.
@@ -37,6 +41,13 @@ import type { BankAccount, LedgerEntry, TreasuryTransfer } from "@/types/domain"
 // anterior deja de valer sin tener que borrarlo a mano.
 type Leido<T> = { tenantId: string; valor: T } | null;
 
+/** Los traspasos de la caja chica llevan nombre; el traspaso a secas, no. */
+const NOMBRE_DEL_MOVIMIENTO: Record<Exclude<TreasuryTransfer["kind"], "traspaso">, string> = {
+  apertura: "Apertura",
+  reposicion: "Reposición",
+  cierre: "Cierre",
+};
+
 export default function TesoreriaPage() {
   const { user } = useAuth();
   const activa = useFeatureFlag("producto-tesoreria");
@@ -47,6 +58,8 @@ export default function TesoreriaPage() {
   const [cuentas, setCuentas] = useState<Leido<BankAccount[]>>(null);
   const [saldos, setSaldos] = useState<Leido<Array<{ id: string; openingBalance?: number }>>>(null);
   const [traspasos, setTraspasos] = useState<Leido<TreasuryTransfer[]>>(null);
+  const [cajas, setCajas] = useState<Leido<PettyCashFund[]>>(null);
+  const { cajaChica } = useTenantVocabulary();
   const [error, setError] = useState<string | null>(null);
   const [verSinCuenta, setVerSinCuenta] = useState(false);
   const [formAbierto, setFormAbierto] = useState(false);
@@ -79,28 +92,38 @@ export default function TesoreriaPage() {
     if (!tenantId) return;
     return watchTraspasos(tenantId, (valor) => setTraspasos({ tenantId, valor }), setError);
   }, [tenantId]);
+  useEffect(() => {
+    if (!tenantId) return;
+    return watchCajas(tenantId, (valor) => setCajas({ tenantId, valor }), setError);
+  }, [tenantId]);
 
   const cuotaIncome = useMemo(() => repartirRecaudo(statements).total, [statements]);
   const asientosDelConjunto = asientos && asientos.tenantId === tenantId ? asientos.valor : null;
   const cuentasDelConjunto = cuentas && cuentas.tenantId === tenantId ? cuentas.valor : null;
   const saldosDelConjunto = saldos && saldos.tenantId === tenantId ? saldos.valor : null;
   const traspasosDelConjunto = traspasos && traspasos.tenantId === tenantId ? traspasos.valor : null;
+  const cajasDelConjunto = cajas && cajas.tenantId === tenantId ? cajas.valor : null;
 
   const tesoreria = useMemo(() => {
-    if (!asientosDelConjunto || !cuentasDelConjunto || !saldosDelConjunto || !traspasosDelConjunto) return null;
+    if (!asientosDelConjunto || !cuentasDelConjunto || !saldosDelConjunto || !traspasosDelConjunto || !cajasDelConjunto) return null;
     return saldosPorCuenta({
       cuentas: cuentasDelConjunto,
       saldosIniciales: saldosDelConjunto,
       asientos: asientosDelConjunto,
       cuotaIncome,
       traspasos: traspasosDelConjunto,
+      cajas: cajasDelConjunto,
     });
-  }, [asientosDelConjunto, cuentasDelConjunto, saldosDelConjunto, traspasosDelConjunto, cuotaIncome]);
+  }, [asientosDelConjunto, cuentasDelConjunto, saldosDelConjunto, traspasosDelConjunto, cajasDelConjunto, cuotaIncome]);
 
   const cuentasActivas = useMemo(() => (cuentasDelConjunto ?? []).filter((c) => c.active !== false), [cuentasDelConjunto]);
   const nombreDe = useMemo(
-    () => new Map((cuentasDelConjunto ?? []).map((c) => [c.id, c.label])),
-    [cuentasDelConjunto],
+    () =>
+      new Map([
+        ...(cuentasDelConjunto ?? []).map((c) => [c.id, c.label] as const),
+        ...(cajasDelConjunto ?? []).map((c) => [c.id, c.name] as const),
+      ]),
+    [cuentasDelConjunto, cajasDelConjunto],
   );
   const avisoNegativo = saldoNegativoTrasTraspaso(
     tesoreria?.cuentas.find((f) => f.id === form.fromAccountId),
@@ -206,10 +229,10 @@ export default function TesoreriaPage() {
                   </thead>
                   <tbody>
                     {tesoreria.cuentas.map((fila) => (
-                      <FilaDeCuenta key={fila.id} fila={fila} formatAmount={formatAmount} />
+                      <FilaDeCuenta key={fila.id} fila={fila} formatAmount={formatAmount} termino={cajaChica} />
                     ))}
                     {tesoreria.cuentasQueYaNoExisten ? (
-                      <FilaDeCuenta fila={tesoreria.cuentasQueYaNoExisten} formatAmount={formatAmount} />
+                      <FilaDeCuenta fila={tesoreria.cuentasQueYaNoExisten} formatAmount={formatAmount} termino={cajaChica} />
                     ) : null}
                   </tbody>
                 </table>
@@ -325,6 +348,9 @@ export default function TesoreriaPage() {
                         <tr key={tr.id} className="border-b border-[var(--slate-100)]">
                           <td className="py-2 pr-4 tabular-nums text-[var(--slate-600)]">{tr.date}</td>
                           <td className={anulado ? "py-2 pr-4 text-[var(--slate-600)] line-through" : "py-2 pr-4 text-[var(--slate-900)]"}>
+                            {tr.kind !== "traspaso" ? (
+                              <span className="mr-2 text-[var(--slate-600)]">{NOMBRE_DEL_MOVIMIENTO[tr.kind]}</span>
+                            ) : null}
                             {nombreDe.get(tr.fromAccountId) ?? "Cuenta que ya no existe"} →{" "}
                             {nombreDe.get(tr.toAccountId) ?? "Cuenta que ya no existe"}
                             {tr.reference || tr.detail ? (
@@ -357,6 +383,16 @@ export default function TesoreriaPage() {
               <p className="mt-3 text-sm text-[var(--slate-600)]">Todavía no hay traspasos.</p>
             )}
           </Card>
+
+          <CajasChicasCard
+            tenantId={tenantId ?? ""}
+            uid={user?.uid ?? ""}
+            cajas={cajasDelConjunto ?? []}
+            filas={tesoreria.cuentas}
+            bancos={cuentasActivas}
+            termino={cajaChica}
+            formatAmount={formatAmount}
+          />
 
           <Card className="p-6">
             <CardTitle>Lo que no está en ninguna cuenta</CardTitle>
@@ -434,16 +470,30 @@ export default function TesoreriaPage() {
   );
 }
 
-function FilaDeCuenta({ fila, formatAmount }: { fila: FilaDeTesoreria; formatAmount: (n: number) => string }) {
+function FilaDeCuenta({
+  fila,
+  formatAmount,
+  termino,
+}: {
+  fila: FilaDeTesoreria;
+  formatAmount: (n: number) => string;
+  termino: string;
+}) {
   return (
     <tr className="border-b border-[var(--slate-100)]">
       <td className="py-2 pr-4">
         <span className="text-[var(--slate-900)]">{fila.label}</span>
+        {fila.caja ? (
+          <span className="ml-2 text-[var(--slate-600)]">
+            {capitalizar(termino)}
+            {!fila.activa ? " (cerrada)" : ""}
+          </span>
+        ) : null}
         {fila.detalle ? <span className="ml-2 text-[var(--slate-600)]">{fila.detalle}</span> : null}
         {!fila.activa && fila.detalle ? <span className="ml-2 text-[var(--slate-600)]">(desactivada)</span> : null}
       </td>
       <td className="py-2 pr-4 text-right tabular-nums text-[var(--slate-600)]">
-        {fila.saldoInicial === null ? "Sin registrar" : formatAmount(fila.saldoInicial)}
+        {fila.caja ? "—" : fila.saldoInicial === null ? "Sin registrar" : formatAmount(fila.saldoInicial)}
       </td>
       <td className="py-2 pr-4 text-right tabular-nums">{formatAmount(fila.entradas)}</td>
       <td className="py-2 pr-4 text-right tabular-nums">{formatAmount(fila.salidas)}</td>

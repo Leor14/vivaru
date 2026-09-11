@@ -96,7 +96,7 @@ async function ingresoTotal() {
 }
 
 beforeEach(async () => {
-  for (const c of ["billingStatements", "ledgerEntries", "paymentOperations", "paymentVouchers", "bankAccounts", "tenantSettings", "advances", "advanceApplications", "featureFlagOverrides"]) {
+  for (const c of ["billingStatements", "ledgerEntries", "paymentOperations", "paymentVouchers", "bankAccounts", "tenantSettings", "advances", "advanceApplications", "featureFlagOverrides", "pettyCashFunds"]) {
     await limpiar(c);
   }
   await sembrarMembresia(TENANT);
@@ -174,6 +174,33 @@ describe("D-C · el asiento del pago guarda a qué cuenta entró el dinero", () 
       { tenantId: TENANT, statementId: "cuota-5", amount: 1000, date: "2026-08-20", operationKey: "op-5", source: "manual", bankAccountId: "cta-cerrada" },
       ADMIN, ROL,
     )).rejects.toThrow(/inactiva/i);
+  });
+
+  /**
+   * `PRD-V-FEAT-010` `CA17` · `RN-10`: la caja chica no recibe cuotas.
+   *
+   * No hizo falta guarda nueva: la caja vive en `pettyCashFunds` y esta
+   * comprobación lee `bankAccounts`. La prueba fija que siga así — si alguien
+   * guarda las cajas en `bankAccounts`, o enseña a esta guarda a aceptar
+   * cualquier cuenta de tesorería, enrojece. Y comprueba el efecto, no solo el
+   * error: ni asiento ni cuota tocada.
+   */
+  it("`CA17` · una caja chica no recibe el pago de una cuota", async () => {
+    await db.collection("pettyCashFunds").doc("caja-porteria").set({
+      tenantId: TENANT,
+      name: "Caja de portería",
+      limit: 500000,
+      sourceAccountId: "cta-bancolombia",
+      status: "abierta",
+    });
+    await sembrarCuota("cuota-caja");
+    await expect(aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-caja", amount: 1000, date: "2026-08-20", operationKey: "op-caja", source: "manual", bankAccountId: "caja-porteria" },
+      ADMIN, ROL,
+    )).rejects.toThrow(/no existe/i);
+    const asientos = await db.collection("ledgerEntries").where("tenantId", "==", TENANT).get();
+    expect(asientos.size).toBe(0);
+    expect((await db.collection("billingStatements").doc("cuota-caja").get()).data()?.paymentAmount).toBe(0);
   });
 });
 

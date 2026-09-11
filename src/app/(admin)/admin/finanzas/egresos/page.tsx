@@ -32,6 +32,10 @@ import { detectAmountAnomaly } from "@/features/finanzas/expense-anomaly";
 import { expenseSchema, type ExpenseFormValues } from "@/features/finanzas/schemas";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useVendors } from "@/features/finanzas/use-vendors";
+import { watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
+import { watchCajas } from "@/features/finanzas/use-cajas";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { capitalizar } from "@/lib/config/vocabulario-pais";
 import { VendorRegistryDialog } from "@/components/features/finanzas/VendorRegistryDialog";
 import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgresoModal";
 import { CuotasDelEgresoPanel } from "@/components/features/finanzas/CuotasDelEgresoPanel";
@@ -41,7 +45,7 @@ import { sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero"
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { saveExpensePlanCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
-import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
+import type { BankAccount, Expense, ExpenseCategory, ExpenseStatus, PettyCashFund } from "@/types/domain";
 
 const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   nomina: "Nómina",
@@ -114,6 +118,13 @@ export default function AdminEgresosPage() {
   // `PRD-V-FLOW-008`. **Apagada en los nueve**: sin ella no se puede declarar un
   // plan, así que `paidAmount` es siempre cero y la deuda es la de siempre.
   const egresosEnCuotas = useFeatureFlag("producto-egresos-en-cuotas");
+  // `PRD-V-FEAT-010` entrega 3 · de qué cuenta —o de qué caja chica— salió el
+  // pago. `bankAccountId` existía en el egreso y ningún formulario lo pedía:
+  // solo lo traían los egresos sembrados. Detrás de la bandera de tesorería.
+  const tesoreria = useFeatureFlag("producto-tesoreria");
+  const { cajaChica } = useTenantVocabulary();
+  const [bancos, setBancos] = useState<BankAccount[]>([]);
+  const [cajas, setCajas] = useState<PettyCashFund[]>([]);
   const [repartiendo, setRepartiendo] = useState<Expense | null>(null);
   const { vendors } = useVendors(registroProveedores ? user?.tenantId : undefined);
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
@@ -123,6 +134,12 @@ export default function AdminEgresosPage() {
     defaultValues: EMPTY_DEFAULTS,
   });
   const watchedMethod = form.watch("paymentMethod");
+  const watchedStatus = form.watch("status");
+  const watchedCuenta = form.watch("bankAccountId");
+  // La que ya lleva el egreso se ofrece aunque esté desactivada o cerrada: si
+  // no, el selector la borraría en silencio al guardar.
+  const bancosDeSalida = bancos.filter((b) => b.active !== false || b.id === watchedCuenta);
+  const cajasDeSalida = cajas.filter((c) => c.status === "abierta" || c.id === watchedCuenta);
 
   useEffect(() => {
     if (!user?.tenantId) {
@@ -144,6 +161,16 @@ export default function AdminEgresosPage() {
     );
     return () => unsub();
   }, [user?.tenantId]);
+
+  useEffect(() => {
+    if (!tesoreria || !user?.tenantId) return;
+    const sinBancos = watchBankAccounts(user.tenantId, setBancos, () => setBancos([]));
+    const sinCajas = watchCajas(user.tenantId, setCajas, () => setCajas([]));
+    return () => {
+      sinBancos();
+      sinCajas();
+    };
+  }, [tesoreria, user?.tenantId]);
 
   function openCreate() {
     setEditingItem(null);
@@ -668,6 +695,39 @@ export default function AdminEgresosPage() {
               </select>
             </label>
           </div>
+          {tesoreria && watchedStatus === "pagado" ? (
+            <label className="block text-sm text-[var(--slate-700)]">
+              Sale de
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                {...form.register("bankAccountId")}
+              >
+                <option value="">Sin indicar</option>
+                {bancosDeSalida.length > 0 ? (
+                  <optgroup label="Cuentas bancarias">
+                    {bancosDeSalida.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.label} · {b.bankName}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {cajasDeSalida.length > 0 ? (
+                  <optgroup label={capitalizar(cajaChica)}>
+                    {cajasDeSalida.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {c.status === "cerrada" ? " (cerrada)" : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+              <span className="mt-1 block text-xs text-[var(--slate-600)]">
+                La cuenta o la {cajaChica} de la que salió el dinero. Con ella, Tesorería sabe qué saldo baja.
+              </span>
+            </label>
+          ) : null}
           {watchedMethod === "cheque" ? (
             <div>
               <label className="mb-1 block text-sm text-[var(--slate-700)]">Número de cheque</label>

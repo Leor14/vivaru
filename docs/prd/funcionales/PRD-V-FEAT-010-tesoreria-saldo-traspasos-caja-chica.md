@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 EN PRODUCCIÓN, apagada** · **entrega 2a en staging, vista en pantalla** (10 sep 2026) · 2b y 3 pendientes |
+| **Estado** | **Entregas 1 y 2a EN PRODUCCIÓN, apagadas** · **entrega 3 construida y falseada** (10 sep 2026) · 2b pendiente |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -475,8 +475,78 @@ BBVA México, ahorros, MXN, saldo inicial 0— y un traspaso de prueba que despu
 
 ### Pendiente
 
-- **Producción de la 2a**, en su orden: **reglas → front** (la regla abre una colección nueva).
-- **La 2b** —conciliar los tramos— y **la 3** —caja chica—.
+- ~~Producción de la 2a~~ **hecha el 10 sep**, en su orden: reglas (ruleset `ecec39a4`, idéntico al
+  repo) → front (`480ed9d`, servido por `build-2026-09-11-001`). Bandera apagada en los nueve.
+- **La 2b** —conciliar los tramos—. La 3 sigue en §16.
+
+## 16 · La entrega 3: la caja chica (10 de septiembre de 2026)
+
+### Lo que la medición cambió antes de escribir
+
+- **El egreso no elegía cuenta.** §4 daba el selector por hecho —«ya elige la cuenta de la que
+  sale»—. El campo `bankAccountId` existe en el egreso y en el formulario (valor inicial y al
+  editar), pero **ningún control lo pedía**: los egresos que lo llevan lo traen de la siembra. Sin
+  selector, `CA9` era imposible. Se construyó **«Sale de»** en el formulario de egresos, detrás de la
+  bandera y solo con el egreso en `pagado`: cuentas activas y cajas abiertas, **más la que ya lleve
+  el egreso aunque esté desactivada o cerrada** —si no, el selector la borraría al guardar—.
+- **El pago de una cuota de `FLOW-008` tampoco manda cuenta**: `payExpenseInstallment` la acepta y
+  la copia sin comprobarla, y el panel de cuotas nunca la envía. **Fuera de esta entrega**: una caja
+  chica no paga facturas a plazos. Queda anotado.
+- **`RN-10` no necesitó código de servidor.** Los tres caminos por los que entra el pago de un
+  residente —el que registra el administrador, el comprobante aprobado y el que declara el propio
+  residente— pasan por `aplicarPago`, que ya rechazaba cualquier id que no esté en `bankAccounts`.
+  La caja vive en otra colección: **la guarda se cumple por construcción**. `CA17` lo fija con una
+  prueba de comportamiento —ni asiento ni cuota tocada— y un guardián vigila la causa.
+  **Esta entrega no despliega functions.**
+
+### Lo construido
+
+- **`pettyCashFunds`** (§7): nombre, límite, cuenta de origen, `abierta → cerrada`. Solo la
+  administración la lee (`CA13`); no se borra.
+- **Cada nombre de traspaso fija de dónde a dónde va el dinero**: `traspaso` banco → banco (igual que
+  en la 2a); `apertura` y `reposicion` banco → caja abierta; `cierre` caja abierta → banco.
+- **Apertura y cierre van en un lote.** La apertura nace con su caja, así que la regla la mira con
+  `getAfter` —con `get` todavía no existiría—. El cierre va en el lote que la cierra: se mira con
+  `get`, como estaba antes de escribir.
+- **Cerrar exige saldo cero, y eso no lo puede comprobar una regla**: el saldo se suma de egresos y
+  traspasos. Lo sostiene la pantalla: con dinero dentro, el cierre lo devuelve al banco en el mismo
+  lote; **en negativo no deja cerrar**, porque cerrar escondería la diferencia.
+- **El núcleo** (`saldosPorCuenta`) trata la caja como una cuenta más: sin saldo inicial, detrás de
+  los bancos, y fuera de la tabla cuando está cerrada y en cero (con saldo sigue, `RN-13`). Sin
+  pasarle las cajas, sus gastos caerían en «cuentas que ya no están».
+- **`RN-11`, precisado**: «Reponer» propone **el límite menos lo que queda**. Es lo gastado desde la
+  última reposición cuando esa la dejó llena —lo normal—; si fue parcial, la propuesta cubre también
+  lo que faltó, porque la regla existe para que la caja vuelva a su límite.
+- **`RN-12`**: `cajaChica` en `vocabulario-pais.ts` — «caja menor» en Colombia; «caja chica» en
+  Ecuador, México y sin país.
+- La tarjeta de la caja en Tesorería (abrir; reponer con la propuesta y los avisos de límite y de
+  banco en negativo; cerrar), el nombre del movimiento en la lista de traspasos y la fila de la caja
+  en la tabla de cuentas.
+
+### La falsación
+
+- **Reglas: 30 mutaciones, 29 en rojo.** La trigésima —quitar `limit is number`— es
+  **equivalente**: cualquier no-número hace fallar la comparación `> 0`. Se queda como intención.
+- **La falsación cazó dos huecos**, cerrados con pruebas: quitar `name is string` pasaba en verde
+  —la prueba usaba `7`, y `7.size()` ya falla; una lista `["Caja"]` sí tiene tamaño—, y dejar una
+  caja abierta con fecha de cierre no lo probaba nadie. Se añadió `CA18` para el cierre.
+- **Código: 12 mutaciones, 11 en rojo al primer pase.** La que pasó en verde: quitar «bancos antes
+  que cajas» — la caja de la prueba se llamaba «Portería» y ya ordenaba detrás por nombre. Prueba
+  nueva con una caja «Alcancía».
+
+### La predicción, escrita antes de mirar la pantalla
+
+Las Playas (staging, **México**, bandera encendida, 0 cajas). Con una «Caja de portería» de límite
+**5.000** que sale de la *Cuenta operativa*, y un egreso de **800** pagado desde ella:
+
+1. Todo dice **«Caja chica»**.
+2. Al abrirla, la operativa baja 5.000 y la caja entra en la tabla con saldo 5.000 y traspasos
+   +5.000. **El saldo de fondos no cambia.**
+3. En el egreso en `pagado`, «Sale de» ofrece la caja bajo «Caja chica». Pagado desde ella, la caja
+   baja a **4.200** y el saldo de fondos baja **800** — el mismo número que en Libro y fondos.
+4. «Reponer» propone **800**; registrada, la caja vuelve a **5.000**, la operativa baja otros 800 y
+   el saldo de fondos no cambia.
+5. En la cuenta del residente la caja **no aparece** entre las cuentas a las que se paga (`CA14`).
 
 ## Puertas
 

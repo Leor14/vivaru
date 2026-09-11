@@ -32,6 +32,7 @@ export default defineConfig({
       "tests/medicion-de-consumos.rules.test.ts",
       "tests/presupuesto.rules.test.ts",
       "tests/tesoreria-traspasos.rules.test.ts",
+      "tests/tesoreria-caja-chica.rules.test.ts",
       "tests/egresos-en-cuotas.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],

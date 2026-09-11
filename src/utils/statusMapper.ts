@@ -71,6 +71,7 @@ const STATUS_LABELS: Record<string, string> = {
   // buenas las otras dos. Son de campañas de cobro, programación de envíos,
   // validez de una invitación, aplicación de un anticipo y comprobantes — todas
   // preexistentes a `FLOW-008`, que solo fue quien hizo visible el punto ciego.
+  abierta: "Abierta",
   cerrada: "Cerrada",
   sent: "Enviado",
   invalid: "No válida",

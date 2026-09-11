@@ -119,7 +119,7 @@ describe("FEAT-010 · registrar un traspaso, y `CA15`", () => {
     setDoc(nuevo(admin()), traspaso({ fromAccountId: "cuenta-fantasma" })),
   ));
 
-  it("NI naciendo anulado, NI con un tipo de la caja chica (llega en la entrega 3)", async () => {
+  it("NI naciendo anulado, NI una apertura entre dos bancos: la apertura va a una caja (entrega 3)", async () => {
     await assertFails(setDoc(nuevo(admin()), traspaso({ status: "anulado" })));
     await assertFails(setDoc(nuevo(admin()), traspaso({ kind: "apertura" })));
   });
