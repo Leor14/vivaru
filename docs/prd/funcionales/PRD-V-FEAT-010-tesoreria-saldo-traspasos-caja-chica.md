@@ -548,6 +548,42 @@ Las Playas (staging, **México**, bandera encendida, 0 cajas). Con una «Caja de
    el saldo de fondos no cambia.
 5. En la cuenta del residente la caja **no aparece** entre las cuentas a las que se paga (`CA14`).
 
+### Vista en staging, contra la predicción (10 de septiembre de 2026)
+
+Con permiso de David, el ciclo entero en Las Playas, con su sesión de administradora:
+
+| Paso | Cuenta operativa | Caja de portería | Saldo de fondos | Predicción |
+|---|---|---|---|---|
+| Antes | $74,700.00 | — | $74,700.00 | |
+| Apertura de 5,000 | $69,700.00 (traspasos −5,000) | $5,000.00 (+5,000) | $74,700.00 | ✅ 2 |
+| Egreso de 800 desde la caja | $69,700.00 | $4,200.00 (salidas 800) | $73,900.00 — **Libro y fondos: $73,900.00** | ✅ 3 |
+| Reponer (propuso **800**) | $68,900.00 | $5,000.00, «en su límite» | $73,900.00 | ✅ 4 |
+| Cerrar (devolvió 5,000) | $73,900.00 | fuera de la tabla | $73,900.00 | §6 |
+
+- **Todo dijo «Caja chica»** (✅ 1). «Sale de» apareció solo con el egreso en `pagado`, con dos
+  grupos —«Cuentas bancarias» y «Caja chica»— y, **cerrada la caja, dejó de ofrecerla**.
+- **Leído de la base, no solo de la pantalla**: el egreso y su asiento llevan en `bankAccountId` el
+  id de la caja; la apertura, la reposición y el cierre, su `kind`. **Los dos lotes funcionaron
+  contra Firestore real**: la apertura con `getAfter` y el cierre con `get`.
+- El punto 5 (`CA14`, el residente) **no se vio en pantalla**: la sesión es de administradora. Lo
+  sostienen la regla (el residente no lee `pettyCashFunds`) y el guardián de destinos de pago.
+
+**Mirar encontró dos defectos que ninguna prueba veía**, uno de esta entrega y uno de antes:
+
+- **La historia de la caja salía desordenada**: la lista ordenaba solo por fecha, y la apertura, la
+  reposición y el cierre del mismo día salieron como «Apertura, Cierre, Reposición». Ahora, dentro
+  del día, por la hora en que se registró (`ordenarTraspasos`, con prueba).
+- **Preexistente, fuera de esta entrega**: el formulario de egresos toma «hoy» en **UTC**
+  (`toISOString()`): a las siete de la tarde en México, el egreso y su asiento quedaron con fecha
+  **del día siguiente** (`2026-09-11`). A fin de mes, eso cambia el mes del gasto. Propuesto como
+  tarea aparte.
+- Y uno visual, corregido: el texto de ayuda del límite desalineaba los campos de la apertura.
+
+**Datos de prueba que quedan en staging (Las Playas):** la caja `HDMmec3CyMjnJfqsqUBx` «Caja de
+portería», **cerrada**; sus tres traspasos (apertura, reposición y cierre); y el egreso
+`n7aHPvUksBG3oa3HFrNz` de 800, **pagado desde la caja**, que baja el saldo de fondos de Las Playas
+en 800.
+
 ## Puertas
 
 | Puerta | Estado |

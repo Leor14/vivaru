@@ -285,3 +285,23 @@ export function excesoSobreElLimite(fila: Pick<FilaDeTesoreria, "saldo" | "caja"
 export function devolucionAlCerrar(fila: Pick<FilaDeTesoreria, "saldo">): number | null {
   return fila.saldo < 0 ? null : redondear(fila.saldo);
 }
+
+/**
+ * La lista de traspasos, lo último primero: por fecha y, **dentro del mismo
+ * día, por la hora en que se registró**. Solo por fecha, una apertura, una
+ * reposición y un cierre del mismo día salían en cualquier orden, y la historia
+ * de la caja se leía al revés. Uno recién escrito —aún sin hora del servidor—
+ * va el primero.
+ */
+export function ordenarTraspasos<T extends Pick<TreasuryTransfer, "date" | "createdAt">>(items: ReadonlyArray<T>): T[] {
+  const hora = (t: T) => {
+    const c = t.createdAt as { seconds?: number; nanoseconds?: number } | null | undefined;
+    return typeof c?.seconds === "number" ? c.seconds + (c.nanoseconds ?? 0) / 1e9 : Number.POSITIVE_INFINITY;
+  };
+  return [...items].sort((a, b) => {
+    const porFecha = b.date.localeCompare(a.date);
+    if (porFecha !== 0) return porFecha;
+    const [ha, hb] = [hora(a), hora(b)];
+    return ha === hb ? 0 : hb > ha ? 1 : -1;
+  });
+}

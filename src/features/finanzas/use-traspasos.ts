@@ -1,6 +1,7 @@
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { ordenarTraspasos } from "@/lib/finanzas/tesoreria";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { TreasuryTransfer } from "@/types/domain";
 
@@ -23,7 +24,7 @@ export function watchTraspasos(
     subscribeTenantCollection<TreasuryTransfer>(
       COLECCION,
       tenantId,
-      (items) => onData([...items].sort((a, b) => b.date.localeCompare(a.date))),
+      (items) => onData(ordenarTraspasos(items)),
       onError,
     ) ?? (() => {})
   );

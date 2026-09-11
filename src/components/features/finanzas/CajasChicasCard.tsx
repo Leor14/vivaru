@@ -186,7 +186,9 @@ export function CajasChicasCard({
       ) : null}
 
       {abriendo ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        // `items-start`: el texto de ayuda del límite alarga su celda, y sin esto
+        // el campo del nombre bajaba y los dos quedaban desalineados.
+        <div className="mt-4 grid items-start gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-sm">
             <span className="text-[var(--slate-900)]">Nombre</span>
             <Input

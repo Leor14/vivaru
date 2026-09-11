@@ -5,6 +5,7 @@ import {
   devolucionAlCerrar,
   errorDeApertura,
   excesoSobreElLimite,
+  ordenarTraspasos,
   propuestaDeReposicion,
   saldosPorCuenta,
   type CajaDeTesoreria,
@@ -163,5 +164,20 @@ describe("el formulario de apertura", () => {
     expect(errorDeApertura({ ...valida, limit: "" }, hoy)).toBe("El límite tiene que ser un número mayor que cero.");
     expect(errorDeApertura({ ...valida, date: "" }, hoy)).toBe("Falta la fecha de la apertura.");
     expect(errorDeApertura({ ...valida, date: "2026-09-11" }, hoy)).toBe("La fecha no puede ser posterior a hoy.");
+  });
+});
+
+describe("la historia de la caja se lee en orden", () => {
+  const t = (id: string, date: string, seconds: number | null) =>
+    ({ id, date, createdAt: seconds === null ? null : { seconds, nanoseconds: 0 } }) as Pick<TreasuryTransfer, "date" | "createdAt"> & { id: string };
+
+  it("el mismo día, por la hora en que se registró: cierre, reposición, apertura — no en cualquier orden", () => {
+    const lista = [t("apertura", "2026-09-10", 100), t("cierre", "2026-09-10", 300), t("reposicion", "2026-09-10", 200)];
+    expect(ordenarTraspasos(lista).map((x) => x.id)).toEqual(["cierre", "reposicion", "apertura"]);
+  });
+
+  it("la fecha manda sobre la hora, y el recién escrito —sin hora del servidor— va el primero de su día", () => {
+    const lista = [t("ayer", "2026-09-09", 900), t("hoy", "2026-09-10", 100), t("pendiente", "2026-09-10", null)];
+    expect(ordenarTraspasos(lista).map((x) => x.id)).toEqual(["pendiente", "hoy", "ayer"]);
   });
 });
