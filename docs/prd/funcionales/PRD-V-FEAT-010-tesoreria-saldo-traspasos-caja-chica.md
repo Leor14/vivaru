@@ -707,12 +707,24 @@ predijo leyendo la base antes de mirar: Santa María no tiene en staging ni cuen
 ofrezca las cuentas correctas lo fijan las pruebas; que el selector se esconda con la tesorería
 apagada no lo alcanza ninguna (vitest corre sin DOM).
 
-### Lo que queda, y no se construyó
+### Y el camino del cliente, en las reglas
 
-- 🔴 **Las reglas de `expenses` y `ledgerEntries` no comprueban `bankAccountId`.** Es el mismo hueco
-  por el camino del cliente: «Sale de» y los asientos manuales escriben directo, y la regla no mira que
-  la cuenta sea del conjunto. `cuentaDelConjunto` existe y solo la usan los traspasos y la caja.
-  Tocarlo es restringir colecciones centrales: medir antes a quién afectaría.
+**Las reglas de `expenses` y `ledgerEntries` no comprobaban `bankAccountId`**: «Sale de» y los
+asientos manuales escriben directo, así que el mismo hueco seguía abierto por el cliente, y
+`cuentaDelConjunto` solo la usaban los traspasos y la caja. Cerrado el mismo día
+(`cuentaDelMovimientoValida` en `firestore.rules`):
+
+- **al crear**, la cuenta es nula, una cuenta bancaria del conjunto o una caja del conjunto;
+- **al editar, solo se mira si la cuenta cambia**: un gasto viejo conserva la suya aunque se haya
+  dado de baja;
+- **el reverso puede copiar la cuenta del asiento que anula** aunque esa cuenta se haya borrado —las
+  reglas permiten borrar cuentas, y negar una anulación por eso sería peor—, pero solo si la copia
+  exacta y el original es del conjunto.
+
+**Medido antes de escribirla: 0 egresos y 0 asientos con una cuenta ajena o inexistente**, en los
+dos ambientes, así que no deja a nadie fuera. 9 pruebas de reglas contra el emulador, cada
+denegación con su pareja positiva. **Es una regla que restringe**: se despliega después del front,
+que no escribe cuentas ajenas.
 
 ## Puertas
 

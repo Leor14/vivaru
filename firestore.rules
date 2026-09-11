@@ -767,6 +767,44 @@ service cloud.firestore {
         && !('voidReason' in d) && !('voidedBy' in d) && !('voidedAt' in d);
     }
 
+    // PRD-V-FEAT-010 · la cuenta de un egreso o de un asiento que escribe el
+    // CLIENTE es del conjunto: ninguna, una cuenta bancaria del conjunto o una caja
+    // del conjunto (el gasto de la caja lleva su id en `bankAccountId`). Hasta el 11
+    // de septiembre de 2026 la regla no miraba este campo, y «Sale de» y los
+    // asientos manuales podian apuntar un gasto a la cuenta de OTRO conjunto, o a
+    // una que no existe: la tesoreria lo restaria de ahi. El servidor ya lo
+    // comprobaba al pagar una cuota (`comprobarCuentaDeSalida`).
+    //
+    // Medido antes de escribirla: 0 egresos y 0 asientos con una cuenta ajena o
+    // inexistente, en los dos ambientes. Solo mira que la cuenta sea DEL CONJUNTO:
+    // que este activa, o la caja abierta, es un filtro de la pantalla, y la que un
+    // gasto viejo ya lleva se conserva aunque se haya dado de baja.
+    function cajaDelConjunto(id, tenantId) {
+      return exists(/databases/$(database)/documents/pettyCashFunds/$(id))
+        && get(/databases/$(database)/documents/pettyCashFunds/$(id)).data.tenantId == tenantId;
+    }
+    function cuentaDelMovimientoValida(d) {
+      return d.get('bankAccountId', null) == null
+        || cuentaDelConjunto(d.bankAccountId, d.tenantId)
+        || cajaDelConjunto(d.bankAccountId, d.tenantId);
+    }
+    // En una edicion solo se mira si la cuenta CAMBIA: las reglas permiten borrar
+    // una cuenta, y un gasto viejo que la conserva tiene que poder corregirse.
+    function cuentaIgualOValida(nuevo, viejo) {
+      return nuevo.get('bankAccountId', null) == viejo.get('bankAccountId', null)
+        || cuentaDelMovimientoValida(nuevo);
+    }
+    // El reverso COPIA la cuenta del asiento que anula (`reverseLedgerEntry`), y esa
+    // cuenta puede haberse borrado despues: negarle la anulacion por eso seria peor.
+    // Solo vale si copia EXACTAMENTE la del original, y el original es del conjunto.
+    function reversoConLaCuentaDelOriginal(d) {
+      return d.get('sourceType', '') == 'reversal'
+        && d.get('sourceId', '') != ''
+        && exists(/databases/$(database)/documents/ledgerEntries/$(d.sourceId))
+        && get(/databases/$(database)/documents/ledgerEntries/$(d.sourceId)).data.tenantId == d.tenantId
+        && get(/databases/$(database)/documents/ledgerEntries/$(d.sourceId)).data.get('bankAccountId', null) == d.get('bankAccountId', null);
+    }
+
     match /expenses/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
 
@@ -777,7 +815,8 @@ service cloud.firestore {
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
         && previewModuleWritable(request.resource.data.tenantId)
         && egresoSinSellosDelServidor(request.resource.data)
-        && !egresoConPlan(request.resource.data);
+        && !egresoConPlan(request.resource.data)
+        && cuentaDelMovimientoValida(request.resource.data);
 
       // **Edición**: `paidAmount` y los sellos de anulación **no se mueven desde el
       // cliente**, y **con plan el ESTADO tampoco**: lo deriva el servidor al pagar
@@ -805,6 +844,7 @@ service cloud.firestore {
         // justo el caso que viene a bloquear. Medido con una sonda contra el
         // emulador, no razonado. `affectedKeys()` = añadidas + borradas + cambiadas.
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['voidReason', 'voidedBy', 'voidedAt'])
+        && cuentaIgualOValida(request.resource.data, resource.data)
         && (
           !egresoConPlan(request.resource.data)
           || request.resource.data.status == resource.data.status
@@ -1069,8 +1109,13 @@ service cloud.firestore {
       allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
         && !(request.resource.data.get('sourceType', '') in ['billingStatement', 'advance'])
         && request.resource.data.get('reconciled', false) == false
-        && request.resource.data.get('bankStatementLineId', null) == null;
+        && request.resource.data.get('bankStatementLineId', null) == null
+        // PRD-V-FEAT-010 · la cuenta es del conjunto, o es la que copia un reverso
+        // del asiento que anula (ver `reversoConLaCuentaDelOriginal`).
+        && (cuentaDelMovimientoValida(request.resource.data)
+              || reversoConLaCuentaDelOriginal(request.resource.data));
       allow update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && cuentaIgualOValida(request.resource.data, resource.data)
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['reconciled', 'bankStatementLineId', 'reconciledAt'].toSet())
         && (resource.data.get('sourceType', '') in ['billingStatement', 'advance']

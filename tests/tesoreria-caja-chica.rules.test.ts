@@ -270,3 +270,107 @@ describe("FEAT-010 · cerrar una caja (§6)", () => {
     await assertFails(deleteDoc(ref(residente())));
   });
 });
+
+/**
+ * `PRD-V-FEAT-010` · la cuenta de un egreso o de un asiento que escribe el CLIENTE es del conjunto.
+ *
+ * El servidor ya la comprueba al pagar una cuota (`comprobarCuentaDeSalida`), pero «Sale de» y los
+ * asientos manuales escriben directo, y la regla no miraba `bankAccountId`: un administrador podía
+ * apuntar un gasto a la cuenta de OTRO conjunto, o a una que no existe, y la tesorería lo restaría de
+ * ahí. Vale: ninguna, una cuenta bancaria del conjunto o una caja del conjunto. **En una edición solo
+ * se mira si la cuenta CAMBIA**, y **el reverso puede copiar la del asiento que anula** aunque esa
+ * cuenta ya se haya borrado —las reglas permiten borrar cuentas—. Medido antes de escribirla: 0
+ * egresos y 0 asientos con una cuenta ajena o inexistente, en los dos ambientes.
+ */
+describe("FEAT-010 · la cuenta de un egreso o de un asiento es del conjunto", () => {
+  const egreso = (bankAccountId: string | null, extra: Record<string, unknown> = {}) => ({
+    tenantId: CONJUNTO,
+    description: "Gasto de prueba",
+    category: "mantenimiento",
+    amount: 100_000,
+    issueDate: "2026-09-10",
+    status: "pagado",
+    installments: null,
+    bankAccountId,
+    createdBy: "admin-1",
+    updatedBy: "admin-1",
+    ...extra,
+  });
+  const asiento = (bankAccountId: string | null, extra: Record<string, unknown> = {}) => ({
+    tenantId: CONJUNTO,
+    type: "egreso",
+    date: "2026-09-10",
+    amount: 100_000,
+    concept: "Movimiento manual",
+    sourceType: "manual",
+    reconciled: false,
+    bankAccountId,
+    createdBy: "admin-1",
+    updatedBy: "admin-1",
+    ...extra,
+  });
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, "expenses", "egreso-a"), egreso("banco-a"));
+      // Una cuenta que se BORRÓ después de usarse: nada lo impide.
+      await setDoc(doc(db, "expenses", "egreso-cuenta-borrada"), egreso("cuenta-borrada"));
+      await setDoc(doc(db, "ledgerEntries", "asiento-a"), asiento("banco-a"));
+      await setDoc(doc(db, "ledgerEntries", "asiento-cuenta-borrada"), asiento("cuenta-borrada"));
+    });
+  });
+
+  describe("un egreso", () => {
+    it("nace con una cuenta del conjunto, con una caja del conjunto o sin cuenta", async () => {
+      await assertSucceeds(setDoc(doc(admin(), "expenses", "e1"), egreso("banco-a")));
+      await assertSucceeds(setDoc(doc(admin(), "expenses", "e2"), egreso("caja-abierta")));
+      await assertSucceeds(setDoc(doc(admin(), "expenses", "e3"), egreso(null)));
+    });
+
+    it("NO nace con la cuenta ni la caja de OTRO conjunto, ni con una que no existe", async () => {
+      await assertFails(setDoc(doc(admin(), "expenses", "e4"), egreso("banco-ajeno")));
+      await assertFails(setDoc(doc(admin(), "expenses", "e5"), egreso("caja-ajena")));
+      await assertFails(setDoc(doc(admin(), "expenses", "e6"), egreso("no-existe")));
+    });
+
+    it("al editarlo, cambiar a una cuenta ajena se rechaza; a otra del conjunto, no", async () => {
+      await assertFails(updateDoc(doc(admin(), "expenses", "egreso-a"), { bankAccountId: "banco-ajeno" }));
+      await assertSucceeds(updateDoc(doc(admin(), "expenses", "egreso-a"), { bankAccountId: "banco-b" }));
+    });
+
+    it("y un egreso viejo se edita aunque su cuenta ya no exista, si no la cambia", async () => {
+      await assertSucceeds(updateDoc(doc(admin(), "expenses", "egreso-cuenta-borrada"), { description: "Corregido" }));
+    });
+  });
+
+  describe("un asiento", () => {
+    it("manual: con una cuenta o una caja del conjunto, o sin cuenta, sí", async () => {
+      await assertSucceeds(setDoc(doc(admin(), "ledgerEntries", "l1"), asiento("banco-a")));
+      await assertSucceeds(setDoc(doc(admin(), "ledgerEntries", "l2"), asiento("caja-abierta")));
+      await assertSucceeds(setDoc(doc(admin(), "ledgerEntries", "l3"), asiento(null)));
+    });
+
+    it("manual: con la cuenta de OTRO conjunto o con una que no existe, no", async () => {
+      await assertFails(setDoc(doc(admin(), "ledgerEntries", "l4"), asiento("banco-ajeno")));
+      await assertFails(setDoc(doc(admin(), "ledgerEntries", "l5"), asiento("no-existe")));
+    });
+
+    it("el reverso copia la cuenta del asiento que anula, aunque esa cuenta ya se haya borrado", async () => {
+      await assertSucceeds(setDoc(doc(admin(), "ledgerEntries", "r1"),
+        asiento("cuenta-borrada", { sourceType: "reversal", sourceId: "asiento-cuenta-borrada", amount: -100_000 })));
+    });
+
+    it("pero un «reverso» no sirve de puerta para apuntar a otra cuenta", async () => {
+      await assertFails(setDoc(doc(admin(), "ledgerEntries", "r2"),
+        asiento("banco-ajeno", { sourceType: "reversal", sourceId: "asiento-a", amount: -100_000 })));
+      await assertFails(setDoc(doc(admin(), "ledgerEntries", "r3"),
+        asiento("no-existe", { sourceType: "reversal", sourceId: "no-hay-original", amount: -100_000 })));
+    });
+
+    it("al editarlo, cambiar a una cuenta ajena se rechaza; tocar otra cosa no mira la cuenta", async () => {
+      await assertFails(updateDoc(doc(admin(), "ledgerEntries", "asiento-a"), { bankAccountId: "banco-ajeno" }));
+      await assertSucceeds(updateDoc(doc(admin(), "ledgerEntries", "asiento-cuenta-borrada"), { concept: "Corregido" }));
+    });
+  });
+});
