@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **Entregas 1 y 2a EN PRODUCCIÓN, apagadas** · **entrega 3 construida y falseada** (10 sep 2026) · 2b pendiente |
+| **Estado** | **Entregas 1, 2a y 3 EN PRODUCCIÓN, apagadas** (10 sep 2026) · 2b pendiente |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -572,7 +572,8 @@ Con permiso de David, el ciclo entero en Las Playas, con su sesión de administr
 
 - **La historia de la caja salía desordenada**: la lista ordenaba solo por fecha, y la apertura, la
   reposición y el cierre del mismo día salieron como «Apertura, Cierre, Reposición». Ahora, dentro
-  del día, por la hora en que se registró (`ordenarTraspasos`, con prueba).
+  del día, por la hora en que se registró (`ordenarTraspasos`, con prueba falseada). **Visto en
+  staging con `c1d7282`**: Cierre, Reposición, Apertura, y detrás el traspaso anulado de la 2a.
 - **Preexistente, fuera de esta entrega**: el formulario de egresos toma «hoy» en **UTC**
   (`toISOString()`): a las siete de la tarde en México, el egreso y su asiento quedaron con fecha
   **del día siguiente** (`2026-09-11`). A fin de mes, eso cambia el mes del gasto. Propuesto como
@@ -583,6 +584,21 @@ Con permiso de David, el ciclo entero en Las Playas, con su sesión de administr
 portería», **cerrada**; sus tres traspasos (apertura, reposición y cierre); y el egreso
 `n7aHPvUksBG3oa3HFrNz` de 800, **pagado desde la caja**, que baja el saldo de fondos de Las Playas
 en 800.
+
+### Producción (10 de septiembre de 2026)
+
+En su orden, **reglas → front**; esta entrega no despliega functions.
+
+- **Reglas**: ruleset `f551b415`, «idéntico al repo: SÍ».
+- **Front**: `master` en `c1d7282`, servido por `build-2026-09-11-002`.
+- `producto-tesoreria` resuelta con el compilado: **apagada en los nueve**. **0 cajas** en producción.
+
+### Pendiente
+
+- **La 2b** —conciliar los tramos de un traspaso—, en sesión aparte: toca `FLOW-004` en producción.
+- El pago de una cuota de `FLOW-008` no manda cuenta (`payExpenseInstallment` la acepta sin
+  comprobarla y el panel nunca la pide). Una caja chica no paga a plazos, pero el banco sí.
+- El «hoy» en UTC del formulario de egresos: preexistente, propuesto como tarea aparte.
 
 ## Puertas
 

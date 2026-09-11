@@ -4,9 +4,9 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, cierre (`FEAT-009` ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES)
+## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, noche (`FEAT-010` ENTREGAS 1, 2a Y 3 EN PRODUCCIÓN)
 
-> # LO CONSTRUIBLE DE HABITANTO ESTÁ HECHO. Lo que queda lo frenan el abogado, datos o decisiones propias.
+> # LA TESORERÍA ESTÁ EN PRODUCCIÓN SALVO LA 2b. Lo construible de Habitanto sigue hecho.
 >
 > **Estado: leer los remotos con `git ls-remote`, y esta cabecera NO lleva el sha a propósito** —
 > el commit que la escribe es posterior al que describe, así que nace viejo. Al cerrar, `master`
@@ -19,55 +19,46 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
 > ```
 >
-> **Bancos CONTADOS hoy, no citados:** `npm test` **1849** · functions **856** · reglas **404**
+> **Bancos CONTADOS hoy, no citados:** `npm test` **1931** · functions **856** · reglas **453**
 > (medido con solo Firestore: `storage.rules.test.ts` enrojece aparte sin su emulador en el 9199,
-> y es entorno) · emulador de functions **352 de 354** — los dos rojos son `CA12` y `D-B` de
+> y es entorno) · emulador de functions **353 de 355** — los dos rojos son `CA12` y `D-B` de
 > `payments.emulator.test.ts`, **preexistentes y confirmados por nombre**.
 >
-> ## `PRD-V-FEAT-009` — PRESUPUESTO CONTRA EJECUCIÓN — LAS DOS ENTREGAS EN LOS DOS AMBIENTES
+> ## `PRD-V-FEAT-010` — TESORERÍA — ENTREGAS 1, 2a Y 3 EN PRODUCCIÓN, APAGADA
 >
-> Sale de **§3.8 de la sesión con la administradora**: la asamblea ordinaria del primer trimestre
-> revisa el presupuesto contra lo ejecutado. **En producción con la bandera APAGADA en los nueve**
-> (`producto-presupuesto-anual`, resuelta con el código compilado, sin documento global) y
-> **ningún presupuesto guardado**. En staging, encendida en **Palmas** —que no tiene plan de
-> cuentas: la pantalla dice «Falta el plan» y es verdad— y en **Conjunto Las Playas**, que es donde
-> se ve (55 asientos y 50 cargos de 2026; se entra con la cuenta de David, que administra siete).
+> Saldo por cuenta, traspasos entre cuentas propias y caja chica con fondo fijo. **`G0` superada por
+> DECISIÓN de David, no por dolor** (son `C7` y `C8`, P2): se construye para llegar listos.
+> `producto-tesoreria` **resuelta apagada en los nueve**, y producción tiene **0 cajas**.
 >
-> | Entrega | Qué | Visto |
+> | Entrega | Qué | Visto en staging |
 > |---|---|---|
-> | 1 | Cargar en borrador y comparar, año en curso y cerrado | **`CA2` idéntico a `/admin/reports` en las siete cuentas** |
-> | 2 | Aprobar con la fecha del acta, bloquear, imprimir | `CA7` en pantalla **y en la base**; `CA8` con el `⌘P` real de David |
+> | 1 | Saldo por cuenta, con el total = saldo de fondos | Al centavo contra una predicción leída de la base |
+> | 2a | Traspasos entre cuentas propias; se anulan, no se borran | +10,000 / −10,000 con el total quieto; anulado, vuelve |
+> | 3 | Caja chica: abrir, gastar desde ella, reponer, cerrar | El ciclo entero en Las Playas, al centavo, con Libro y fondos igual |
+> | **2b** | **Conciliar los tramos de un traspaso** | **Pendiente**: toca las cinco funciones de `FLOW-004` en producción |
 >
-> **La regla central tiene guardián:** lo ejecutado sale de `useCommitteeReport` y **nunca** de sumar
-> asientos. El núcleo recibe las cuotas aparte (`esRecaudoDeCartera`), así que sumar asientos daría
-> un ejecutado sin la mayor partida del conjunto.
+> **Lo que midió la 3 antes de escribir:** 🔴 **el egreso NO elegía cuenta** —`bankAccountId` existía y
+> ningún control lo pedía— y se construyó «Sale de»; y **`RN-10` no necesitó servidor**: todo pago de
+> residente pasa por `aplicarPago`, que solo lee `bankAccounts`, y la caja vive en `pettyCashFunds`
+> (`CA17` lo fija). **Cerrar exige saldo cero y una regla no puede sumarlo**: lo sostiene la pantalla.
 >
-> ⚠️ **El año cerrado sale VACÍO hoy en los nueve**: los 95 asientos de producción son de 2026. El
-> uso legal real es **el primer trimestre de 2027**, y exige cargar antes el presupuesto de 2026.
+> **Mirar encontró dos cosas que ninguna prueba veía:** la historia de la caja salía desordenada
+> —arreglado: dentro del día, por hora de registro— y, **preexistente**, el formulario de egresos toma
+> «hoy» en **UTC**: a las siete de la tarde en México el egreso quedó fechado al día siguiente, y a fin
+> de mes eso cambia el mes del gasto. **Propuesto como tarea aparte.**
 >
-> **Datos de prueba en staging, Las Playas, con permiso de David:** `budgets/conjunto-las-playas_2026`
-> en **borrador** —editable a propósito— y `conjunto-las-playas_2025` **APROBADO** (acta del 15 mar
-> 2025), que **ya no se toca desde la app**.
+> **Datos de prueba en staging, Las Playas, con permiso de David:** la cuenta `mL3tSoEC1W2V2SqVBE7I`
+> «Cuenta de ahorros (prueba)» —**visible para los residentes al elegir a qué cuenta pagaron**—, el
+> traspaso anulado de la 2a, la caja `HDMmec3CyMjnJfqsqUBx` **cerrada** con su apertura, reposición y
+> cierre, y el egreso `n7aHPvUksBG3oa3HFrNz` de 800 **pagado desde la caja**.
 >
-> ### Lo que encontró mirar, y lo que falló del método
+> ## `PRD-V-FEAT-009` Y `PRD-V-FEAT-008` — EN LOS DOS AMBIENTES, APAGADAS
 >
-> 1. **Sin presupuesto, cada egreso decía «Sobre-ejecución»** y el resultado presupuestado
->    «equilibrio», con «$0.00 presupuestados». Un no-op que se leía como afirmación, y ninguna prueba
->    miraba el caso sin presupuesto — que es como abre la pantalla cualquier conjunto. `822fa3a`.
-> 2. 🔴 **Un `| tail` se tragó el fallo del deploy de reglas** y la cadena de `&&` siguió hasta el
->    push: el front de staging salió ANTES que sus reglas. **La lección ya estaba escrita** en la
->    memoria. Remedio: `set -o pipefail`, o desplegar y empujar en llamadas separadas.
-> 3. **El vigilante del rollout no podía acertar**: llamaba al script de estado sin sus dos
->    argumentos y contaba el mensaje de uso como «esperando». Ahora **aborta si su instrumento
->    falla** y sale con 2 si agota; un 0 ya solo significa «sirve».
-> 4. **La trampa de la fecha del acta es real en este equipo**, que corre en `America/Mexico_City`
->    (−06:00): `new Date("2026-03-01")` pinta el 28 de febrero. Se escribe sin `Date`, y se falsó
->    **porque** el huso es negativo — en UTC la mutación habría pasado en verde sin probar nada.
->
-> ## `PRD-V-FEAT-008` — LA FOTO DEL MEDIDOR — LAS TRES ENTREGAS EN LOS DOS AMBIENTES
->
-> `producto-medicion-de-consumos` **APAGADA en los nueve**, solo Palmas en staging. El detalle de
-> la jornada está justo debajo de esta cabecera.
+> Presupuesto contra ejecución (§3.8) y la foto del medidor (§3.5). Lo ejecutado del presupuesto **se
+> lee de `useCommitteeReport`, nunca de sumar asientos**, y tiene guardián. En staging,
+> `budgets/conjunto-las-playas_2025` **aprobado** —ya no se toca desde la app— y el de 2026 en
+> borrador. ⚠️ **El año cerrado sale VACÍO hoy en los nueve**: el uso legal real es el primer trimestre
+> de 2027, y exige cargar antes el presupuesto de 2026.
 >
 > ## DÓNDE ESTÁ HABITANTO, MEDIDO HOY
 >
@@ -88,24 +79,22 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE
 >
-> 1. ~~Verificar §3.10~~ — ✅ **hecho el 10 sep**: el pase de larga duración con categoría Servicio cubre al
->    proveedor. Comprobado en el código; falta verlo una vez en pantalla.
-> 2. **`PRD-V-FEAT-010` — TESORERÍA**: **entrega 1 EN PRODUCCIÓN, apagada** (`5842e33`); **2a (traspasos)
->    construida**; faltan **2b** (conciliar sus tramos, partida aparte) y la **3** (caja chica). Saldo por cuenta →
->    traspasos → caja chica con fondo fijo y límite. ⚠️ **`G0` superada por decisión de David, no por
->    dolor** (son `C7` y `C8`, P2). Tres hallazgos que la ordenan: **un traspaso no es un asiento**
->    (va en su colección), **el libro no tiene todo lo cobrado** (coincide con Cartera en 2 de 7
->    conjuntos, así que el total sale de `computeFundPosition` y la diferencia se nombra) y **la caja
->    chica no es una cuenta bancaria** (el residente la vería como destino de pago).
+> 1. **`FEAT-010` entrega 2b** —conciliar los tramos de un traspaso—, **en sesión nueva**: toca las cinco
+>    funciones de `FLOW-004` en producción. Mientras, la línea del extracto de un traspaso se rechaza
+>    con motivo «otro».
+> 2. **El «hoy» en UTC** del formulario de egresos, propuesto como tarea aparte. Ojo al alcance: hay
+>    **42** `toISOString().slice(0, 10)` en `src/`, y no todos quieren el día local.
 > 3. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
-> 4. **Encender `FEAT-008` o `FEAT-009` en algún conjunto de producción** — es decisión de David, y
->    hoy no hay a quién: ningún conjunto real mide consumos ni ha cargado un presupuesto.
+> 4. **Encender `FEAT-008`, `FEAT-009` o `FEAT-010` en algún conjunto de producción** — es decisión de
+>    David, y hoy no hay a quién: ningún conjunto real mide consumos, ha cargado un presupuesto o
+>    tiene dos cuentas.
 > 5. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
 > 6. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
 >    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
 > 7. Fase 2 de `FEAT-009`, sin fecha: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D`
->    (una línea en el informe mensual).
+>    (una línea en el informe mensual). Y de `FEAT-010`: el pago de una cuota
+>    de `FLOW-008` tampoco manda cuenta (`payExpenseInstallment` la acepta sin comprobarla).
 >
 > ### Las banderas
 >
@@ -114,10 +103,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > `producto-rol-consejo`: **Santa María** en producción, **Palmas** en staging.
 > `producto-medicion-de-consumos`: **APAGADA en los nueve**, solo Palmas en staging.
 > `producto-presupuesto-anual`: **APAGADA en los nueve**; en staging, Palmas y Las Playas.
+> `producto-tesoreria`: **APAGADA en los nueve** (0 cajas en producción); en staging, **Las Playas** y **Santa María**.
 >
 > ### Frenos que NO son de código
 >
-> Proveedores (0 filas) · paz y salvo (0 emitidos) · coeficiente (18 de 93) · el consejo (10 cuentas
+> Proveedores (0 filas) · **cajas chicas y segundas cuentas (0 en producción)** · paz y salvo (0 emitidos) · coeficiente (18 de 93) · el consejo (10 cuentas
 > en 68 personas, **solo Santa María puede formar uno**) · **presupuestos (0 en producción)**. Y
 > **producción sigue sin un cliente real**.
 >
@@ -134,6 +124,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >   las lecturas las registra **solo la administración**.
 > - **De `FEAT-009`**: el año en curso **y** el cerrado; **sin escenarios**; y va **aparte** del
 >   informe mensual — lo compartido es el cálculo, no la pantalla.
+> - **De `FEAT-010`**: las tres entregas, **fondo fijo con límite**, los asientos sin cuenta **se
+>   muestran aparte**, la partición en **2a y 2b**, y `G0` superada **por decisión**.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 

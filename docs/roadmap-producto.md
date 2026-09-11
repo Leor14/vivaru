@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.62 |
+| **Versión** | 0.9.63 |
 | **Fecha** | 10 de septiembre de 2026 |
-| **Estado** | **`PRD-V-FEAT-009` — PRESUPUESTO CONTRA EJECUCIÓN — LAS DOS ENTREGAS EN PRODUCCIÓN, CON LA BANDERA APAGADA EN LOS NUEVE** (10 sep, `7846bc1`), y **`PRD-V-FEAT-008` — LA FOTO DEL MEDIDOR — LAS TRES** (10 sep, `6fac4bc`). Con ellas **lo construible de los diez huecos de la administradora se acabó**: cinco entregados, dos vetados por decisión propia (`RN-13`, `RN-14`), dos esperan al abogado, y §3.10 resultó cubierto —el pase de larga duración con categoría Servicio—. **`FEAT-009` no calcula lo ejecutado: lo lee del mismo hook que `/admin/reports`**, porque el núcleo recibe las cuotas aparte de los asientos — sumar asientos habría dado un ejecutado sin la mayor partida del conjunto —, y en staging salió **idéntico a Reportes cuenta a cuenta**. ⚠️ **El año cerrado sale vacío hoy en los nueve** (los 95 asientos de producción son de 2026): el uso legal real llega con la asamblea del primer trimestre de 2027, y exige cargar antes el presupuesto de 2026 que ya se aprobó en papel. **Lo siguiente:** `PLAT-004` entrega 2, y decidir si se enciende alguna de las dos en un conjunto — hoy ningún conjunto real mide consumos ni ha cargado un presupuesto. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo antes y después** de cada despliegue —«idéntico al repo: SÍ»—; front **por procedencia del build** (`build-2026-09-10-011` desde `7846bc1` en producción, `READY`); la bandera **resolviendo con `functions/lib/feature-flags.js` compilado** en los nueve, sin documento global. En pantalla, sobre Conjunto Las Playas en staging: `CA2` **idéntico a `/admin/reports` en las siete cuentas**; `CA7` aprobado y bloqueado, **leído también en la base**; `CA8` con **la vista previa real de impresión** de David. **Falseado cláusula por cláusula**, y las mutaciones de la fecha del acta en un equipo con huso negativo, que es donde la trampa existe. Bancos **contados, no citados**: `npm test` **1849** · functions **856** · reglas **404** · emulador **352 de 354**, con `CA12` y `D-B` de `payments.emulator.test.ts` **preexistentes y confirmados por nombre** |
+| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — ENTREGAS 1, 2a Y 3 EN PRODUCCIÓN, CON LA BANDERA APAGADA EN LOS NUEVE** (10 sep, `c1d7282`): cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **Falta la 2b**, conciliar los tramos de un traspaso, que va en sesión aparte porque toca las cinco funciones de `FLOW-004` en producción. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, apagadas. **Lo siguiente:** la 2b; el «hoy» en UTC del formulario de egresos, que fecha mañana lo registrado por la tarde en México; `PLAT-004` entrega 2; y decidir si se enciende alguna de las tres en un conjunto. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`8807cc95` en staging, `f551b415` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-002` desde `c1d7282`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: reglas 29 de 30 cláusulas (la otra es equivalente), código 12 de 12 tras cerrar los tres huecos que la propia falsación destapó. Bancos **contados, no citados**: `npm test` **1931** · functions **856** · reglas **453** · emulador **353 de 355**, con `CA12` y `D-B` **preexistentes** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,30 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.63 — 10 de septiembre de 2026 — la tesorería: saldo por cuenta, traspasos y caja chica
+
+- **`PRD-V-FEAT-010` entregas 1, 2a y 3 en producción** (`c1d7282`), con `producto-tesoreria` **apagada
+  en los nueve** y encendida en staging en Las Playas y Santa María. La entrega 2 se **partió** por
+  decisión de David: la 2b —conciliar los tramos de un traspaso— queda para una sesión aparte.
+- 🔴 **Un traspaso no es un asiento.** Escrito como dos, inflaría ingresos y egresos en el estado
+  financiero, el informe y el presupuesto; como tercer tipo, dos sitios medidos lo volverían gasto o
+  ingreso sin avisar. Vive en su colección, y un guardián impide que un consumidor del libro la lea.
+- 🔴 **El libro no tiene todo lo cobrado** (coincide con Cartera en 2 de 7 conjuntos): el total de la
+  tesorería **sale de `computeFundPosition`**, la misma función que el saldo de fondos, y la
+  diferencia se nombra como «cobrado en Cartera sin asiento».
+- **La caja chica no es una cuenta bancaria**: el residente lee las activas para decir a cuál pagó.
+  Vive en `pettyCashFunds`, y por eso **`RN-10` —la caja no recibe cuotas— se cumplió sin tocar el
+  servidor**: todo pago de residente pasa por `aplicarPago`, que solo lee `bankAccounts`.
+- **El egreso no elegía cuenta**: el campo existía y ningún control lo pedía. La 3 construyó «Sale de».
+- **Cerrar una caja exige saldo cero, y una regla no puede sumar**: lo sostiene la pantalla, que manda
+  la devolución en el mismo lote que el cierre. La apertura va en lote con su caja, y la regla la mira
+  con `getAfter`.
+- **La falsación cazó tres huecos** que las pruebas en verde no veían —un nombre que podía ser una
+  lista, una caja abierta con fecha de cierre, y un orden que la prueba satisfacía por casualidad—.
+- **Mirar encontró dos defectos más**: la historia de la caja salía desordenada, y —preexistente— el
+  formulario de egresos toma «hoy» en **UTC**: a las siete de la tarde en México, el egreso quedó
+  fechado al día siguiente. Propuesto como tarea aparte.
 
 ### 0.9.62 — 10 de septiembre de 2026 — lo construible de Habitanto, hecho: la foto del medidor y el presupuesto
 

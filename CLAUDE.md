@@ -89,10 +89,10 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **1849** (10 sep 2026) |
+  | App | `npm test` | **1931** (10 sep 2026) |
   | Functions | `npm --prefix functions test` | **856** |
-  | Reglas | `npm run test:rules:all` | **404** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
-  | Emulador de functions | `npm --prefix functions run test:emulator` | **352 de 354** *(pide emulador)* |
+  | Reglas | `npm run test:rules:all` | **453** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
+  | Emulador de functions | `npm --prefix functions run test:emulator` | **353 de 355** *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
   `payments.emulator.test.ts`. Confirmados **por nombre** el 10 de septiembre de 2026.
