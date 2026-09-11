@@ -25,6 +25,7 @@ import {
   saldosPorCuenta,
   type FilaDeTesoreria,
 } from "@/lib/finanzas/tesoreria";
+import { releaseReconciliationCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { BankAccount, LedgerEntry, PettyCashFund, TreasuryTransfer } from "@/types/domain";
 
@@ -163,8 +164,14 @@ export default function TesoreriaPage() {
   }
 
   async function anular(id: string) {
-    if (!user?.uid) return;
+    if (!user?.uid || !tenantId) return;
     try {
+      // 2b: con un tramo conciliado la regla no deja anular. Se suelta antes,
+      // como el libro antes de revertir un asiento conciliado.
+      const tr = traspasosDelConjunto?.find((t) => t.id === id);
+      if (tr?.salidaLineId || tr?.entradaLineId) {
+        await releaseReconciliationCallable({ tenantId, treasuryTransferId: id });
+      }
       await anularTraspaso(id, user.uid);
       toast.success("Traspaso anulado. Ya no cuenta en los saldos.");
     } catch (e) {
@@ -344,6 +351,7 @@ export default function TesoreriaPage() {
                   <tbody>
                     {traspasosDelConjunto.map((tr) => {
                       const anulado = tr.status === "anulado";
+                      const conciliados = [tr.salidaLineId ? "la salida" : null, tr.entradaLineId ? "la entrada" : null].filter(Boolean);
                       return (
                         <tr key={tr.id} className="border-b border-[var(--slate-100)]">
                           <td className="py-2 pr-4 tabular-nums text-[var(--slate-600)]">{tr.date}</td>
@@ -356,6 +364,9 @@ export default function TesoreriaPage() {
                             {tr.reference || tr.detail ? (
                               <span className="ml-2 text-[var(--slate-600)]">{[tr.reference, tr.detail].filter(Boolean).join(" · ")}</span>
                             ) : null}
+                            {conciliados.length > 0 ? (
+                              <span className="ml-2 text-[var(--tinte-verde-texto-1)]">Conciliada {conciliados.join(" y ")} en el banco</span>
+                            ) : null}
                           </td>
                           <td className={anulado ? "py-2 pr-4 text-right tabular-nums text-[var(--slate-600)] line-through" : "py-2 pr-4 text-right tabular-nums text-[var(--slate-900)]"}>
                             {formatAmount(tr.amount)}
@@ -365,7 +376,11 @@ export default function TesoreriaPage() {
                               <span className="text-[var(--slate-600)]">Anulado</span>
                             ) : confirmarAnular === tr.id ? (
                               <span className="inline-flex flex-wrap items-center justify-end gap-2">
-                                <span className="text-[var(--slate-600)]">Deja de contar en los dos saldos. ¿Anular?</span>
+                                <span className="text-[var(--slate-600)]">
+                                  {tr.salidaLineId || tr.entradaLineId
+                                    ? "Suelta su conciliación en el banco y deja de contar en los dos saldos. ¿Anular?"
+                                    : "Deja de contar en los dos saldos. ¿Anular?"}
+                                </span>
                                 <Button variant="danger" onClick={() => anular(tr.id)}>Anular</Button>
                                 <Button variant="ghost" onClick={() => setConfirmarAnular(null)}>No</Button>
                               </span>

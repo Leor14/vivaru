@@ -1,4 +1,4 @@
-import type { BankStatementLine, LedgerEntry } from "@/types/domain";
+import type { BankStatementLine, LedgerEntry, TreasuryTransfer } from "@/types/domain";
 
 /**
  * `PRD-V-FLOW-004` — las reglas del expediente, **espejo del cliente**.
@@ -30,6 +30,7 @@ export type MotivoCodigo =
   | "error_de_carga"
   | "linea_eliminada"
   | "reverso_del_asiento"
+  | "traspaso_anulado"
   | "otro";
 
 /** El catálogo, con el texto que ve quien concilia. Los dos últimos los pone el sistema. */
@@ -204,4 +205,52 @@ export function resumirConciliacion(
     // Lo que de verdad queda por decidir. Los cuatro grupos suman el total.
     pendientes: lineas.length - conciliadas - aRevisar - descartadas,
   };
+}
+
+// ── `PRD-V-FEAT-010` entrega 2b · RN-07 · los tramos de un traspaso ─────────
+
+/**
+ * Espejo de los tramos de `functions/src/conciliacion.ts`. **Un tramo no es un
+ * asiento**: llega con su efecto ya calculado —la salida resta, la entrada
+ * suma— y nunca pasa por `efectoContable`, que trata todo lo que no es ingreso
+ * como salida.
+ */
+export type Tramo = "salida" | "entrada";
+
+export type TramoDeTraspaso = {
+  id: string;
+  treasuryTransferId: string;
+  tramo: Tramo;
+  tenantId: string;
+  bankAccountId: string;
+  date: string;
+  efecto: number;
+  conciliado: boolean;
+  anulado: boolean;
+};
+
+export function tramosDe(
+  t: Pick<TreasuryTransfer, "id" | "tenantId" | "fromAccountId" | "toAccountId" | "amount" | "date" | "status" | "salidaLineId" | "entradaLineId">,
+): TramoDeTraspaso[] {
+  const importe = Math.abs(Number(t.amount));
+  const comun = { treasuryTransferId: t.id, tenantId: t.tenantId, date: t.date, anulado: t.status !== "registrado" };
+  return [
+    { ...comun, id: `${t.id}:salida`, tramo: "salida", bankAccountId: t.fromAccountId, efecto: -importe, conciliado: Boolean(t.salidaLineId) },
+    { ...comun, id: `${t.id}:entrada`, tramo: "entrada", bankAccountId: t.toAccountId, efecto: importe, conciliado: Boolean(t.entradaLineId) },
+  ];
+}
+
+/** Espejo de `porQueNoEsCandidatoElTramo`. **La cuenta es estricta**: un traspaso siempre dice sus dos cuentas. */
+export function porQueNoEsCandidatoElTramo(linea: BankStatementLine, tramo: TramoDeTraspaso): Descarte | null {
+  if (tramo.tenantId !== linea.tenantId) return "otro_conjunto";
+  if (tramo.bankAccountId !== linea.bankAccountId) return "otra_cuenta";
+  if (tramo.conciliado) return "ya_conciliado";
+  if (tramo.anulado) return "anulado";
+  if (Math.abs(tramo.efecto - Number(linea.amount ?? 0)) > TOLERANCIA_MONEDA) return "efecto";
+  if (!dentroDeVentana(linea, tramo)) return "fecha";
+  return null;
+}
+
+export function calcularTramosCandidatos(linea: BankStatementLine, tramos: TramoDeTraspaso[]): TramoDeTraspaso[] {
+  return tramos.filter((t) => porQueNoEsCandidatoElTramo(linea, t) === null);
 }

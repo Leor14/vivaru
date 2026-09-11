@@ -3492,6 +3492,30 @@ describe("FLOW-004 · el expediente de conciliación", () => {
       );
     });
 
+    it("`FEAT-010` 2b · NO puede importarla casada con un traspaso", async () => {
+      await assertFails(
+        setDoc(doc(admin().firestore(), "bankStatementLines", "bsl-nace-con-traspaso"), {
+          tenantId: "tenant-a",
+          bankAccountId: "cta-1",
+          date: "2026-07-01",
+          description: "Traspaso",
+          amount: 1000,
+          reconciled: false,
+          matchedLedgerEntryId: null,
+          matchedTransferId: "tr-1",
+        }),
+      );
+    });
+
+    it("`FEAT-010` 2b · ni escribir a mano el enlace con un tramo, aunque no toque `reconciled`", async () => {
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "bankStatementLines", "bsl-suelta"), { matchedTransferId: "tr-1" }),
+      );
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "bankStatementLines", "bsl-suelta"), { matchedTransferLeg: "salida" }),
+      );
+    });
+
     it("lo que NO es el enlace se sigue pudiendo corregir", async () => {
       // El veto es sobre dos campos, no sobre la colección: quien concilia tiene
       // que poder arreglar una descripción mal parseada del CSV.

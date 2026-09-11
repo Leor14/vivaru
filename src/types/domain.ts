@@ -655,6 +655,12 @@ export interface TreasuryTransfer {
   /** Los de la caja chica (entrega 3) son traspasos con nombre. */
   kind: "traspaso" | "apertura" | "reposicion" | "cierre";
   status: "registrado" | "anulado";
+  /**
+   * `PRD-V-FEAT-010` 2b · la línea del extracto con la que casó cada tramo. Solo
+   * los escribe el servidor; con uno puesto, el traspaso no se anula sin soltarlo.
+   */
+  salidaLineId?: string | null;
+  entradaLineId?: string | null;
   voidedAt?: unknown;
   voidedBy?: string;
   createdAt?: unknown;
@@ -1232,7 +1238,10 @@ export interface BankStatementLine {
   /** Positivo = crédito/ingreso; negativo = débito/egreso. */
   amount: number;
   /** Conciliación: enlazado a un ledgerEntry. */
-  matchedLedgerEntryId?: string;
+  matchedLedgerEntryId?: string | null;
+  /** `PRD-V-FEAT-010` 2b · o a un tramo de traspaso, que NO es un asiento. */
+  matchedTransferId?: string | null;
+  matchedTransferLeg?: "salida" | "entrada" | null;
   reconciled: boolean;
   /** Lote de importación (para revertir una carga). */
   importBatchId?: string;
@@ -1268,6 +1277,10 @@ export interface ReconciliationCase {
   version: number;
   candidateLedgerEntryIds: string[];
   matchedLedgerEntryId: string | null;
+  /** `PRD-V-FEAT-010` 2b · la pareja, cuando es un tramo de traspaso. */
+  matchedTransferId?: string | null;
+  matchedTransferLeg?: "salida" | "entrada" | null;
+  candidateTransferLegs?: string[];
   excepcion: "sin_contraparte" | "varios_candidatos" | "no_identificada" | null;
   /**
    * Lo que tiene de malo un emparejamiento que YA estaba escrito. **Vacío es

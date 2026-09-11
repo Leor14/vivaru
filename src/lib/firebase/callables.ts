@@ -1509,7 +1509,11 @@ export async function registrarImportacionCallable(input: {
 export type ReconcileCaseInput = {
   tenantId: string;
   bankStatementLineId: string;
-  ledgerEntryId: string;
+  /** Con un movimiento del libro… */
+  ledgerEntryId?: string;
+  /** …o con un tramo de traspaso (`PRD-V-FEAT-010` 2b). Una de las dos. */
+  treasuryTransferId?: string;
+  tramo?: "salida" | "entrada";
   expectedVersion?: number;
 };
 
@@ -1564,11 +1568,11 @@ export async function reopenReconciliationCaseCallable(input: {
  * llamada el ciclo automático de egresos se caería con un error de permisos que
  * se lee como un problema de rol y no de conciliación.
  */
-export async function releaseReconciliationCallable(input: { tenantId: string; ledgerEntryId: string }) {
+export async function releaseReconciliationCallable(input: { tenantId: string; ledgerEntryId?: string; treasuryTransferId?: string }) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
   }
-  const callable = httpsCallable<{ tenantId: string; ledgerEntryId: string }, { ok: true; released: boolean }>(
+  const callable = httpsCallable<{ tenantId: string; ledgerEntryId?: string; treasuryTransferId?: string }, { ok: true; released: boolean }>(
     functions,
     "releaseReconciliation",
   );

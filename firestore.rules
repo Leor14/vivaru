@@ -914,10 +914,13 @@ service cloud.firestore {
       allow create: if tenantOperable(request.resource.data.tenantId)
         && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
         && request.resource.data.get('reconciled', false) == false
-        && request.resource.data.get('matchedLedgerEntryId', null) == null;
+        && request.resource.data.get('matchedLedgerEntryId', null) == null
+        && request.resource.data.get('matchedTransferId', null) == null;
+      // PRD-V-FEAT-010 2b: el enlace con un tramo de traspaso, igual que el del
+      // asiento, lo escribe SOLO el servidor.
       allow update: if tenantOperable(request.resource.data.tenantId)
         && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reconciled', 'matchedLedgerEntryId'].toSet());
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reconciled', 'matchedLedgerEntryId', 'matchedTransferId', 'matchedTransferLeg'].toSet());
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
@@ -1615,6 +1618,9 @@ service cloud.firestore {
         && request.resource.data.date is string
         && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && request.resource.data.createdBy == request.auth.uid
+        // 2b: con que linea del extracto caso cada tramo lo escribe el servidor.
+        && request.resource.data.get('salidaLineId', null) == null
+        && request.resource.data.get('entradaLineId', null) == null
         && (
           (request.resource.data.kind == 'traspaso'
             && cuentaDelConjunto(request.resource.data.fromAccountId, request.resource.data.tenantId)
@@ -1629,6 +1635,10 @@ service cloud.firestore {
       allow update: if tenantOperable(resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
         && resource.data.status == 'registrado'
+        // 2b: con un tramo conciliado no se anula: la linea del banco quedaria
+        // casada con algo que ya no cuenta. Se suelta antes (releaseReconciliation).
+        && resource.data.get('salidaLineId', null) == null
+        && resource.data.get('entradaLineId', null) == null
         && request.resource.data.status == 'anulado'
         && request.resource.data.voidedBy == request.auth.uid
         && request.resource.data.voidedAt == request.time

@@ -66,6 +66,9 @@ async function sembrar() {
     }
     await setDoc(doc(db, "treasuryTransfers", "t-registrado"), traspaso());
     await setDoc(doc(db, "treasuryTransfers", "t-anulado"), traspaso({ status: "anulado", voidedBy: "admin-1" }));
+    // 2b: un tramo ya casado con una línea del extracto (lo escribe el servidor).
+    await setDoc(doc(db, "treasuryTransfers", "t-conciliado"), traspaso({ salidaLineId: "bsl-a" }));
+    await setDoc(doc(db, "treasuryTransfers", "t-conciliado-entrada"), traspaso({ entradaLineId: "bsl-b" }));
   });
 }
 
@@ -128,6 +131,11 @@ describe("FEAT-010 · registrar un traspaso, y `CA15`", () => {
     setDoc(nuevo(admin()), traspaso({ date: "10/09/2026" })),
   ));
 
+  it("`2b` · NI naciendo con un tramo conciliado: eso lo escribe el servidor", async () => {
+    await assertFails(setDoc(nuevo(admin()), traspaso({ salidaLineId: "bsl-a" })));
+    await assertFails(setDoc(nuevo(admin()), traspaso({ entradaLineId: "bsl-b" })));
+  });
+
   it("NI firmando como otra persona", () => assertFails(
     setDoc(nuevo(admin()), traspaso({ createdBy: "alguien-mas" })),
   ));
@@ -178,6 +186,14 @@ describe("FEAT-010 · anular, y `CA16`: no se borra", () => {
   it("el residente no anula", () => assertFails(
     updateDoc(ref(residente()), anular({ voidedBy: "residente-101", updatedBy: "residente-101" })),
   ));
+
+  it("`2b` · con un tramo conciliado NO se anula — el mismo cuerpo sobre uno sin conciliar sí", async () => {
+    const cuerpo = () => ({ status: "anulado", voidedAt: serverTimestamp(), voidedBy: "admin-1", updatedAt: serverTimestamp(), updatedBy: "admin-1" });
+    await assertFails(updateDoc(doc(admin(), "treasuryTransfers", "t-conciliado"), cuerpo()));
+    // Cada tramo por su lado: con solo la ENTRADA casada, tampoco.
+    await assertFails(updateDoc(doc(admin(), "treasuryTransfers", "t-conciliado-entrada"), cuerpo()));
+    await assertSucceeds(updateDoc(doc(admin(), "treasuryTransfers", "t-registrado"), cuerpo()));
+  });
 
   it("`CA16` · nadie lo borra, ni registrado ni anulado", async () => {
     await assertFails(deleteDoc(ref(admin())));

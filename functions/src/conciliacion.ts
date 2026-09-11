@@ -34,6 +34,8 @@ export const MOTIVOS = [
   "error_de_carga",
   "linea_eliminada",
   "reverso_del_asiento",
+  // `PRD-V-FEAT-010` 2b: lo pone el sistema al anular un traspaso con un tramo casado.
+  "traspaso_anulado",
   "otro",
 ] as const;
 export type MotivoCodigo = (typeof MOTIVOS)[number];
@@ -154,6 +156,8 @@ export type Clasificacion = {
   status: Extract<EstadoCaso, "detectado" | "propuesto">;
   excepcion: "sin_contraparte" | "varios_candidatos" | null;
   candidateLedgerEntryIds: string[];
+  /** `PRD-V-FEAT-010` 2b: los tramos de traspaso que también cuadran. */
+  candidateTransferLegs: string[];
 };
 
 /**
@@ -164,15 +168,24 @@ export type Clasificacion = {
  * Una propuesta que acierta la mitad de las veces es peor que ninguna: se
  * confirma sin mirar.
  */
-export function clasificar(linea: LineaDeBanco, asientos: AsientoDelLibro[]): Clasificacion {
+export function clasificar(
+  linea: LineaDeBanco,
+  asientos: AsientoDelLibro[],
+  // 2b: un tramo que cuadra es un candidato más. Un asiento y un tramo a la vez
+  // son DOS candidatos, y con dos no se propone (R4).
+  tramos: TramoDeTraspaso[] = [],
+): Clasificacion {
   const candidateLedgerEntryIds = calcularCandidatos(linea, asientos);
-  if (candidateLedgerEntryIds.length === 1) {
-    return { status: "propuesto", excepcion: null, candidateLedgerEntryIds };
+  const candidateTransferLegs = calcularTramosCandidatos(linea, tramos);
+  const candidatos = candidateLedgerEntryIds.length + candidateTransferLegs.length;
+  if (candidatos === 1) {
+    return { status: "propuesto", excepcion: null, candidateLedgerEntryIds, candidateTransferLegs };
   }
   return {
     status: "detectado",
-    excepcion: candidateLedgerEntryIds.length === 0 ? "sin_contraparte" : "varios_candidatos",
+    excepcion: candidatos === 0 ? "sin_contraparte" : "varios_candidatos",
     candidateLedgerEntryIds,
+    candidateTransferLegs,
   };
 }
 
@@ -275,4 +288,81 @@ export function motivoValido(estado: EstadoCaso, codigo?: string | null, texto?:
   if (!codigo || !(MOTIVOS as readonly string[]).includes(codigo)) return false;
   if (codigo === "otro") return typeof texto === "string" && texto.trim().length > 0;
   return true;
+}
+
+// ── `PRD-V-FEAT-010` entrega 2b · RN-07 · los tramos de un traspaso ─────────
+
+/**
+ * **Un tramo de un traspaso NO es un asiento, y aquí no se le trata como uno.**
+ *
+ * Un traspaso de A a B aparece DOS veces en los extractos: sale de A y entra en
+ * B. Cada una de esas mitades es un tramo, y cada una se concilia contra la
+ * línea del extracto de SU banco (`CA7`). Sin esto, cada traspaso dejaría dos
+ * líneas sueltas en la bandeja.
+ *
+ * Por qué tiene tipo propio y no pasa por `AsientoDelLibro`: `efectoContable`
+ * trata **todo lo que no es ingreso** como salida, y `comoAsiento` todo lo que
+ * no es egreso como ingreso. Un traspaso metido por ahí se convertiría en gasto
+ * o en ingreso sin avisar (`RN-01`). El tramo llega con su efecto **ya
+ * calculado**: la salida resta y la entrada suma.
+ */
+export type Tramo = "salida" | "entrada";
+
+export type TramoDeTraspaso = {
+  /** `{traspaso}:{tramo}`. */
+  id: string;
+  treasuryTransferId: string;
+  tramo: Tramo;
+  tenantId: string;
+  /** La cuenta de ESTE tramo: el origen para la salida, el destino para la entrada. */
+  bankAccountId: string;
+  /** ISO `YYYY-MM-DD`. */
+  date: string;
+  /** Con su signo: la salida resta, la entrada suma. */
+  efecto: number;
+  conciliado: boolean;
+  anulado: boolean;
+};
+
+/** Lo mínimo que hace falta de un traspaso para partirlo en tramos. */
+export type TraspasoParaConciliar = {
+  id: string;
+  tenantId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date: string;
+  status: string;
+  salidaLineId?: string | null;
+  entradaLineId?: string | null;
+};
+
+export function tramosDe(t: TraspasoParaConciliar): TramoDeTraspaso[] {
+  const importe = Math.abs(Number(t.amount));
+  const comun = { treasuryTransferId: t.id, tenantId: t.tenantId, date: t.date, anulado: t.status !== "registrado" };
+  return [
+    { ...comun, id: `${t.id}:salida`, tramo: "salida", bankAccountId: t.fromAccountId, efecto: -importe, conciliado: Boolean(t.salidaLineId) },
+    { ...comun, id: `${t.id}:entrada`, tramo: "entrada", bankAccountId: t.toAccountId, efecto: importe, conciliado: Boolean(t.entradaLineId) },
+  ];
+}
+
+/**
+ * Como `porQueNoEsCandidato`, con una diferencia buscada: **la cuenta es
+ * estricta**. Un asiento sin cuenta no se descarta —16 de 93 no la tienen—,
+ * pero un traspaso SIEMPRE declara sus dos cuentas, así que un tramo de otra
+ * cuenta nunca es candidato. Por eso el tramo de una caja chica —apertura,
+ * reposición, cierre— no casa con ninguna línea: la caja no tiene extracto.
+ */
+export function porQueNoEsCandidatoElTramo(linea: LineaDeBanco, tramo: TramoDeTraspaso): Descarte | null {
+  if (tramo.tenantId !== linea.tenantId) return "otro_conjunto";
+  if (tramo.bankAccountId !== linea.bankAccountId) return "otra_cuenta";
+  if (tramo.conciliado) return "ya_conciliado";
+  if (tramo.anulado) return "anulado";
+  if (Math.abs(tramo.efecto - Number(linea.amount)) > TOLERANCIA_MONEDA) return "efecto";
+  if (!dentroDeVentana(linea, tramo)) return "fecha";
+  return null;
+}
+
+export function calcularTramosCandidatos(linea: LineaDeBanco, tramos: TramoDeTraspaso[]): string[] {
+  return tramos.filter((t) => porQueNoEsCandidatoElTramo(linea, t) === null).map((t) => t.id);
 }

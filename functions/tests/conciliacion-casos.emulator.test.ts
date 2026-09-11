@@ -79,7 +79,7 @@ async function sembrarAsiento(id: string, over: Record<string, unknown> = {}) {
 const caso = (id: string) => db.collection("reconciliationCases").doc(id);
 
 beforeEach(async () => {
-  for (const c of ["bankStatementLines", "ledgerEntries", "reconciliationCases", "billingStatements", "paymentOperations", "paymentVouchers", "tenantSettings", "auditLogs", "bankAccounts"]) {
+  for (const c of ["bankStatementLines", "ledgerEntries", "reconciliationCases", "billingStatements", "paymentOperations", "paymentVouchers", "tenantSettings", "auditLogs", "bankAccounts", "treasuryTransfers"]) {
     await limpiar(c);
   }
   await sembrarMembresia(TENANT);
@@ -357,5 +357,127 @@ describe("CA1 · el expediente nace con la línea", () => {
     const l = (await db.collection("bankStatementLines").doc("L1").get()).data();
     expect(l?.reconciled).toBe(false);
     expect(l?.matchedLedgerEntryId).toBeNull();
+  });
+});
+
+describe("`PRD-V-FEAT-010` 2b · `CA7` · los tramos de un traspaso", () => {
+  const CUENTA_B = "cta-ahorros";
+  const traspasoDoc = (id: string) => db.collection("treasuryTransfers").doc(id);
+  const lineaDoc = (id: string) => db.collection("bankStatementLines").doc(id);
+
+  async function sembrarTraspaso(id = "TR1", over: Record<string, unknown> = {}) {
+    await traspasoDoc(id).set({
+      tenantId: TENANT,
+      fromAccountId: CUENTA,
+      toAccountId: CUENTA_B,
+      amount: 300000,
+      date: "2026-06-08",
+      kind: "traspaso",
+      status: "registrado",
+      ...over,
+    });
+  }
+  const aplicarTramo = (linea: string, tramo: "salida" | "entrada", traspaso = "TR1") =>
+    aplicarCaso({ tenantId: TENANT, bankStatementLineId: linea, treasuryTransferId: traspaso, tramo }, ADMIN, ROL);
+
+  beforeEach(async () => {
+    await db.collection("bankAccounts").doc(CUENTA_B).set({ tenantId: TENANT, bankName: "Bancolombia", active: true });
+    await sembrarTraspaso();
+    await sembrarLinea("LA", { amount: -300000, description: "TRASPASO A AHORROS" });
+    await sembrarLinea("LB", { bankAccountId: CUENTA_B, amount: 300000, description: "TRASPASO DE CORRIENTE" });
+  });
+
+  it("la salida casa con la línea de A y la entrada con la de B — y el libro no se entera", async () => {
+    expect((await aplicarTramo("LA", "salida")).applied).toBe(true);
+    expect((await aplicarTramo("LB", "entrada")).applied).toBe(true);
+
+    expect((await lineaDoc("LA").get()).data()).toMatchObject({ reconciled: true, matchedLedgerEntryId: null, matchedTransferId: "TR1", matchedTransferLeg: "salida" });
+    expect((await lineaDoc("LB").get()).data()).toMatchObject({ reconciled: true, matchedTransferId: "TR1", matchedTransferLeg: "entrada" });
+    expect((await traspasoDoc("TR1").get()).data()).toMatchObject({ salidaLineId: "LA", entradaLineId: "LB", status: "registrado" });
+    expect((await caso("LA").get()).data()).toMatchObject({ status: "aplicado", matchedLedgerEntryId: null, matchedTransferId: "TR1", matchedTransferLeg: "salida" });
+    expect((await db.collection("ledgerEntries").get()).size).toBe(0);
+  });
+
+  it("cruzados, no: la entrada no está en el extracto de A — y no deja nada a medias", async () => {
+    await expect(aplicarTramo("LA", "entrada")).rejects.toThrow(/no entra en esta cuenta/);
+    expect((await lineaDoc("LA").get()).data()?.reconciled).toBe(false);
+    expect((await traspasoDoc("TR1").get()).data()?.entradaLineId).toBeUndefined();
+    expect((await caso("LA").get()).exists).toBe(false);
+  });
+
+  it("el sentido y el importe cuentan: +300.000 en A no es la salida", async () => {
+    await sembrarLinea("LA+", { amount: 300000 });
+    await expect(aplicarTramo("LA+", "salida")).rejects.toThrow(/No cuadran/);
+  });
+
+  it("un traspaso anulado, o de otro conjunto, no casa", async () => {
+    await sembrarTraspaso("TR-anulado", { status: "anulado" });
+    await expect(aplicarTramo("LA", "salida", "TR-anulado")).rejects.toThrow(/anulado/);
+    await sembrarTraspaso("TR-ajeno", { tenantId: OTRO });
+    await expect(aplicarTramo("LA", "salida", "TR-ajeno")).rejects.toThrow(/otro conjunto/);
+  });
+
+  it("un tramo ya conciliado no casa con una segunda línea", async () => {
+    await aplicarTramo("LA", "salida");
+    await sembrarLinea("LA2", { amount: -300000, description: "OTRA LINEA" });
+    await expect(aplicarTramo("LA2", "salida")).rejects.toThrow(/ya fue conciliado/);
+  });
+
+  it("R10 · dos veces lo mismo no duplica ni sube la versión", async () => {
+    await aplicarTramo("LA", "salida");
+    expect((await aplicarTramo("LA", "salida")).applied).toBe(false);
+    expect((await caso("LA").get()).data()?.version).toBe(1);
+  });
+
+  it("con un asiento Y un traspaso a la vez, se niega", async () => {
+    await sembrarAsiento("A1");
+    await expect(
+      aplicarCaso({ tenantId: TENANT, bankStatementLineId: "LA", ledgerEntryId: "A1", treasuryTransferId: "TR1", tramo: "salida" }, ADMIN, ROL),
+    ).rejects.toThrow(/no con los dos/);
+  });
+
+  it("reabrir suelta el tramo también en el traspaso", async () => {
+    await aplicarTramo("LA", "salida");
+    await reabrirCaso({ tenantId: TENANT, bankStatementLineId: "LA" }, ADMIN, ROL);
+    expect((await lineaDoc("LA").get()).data()).toMatchObject({ reconciled: false, matchedTransferId: null, matchedTransferLeg: null });
+    expect((await traspasoDoc("TR1").get()).data()?.salidaLineId).toBeNull();
+    expect((await caso("LA").get()).data()?.status).toBe("detectado");
+  });
+
+  it("anular: `liberarConciliacion` suelta los DOS tramos y deja cada caso en `reversado` con su motivo", async () => {
+    await aplicarTramo("LA", "salida");
+    await aplicarTramo("LB", "entrada");
+    expect((await liberarConciliacion({ tenantId: TENANT, treasuryTransferId: "TR1" }, ADMIN, ROL)).released).toBe(true);
+
+    expect((await traspasoDoc("TR1").get()).data()).toMatchObject({ salidaLineId: null, entradaLineId: null });
+    for (const id of ["LA", "LB"]) {
+      expect((await lineaDoc(id).get()).data()).toMatchObject({ reconciled: false, matchedTransferId: null });
+      expect((await caso(id).get()).data()).toMatchObject({ status: "reversado", motivoCodigo: "traspaso_anulado" });
+    }
+  });
+
+  /**
+   * El id de una línea se deriva de su contenido: borrada a mano y reimportada,
+   * vuelve con el MISMO id. Si entretanto casó con un asiento, el traspaso sigue
+   * apuntándole — y anular el traspaso no puede soltar esa conciliación ajena.
+   */
+  it("liberar NO suelta una línea que ya apunta a otra cosa, aunque el traspaso la nombre", async () => {
+    await sembrarAsiento("A1", { reconciled: true, bankStatementLineId: "LA" });
+    await lineaDoc("LA").set({ reconciled: true, matchedLedgerEntryId: "A1" }, { merge: true });
+    await traspasoDoc("TR1").set({ salidaLineId: "LA" }, { merge: true });
+
+    expect((await liberarConciliacion({ tenantId: TENANT, treasuryTransferId: "TR1" }, ADMIN, ROL)).released).toBe(true);
+    expect((await lineaDoc("LA").get()).data()).toMatchObject({ reconciled: true, matchedLedgerEntryId: "A1" });
+    expect((await caso("LA").get()).exists).toBe(false);
+    expect((await traspasoDoc("TR1").get()).data()?.salidaLineId).toBeNull();
+  });
+
+  it("sin tramos conciliados, liberar no hace nada, y lo dice", async () => {
+    expect((await liberarConciliacion({ tenantId: TENANT, treasuryTransferId: "TR1" }, ADMIN, ROL)).released).toBe(false);
+  });
+
+  it("`CA1` · el expediente de una línea con un solo tramo que cuadra nace propuesto", async () => {
+    await asegurarCasos({ tenantId: TENANT, bankAccountId: CUENTA_B }, ADMIN, ROL);
+    expect((await caso("LB").get()).data()).toMatchObject({ status: "propuesto", candidateLedgerEntryIds: [], candidateTransferLegs: ["TR1:entrada"] });
   });
 });

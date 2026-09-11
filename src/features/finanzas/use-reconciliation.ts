@@ -14,7 +14,7 @@ import { db } from "@/lib/firebase/client";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BankStatementLine, LedgerEntry, ReconciliationCase } from "@/types/domain";
 
-import { claveNatural, idDeLinea } from "./conciliacion-reglas";
+import { claveNatural, idDeLinea, type TramoDeTraspaso } from "./conciliacion-reglas";
 
 // ── Helpers puros (parsing de extracto CSV) ───────────────────────────────
 
@@ -284,6 +284,25 @@ export async function matchLine(
   });
 }
 
+/**
+ * `PRD-V-FEAT-010` 2b · `CA7` — concilia una línea con un **tramo de traspaso**.
+ * Lo decide el servidor, igual que con un asiento; el libro no se toca.
+ */
+export async function matchTramo(
+  tenantId: string,
+  bankLine: BankStatementLine,
+  tramo: Pick<TramoDeTraspaso, "treasuryTransferId" | "tramo">,
+  expectedVersion?: number,
+): Promise<void> {
+  await reconcileCaseCallable({
+    tenantId,
+    bankStatementLineId: bankLine.id,
+    treasuryTransferId: tramo.treasuryTransferId,
+    tramo: tramo.tramo,
+    expectedVersion,
+  });
+}
+
 /** Deshace la conciliación de una línea. Deja rastro: el caso vuelve a `detectado`. */
 export async function unmatchLine(tenantId: string, bankLine: BankStatementLine, expectedVersion?: number): Promise<void> {
   await reopenReconciliationCaseCallable({ tenantId, bankStatementLineId: bankLine.id, expectedVersion });
@@ -328,6 +347,10 @@ export async function deleteBankStatementLine(tenantId: string, bankLine: BankSt
   }
   if (bankLine.reconciled && bankLine.matchedLedgerEntryId) {
     await releaseReconciliationCallable({ tenantId, ledgerEntryId: bankLine.matchedLedgerEntryId });
+  } else if (bankLine.reconciled && bankLine.matchedTransferId) {
+    // 2b: reabrir suelta el tramo en el traspaso; si no, quedaría apuntando a
+    // una línea borrada y el traspaso ya no se podría anular.
+    await reopenReconciliationCaseCallable({ tenantId, bankStatementLineId: bankLine.id });
   }
   await deleteDoc(doc(db, "bankStatementLines", bankLine.id));
 }

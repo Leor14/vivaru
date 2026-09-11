@@ -23,11 +23,14 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-context";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { createBankAccount, watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
+import { watchCajas } from "@/features/finanzas/use-cajas";
 import { watchLedger } from "@/features/finanzas/use-ledger";
+import { watchTraspasos } from "@/features/finanzas/use-traspasos";
 import {
   deleteBankStatementLine,
   importBankStatementLines,
   matchLine,
+  matchTramo,
   rejectLine,
   unmatchLine,
   watchBankStatementLines,
@@ -37,15 +40,18 @@ import {
   ETIQUETA_INCOHERENCIA,
   MOTIVOS_DE_RECHAZO,
   calcularCandidatos,
+  calcularTramosCandidatos,
   incoherenciasDelPar,
   resumirConciliacion,
+  tramosDe,
   type Incoherencia,
+  type TramoDeTraspaso,
 } from "@/features/finanzas/conciliacion-reglas";
 import { bankAccountSchema, type BankAccountFormValues } from "@/features/finanzas/schemas";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
-import type { BankAccount, BankStatementLine, LedgerEntry, ReconciliationCase } from "@/types/domain";
+import type { BankAccount, BankStatementLine, LedgerEntry, PettyCashFund, ReconciliationCase, TreasuryTransfer } from "@/types/domain";
 
 
 /**
@@ -64,6 +70,8 @@ function Grupo({
   incoherentes,
   casoPorLinea,
   candidatosPorLinea,
+  tramosPorLinea,
+  etiquetaDeTraspaso,
   onConciliar,
   onDeshacer,
   onDescartar,
@@ -76,6 +84,9 @@ function Grupo({
   incoherentes: Map<string, Incoherencia[]>;
   casoPorLinea: Map<string, ReconciliationCase>;
   candidatosPorLinea: Map<string, LedgerEntry[]>;
+  /** `PRD-V-FEAT-010` 2b: los tramos de traspaso que también cuadran. */
+  tramosPorLinea: Map<string, TramoDeTraspaso[]>;
+  etiquetaDeTraspaso: Map<string, string>;
   onConciliar: (l: BankStatementLine) => void;
   onDeshacer: (l: BankStatementLine) => void;
   onDescartar: (l: BankStatementLine) => void;
@@ -95,6 +106,7 @@ function Grupo({
           const fallos = incoherentes.get(line.id) ?? [];
           const caso = casoPorLinea.get(line.id);
           const candidatos = candidatosPorLinea.get(line.id) ?? [];
+          const cuantos = candidatos.length + (tramosPorLinea.get(line.id)?.length ?? 0);
           return (
             <li key={line.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
               <div className="min-w-0">
@@ -102,6 +114,12 @@ function Grupo({
                   {line.date} · {formatAmount(line.amount)}
                 </p>
                 <p className="truncate text-xs text-[var(--slate-500)]">{line.description || "Sin descripción"}</p>
+                {line.reconciled && line.matchedTransferId ? (
+                  <p className="mt-0.5 text-xs text-[var(--slate-500)]">
+                    Con el traspaso {etiquetaDeTraspaso.get(line.matchedTransferId) ?? "entre cuentas del conjunto"} ·{" "}
+                    {line.matchedTransferLeg === "entrada" ? "entrada" : "salida"}
+                  </p>
+                ) : null}
                 {/* El porqué, escrito. Es la mitad del valor del expediente. */}
                 {fallos.length > 0 ? (
                   <p className="mt-0.5 text-xs text-[var(--danger-700)]">
@@ -148,8 +166,8 @@ function Grupo({
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={candidatos.length === 0}
-                      title={candidatos.length === 0 ? "No hay ningún movimiento del libro que cuadre con esta línea." : undefined}
+                      disabled={cuantos === 0}
+                      title={cuantos === 0 ? "No hay ningún movimiento que cuadre con esta línea." : undefined}
                       onClick={() => onConciliar(line)}
                     >
                       <Link2 className="mr-2 h-4 w-4" />
@@ -192,6 +210,8 @@ export default function AdminConciliacionPage() {
    * descarte se quedan — eso no es la bandeja, es el expediente.
    */
   const bandejaAgrupada = useFeatureFlag("producto-expediente-conciliacion");
+  // `PRD-V-FEAT-010` 2b: los traspasos nacen en la tesorería, detrás de su bandera.
+  const tesoreria = useFeatureFlag("producto-tesoreria");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -204,6 +224,8 @@ export default function AdminConciliacionPage() {
   const [savingAccount, setSavingAccount] = useState(false);
   const [matchTarget, setMatchTarget] = useState<BankStatementLine | null>(null);
   const [cases, setCases] = useState<ReconciliationCase[]>([]);
+  const [traspasos, setTraspasos] = useState<TreasuryTransfer[]>([]);
+  const [cajas, setCajas] = useState<PettyCashFund[]>([]);
   const [rejectTarget, setRejectTarget] = useState<BankStatementLine | null>(null);
   const [motivoCodigo, setMotivoCodigo] = useState<string>("sin_contraparte");
   const [motivoTexto, setMotivoTexto] = useState<string>("");
@@ -239,6 +261,23 @@ export default function AdminConciliacionPage() {
     return () => unsub();
   }, [user?.tenantId]);
 
+  // `RN-07`: cada tramo de un traspaso es un candidato más, junto a los asientos.
+  useEffect(() => {
+    if (!user?.tenantId || !tesoreria) {
+      setTraspasos([]);
+      return;
+    }
+    return watchTraspasos(user.tenantId, setTraspasos, () => setTraspasos([]));
+  }, [user?.tenantId, tesoreria]);
+  // Solo para el nombre: un traspaso puede ir a una caja chica.
+  useEffect(() => {
+    if (!user?.tenantId || !tesoreria) {
+      setCajas([]);
+      return;
+    }
+    return watchCajas(user.tenantId, setCajas, () => setCajas([]));
+  }, [user?.tenantId, tesoreria]);
+
   useEffect(() => {
     if (!user?.tenantId || !selectedAccountId) {
       setLines([]);
@@ -257,6 +296,17 @@ export default function AdminConciliacionPage() {
   }, [user?.tenantId, selectedAccountId]);
 
   const unreconciledLedger = useMemo(() => ledger.filter((entry) => !entry.reconciled), [ledger]);
+  const tramos = useMemo(() => traspasos.flatMap((t) => tramosDe(t)), [traspasos]);
+  /** De dónde a dónde va cada traspaso, con el nombre de la cuenta o de la caja. */
+  const etiquetaDeTraspaso = useMemo(() => {
+    const nombre = new Map<string, string>([
+      ...accounts.map((a) => [a.id, a.label] as const),
+      ...cajas.map((c) => [c.id, c.name] as const),
+    ]);
+    return new Map(
+      traspasos.map((t) => [t.id, `${nombre.get(t.fromAccountId) ?? "otra cuenta"} → ${nombre.get(t.toAccountId) ?? "otra cuenta"}`]),
+    );
+  }, [traspasos, accounts, cajas]);
   const ledgerPorId = useMemo(() => new Map(ledger.map((e) => [e.id, e])), [ledger]);
   const casoPorLinea = useMemo(
     () => new Map(cases.map((c) => [c.bankStatementLineId, c])),
@@ -302,6 +352,16 @@ export default function AdminConciliacionPage() {
     return mapa;
   }, [lines, unreconciledLedger]);
 
+  /** 2b · los tramos de traspaso que cuadran con cada línea, con las reglas del servidor. */
+  const tramosPorLinea = useMemo(() => {
+    const mapa = new Map<string, TramoDeTraspaso[]>();
+    for (const line of lines) {
+      if (line.reconciled) continue;
+      mapa.set(line.id, calcularTramosCandidatos(line, tramos));
+    }
+    return mapa;
+  }, [lines, tramos]);
+
   /**
    * La bandeja, en los grupos que salieron de medir las 27 líneas de producción:
    * seis fungibles con varios candidatos, una comisión sin contraparte y un
@@ -311,13 +371,15 @@ export default function AdminConciliacionPage() {
     const pendientes = lines.filter((l) => !l.reconciled);
     const rechazadas = pendientes.filter((l) => casoPorLinea.get(l.id)?.status === "rechazado");
     const abiertas = pendientes.filter((l) => casoPorLinea.get(l.id)?.status !== "rechazado");
+    // Un asiento y un tramo que cuadran a la vez son DOS candidatos (R4).
+    const cuantos = (id: string) => (candidatosPorLinea.get(id)?.length ?? 0) + (tramosPorLinea.get(id)?.length ?? 0);
     return {
-      propuestas: abiertas.filter((l) => (candidatosPorLinea.get(l.id)?.length ?? 0) === 1),
-      varias: abiertas.filter((l) => (candidatosPorLinea.get(l.id)?.length ?? 0) > 1),
-      sinContraparte: abiertas.filter((l) => (candidatosPorLinea.get(l.id)?.length ?? 0) === 0),
+      propuestas: abiertas.filter((l) => cuantos(l.id) === 1),
+      varias: abiertas.filter((l) => cuantos(l.id) > 1),
+      sinContraparte: abiertas.filter((l) => cuantos(l.id) === 0),
       rechazadas,
     };
-  }, [lines, candidatosPorLinea, casoPorLinea]);
+  }, [lines, candidatosPorLinea, tramosPorLinea, casoPorLinea]);
 
   async function handleSaveAccount(values: BankAccountFormValues) {
     if (!user?.tenantId) return;
@@ -381,6 +443,17 @@ export default function AdminConciliacionPage() {
     }
   }
 
+  async function handleMatchTramo(tramo: TramoDeTraspaso) {
+    if (!matchTarget || !user?.tenantId) return;
+    try {
+      await matchTramo(user.tenantId, matchTarget, tramo, casoPorLinea.get(matchTarget.id)?.version);
+      toast.success("Conciliado con el traspaso.");
+      setMatchTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
   async function handleUnmatch(line: BankStatementLine) {
     if (!user?.tenantId) return;
     try {
@@ -431,6 +504,10 @@ export default function AdminConciliacionPage() {
     if (!matchTarget) return [];
     return candidatosPorLinea.get(matchTarget.id) ?? [];
   }, [matchTarget, candidatosPorLinea]);
+  const matchTramos = useMemo(
+    () => (matchTarget ? (tramosPorLinea.get(matchTarget.id) ?? []) : []),
+    [matchTarget, tramosPorLinea],
+  );
 
   return (
     <div className="space-y-4">
@@ -550,6 +627,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -576,6 +655,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -591,6 +672,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -605,6 +688,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -619,6 +704,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -629,6 +716,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -643,6 +732,8 @@ export default function AdminConciliacionPage() {
             incoherentes={incoherentes}
             casoPorLinea={casoPorLinea}
             candidatosPorLinea={candidatosPorLinea}
+            tramosPorLinea={tramosPorLinea}
+            etiquetaDeTraspaso={etiquetaDeTraspaso}
             onConciliar={setMatchTarget}
             onDeshacer={(l) => void handleUnmatch(l)}
             onDescartar={setRejectTarget}
@@ -782,7 +873,7 @@ export default function AdminConciliacionPage() {
               </p>
               <p className="text-xs text-[var(--slate-500)]">{matchTarget.description || "Sin descripción"}</p>
             </div>
-            {matchCandidates.length === 0 ? (
+            {matchCandidates.length === 0 && matchTramos.length === 0 ? (
               // **Decir por qué no hay, no «no hay».** Antes esta lista traía
               // todos los movimientos sin conciliar del conjunto ordenados por
               // parecido, y el primero parecía siempre el bueno.
@@ -808,6 +899,30 @@ export default function AdminConciliacionPage() {
                         </span>
                       </span>
                       <span className="mt-0.5 block text-xs text-[var(--slate-500)]">{entry.date}</span>
+                    </button>
+                  </li>
+                ))}
+                {/* `PRD-V-FEAT-010` 2b: los tramos de traspaso, que NO son movimientos del libro. */}
+                {matchTramos.map((tramo) => (
+                  <li key={tramo.id}>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl border border-[var(--slate-200)] p-3 text-left hover:border-[var(--brand-400)]"
+                      onClick={() => void handleMatchTramo(tramo)}
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-[var(--slate-900)]">
+                          Traspaso: {etiquetaDeTraspaso.get(tramo.treasuryTransferId) ?? "entre cuentas del conjunto"}
+                        </span>
+                        <span className={tramo.efecto > 0 ? "text-[var(--tinte-verde-texto-1)]" : "text-[var(--tinte-ambar-texto-1)]"}>
+                          {tramo.efecto > 0 ? "+" : "−"}
+                          {formatAmount(Math.abs(tramo.efecto))}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block text-xs text-[var(--slate-500)]">
+                        {tramo.date} · {tramo.tramo === "salida" ? "sale de esta cuenta" : "entra en esta cuenta"}; no es un
+                        gasto ni un ingreso
+                      </span>
                     </button>
                   </li>
                 ))}

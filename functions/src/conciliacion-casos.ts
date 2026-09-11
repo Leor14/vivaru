@@ -8,12 +8,17 @@ import {
   incoherenciasDelPar,
   motivoValido,
   porQueNoEsCandidato,
+  porQueNoEsCandidatoElTramo,
+  tramosDe,
   transicionValida,
   type AsientoDelLibro,
   type EstadoCaso,
   type Incoherencia,
   type LineaDeBanco,
   type MotivoCodigo,
+  type Tramo,
+  type TramoDeTraspaso,
+  type TraspasoParaConciliar,
 } from "./conciliacion";
 import { esAdminActivoDelConjunto } from "./tenant-membership";
 import { assertTenantOperable } from "./tenant-status";
@@ -56,6 +61,10 @@ type CasoDoc = {
   incoherencias: Incoherencia[];
   motivoCodigo?: MotivoCodigo | null;
   motivoTexto?: string | null;
+  /** `PRD-V-FEAT-010` 2b: la pareja es un tramo de traspaso, no un asiento. */
+  matchedTransferId?: string | null;
+  matchedTransferLeg?: Tramo | null;
+  candidateTransferLegs?: string[];
 };
 
 type Transicion = {
@@ -117,6 +126,26 @@ function comoAsiento(id: string, d: FirebaseFirestore.DocumentData): AsientoDelL
     reversedByEntryId: d.reversedByEntryId ?? null,
   };
 }
+
+function comoTraspaso(id: string, d: FirebaseFirestore.DocumentData): TraspasoParaConciliar {
+  return {
+    id,
+    tenantId: String(d.tenantId ?? ""),
+    fromAccountId: String(d.fromAccountId ?? ""),
+    toAccountId: String(d.toAccountId ?? ""),
+    amount: Number(d.amount ?? 0),
+    date: String(d.date ?? ""),
+    status: String(d.status ?? ""),
+    salidaLineId: typeof d.salidaLineId === "string" ? d.salidaLineId : null,
+    entradaLineId: typeof d.entradaLineId === "string" ? d.entradaLineId : null,
+  };
+}
+
+/** Dónde guarda el traspaso la línea con la que se concilió cada tramo. */
+const CAMPO_DEL_TRAMO: Record<Tramo, "salidaLineId" | "entradaLineId"> = {
+  salida: "salidaLineId",
+  entrada: "entradaLineId",
+};
 
 /**
  * El caso de una línea, creándolo si no existe.
@@ -200,7 +229,11 @@ function escribirTransicion(
 export type AplicarCasoInput = {
   tenantId: string;
   bankStatementLineId: string;
-  ledgerEntryId: string;
+  /** La pareja es un asiento del libro… */
+  ledgerEntryId?: string;
+  /** …o un tramo de un traspaso (`PRD-V-FEAT-010` 2b). Una de las dos, nunca las dos. */
+  treasuryTransferId?: string;
+  tramo?: Tramo;
   /** Si viene, la operación falla cuando el caso ya se movió (CF7). */
   expectedVersion?: number;
 };
@@ -214,6 +247,12 @@ export type AplicarCasoResultado = {
 };
 
 export async function aplicarCaso(input: AplicarCasoInput, uid: string, role: unknown): Promise<AplicarCasoResultado> {
+  if (typeof input.treasuryTransferId === "string" && input.treasuryTransferId.trim()) {
+    if (typeof input.ledgerEntryId === "string" && input.ledgerEntryId.trim()) {
+      throw new HttpsError("invalid-argument", "Una línea se concilia con un movimiento del libro o con un traspaso, no con los dos.");
+    }
+    return aplicarTramo(input, uid, role);
+  }
   const tenantId = texto(input.tenantId, "el conjunto");
   const lineaId = texto(input.bankStatementLineId, "la línea del extracto");
   const asientoId = texto(input.ledgerEntryId, "el movimiento del libro");
@@ -298,6 +337,104 @@ export async function aplicarCaso(input: AplicarCasoInput, uid: string, role: un
   });
 }
 
+/**
+ * `PRD-V-FEAT-010` 2b · `CA7` · conciliar una línea con un **tramo de traspaso**.
+ *
+ * El mismo circuito que `aplicarCaso` —tres documentos o ninguno, versión,
+ * idempotencia, el mensaje con los números delante— con el traspaso en el sitio
+ * del asiento. **El libro no se toca**: el traspaso no es un asiento (`RN-01`).
+ * La línea guarda qué traspaso y qué tramo; el traspaso, con qué línea casó cada
+ * tramo, que es lo que impide anularlo sin soltarlo antes.
+ */
+async function aplicarTramo(input: AplicarCasoInput, uid: string, role: unknown): Promise<AplicarCasoResultado> {
+  const tenantId = texto(input.tenantId, "el conjunto");
+  const lineaId = texto(input.bankStatementLineId, "la línea del extracto");
+  const traspasoId = texto(input.treasuryTransferId, "el traspaso");
+  const tramo = input.tramo;
+  if (tramo !== "salida" && tramo !== "entrada") {
+    throw new HttpsError("invalid-argument", "Falta el tramo del traspaso: la salida o la entrada.");
+  }
+  await assertPuedeConciliar(role, uid, tenantId);
+
+  const firestore = db();
+  const lineaRef = firestore.collection("bankStatementLines").doc(lineaId);
+  const traspasoRef = firestore.collection("treasuryTransfers").doc(traspasoId);
+  const casoRef = firestore.collection(COLECCION_CASOS).doc(idDeCaso(lineaId));
+
+  return firestore.runTransaction(async (tx) => {
+    const [lineaSnap, traspasoSnap, casoSnap] = await Promise.all([
+      tx.get(lineaRef),
+      tx.get(traspasoRef),
+      tx.get(casoRef),
+    ]);
+    if (!lineaSnap.exists) throw new HttpsError("not-found", "Esa línea del extracto ya no existe.");
+    if (!traspasoSnap.exists) throw new HttpsError("not-found", "Ese traspaso ya no existe.");
+
+    const lineaData = lineaSnap.data() as FirebaseFirestore.DocumentData;
+    const linea = comoLinea(lineaId, lineaData);
+    const traspaso = comoTraspaso(traspasoId, traspasoSnap.data() as FirebaseFirestore.DocumentData);
+    if (linea.tenantId !== tenantId) throw new HttpsError("permission-denied", "Esa línea es de otro conjunto.");
+    if (traspaso.tenantId !== tenantId) throw new HttpsError("permission-denied", "Ese traspaso es de otro conjunto.");
+
+    const caso = casoSnap.exists ? (casoSnap.data() as CasoDoc) : casoNuevo(linea, "detectado");
+    if (typeof input.expectedVersion === "number" && input.expectedVersion !== caso.version) {
+      throw new HttpsError("failed-precondition", "Alguien movió este caso mientras lo mirabas. Vuelve a abrirlo.");
+    }
+
+    // R10 · reaplicar lo mismo no duplica ni sube la versión.
+    if (lineaData.reconciled === true && lineaData.matchedTransferId === traspasoId && lineaData.matchedTransferLeg === tramo) {
+      return { ok: true as const, applied: false, status: caso.status, version: caso.version };
+    }
+    if (lineaData.reconciled === true) {
+      throw new HttpsError("failed-precondition", "Esa línea ya está conciliada con otro movimiento.");
+    }
+
+    const elTramo = tramosDe(traspaso).find((t) => t.tramo === tramo) as TramoDeTraspaso;
+    const descarte = porQueNoEsCandidatoElTramo(linea, elTramo);
+    if (descarte === "ya_conciliado") {
+      throw new HttpsError("failed-precondition", "Ese tramo del traspaso ya fue conciliado con otra línea.");
+    }
+    if (descarte === "anulado") {
+      throw new HttpsError("failed-precondition", "Ese traspaso está anulado.");
+    }
+    if (descarte === "otra_cuenta") {
+      throw new HttpsError(
+        "failed-precondition",
+        tramo === "salida" ? "Ese traspaso no sale de esta cuenta." : "Ese traspaso no entra en esta cuenta.",
+      );
+    }
+    if (descarte === "efecto") {
+      throw new HttpsError(
+        "failed-precondition",
+        `No cuadran: el banco mueve ${dinero(linea.amount)} y el tramo del traspaso ${dinero(elTramo.efecto)}.`,
+      );
+    }
+    if (descarte === "fecha") {
+      throw new HttpsError(
+        "failed-precondition",
+        `Se llevan más de 3 días: la línea es del ${linea.date} y el traspaso del ${traspaso.date}.`,
+      );
+    }
+
+    tx.update(lineaRef, { reconciled: true, matchedLedgerEntryId: null, matchedTransferId: traspasoId, matchedTransferLeg: tramo });
+    tx.update(traspasoRef, { [CAMPO_DEL_TRAMO[tramo]]: lineaId, updatedBy: uid, updatedAt: FieldValue.serverTimestamp() });
+    escribirTransicion(
+      tx, casoRef, caso, "aplicado", uid, "bandeja", null, null,
+      {
+        matchedLedgerEntryId: null,
+        matchedTransferId: traspasoId,
+        matchedTransferLeg: tramo,
+        excepcion: null,
+        incoherencias: [],
+        candidateLedgerEntryIds: [],
+        candidateTransferLegs: [elTramo.id],
+      },
+      casoSnap.exists,
+    );
+    return { ok: true as const, applied: true, status: "aplicado" as const, version: caso.version + 1 };
+  });
+}
+
 // ── Rechazar ────────────────────────────────────────────────────────────────
 
 export type RechazarCasoInput = {
@@ -373,8 +510,25 @@ export async function reabrirCaso(input: ReabrirCasoInput, uid: string, role: un
     const asientoId = typeof lineaData.matchedLedgerEntryId === "string" ? lineaData.matchedLedgerEntryId : null;
     const asientoRef = asientoId ? firestore.collection("ledgerEntries").doc(asientoId) : null;
     const asientoSnap = asientoRef ? await tx.get(asientoRef) : null;
+    // 2b: si la pareja era un tramo de traspaso, se suelta también en el traspaso.
+    const traspasoId = typeof lineaData.matchedTransferId === "string" ? lineaData.matchedTransferId : null;
+    const tramoDeLinea: Tramo | null =
+      lineaData.matchedTransferLeg === "salida" || lineaData.matchedTransferLeg === "entrada" ? lineaData.matchedTransferLeg : null;
+    const traspasoRef = traspasoId ? firestore.collection("treasuryTransfers").doc(traspasoId) : null;
+    const traspasoSnap = traspasoRef ? await tx.get(traspasoRef) : null;
 
-    tx.update(lineaRef, { reconciled: false, matchedLedgerEntryId: null });
+    tx.update(lineaRef, {
+      reconciled: false,
+      matchedLedgerEntryId: null,
+      ...(traspasoId ? { matchedTransferId: null, matchedTransferLeg: null } : {}),
+    });
+    if (traspasoRef && traspasoSnap?.exists && tramoDeLinea && traspasoSnap.data()?.[CAMPO_DEL_TRAMO[tramoDeLinea]] === lineaId) {
+      tx.update(traspasoRef, {
+        [CAMPO_DEL_TRAMO[tramoDeLinea]]: null,
+        updatedBy: uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
     if (asientoRef && asientoSnap?.exists) {
       tx.update(asientoRef, {
         reconciled: false,
@@ -386,7 +540,11 @@ export async function reabrirCaso(input: ReabrirCasoInput, uid: string, role: un
     }
     escribirTransicion(
       tx, casoRef, caso, "detectado", uid, "bandeja", null, null,
-      { matchedLedgerEntryId: null, incoherencias: [] },
+      {
+        matchedLedgerEntryId: null,
+        incoherencias: [],
+        ...(traspasoId ? { matchedTransferId: null, matchedTransferLeg: null } : {}),
+      },
       casoSnap.exists,
     );
     return { ok: true as const, status: "detectado" as const, version: caso.version + 1 };
@@ -463,10 +621,13 @@ export function escribirCascada(
  * ese veto convertiría el ciclo automático de egresos en un error de permisos.
  */
 export async function liberarConciliacion(
-  input: { tenantId: string; ledgerEntryId: string },
+  input: { tenantId: string; ledgerEntryId?: string; treasuryTransferId?: string },
   uid: string,
   role: unknown,
 ) {
+  if (typeof input.treasuryTransferId === "string" && input.treasuryTransferId.trim()) {
+    return liberarTramos(input.tenantId, input.treasuryTransferId, uid, role);
+  }
   const tenantId = texto(input.tenantId, "el conjunto");
   const asientoId = texto(input.ledgerEntryId, "el movimiento del libro");
   await assertPuedeConciliar(role, uid, tenantId);
@@ -496,6 +657,64 @@ export async function liberarConciliacion(
   });
 }
 
+/**
+ * `PRD-V-FEAT-010` 2b · el camino del cliente para ANULAR un traspaso.
+ *
+ * Suelta sus dos tramos —el que casó en el extracto de A y el que casó en el de
+ * B— en una sola transacción, y deja cada expediente en `reversado` con motivo
+ * automático. **Se llama antes de anular**, como `liberarConciliacion` antes de
+ * revertir un asiento: la regla no deja anular un traspaso con un tramo casado,
+ * porque la línea del banco quedaría conciliada contra algo que ya no cuenta.
+ */
+async function liberarTramos(tenantIdCrudo: string, traspasoIdCrudo: string, uid: string, role: unknown) {
+  const tenantId = texto(tenantIdCrudo, "el conjunto");
+  const traspasoId = texto(traspasoIdCrudo, "el traspaso");
+  await assertPuedeConciliar(role, uid, tenantId);
+
+  const firestore = db();
+  const traspasoRef = firestore.collection("treasuryTransfers").doc(traspasoId);
+
+  return firestore.runTransaction(async (tx) => {
+    const traspasoSnap = await tx.get(traspasoRef);
+    if (!traspasoSnap.exists) return { ok: true as const, released: false };
+    const traspaso = comoTraspaso(traspasoId, traspasoSnap.data() as FirebaseFirestore.DocumentData);
+    if (traspaso.tenantId !== tenantId) throw new HttpsError("permission-denied", "Ese traspaso es de otro conjunto.");
+
+    const casados = (["salida", "entrada"] as const)
+      .map((tramo) => ({ tramo, lineaId: traspaso[CAMPO_DEL_TRAMO[tramo]] }))
+      .filter((t): t is { tramo: Tramo; lineaId: string } => typeof t.lineaId === "string" && t.lineaId !== "");
+    if (casados.length === 0) return { ok: true as const, released: false };
+
+    // Todas las lecturas antes de la primera escritura.
+    const leidos = await Promise.all(
+      casados.map(async ({ tramo, lineaId }) => {
+        const lineaRef = firestore.collection("bankStatementLines").doc(lineaId);
+        const casoRef = firestore.collection(COLECCION_CASOS).doc(idDeCaso(lineaId));
+        const [lineaSnap, casoSnap] = await Promise.all([tx.get(lineaRef), tx.get(casoRef)]);
+        return { tramo, lineaRef, lineaSnap, casoRef, casoSnap };
+      }),
+    );
+
+    for (const { tramo, lineaRef, lineaSnap, casoRef, casoSnap } of leidos) {
+      if (!lineaSnap.exists) continue;
+      const lineaData = lineaSnap.data() as FirebaseFirestore.DocumentData;
+      // Solo se suelta la línea que sigue apuntando a ESTE tramo.
+      if (lineaData.matchedTransferId !== traspasoId || lineaData.matchedTransferLeg !== tramo) continue;
+      tx.update(lineaRef, { reconciled: false, matchedLedgerEntryId: null, matchedTransferId: null, matchedTransferLeg: null });
+      const caso = casoSnap.exists
+        ? (casoSnap.data() as CasoDoc)
+        : casoNuevo(comoLinea(lineaRef.id, lineaData), "aplicado", { matchedTransferId: traspasoId, matchedTransferLeg: tramo });
+      escribirTransicion(
+        tx, casoRef, caso, "reversado", uid, "cascada_reverso", "traspaso_anulado", null,
+        { matchedLedgerEntryId: null, matchedTransferId: null, matchedTransferLeg: null, excepcion: null },
+        casoSnap.exists,
+      );
+    }
+    tx.update(traspasoRef, { salidaLineId: null, entradaLineId: null, updatedBy: uid, updatedAt: FieldValue.serverTimestamp() });
+    return { ok: true as const, released: true };
+  });
+}
+
 // ── El relleno, y §5.4 ──────────────────────────────────────────────────────
 
 /**
@@ -511,6 +730,7 @@ export function casoDeRelleno(
   linea: LineaDeBanco,
   asientos: AsientoDelLibro[],
   emparejado: AsientoDelLibro | null,
+  tramos: TramoDeTraspaso[] = [],
 ): CasoDoc {
   if (emparejado) {
     return casoNuevo(linea, "aplicado", {
@@ -519,8 +739,13 @@ export function casoDeRelleno(
       incoherencias: incoherenciasDelPar(linea, emparejado),
     });
   }
-  const { status, excepcion, candidateLedgerEntryIds } = clasificar(linea, asientos);
-  return casoNuevo(linea, status, { excepcion, candidateLedgerEntryIds });
+  const { status, excepcion, candidateLedgerEntryIds, candidateTransferLegs } = clasificar(linea, asientos, tramos);
+  return casoNuevo(linea, status, {
+    excepcion,
+    candidateLedgerEntryIds,
+    // Solo cuando los hay: un caso sin tramos queda igual que antes de la 2b.
+    ...(candidateTransferLegs.length > 0 ? { candidateTransferLegs } : {}),
+  });
 }
 
 // ── CA1 · el caso nace con la línea ─────────────────────────────────────────
@@ -574,10 +799,13 @@ export async function asegurarCasos(
     consulta = consulta.where("bankAccountId", "==", input.bankAccountId);
   }
 
-  const [lineasSnap, asientosSnap] = await Promise.all([
+  const [lineasSnap, asientosSnap, traspasosSnap] = await Promise.all([
     consulta.get(),
     firestore.collection("ledgerEntries").where("tenantId", "==", tenantId).get(),
+    // 2b: los tramos de traspaso también son candidatos al clasificar.
+    firestore.collection("treasuryTransfers").where("tenantId", "==", tenantId).get(),
   ]);
+  const tramos = traspasosSnap.docs.flatMap((d) => tramosDe(comoTraspaso(d.id, d.data())));
 
   const lineas = lineasSnap.docs.map((d) => comoLinea(d.id, d.data()));
   const datosPorLinea = new Map(lineasSnap.docs.map((d) => [d.id, d.data()]));
@@ -604,7 +832,13 @@ export async function asegurarCasos(
     // Solo cuenta como emparejado si el asiento EXISTE y es del mismo conjunto:
     // una línea que apunta a un asiento borrado no nace `aplicado` mintiendo.
     const emparejado = emparejadoId ? (asientoPorId.get(emparejadoId) ?? null) : null;
-    const caso = casoDeRelleno(linea, asientos, emparejado && emparejado.tenantId === tenantId ? emparejado : null);
+    const traspasoId = typeof datos?.matchedTransferId === "string" ? datos.matchedTransferId : null;
+    const caso = traspasoId
+      ? casoNuevo(linea, "aplicado", {
+          matchedTransferId: traspasoId,
+          matchedTransferLeg: datos?.matchedTransferLeg === "entrada" ? "entrada" : "salida",
+        })
+      : casoDeRelleno(linea, asientos, emparejado && emparejado.tenantId === tenantId ? emparejado : null, tramos);
     lote.create(firestore.collection(COLECCION_CASOS).doc(idDeCaso(linea.id)), {
       ...caso,
       history: [

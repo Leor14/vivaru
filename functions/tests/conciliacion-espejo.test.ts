@@ -89,3 +89,30 @@ describe("El servidor y la bandeja aplican las mismas reglas", () => {
     expect(espejo).toContain("bsl_");
   });
 });
+
+describe("`PRD-V-FEAT-010` 2b · los tramos de traspaso, iguales en los dos", () => {
+  const servidor = leer("functions/src/conciliacion.ts");
+  const bloque = (f: string, nombre: string) => {
+    const i = f.indexOf(`export function ${nombre}`);
+    expect(i, `no encontré ${nombre}`).toBeGreaterThan(-1);
+    return f.slice(i, f.indexOf("\n}\n", i));
+  };
+
+  it("el sentido de cada tramo es el mismo: la salida resta en el origen y la entrada suma en el destino", () => {
+    for (const f of [servidor, espejo]) {
+      const b = bloque(f, "tramosDe");
+      for (const trozo of ["efecto: -importe", "efecto: importe", "bankAccountId: t.fromAccountId", "bankAccountId: t.toAccountId"]) {
+        expect(b).toContain(trozo);
+      }
+    }
+  });
+
+  it("las mismas seis salidas en el mismo orden, y la cuenta ESTRICTA en los dos", () => {
+    const orden = (f: string) => [...bloque(f, "porQueNoEsCandidatoElTramo").matchAll(/return "([a-z_]+)"/g)].map((m) => m[1]);
+    expect(orden(servidor)).toEqual(["otro_conjunto", "otra_cuenta", "ya_conciliado", "anulado", "efecto", "fecha"]);
+    expect(orden(espejo)).toEqual(orden(servidor));
+    for (const f of [servidor, espejo]) {
+      expect(bloque(f, "porQueNoEsCandidatoElTramo")).toContain("tramo.bankAccountId !== linea.bankAccountId");
+    }
+  });
+});

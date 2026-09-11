@@ -5865,7 +5865,10 @@ export const reconcileCase = onCall<AplicarCasoInput>(
     if (resultado.applied) {
       await writeAuditLog(request.data?.tenantId ?? "", uid, "reconcile_case", {
         bankStatementLineId: request.data?.bankStatementLineId,
-        ledgerEntryId: request.data?.ledgerEntryId,
+        ledgerEntryId: request.data?.ledgerEntryId ?? null,
+        // `PRD-V-FEAT-010` 2b: o un tramo de traspaso.
+        treasuryTransferId: request.data?.treasuryTransferId ?? null,
+        tramo: request.data?.tramo ?? null,
         version: resultado.version,
       });
     }
@@ -5906,7 +5909,7 @@ export const reopenReconciliationCase = onCall<ReabrirCasoInput>(
 // R7, el camino del cliente: soltar la conciliación ANTES de anular o borrar un
 // asiento desde el navegador. Sin esto, el veto de R8 convertiría el ciclo
 // automático de egresos en un error de permisos.
-export const releaseReconciliation = onCall<{ tenantId: string; ledgerEntryId: string }>(
+export const releaseReconciliation = onCall<{ tenantId: string; ledgerEntryId?: string; treasuryTransferId?: string }>(
   { cors: callableCorsOrigins, invoker: "public" },
   async (request) => {
     const uid = request.auth?.uid;
@@ -5914,7 +5917,9 @@ export const releaseReconciliation = onCall<{ tenantId: string; ledgerEntryId: s
     const resultado = await liberarConciliacion(request.data, uid, request.auth?.token?.role);
     if (resultado.released) {
       await writeAuditLog(request.data?.tenantId ?? "", uid, "reverse_case", {
-        ledgerEntryId: request.data?.ledgerEntryId,
+        ledgerEntryId: request.data?.ledgerEntryId ?? null,
+        // `PRD-V-FEAT-010` 2b: soltar los tramos de un traspaso antes de anularlo.
+        treasuryTransferId: request.data?.treasuryTransferId ?? null,
       });
     }
     return resultado;

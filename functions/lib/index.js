@@ -4609,7 +4609,10 @@ exports.reconcileCase = (0, https_1.onCall)({ cors: http_config_1.callableCorsOr
     if (resultado.applied) {
         await writeAuditLog(request.data?.tenantId ?? "", uid, "reconcile_case", {
             bankStatementLineId: request.data?.bankStatementLineId,
-            ledgerEntryId: request.data?.ledgerEntryId,
+            ledgerEntryId: request.data?.ledgerEntryId ?? null,
+            // `PRD-V-FEAT-010` 2b: o un tramo de traspaso.
+            treasuryTransferId: request.data?.treasuryTransferId ?? null,
+            tramo: request.data?.tramo ?? null,
             version: resultado.version,
         });
     }
@@ -4649,7 +4652,9 @@ exports.releaseReconciliation = (0, https_1.onCall)({ cors: http_config_1.callab
     const resultado = await (0, conciliacion_casos_1.liberarConciliacion)(request.data, uid, request.auth?.token?.role);
     if (resultado.released) {
         await writeAuditLog(request.data?.tenantId ?? "", uid, "reverse_case", {
-            ledgerEntryId: request.data?.ledgerEntryId,
+            ledgerEntryId: request.data?.ledgerEntryId ?? null,
+            // `PRD-V-FEAT-010` 2b: soltar los tramos de un traspaso antes de anularlo.
+            treasuryTransferId: request.data?.treasuryTransferId ?? null,
         });
     }
     return resultado;

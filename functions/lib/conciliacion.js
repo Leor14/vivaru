@@ -17,6 +17,9 @@ exports.idDeLinea = idDeLinea;
 exports.idDeCaso = idDeCaso;
 exports.transicionValida = transicionValida;
 exports.motivoValido = motivoValido;
+exports.tramosDe = tramosDe;
+exports.porQueNoEsCandidatoElTramo = porQueNoEsCandidatoElTramo;
+exports.calcularTramosCandidatos = calcularTramosCandidatos;
 const node_crypto_1 = require("node:crypto");
 const payments_1 = require("./payments");
 /**
@@ -48,6 +51,8 @@ exports.MOTIVOS = [
     "error_de_carga",
     "linea_eliminada",
     "reverso_del_asiento",
+    // `PRD-V-FEAT-010` 2b: lo pone el sistema al anular un traspaso con un tramo casado.
+    "traspaso_anulado",
     "otro",
 ];
 // ── R2 · La coherencia de efecto ────────────────────────────────────────────
@@ -133,15 +138,21 @@ function calcularCandidatos(linea, asientos) {
  * Una propuesta que acierta la mitad de las veces es peor que ninguna: se
  * confirma sin mirar.
  */
-function clasificar(linea, asientos) {
+function clasificar(linea, asientos, 
+// 2b: un tramo que cuadra es un candidato más. Un asiento y un tramo a la vez
+// son DOS candidatos, y con dos no se propone (R4).
+tramos = []) {
     const candidateLedgerEntryIds = calcularCandidatos(linea, asientos);
-    if (candidateLedgerEntryIds.length === 1) {
-        return { status: "propuesto", excepcion: null, candidateLedgerEntryIds };
+    const candidateTransferLegs = calcularTramosCandidatos(linea, tramos);
+    const candidatos = candidateLedgerEntryIds.length + candidateTransferLegs.length;
+    if (candidatos === 1) {
+        return { status: "propuesto", excepcion: null, candidateLedgerEntryIds, candidateTransferLegs };
     }
     return {
         status: "detectado",
-        excepcion: candidateLedgerEntryIds.length === 0 ? "sin_contraparte" : "varios_candidatos",
+        excepcion: candidatos === 0 ? "sin_contraparte" : "varios_candidatos",
         candidateLedgerEntryIds,
+        candidateTransferLegs,
     };
 }
 // ── §5.4 · Nombrar lo que ya está escrito, sin reescribirlo ─────────────────
@@ -240,4 +251,37 @@ function motivoValido(estado, codigo, texto) {
     if (codigo === "otro")
         return typeof texto === "string" && texto.trim().length > 0;
     return true;
+}
+function tramosDe(t) {
+    const importe = Math.abs(Number(t.amount));
+    const comun = { treasuryTransferId: t.id, tenantId: t.tenantId, date: t.date, anulado: t.status !== "registrado" };
+    return [
+        { ...comun, id: `${t.id}:salida`, tramo: "salida", bankAccountId: t.fromAccountId, efecto: -importe, conciliado: Boolean(t.salidaLineId) },
+        { ...comun, id: `${t.id}:entrada`, tramo: "entrada", bankAccountId: t.toAccountId, efecto: importe, conciliado: Boolean(t.entradaLineId) },
+    ];
+}
+/**
+ * Como `porQueNoEsCandidato`, con una diferencia buscada: **la cuenta es
+ * estricta**. Un asiento sin cuenta no se descarta —16 de 93 no la tienen—,
+ * pero un traspaso SIEMPRE declara sus dos cuentas, así que un tramo de otra
+ * cuenta nunca es candidato. Por eso el tramo de una caja chica —apertura,
+ * reposición, cierre— no casa con ninguna línea: la caja no tiene extracto.
+ */
+function porQueNoEsCandidatoElTramo(linea, tramo) {
+    if (tramo.tenantId !== linea.tenantId)
+        return "otro_conjunto";
+    if (tramo.bankAccountId !== linea.bankAccountId)
+        return "otra_cuenta";
+    if (tramo.conciliado)
+        return "ya_conciliado";
+    if (tramo.anulado)
+        return "anulado";
+    if (Math.abs(tramo.efecto - Number(linea.amount)) > payments_1.TOLERANCIA_MONEDA)
+        return "efecto";
+    if (!dentroDeVentana(linea, tramo))
+        return "fecha";
+    return null;
+}
+function calcularTramosCandidatos(linea, tramos) {
+    return tramos.filter((t) => porQueNoEsCandidatoElTramo(linea, t) === null).map((t) => t.id);
 }

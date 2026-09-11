@@ -600,6 +600,63 @@ En su orden, **reglas → front**; esta entrega no despliega functions.
   comprobarla y el panel nunca la pide). Una caja chica no paga a plazos, pero el banco sí.
 - El «hoy» en UTC del formulario de egresos: preexistente, propuesto como tarea aparte.
 
+## 17 · La entrega 2b: conciliar los tramos (10 de septiembre de 2026)
+
+### Lo que la medición decidió
+
+- La conciliación empareja **línea del extracto ↔ asiento del libro** en cinco callables —asegurar,
+  aplicar, rechazar, reabrir y liberar— con sus cascadas, todo en producción (`FLOW-004`). **Un tramo
+  no es un asiento**: `efectoContable` trata todo lo que no es ingreso como salida y `comoAsiento`
+  todo lo que no es egreso como ingreso, así que meterlo por ahí lo habría convertido en gasto o en
+  ingreso sin avisar (`RN-01`). Tiene tipo propio, `TramoDeTraspaso`, con el efecto **ya calculado**:
+  la salida resta y la entrada suma.
+- **Ningún conjunto de producción tiene dos cuentas**; en staging, Las Playas (2 cuentas, 22 líneas
+  de extracto, 4 traspasos).
+
+### Lo construido
+
+- **El enlace**: la línea guarda `matchedTransferId` y `matchedTransferLeg`; el traspaso,
+  `salidaLineId` y `entradaLineId`; el expediente, con quién casó. **El libro no se toca.**
+- **La cuenta del tramo es ESTRICTA**, a diferencia del asiento —16 de 93 no declaran cuenta y no se
+  descartan—: un traspaso siempre dice las dos. Por eso **el lado de una caja chica nunca casa**: la
+  caja no tiene extracto. El lado del banco de una apertura, reposición o cierre, sí.
+- **Candidatos**: el servidor y la bandeja cuentan asientos y tramos juntos. Un asiento y un tramo
+  del mismo importe son dos candidatos, y con dos no se propone (R4).
+- **Anular un traspaso conciliado**: la regla lo veta mientras tenga un tramo casado; la tesorería
+  llama antes a `releaseReconciliation` con el traspaso, que suelta los dos tramos y deja cada
+  expediente en `reversado` con un motivo nuevo, `traspaso_anulado`. Borrar una línea casada con un
+  tramo la reabre antes.
+- **Reglas**: el cliente no escribe el enlace con un tramo —ni en la línea ni en el traspaso—, y un
+  traspaso no nace con uno puesto.
+- **Lo que se ve, detrás de la bandera**: la bandeja solo ofrece tramos con `producto-tesoreria`. La
+  coherencia en el servidor va sin bandera, como en `FLOW-004`.
+
+### La falsación
+
+- **23 mutaciones** —siete de reglas, trece del servidor, tres del espejo—: **21 en rojo al primer
+  pase**. Las dos que no lo estaban eran **huecos reales**, cerrados con pruebas:
+  1. anular con **solo la entrada** casada: la siembra solo tenía la salida;
+  2. que liberar **no suelte una línea que ya apunta a otra cosa**. Es alcanzable: el id de una línea
+     se deriva de su contenido, así que borrada a mano y reimportada vuelve con el mismo id — y si
+     entretanto casó con un asiento, anular el traspaso habría soltado una conciliación ajena.
+- Bancos: `npm test` **1935** · functions **870** · reglas **457** · emulador de functions **365 de
+  367** (`CA12` y `D-B` de `payments`, preexistentes).
+
+### La predicción, escrita antes de mirar la pantalla
+
+Las Playas (staging). Un traspaso de **1.500** de la *Cuenta operativa* a la *Cuenta de ahorros
+(prueba)*, y un extracto de una línea por cuenta: **−1.500** en la operativa y **+1.500** en la de
+ahorros, con la fecha del traspaso.
+
+1. Importada, la línea de la operativa nace **propuesta** —un único candidato: la salida del
+   traspaso—, y el modal la ofrece como «Traspaso: Cuenta operativa → Cuenta de ahorros (prueba)»,
+   **−1.500**.
+2. Conciliada, dice «Con el traspaso … · salida», y en Tesorería el traspaso dice «Conciliada la
+   salida en el banco». **Ningún asiento nuevo en el libro.**
+3. Lo mismo con la línea de ahorros y la **entrada**: «Conciliada la salida y la entrada».
+4. Anular el traspaso avisa de que suelta la conciliación; después, las dos líneas vuelven a
+   pendientes, cada expediente en `reversado` con `traspaso_anulado`, y ya **sin candidato**.
+
 ## Puertas
 
 | Puerta | Estado |
