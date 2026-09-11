@@ -30,7 +30,7 @@ import { ErrorParaElUsuario } from "@/lib/utils/error-handler";
 import { isFeatureFlagEnabled } from "@/lib/feature-flags/resolve";
 import type { FeatureFlagDoc, FeatureFlagOverridesDoc, GlobalFeatureFlagDoc } from "@/lib/feature-flags/resolve";
 import { normalizeTower } from "@/utils/tower";
-import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
+import { combineDateAndTime, isDateTimeValid, toDateInputValue } from "@/utils/datetimeValidation";
 import type { FiscalProfile } from "@/types/domain";
 import type { ModuleVariants } from "@/lib/config/module-variants";
 
@@ -1337,7 +1337,7 @@ export async function disableAmenityAndCancelFutureReservations(input: {
   userId: string;
 }) {
   const firestore = assertDb();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateInputValue(new Date());
 
   await updateAmenity(input.amenityId, input.userId, { status: "inactive" });
 

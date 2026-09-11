@@ -7,10 +7,11 @@ import { StatTile, type StatTone } from "@/components/features/finanzas/stat-til
 import { chartAxis, chartBar, chartColors, chartGrid, chartMargin } from "@/features/finanzas/chart-theme";
 import { buildExpenseSeries, computeFundCoverage, granularityFor } from "@/features/finanzas/fund-coverage";
 import { computeFundPosition, useLedgerEntries } from "@/features/finanzas/use-ledger";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 const COVERAGE_TARGET_MONTHS = 6;
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => toDateInputValue(new Date());
 
 /** Tono semántico de la cobertura: verde sana, ámbar ajustada, rojo crítica. */
 function coverageTone(months: number | null): StatTone {

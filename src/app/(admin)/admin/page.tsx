@@ -54,6 +54,7 @@ import { useAgreementsComplianceSummary } from "@/features/committee-agreements/
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { formatUnitInline } from "@/lib/utils/unit";
 import { lecturaDePorcentaje } from "@/lib/dashboard/indicadores";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 function asText(value: unknown, fallback = "Sin dato") {
   if (typeof value === "string" && value.trim().length > 0) {
@@ -140,7 +141,7 @@ function formatPeriodLabel(period: string) {
 }
 
 function monthKey(date: Date) {
-  return date.toISOString().slice(0, 7);
+  return toDateInputValue(date).slice(0, 7);
 }
 
 function countOnDay<T>(items: T[], getDate: (item: T) => unknown, dayIso: string): number {
@@ -305,7 +306,7 @@ export default function AdminDashboardPage() {
   const previousPreviousMonth = monthKey(previousPreviousMonthDate);
   const yesterdayDate = new Date(todayDate);
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayIso = yesterdayDate.toISOString().slice(0, 10);
+  const yesterdayIso = toDateInputValue(yesterdayDate);
 
   // Grupo "Actividad", gobernado por el filtro Hoy / Este mes / Mes pasado.
   const isToday = dashboardPeriod === "today";

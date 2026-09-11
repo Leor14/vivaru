@@ -21,6 +21,7 @@ import {
 } from "@/lib/finanzas/nucleo-estado-financiero";
 import type { CommitteeAgreement, CommitteeAgreementSignature } from "@/features/committee-agreements/types";
 import type { BillingStatement, LedgerEntry, PackageItem, Ticket, VisitorPass, Reservation } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -193,15 +194,18 @@ export type CommitteeReport = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Returns "" for any value that isn't a valid ISO-like date string or Firestore Timestamp */
-function toDateStr(value: unknown): string {
+export function toDateStr(value: unknown): string {
   if (!value) return "";
   if (typeof value === "string") {
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? "" : value.slice(0, 10); // YYYY-MM-DD
   }
   if (typeof value === "object" && value !== null && "toDate" in value) {
+    // Un Timestamp es un MOMENTO —la llegada de un paquete, la creación de una
+    // reserva—, y su día es el del calendario local, no el de UTC. Los asientos
+    // no pasan por aquí: su `date` es texto en los dos ambientes (medido el 10 sep).
     const d = (value as { toDate: () => Date }).toDate();
-    return d.toISOString().slice(0, 10);
+    return toDateInputValue(d);
   }
   return "";
 }

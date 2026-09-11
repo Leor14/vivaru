@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils/cn";
 import { createMudanzaReservation } from "@/features/reservations/use-reservations";
-import { combineDateAndTime, getMinAllowedDateTime, isDateTimeValid } from "@/utils/datetimeValidation";
+import { combineDateAndTime, getMinAllowedDateTime, isDateTimeValid, toDateInputValue } from "@/utils/datetimeValidation";
 
 type MudanzaWizardProps = {
   tenantId: string;
@@ -94,7 +94,7 @@ export function MudanzaWizard({
 
   const minDateAttribute = useMemo(() => {
     const minDateTime = getMinAllowedDateTime("reservation");
-    return minDateTime.toISOString().slice(0, 10);
+    return toDateInputValue(minDateTime);
   }, []);
 
   function validateStep1(): string | null {

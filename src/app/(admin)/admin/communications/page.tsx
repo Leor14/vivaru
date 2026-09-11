@@ -42,6 +42,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { useRouter } from "next/navigation";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 const ATTACHMENT_ACCEPT = "application/pdf,image/jpeg,image/png";
 const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024;
@@ -245,7 +246,7 @@ export default function AdminCommunicationsPage() {
       }
       const attachments = [...existingAttachments, ...uploadedNew];
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toDateInputValue(new Date());
       // Tablón simple: sin vigencia/programación; los comunicados se publican directo.
       const startsAt = isSimpleMode ? undefined : values.startsAt || undefined;
       const endsAt = isSimpleMode ? undefined : values.endsAt || undefined;
@@ -363,7 +364,7 @@ export default function AdminCommunicationsPage() {
 
   const filteredItems = useMemo(() => {
     const query = searchFilter.trim().toLowerCase();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toDateInputValue(new Date());
     return items.filter((item) => {
       const effectiveStatus: CommunicationItem["status"] =
         item.status === "draft" || item.status === "archived"
@@ -403,7 +404,7 @@ export default function AdminCommunicationsPage() {
       key: "status",
       header: "Estado",
       render: (item) => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = toDateInputValue(new Date());
         const effectiveStatus =
           item.status === "draft" || item.status === "archived"
             ? item.status
@@ -724,7 +725,7 @@ export default function AdminCommunicationsPage() {
         headerExtra={
           detailItem
             ? (() => {
-                const today = new Date().toISOString().slice(0, 10);
+                const today = toDateInputValue(new Date());
                 const effectiveStatus =
                   detailItem.status === "draft" || detailItem.status === "archived"
                     ? detailItem.status

@@ -23,6 +23,7 @@ import {
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Advance, AdvanceApplication, BillingStatement } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /**
  * `PRD-V-FLOW-002` — **la vista de anticipos, que es la herramienta de G5.**
@@ -251,7 +252,7 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
 }
 
 function hoy() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue(new Date());
 }
 
 /**

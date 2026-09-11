@@ -7,8 +7,9 @@ import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { chartAxis, chartBar, chartColors, chartGrid, chartMargin } from "@/features/finanzas/chart-theme";
 import { summarizePayables } from "@/features/finanzas/payables";
 import { useExpenses } from "@/features/finanzas/use-expenses";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => toDateInputValue(new Date());
 
 /**
  * Tablero "Cuentas por pagar": resume los egresos pendientes (total, lo que

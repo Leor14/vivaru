@@ -16,6 +16,7 @@ import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
 import { AYUDA, capitalizar } from "@/lib/config/vocabulario-pais";
 import { HelpTip } from "@/components/shared/help-tip";
 import { BILLING_CONCEPTS, billingConceptLabel } from "@/features/billing/use-billing-statements";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /**
  * Corrida por coeficiente (PRD-V-PLAT-001, tras `producto-cobro-por-coeficiente`).
@@ -42,7 +43,7 @@ export function CoefficientCampaignDialog({
   const vocab = useTenantVocabulary();
   const [total, setTotal] = useState("");
   const [concept, setConcept] = useState("administracion");
-  const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7));
+  const [period, setPeriod] = useState(() => toDateInputValue(new Date()).slice(0, 7));
   const [dueDate, setDueDate] = useState("");
   const [preview, setPreview] = useState<{
     lines: CoefficientCampaignLine[];

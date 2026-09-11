@@ -8,8 +8,9 @@ import { chartAxis, chartBar, chartColors, chartGrid, chartMargin } from "@/feat
 import { projectCashFlow, projectionCheckpoints } from "@/features/finanzas/cashflow-projection";
 import { useExpenses } from "@/features/finanzas/use-expenses";
 import type { BillingStatement } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => toDateInputValue(new Date());
 
 /**
  * Tablero "Flujo de caja proyectado": cruza el ingreso esperado de Cartera

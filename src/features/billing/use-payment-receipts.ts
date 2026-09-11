@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase/client";
 import { applyPaymentCallable } from "@/lib/firebase/callables";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { PaymentReceipt } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ export async function approveReceiptAndRegisterPayment(input: {
     tenantId: input.tenantId,
     statementId: input.statementId,
     amount: input.amount,
-    date: new Date().toISOString().slice(0, 10),
+    date: toDateInputValue(new Date()),
     operationKey: input.operationKey,
     source: "receipt",
     receiptId: input.receiptId,

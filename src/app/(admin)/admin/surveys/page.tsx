@@ -28,6 +28,7 @@ import {
 import type { Survey, SurveyAnswer, SurveyQuestion, QuestionType } from "@/features/surveys/types";
 import { useAdminSurveys } from "@/features/surveys/use-surveys";
 import { aggregateResults, canSeeResults } from "@/features/surveys/visibility";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -889,7 +890,7 @@ export default function AdminSurveysPage() {
               <input
                 type="date"
                 value={closingDate}
-                min={new Date().toISOString().split("T")[0]}
+                min={toDateInputValue(new Date())}
                 onChange={(e) => setClosingDate(e.target.value)}
                 className="h-10 w-48 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
               />

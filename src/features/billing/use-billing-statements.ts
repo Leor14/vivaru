@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase/client";
 import { codigoDeConcepto } from "@/lib/finanzas/conceptos-de-cargo";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BillingCampaign, BillingConcept, BillingStatement } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /** Conceptos de cobro (best practice PH). El primero es el default. */
 export const BILLING_CONCEPTS: { value: BillingConcept; label: string }[] = [
@@ -133,8 +134,8 @@ export async function createBillingStatement(input: {
     balance: input.balance,
     dueDate: input.dueDate ?? null,
     source: input.source ?? "manual",
-    status: input.balance <= 0 ? "paid" : input.dueDate && input.dueDate < new Date().toISOString().slice(0, 10) ? "overdue" : "pending",
-    lastPaymentAt: input.paymentAmount > 0 ? new Date().toISOString().slice(0, 10) : null,
+    status: input.balance <= 0 ? "paid" : input.dueDate && input.dueDate < toDateInputValue(new Date()) ? "overdue" : "pending",
+    lastPaymentAt: input.paymentAmount > 0 ? toDateInputValue(new Date()) : null,
   });
 }
 
@@ -155,7 +156,7 @@ export async function updateBillingStatement(
     throw new Error("Firebase no esta configurado en este entorno.");
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateInputValue(new Date());
   const status = input.balance <= 0 ? "paid" : input.dueDate && input.dueDate < today ? "overdue" : "pending";
 
   await updateDoc(doc(db, "billingStatements", id), {

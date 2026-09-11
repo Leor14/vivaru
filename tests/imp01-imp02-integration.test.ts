@@ -50,7 +50,8 @@ vi.mock("firebase/storage", () => ({
 }));
 
 vi.mock("@/lib/firebase/client", () => ({ db: { _stub: true }, storage: { _stub: true } }));
-vi.mock("@/utils/datetimeValidation", () => ({
+vi.mock("@/utils/datetimeValidation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/datetimeValidation")>()),
   combineDateAndTime: vi.fn(),
   isDateTimeValid: vi.fn(),
 }));

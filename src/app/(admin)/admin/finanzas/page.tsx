@@ -53,8 +53,9 @@ import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
 import { storage } from "@/lib/firebase/client";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import type { LedgerEntry } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => toDateInputValue(new Date());
 
 function AdminFinanzasLibroPageContent() {
   const { user } = useAuth();

@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react";
 
 import { HelpTip } from "@/components/shared/help-tip";
 import type { BillingStatement } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
   // Next due date logic:
   // Priority 1 — earliest FUTURE due date (today or later)
   // Priority 2 — if no future dates exist, show the oldest past due date as "Vencido desde"
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateInputValue(new Date());
   const unpaidWithDue = vivos.filter((s) => s.status !== "paid" && s.dueDate);
   const sortedByDueAsc = [...unpaidWithDue].sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
   const nextFutureDue = sortedByDueAsc.find((s) => s.dueDate! >= today);

@@ -31,6 +31,7 @@ import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { formatDateSafe } from "@/utils/date";
 
 import { CommitteeAgreementBoard, type BoardPerson, type BoardUnit } from "./committee-agreement-board";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 const MODE_LABEL: Record<AgreementSignatureMode, string> = {
   obligatoria: "Firma obligatoria",
@@ -46,7 +47,7 @@ const STATUS_STYLE: Record<CommitteeAgreement["status"], { label: string; classN
   cerrado: { label: "Cerrado", className: "bg-[var(--success-100)] text-[var(--success-700)]" },
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => toDateInputValue(new Date());
 
 export function CommitteeAgreementsTab({
   tenantId,

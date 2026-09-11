@@ -26,8 +26,9 @@ import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { BankAccount, BillingStatement } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => toDateInputValue(new Date());
 
 type RecordPaymentModalProps = {
   open: boolean;

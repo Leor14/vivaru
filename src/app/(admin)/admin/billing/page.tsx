@@ -88,6 +88,7 @@ import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { chartAxis, chartBar, chartColors, chartGrid, chartLine, chartMargin } from "@/features/finanzas/chart-theme";
 import type { BillingConcept, BillingStatement } from "@/types/domain";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 type UnitCollectionItem = {
   id: string;
@@ -273,7 +274,7 @@ function AdminBillingPageContent() {
   const [catalogUnitsError, setCatalogUnitsError] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState("");
   const [unitLabel, setUnitLabel] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(toDateInputValue(new Date()));
   const [amount, setAmount] = useState("1.120.000");
   const [paymentAmount, setPaymentAmount] = useState("0");
   const [dueDate, setDueDate] = useState("");
@@ -639,7 +640,7 @@ function AdminBillingPageContent() {
   }, [items]);
   const openPeriods = useMemo(() => periodAgg.filter((p) => p.activos > 0), [periodAgg]);
   const closedPeriods = useMemo(() => periodAgg.filter((p) => p.activos === 0 && p.archivados > 0), [periodAgg]);
-  const currentPeriod = new Date().toISOString().slice(0, 7);
+  const currentPeriod = toDateInputValue(new Date()).slice(0, 7);
 
   // Tablero de morosos: agrega por unidad todos los cobros con saldo (incluye cerrados).
   const morosos = useMemo(() => {
@@ -882,7 +883,7 @@ function AdminBillingPageContent() {
       );
       const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
       const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      const stamp = new Date().toISOString().slice(0, 10);
+      const stamp = toDateInputValue(new Date());
       const fileName = `Historico-cartera-${stamp}.xlsx`;
       const path = `tenants/${tid}/cartera-history/${stamp}-${Date.now()}.xlsx`;
       const sref = storageRef(storage, path);
@@ -1065,7 +1066,7 @@ function AdminBillingPageContent() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `cartera-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `cartera-${toDateInputValue(new Date())}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
