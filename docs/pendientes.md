@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 10 de septiembre de 2026, noche (`FEAT-010` COMPLETA EN PRODUCCIÓN)
 
-> # LA TESORERÍA ESTÁ ENTERA EN PRODUCCIÓN, APAGADA. Lo construible de Habitanto sigue hecho.
+> # LA TESORERÍA ESTÁ ENTERA EN PRODUCCIÓN, Y LAS PLAYAS YA ENSEÑA LO QUE ESTABA SOBRE TABLAS VACÍAS.
 >
 > **Estado: leer los remotos con `git ls-remote`, y esta cabecera NO lleva el sha a propósito** —
 > el commit que la escribe es posterior al que describe, así que nace viejo. Al cerrar, `master`
@@ -24,11 +24,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > y es entorno) · emulador de functions **365 de 367** — los dos rojos son `CA12` y `D-B` de
 > `payments.emulator.test.ts`, **preexistentes y confirmados por nombre**.
 >
-> ## `PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN, APAGADA
+> ## `PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN
 >
 > Saldo por cuenta, traspasos entre cuentas propias y caja chica con fondo fijo. **`G0` superada por
 > DECISIÓN de David, no por dolor** (son `C7` y `C8`, P2): se construye para llegar listos.
-> `producto-tesoreria` **resuelta apagada en los nueve**, y producción tiene **0 cajas**.
+> `producto-tesoreria` encendida **solo en Las Playas**, con la demo de abajo; apagada en los otros ocho.
 >
 > | Entrega | Qué | Visto en staging |
 > |---|---|---|
@@ -59,7 +59,20 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > cierre, y el egreso `n7aHPvUksBG3oa3HFrNz` de 800 **pagado desde la caja**. De la 2b, el traspaso
 > anulado `lAFu0QuqyFfJjLLgSUhB` y dos líneas de 1,500 **pendientes**, una en cada extracto.
 >
-> ## `PRD-V-FEAT-009` Y `PRD-V-FEAT-008` — EN LOS DOS AMBIENTES, APAGADAS
+> ## LA DEMO, SEMBRADA EN LAS PLAYAS (10 sep, decisión de David)
+>
+> Para poder enseñar lo que estaba sobre tablas vacías, **sin tocar Cartera ni el libro**:
+> `functions/scripts/sembrar-demo-finanzas.mjs <proyecto> <conjunto>` —simula por defecto;
+> `--escribir` siembra y `--limpiar` deshace; ids fijos `demo-*` y no pisa nada—. En **Las Playas de
+> producción**, que es de ejemplo, se encendieron por override **presupuesto, medidor y tesorería**, y
+> hay: presupuesto 2026 aprobado (9 líneas), agua potable con dos períodos cerrados y sin cobrar (24
+> lecturas con foto), una «Cuenta de ahorros» con saldo inicial 0 más un traspaso de 15,000 y una caja
+> chica de 3,000, 10 proveedores enlazados a sus 14 egresos y el paz y salvo `PYS-WS6SXG`. En staging,
+> lo mismo salvo el presupuesto —ya había un borrador de 2026— y con el medidor encendido.
+> **Es demo, no uso**: cobrar el consumo o pagar un gasto desde la caja se hace en vivo, y eso sí toca
+> Cartera y el libro.
+>
+> ## `PRD-V-FEAT-009` Y `PRD-V-FEAT-008` — EN LOS DOS AMBIENTES, ENCENDIDAS SOLO EN LAS PLAYAS
 >
 > Presupuesto contra ejecución (§3.8) y la foto del medidor (§3.5). Lo ejecutado del presupuesto **se
 > lee de `useCommitteeReport`, nunca de sumar asientos**, y tiene guardián. En staging,
@@ -72,7 +85,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | Estado | Cuáles |
 > |---|---|
 > | ✅ Entregados | §3.2 cuotas · §3.7 informe (entregas 1 y 2) · §3.9 (el hueco era falso) |
-> | 🟢 En producción, bandera apagada | **§3.5 la foto del medidor** (`FEAT-008`) · **§3.8 presupuesto contra ejecución** (`FEAT-009`) |
+> | 🟢 En producción, encendidas solo en la demo de Las Playas | **§3.5 la foto del medidor** (`FEAT-008`) · **§3.8 presupuesto contra ejecución** (`FEAT-009`) |
 > | ⛔ **Decididos EN CONTRA** | §3.4 citar artículos (`RN-14`) · §3.6 corte de TAG (`RN-13`) |
 > | 🔴 Bloqueados por el abogado | §3.1 convenio · §3.3 marco legal |
 > | ✅ Ya existía (verificado el 10 sep) | §3.10 — pase de **larga duración** con categoría **Servicio**, con QR y ventana: cubre al proveedor recurrente. **Verificado en el código, no en pantalla**, y no se enlaza con el registro de proveedores |
@@ -90,9 +103,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    **42** `toISOString().slice(0, 10)` en `src/`, y no todos quieren el día local.
 > 2. **`PLAT-004` entrega 2**: los cinco sitios del front que aún leen `role === "committee"`, más
 >    `CA2`, `CA3` y `CA4` sin observar (la consejera nombrada en staging/Palmas es Carmen).
-> 3. **Encender `FEAT-008`, `FEAT-009` o `FEAT-010` en algún conjunto de producción** — es decisión de
->    David, y hoy no hay a quién: ningún conjunto real mide consumos, ha cargado un presupuesto o
->    tiene dos cuentas.
+> 3. **Encenderlas en un conjunto REAL** — en Las Playas ya lo están, pero es de ejemplo y lo que tiene
+>    es demo. El primer uso real sigue sin dueño: ningún cliente mide consumos, ha cargado un
+>    presupuesto o tiene dos cuentas.
 > 4. **El abogado ecuatoriano** sigue sin contestar. Bloquea `FLOW-006` y la entrega 3 de `FLOW-007`.
 > 5. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** con `accountCode: null`, que debe ser `2.3`.
 >    **Es de David** y el clasificador bloquea escribirlo Y crear el fichero.
@@ -105,14 +118,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > `producto-informe-mensual` y `producto-egresos-en-cuotas`: **encendidas en los nueve** por el
 > global, ⚠️ **con las overrides de canario puestas** — para apagar los nueve, **kill switch**.
 > `producto-rol-consejo`: **Santa María** en producción, **Palmas** en staging.
-> `producto-medicion-de-consumos`: **APAGADA en los nueve**, solo Palmas en staging.
-> `producto-presupuesto-anual`: **APAGADA en los nueve**; en staging, Palmas y Las Playas.
-> `producto-tesoreria`: **APAGADA en los nueve** (0 cajas en producción); en staging, **Las Playas** y **Santa María**.
+> `producto-medicion-de-consumos`, `producto-presupuesto-anual` y `producto-tesoreria`: encendidas en
+> producción **solo en Las Playas** (override, por la demo); apagadas en los otros ocho. En staging:
+> medidor en Palmas y Las Playas; presupuesto en Palmas y Las Playas; tesorería en Las Playas y Santa María.
 >
 > ### Frenos que NO son de código
 >
-> Proveedores (0 filas) · **cajas chicas y segundas cuentas (0 en producción)** · paz y salvo (0 emitidos) · coeficiente (18 de 93) · el consejo (10 cuentas
-> en 68 personas, **solo Santa María puede formar uno**) · **presupuestos (0 en producción)**. Y
+> Proveedores, cajas, paz y salvo y presupuestos: **fuera de la demo de Las Playas, cero** · coeficiente (18 de 93) · el consejo (10 cuentas
+> en 68 personas, **solo Santa María puede formar uno**). Y
 > **producción sigue sin un cliente real**.
 >
 > ℹ️ **La clave de `carmen.garcia@privadapalmas.mx` en STAGING quedó siendo `TU_CLAVE_AQUI`** —el

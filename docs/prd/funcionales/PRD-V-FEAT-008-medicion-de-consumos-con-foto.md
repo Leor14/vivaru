@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
 | **Responsable** | David |
-| **Estado** | **LAS TRES ENTREGAS EN STAGING, VISTAS EN PANTALLA** · en producción solo la 1, con la bandera apagada |
+| **Estado** | **LAS TRES ENTREGAS EN PRODUCCIÓN** (`6fac4bc`), vistas antes en staging · bandera encendida **solo en Las Playas**, con una demo sembrada (10 sep 2026); apagada en los otros ocho |
 | **Dependencias** | `PRD-V-FLOW-001` (reparto por coeficiente, **de donde sale la estructura**) · `PRD-V-PLAT-003` (plan de cuentas) |
 | **Riesgo** | Medio — toca dinero, pero no toca permisos ni el modelo de la unidad |
 | **Reversibilidad** | Reversible por bandera **salvo los cargos ya emitidos** (§13) |

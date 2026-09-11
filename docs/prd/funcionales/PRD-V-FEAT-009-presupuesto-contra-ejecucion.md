@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS** (10 sep 2026) · en producción con la bandera **apagada en los nueve** |
+| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS** (10 sep 2026) · en producción, encendida **solo en Las Playas**, con un presupuesto 2026 de demo; apagada en los otros ocho |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |

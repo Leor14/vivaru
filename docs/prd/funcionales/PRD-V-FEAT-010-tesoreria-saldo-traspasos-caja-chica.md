@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN, con la bandera apagada** (10 sep 2026) |
+| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN** (10 sep 2026) · bandera encendida **solo en Las Playas**, con una demo sembrada; apagada en los otros ocho |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |

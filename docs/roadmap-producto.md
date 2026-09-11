@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.64 |
+| **Versión** | 0.9.65 |
 | **Fecha** | 10 de septiembre de 2026 |
-| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN, CON LA BANDERA APAGADA EN LOS NUEVE** (10 sep, `b415636`): cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **La 2b cerró el circuito**: cada tramo de un traspaso se concilia contra el extracto de su banco, y **el libro no se entera**. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, apagadas. **Lo siguiente:** el «hoy» en UTC del formulario de egresos, que fecha mañana lo registrado por la tarde en México; `PLAT-004` entrega 2; y decidir si se enciende alguna de las tres en un conjunto. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN** (10 sep, `b415636`), encendida **solo en Las Playas, donde se sembró una demo**: cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **La 2b cerró el circuito**: cada tramo de un traspaso se concilia contra el extracto de su banco, y **el libro no se entera**. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, también encendidas solo en Las Playas con la demo. **Lo siguiente:** el «hoy» en UTC del formulario de egresos, que fecha mañana lo registrado por la tarde en México; `PLAT-004` entrega 2; y el primer conjunto REAL que use alguna de las tres. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`c55fc54a` en staging, `f2afe2d9` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-003` desde `b415636`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: la 3, reglas 29 de 30 (la otra es equivalente) y código 12 de 12; la 2b, 23 mutaciones de reglas, servidor y espejo, con los dos huecos que destapó cerrados. **La 2b, vista también en staging**: los dos tramos casados, **ningún asiento nuevo**, y anular devolvió las dos líneas a pendientes con `traspaso_anulado`, leído en la base. Bancos **contados, no citados**: `npm test` **1935** · functions **870** · reglas **457** · emulador **365 de 367**, con `CA12` y `D-B` **preexistentes** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -1238,6 +1238,20 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.65 — 10 de septiembre de 2026 — la demo: lo que estaba sobre tablas vacías, visible
+
+- **Decisión de David**: que presupuesto, medidor, tesorería, proveedores y paz y salvo se puedan
+  enseñar. Las cinco estaban construidas y en producción **con cero filas**.
+- **`functions/scripts/sembrar-demo-finanzas.mjs`**: siembra un conjunto por llamada, simula por defecto,
+  no pisa nada y se deshace con `--limpiar`. **No toca Cartera ni el libro**: no cobra el consumo, no paga
+  gastos desde la caja, y la cuenta nueva nace con saldo 0 y se llena con un traspaso — un saldo inicial
+  nuevo habría movido el saldo de fondos. Las lecturas y el paz y salvo pasan por el mismo código
+  compilado que las callables.
+- **En Las Playas de producción**, que es de ejemplo, se encendieron **por override** presupuesto, medidor
+  y tesorería; los otros ocho, apagadas. En staging, la misma demo sobre Las Playas.
+- **Mirado antes de escribir en producción**: la foto de ejemplo se sirve desde Storage y la pantalla del
+  medidor dio 183 m³ y $5,124 en septiembre, con el período cerrado y listo para cobrar en vivo.
 
 ### 0.9.64 — 10 de septiembre de 2026 — la 2b: los tramos de un traspaso se concilian
 
