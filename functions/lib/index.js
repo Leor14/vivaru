@@ -33,9 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.billConsumptionPeriod = exports.reopenMeterPeriod = exports.closeMeterPeriod = exports.registerMeterReading = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = void 0;
+exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.billConsumptionPeriod = exports.reopenMeterPeriod = exports.closeMeterPeriod = exports.registerMeterReading = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.setTenantAdminAccess = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -72,6 +72,7 @@ const buzones_admisibles_1 = require("./buzones-admisibles");
 const trial_modules_1 = require("./trial-modules");
 const management_companies_1 = require("./management-companies");
 const tenant_membership_1 = require("./tenant-membership");
+const acceso_de_administradores_1 = require("./acceso-de-administradores");
 const tenant_status_1 = require("./tenant-status");
 const feature_flags_1 = require("./feature-flags");
 const rol_consejo_1 = require("./rol-consejo");
@@ -685,7 +686,14 @@ async function upsertResidentTemporaryAccess(input) {
     };
 }
 function normalizeCreateTenantAdminPayload(data) {
-    const tenantId = normalizeText(data.tenantId);
+    // `PLAT-002` entrega 2: `tenantIds` manda; un `tenantId` suelto sigue valiendo para
+    // quien llame como antes. El primero es el conjunto espejo y el del claim.
+    const tenantIds = [
+        ...new Set([...(Array.isArray(data.tenantIds) ? data.tenantIds : []), data.tenantId]
+            .map((id) => normalizeText(typeof id === "string" ? id : ""))
+            .filter(Boolean)),
+    ];
+    const tenantId = tenantIds[0] ?? "";
     const fullName = normalizeText(data.fullName);
     const email = normalizeEmail(data.email);
     const providedPassword = normalizeText(data.temporaryPassword);
@@ -702,6 +710,7 @@ function normalizeCreateTenantAdminPayload(data) {
     assertAdminStatus(status);
     return {
         tenantId,
+        tenantIds,
         fullName,
         email,
         temporaryPassword,
@@ -710,17 +719,15 @@ function normalizeCreateTenantAdminPayload(data) {
 }
 function normalizeUpdateTenantAdminPayload(data) {
     const uid = normalizeText(data.uid);
-    const tenantId = normalizeText(data.tenantId);
     const fullName = normalizeText(data.fullName);
     const email = normalizeEmail(data.email);
     const status = data.status;
-    if (!uid || !tenantId || !fullName || !email || !status) {
+    if (!uid || !fullName || !email || !status) {
         throw new https_1.HttpsError("invalid-argument", "Datos incompletos para actualizar admin.");
     }
     assertAdminStatus(status);
     return {
         uid,
-        tenantId,
         fullName,
         email,
         status,
@@ -936,14 +943,18 @@ exports.createTenantAdmin = (0, https_1.onCall)({
     const operationId = `createTenantAdmin_${Date.now()}`;
     try {
         const data = normalizeCreateTenantAdminPayload(request.data);
-        const tenantRef = db.collection("tenants").doc(data.tenantId);
-        const tenantSnap = await tenantRef.get();
-        if (!tenantSnap.exists) {
-            throw new https_1.HttpsError("not-found", "El tenant no existe.");
+        // `PLAT-002` entrega 2: nace con uno o VARIOS conjuntos, y todos tienen que existir.
+        const conjuntosSnap = await db.getAll(...data.tenantIds.map((id) => db.collection("tenants").doc(id)));
+        const faltante = conjuntosSnap.find((snap) => !snap.exists);
+        if (faltante) {
+            throw new https_1.HttpsError("not-found", `El conjunto ${faltante.id} no existe.`);
         }
         // `PLAT-006`: antes de tocar Auth. Crear la cuenta y rechazar después dejaría
-        // el usuario creado sin poder entrar, que es peor que no crearlo.
-        await (0, buzones_admisibles_1.assertBuzonAdmisible)(data.tenantId, data.email);
+        // el usuario creado sin poder entrar, que es peor que no crearlo. Con varios
+        // conjuntos, la puerta de cada uno.
+        for (const id of data.tenantIds) {
+            await (0, buzones_admisibles_1.assertBuzonAdmisible)(id, data.email);
+        }
         const authApi = (0, auth_1.getAuth)();
         const existingUser = await authApi
             .getUserByEmail(data.email)
@@ -960,7 +971,10 @@ exports.createTenantAdmin = (0, https_1.onCall)({
             throw error;
         });
         if (existingUser) {
-            throw new https_1.HttpsError("already-exists", "Ya existe un usuario con ese correo.");
+            // `PLAT-002` entrega 2: una cuenta que ya existe no se crea otra vez. A un
+            // administrador se le dan más conjuntos editándolo; la consola lo detecta antes de
+            // llegar aquí, y esto queda como red para la carrera o la cuenta sin perfil.
+            throw new https_1.HttpsError("already-exists", "Ya existe una cuenta con ese correo. Si es de un administrador, edítalo en la lista para darle más conjuntos.");
         }
         const userRecord = await authApi.createUser({
             email: data.email,
@@ -981,16 +995,22 @@ exports.createTenantAdmin = (0, https_1.onCall)({
             createdAt: now,
             updatedAt: now,
         }, { merge: true });
-        batch.set(db.collection("tenantUsers").doc(`${data.tenantId}_${userRecord.uid}`), {
-            uid: userRecord.uid,
-            tenantId: data.tenantId,
-            fullName: data.fullName,
-            email: data.email,
-            role: "tenant_admin",
-            status: data.status,
-            createdAt: now,
-            updatedAt: now,
-        }, { merge: true });
+        // Una membresía por conjunto marcado. `compartida` es de SOLO presentación: la lista
+        // de `/admin/users` no puede leer las membresías de otros conjuntos, y lo que decide
+        // (E2-R8) consulta las reales.
+        for (const id of data.tenantIds) {
+            batch.set(db.collection("tenantUsers").doc(`${id}_${userRecord.uid}`), {
+                uid: userRecord.uid,
+                tenantId: id,
+                fullName: data.fullName,
+                email: data.email,
+                role: "tenant_admin",
+                status: data.status,
+                compartida: data.tenantIds.length > 1,
+                createdAt: now,
+                updatedAt: now,
+            }, { merge: true });
+        }
         try {
             await batch.commit();
             await authApi.setCustomUserClaims(userRecord.uid, {
@@ -1001,17 +1021,20 @@ exports.createTenantAdmin = (0, https_1.onCall)({
         catch (persistError) {
             await Promise.allSettled([
                 db.collection("users").doc(userRecord.uid).delete(),
-                db.collection("tenantUsers").doc(`${data.tenantId}_${userRecord.uid}`).delete(),
+                ...data.tenantIds.map((id) => db.collection("tenantUsers").doc(`${id}_${userRecord.uid}`).delete()),
                 authApi.deleteUser(userRecord.uid),
             ]);
             throw persistError;
         }
         await sendOnboardingInvite(userRecord.uid, data.email, data.fullName, data.tenantId, "tenant_admin");
         try {
-            await writeAuditLog(data.tenantId, request.auth?.uid, "create_tenant_admin", {
-                adminUid: userRecord.uid,
-                email: data.email,
-            });
+            for (const id of data.tenantIds) {
+                await writeAuditLog(id, request.auth?.uid, "create_tenant_admin", {
+                    adminUid: userRecord.uid,
+                    email: data.email,
+                    conjuntos: data.tenantIds.length,
+                });
+            }
         }
         catch (auditError) {
             console.warn("[createTenantAdmin] audit log write failed", {
@@ -1045,22 +1068,22 @@ exports.updateTenantAdmin = (0, https_1.onCall)({
     const operationId = `updateTenantAdmin_${Date.now()}`;
     try {
         const data = normalizeUpdateTenantAdminPayload(request.data);
-        const tenantRef = db.collection("tenants").doc(data.tenantId);
-        const tenantSnap = await tenantRef.get();
-        if (!tenantSnap.exists) {
-            throw new https_1.HttpsError("not-found", "El tenant no existe.");
+        // `PLAT-002` entrega 2: esto ya NO muda a nadie de conjunto. Hasta el 11 sep 2026,
+        // cambiar el selector borraba la membresía del conjunto anterior —y por eso «un
+        // correo de admin, un solo conjunto» se vivía como regla—. Dar y quitar conjuntos
+        // vive en `setTenantAdminAccess`; aquí solo nombre, correo y estado de la persona,
+        // copiados a todas sus membresías de admin. El estado sigue siendo de la CUENTA
+        // entera —deshabilita la de Auth—, y la consola lo dice.
+        const perfilSnap = await db.collection("users").doc(data.uid).get();
+        if (!perfilSnap.exists) {
+            throw new https_1.HttpsError("not-found", "Esa cuenta no existe.");
         }
+        const conjuntoEspejo = normalizeText(perfilSnap.data().tenantId);
         const authApi = (0, auth_1.getAuth)();
-        const previousUserSnap = await db.collection("users").doc(data.uid).get();
-        const previousTenantId = previousUserSnap.data()?.tenantId;
         await authApi.updateUser(data.uid, {
             email: data.email,
             displayName: data.fullName,
             disabled: data.status !== "active",
-        });
-        await authApi.setCustomUserClaims(data.uid, {
-            role: "tenant_admin",
-            tenantId: data.tenantId,
         });
         const now = firestore_1.Timestamp.now();
         const batch = db.batch();
@@ -1068,34 +1091,27 @@ exports.updateTenantAdmin = (0, https_1.onCall)({
             uid: data.uid,
             email: data.email,
             fullName: data.fullName,
-            role: "tenant_admin",
-            tenantId: data.tenantId,
             status: data.status,
             updatedAt: now,
         }, { merge: true });
-        if (previousTenantId && previousTenantId !== data.tenantId) {
-            batch.delete(db.collection("tenantUsers").doc(`${previousTenantId}_${data.uid}`));
+        const membresias = await db.collection("tenantUsers").where("uid", "==", data.uid).get();
+        for (const membresia of membresias.docs) {
+            const rol = membresia.data().role;
+            if (rol !== "tenant_admin" && rol !== "admin_tenant")
+                continue;
+            batch.set(membresia.ref, { fullName: data.fullName, email: data.email, status: data.status, updatedAt: now }, { merge: true });
         }
-        batch.set(db.collection("tenantUsers").doc(`${data.tenantId}_${data.uid}`), {
-            uid: data.uid,
-            tenantId: data.tenantId,
-            fullName: data.fullName,
-            email: data.email,
-            role: "tenant_admin",
-            status: data.status,
-            updatedAt: now,
-        }, { merge: true });
         await batch.commit();
         try {
-            await writeAuditLog(data.tenantId, request.auth?.uid, "update_tenant_admin", {
+            await writeAuditLog(conjuntoEspejo, request.auth?.uid, "update_tenant_admin", {
                 adminUid: data.uid,
-                previousTenantId: previousTenantId ?? null,
+                status: data.status,
             });
         }
         catch (auditError) {
             console.warn("[updateTenantAdmin] audit log write failed", {
                 operationId,
-                tenantId: data.tenantId,
+                tenantId: conjuntoEspejo,
                 adminUid: data.uid,
                 error: auditError,
             });
@@ -1116,6 +1132,40 @@ exports.updateTenantAdmin = (0, https_1.onCall)({
         });
         throw mapTenantAdminError(error, "No fue posible actualizar el admin de tenant.");
     }
+});
+exports.setTenantAdminAccess = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    assertSuperadmin(request.auth);
+    const uid = normalizeText(request.data?.uid);
+    const tenantIds = Array.isArray(request.data?.tenantIds)
+        ? request.data.tenantIds.map((id) => normalizeText(typeof id === "string" ? id : "")).filter(Boolean)
+        : null;
+    if (!uid || !tenantIds) {
+        throw new https_1.HttpsError("invalid-argument", "Faltan la persona o la lista de conjuntos.");
+    }
+    const resultado = await (0, acceso_de_administradores_1.aplicarAccesoDeAdministrador)({
+        uid,
+        tenantIds,
+        confirmarCambioDeRol: request.data?.confirmarCambioDeRol === true,
+        simular: request.data?.simular === true,
+    });
+    if (resultado.aplicado) {
+        const { plan } = resultado;
+        for (const tenantId of [...plan.crear, ...plan.convertir]) {
+            await writeAuditLog(tenantId, request.auth?.uid, "grant_tenant_admin_access", {
+                uid,
+                convertido: plan.convertir.includes(tenantId),
+                rolFinal: plan.rolFinal,
+            });
+        }
+        for (const tenantId of [...plan.quitar, ...plan.devolverAResidente]) {
+            await writeAuditLog(tenantId, request.auth?.uid, "revoke_tenant_admin_access", {
+                uid,
+                devueltoAResidente: plan.devolverAResidente.includes(tenantId),
+                rolFinal: plan.rolFinal,
+            });
+        }
+    }
+    return resultado;
 });
 exports.createTenantOperationalUser = (0, https_1.onCall)({
     cors: http_config_1.callableCorsOrigins,
@@ -1254,6 +1304,11 @@ exports.setOperationalUserStatus = (0, https_1.onCall)({ cors: http_config_1.cal
     if (targetRole !== "tenant_admin" && targetRole !== "security_guard") {
         throw new https_1.HttpsError("failed-precondition", "Solo puedes gestionar usuarios operativos (admin o guarda).");
     }
+    // `PLAT-002` E2-R8: esto es de la CUENTA entera —deshabilita la de Auth—, así que
+    // desde un conjunto no se toca a quien tiene acceso a otros.
+    if (await (0, tenant_membership_1.tieneAccesoAOtrosConjuntos)(targetUid, targetTenantId)) {
+        throw new https_1.HttpsError("failed-precondition", tenant_membership_1.MENSAJE_CUENTA_COMPARTIDA);
+    }
     // Guardrail: no dejar el tenant sin ningún admin activo.
     if (targetRole === "tenant_admin" && status === "inactive") {
         const admins = await db
@@ -1319,6 +1374,11 @@ exports.updateOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callab
     const currentRole = membership.role;
     if (currentRole !== "tenant_admin" && currentRole !== "security_guard") {
         throw new https_1.HttpsError("failed-precondition", "Solo puedes editar usuarios operativos (admin o guarda).");
+    }
+    // `PLAT-002` E2-R8: el nombre y el rol se escriben en `users` y en el claim, que son
+    // de la cuenta entera. A quien tiene acceso a otros conjuntos lo gestiona Vivaru.
+    if (await (0, tenant_membership_1.tieneAccesoAOtrosConjuntos)(targetUid, targetTenantId)) {
+        throw new https_1.HttpsError("failed-precondition", tenant_membership_1.MENSAJE_CUENTA_COMPARTIDA);
     }
     const roleChanged = role !== undefined && role !== currentRole;
     // Guardrail: no degradar al último admin activo a guarda.
@@ -1539,6 +1599,11 @@ exports.deleteOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callab
     const membership = membershipSnap.data();
     if (membership.role !== "tenant_admin" && membership.role !== "security_guard") {
         throw new https_1.HttpsError("failed-precondition", "Solo puedes eliminar usuarios operativos (admin o guarda).");
+    }
+    // `PLAT-002` E2-R8: borrar la cuenta la sacaría de TODOS sus conjuntos y dejaría
+    // membresías huérfanas en los otros.
+    if (await (0, tenant_membership_1.tieneAccesoAOtrosConjuntos)(targetUid, targetTenantId)) {
+        throw new https_1.HttpsError("failed-precondition", tenant_membership_1.MENSAJE_CUENTA_COMPARTIDA);
     }
     // Solo usuarios ya desactivados (soft-delete previo obligatorio).
     if ((membership.status ?? "active") !== "inactive") {

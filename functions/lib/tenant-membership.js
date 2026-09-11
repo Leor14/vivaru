@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.MENSAJE_CUENTA_COMPARTIDA = void 0;
 exports.esAdminActivoDelConjunto = esAdminActivoDelConjunto;
+exports.tieneAccesoAOtrosConjuntos = tieneAccesoAOtrosConjuntos;
 exports.esMiembroDelConjunto = esMiembroDelConjunto;
 const firestore_1 = require("firebase-admin/firestore");
 /**
@@ -63,6 +65,29 @@ async function esAdminActivoDelConjunto(tenantId, uid) {
  * **La membresía no autoriza aquí, identifica.** Quien llame con esto sigue
  * teniendo que comprobar el rol si lo que hace lo necesita.
  */
+/**
+ * `PRD-V-PLAT-002` entrega 2 · **E2-R8 — ¿tiene `uid` membresía en algún conjunto que
+ * no sea `tenantId`?**
+ *
+ * `setOperationalUserStatus`, `updateOperationalUser` y `deleteOperationalUser` actúan
+ * sobre la CUENTA entera —deshabilitan la de Auth, reescriben `users.role` y el claim, o
+ * la borran—. Con una persona en varios conjuntos, el administrador de uno la dejaría
+ * fuera de todos. Esas tres preguntan esto antes de escribir, y si la respuesta es sí,
+ * la cuenta la gestiona Vivaru.
+ *
+ * Una membresía sin conjunto no identifica ninguno y no cuenta: igual que en
+ * `planearRevocacion`, un documento corrupto no puede decidir.
+ */
+async function tieneAccesoAOtrosConjuntos(uid, tenantId) {
+    if (!uid)
+        return false;
+    const snap = await (0, firestore_1.getFirestore)().collection("tenantUsers").where("uid", "==", uid).get();
+    return snap.docs.some((d) => {
+        const otro = d.data().tenantId;
+        return typeof otro === "string" && otro.trim() !== "" && otro !== tenantId;
+    });
+}
+exports.MENSAJE_CUENTA_COMPARTIDA = "Esta persona tiene acceso a otros conjuntos; su acceso lo gestiona Vivaru.";
 async function esMiembroDelConjunto(tenantId, uid) {
     if (!tenantId || !uid)
         return false;
