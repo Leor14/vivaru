@@ -89,13 +89,13 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **1955** (10 sep 2026) |
-  | Functions | `npm --prefix functions test` | **870** |
-  | Reglas | `npm run test:rules:all` | **457** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
+  | App | `npm test` | **1981** (11 sep 2026) |
+  | Functions | `npm --prefix functions test` | **879** |
+  | Reglas | `npm run test:rules:all` | **459** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
   | Emulador de functions | `npm --prefix functions run test:emulator` | **365 de 367** *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
-  `payments.emulator.test.ts`. Confirmados **por nombre** el 10 de septiembre de 2026.
+  `payments.emulator.test.ts`. Confirmados **por nombre** el 11 de septiembre de 2026.
 
   **Este bloque llegó a apilar CINCO épocas de cifras** —1348, 1449, 1510, 1789…— y así no se
   puede saber cuál manda. Se reescribe entero cada vez, como la cabecera de `pendientes.md`.
@@ -142,6 +142,12 @@ enseña que el orden se decide **por el delta contra ESE ambiente**, no por la f
 > fichero del repo**, no `git diff` entre ramas. Se lee por la API de Firebase Rules con la ADC
 > (no hay comando del CLI). Y por lo mismo, **`master` NO es el registro de lo desplegado salvo
 > para el front**: reglas y functions salen del árbol de trabajo.
+>
+> Lo hace `functions/scripts/verificar-reglas-desplegadas.mjs`, y **desde el 11 de septiembre de
+> 2026 lista un diff de SECUENCIA** (`diff -u`). Antes comparaba por pertenencia —«esta línea no
+> está en el otro lado»— y callaba una línea quitada si existía igual en otro sitio del fichero:
+> así se escondió la única línea de regla del despliegue de `PLAT-004`, y el informe enseñó solo
+> comentarios. **El control de un diff: cambiar algo que sabes y comprobar que aparece.**
 
 **Antes de desplegar una regla que restringe, medir el radio**: cuántos usuarios pierden acceso.
 Salió cero en los dos proyectos — pero **el conteo bueno no es «tiene documento de membresía»**:
@@ -293,11 +299,15 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   sin capa le ganaría a cualquier utilidad de Tailwind y sería la misma cárcel con otro nombre.
 - **`toISOString().slice(0, 10)` es el día UTC, no el de quien usa la app.** Desde las 18:00 de México
   ya es mañana: el formulario de egresos fechaba así lo registrado por la tarde, con su asiento, y a fin
-  de mes cambiaba el mes del gasto (arreglado en todo el front el 10 sep, `b850dd4` y `d91e1af`). Para «hoy» en un formulario,
-  `toDateInputValue(new Date())` de `src/utils/datetimeValidation.ts`. **Y la prueba fija
-  `process.env.TZ` en su propio fichero**: en CI, que corre en UTC, no distinguiría nada. El guardián
-  `tests/hoy-local.test.ts` recorre todo `src/` con **dos excepciones declaradas** —la portería y el espejo de
-  `calcularSaldo`—, y el servidor sigue en UTC a propósito — ver `docs/pendientes.md`.
+  de mes cambiaba el mes del gasto (arreglado en todo el front el 10 sep, `b850dd4` y `d91e1af`, y la
+  portería el 11, `848f405`). Para «hoy» en un formulario, `toDateInputValue(new Date())` de
+  `src/utils/datetimeValidation.ts`, **y lo mismo para el día de una fecha guardada**
+  (`toDateInputValue(fecha)`, como las invitaciones). **Y la prueba fija `process.env.TZ` en su propio
+  fichero**: en CI, que corre en UTC, no distinguiría nada. El guardián `tests/hoy-local.test.ts`
+  recorre todo `src/` con **una excepción declarada** —el espejo de `calcularSaldo`— y **no ve un día
+  sacado de una variable** (`fecha.toISOString()`): ahí solo caza la prueba de comportamiento. El
+  servidor sigue en UTC a propósito —ver `docs/pendientes.md`—, salvo la fecha que se PINTA en las
+  firmas del PDF del informe (`zonaParaPintarFechas`).
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
 ## Seguridad

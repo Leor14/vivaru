@@ -414,13 +414,69 @@ riesgo ya pagado tres veces, ahora con números.
 al menos un `committee` activo» tiene hoy un techo real de **tres**, y de **uno**
 si se exige un consejo completo.
 
-### Lo que queda para la entrega 2
+---
 
-- Los **cinco sitios del front** de la tabla de arriba, y `TBD-B` con ellos.
-- Las pantallas de informes emitidos y paz y salvo. El permiso ya llega — lo
-  prueban las cuatro positivas de `tests/rol-consejo.rules.test.ts`.
-- **`CA1`–`CA5` no se han observado**: piden una sesión de consejero real con la
-  bandera encendida. Están construidos, no vistos.
+## 15 · La entrega 2 — 11 de septiembre de 2026
+
+Construida en `develop` —`c0295bc` (front), `48bf721` (servidor), `98d9bc6` y `e07cf9b` (reglas)— y
+**desplegada entera en staging**: front `build-2026-09-11-020`, `signMonthlyReport` (su `updateTime`
+pasó de 10 sep 02:27 a 11 sep 17:51 UTC) y el ruleset `8d48e82d`, **0 líneas de diff** contra el
+repositorio. Producción: la cabecera de `docs/pendientes.md`.
+
+### Las cuatro decisiones de David
+
+| # | Pregunta | Decisión |
+|---|---|---|
+| `TBD-B` | ¿Por dónde entra el consejero? | **Por `/resident`.** Es residente (`RN-01`): su menú gana «Informes del conjunto», y nada más cambia |
+| `CA3` | El PDF se congelaba al emitir; ¿cómo lo nombra una firma? | **Se rehace con cada firma**, en el servidor, con las cifras congeladas |
+| — | La regla de `documents` le daba al consejo TODO | **Cerrada**: el consejero lee lo mismo que un residente |
+| `K2` | El PDF lista la cartera por unidad | **Sin PDF para el consejo** mientras `K2` esté cerrado: su pantalla da totales y firma; el PDF firmado lo abre la administración |
+
+### Lo que construir corrigió, otra vez
+
+1. **`CA3` era imposible por construcción.** El PDF se archivaba una sola vez, al emitir, con el
+   bloque de firmas vacío (`CA13` de `FLOW-007` pide que salga), y `firmarInforme` solo tocaba el
+   documento. **El papel no podía nombrar a nadie**, y la entrega 1 se desplegó sin que fallara nada
+   porque la firma sí quedaba en el documento. Ahora `signMonthlyReport` lo rehace tras sellar la
+   firma, con la instantánea congelada del documento (`instantaneaDeUnInformeSellado`) y el mismo id
+   de documento. Si rehacerlo falla, la firma sigue en pie y la respuesta lo dice
+   (`pdfActualizado: false`). **La fecha de cada firma se escribe en la zona del país del conjunto**
+   (`zonaParaPintarFechas`), solo para pintar: en UTC, una firma a las 19:30 de México saldría del
+   día siguiente.
+2. **La regla de `documents` le daba al consejo todos los documentos** —`financiero` y `reporte`,
+   con la hoja «Morosos»—, justificado en que su única pantalla era `/admin/documents`. Con `TBD-B`
+   esa razón desapareció. Dos pruebas de reglas afirmaban lo contrario y se invirtieron.
+3. 🔴 **`receivables.byUnit` viaja en el documento del informe**, y la regla de `monthlyReports` se lo
+   entrega entero al consejo desde la entrega 1: una regla no oculta campos. La pantalla pinta solo
+   totales, pero el dato llega al navegador. **Queda abierto** y es de `FLOW-007` entrega 3 (`K2`):
+   sacar el detalle por unidad a un documento solo-administración.
+4. **El front no leía la marca en ningún sitio**: un consejero nombrado no tenía una sola pantalla
+   desde la que abrir o firmar un informe. La sesión lee ahora `isCommittee` de la misma membresía
+   que da el rol y la unidad, y `veLasPantallasDelConsejo` (`src/lib/auth/consejo.ts`) exige bandera,
+   rol `resident` y marca.
+5. **Los cinco sitios de `role === "committee"` eran código muerto** y salieron del front: roles,
+   `routing` (dos ramas), shell, menú y sesión. El valor sigue admitido en `firestore.rules` y en
+   `identidadParaFirmar` por compatibilidad; en `documents`, el rol viejo ya no lee nada.
+
+### Los criterios, en staging (Palmas, sesión de Carmen)
+
+| Criterio | Estado |
+|---|---|
+| `CA1` | ✅ Con la marca, «Informes del conjunto» sale en su menú y nombra la cabecera. La concesión no se repitió: la marca ya estaba |
+| `CA2` | ✅ Abre el informe de agosto recién emitido y lee sus totales, sin enlace al PDF y sin un error en consola |
+| `CA3` | 🟡 **Construido y probado, no mirado**: 9 pruebas y 4 mutaciones en functions. David no autorizó una firma en staging |
+| `CA4` | ✅ Con la marca sigue viendo su unidad: estado de cuenta, consumos y constancia. El antes/después exigía quitarle la marca |
+| `CA5` | 🟡 **Cubierto por pruebas, no mirado**: el menú pierde la entrada y conserva lo de residente. Tocar la marca no se autorizó |
+
+**Hueco declarado:** que la pantalla no pregunte sin la marca no lo alcanza ninguna prueba —vitest
+corre sin DOM—; el guardián solo comprueba que la puerta existe. Falsación: 11 mutaciones en el
+front, 4 en el servidor y 5 en las reglas.
+
+### Lo que queda
+
+- **La entrega 3**: el paz y salvo de cualquier unidad (`TBD-C`), que espera al abogado.
+- **`byUnit`** en el documento del informe (arriba, 3), con `K2`.
+- **Mirar `CA3` y `CA5`** el día que haya permiso para firmar y tocar la marca en staging.
 
 ---
 

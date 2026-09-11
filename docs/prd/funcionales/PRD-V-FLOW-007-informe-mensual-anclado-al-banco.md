@@ -5,11 +5,11 @@
 | **ID** | `PRD-V-FLOW-007` · §3.7 de la sesión con la administradora, más la obligación de publicación del Decreto 462 |
 | **Tipo** | `FLOW` — cambia un proceso de punta a punta que **ya existe y ya corre solo**: generar → emitir → firmar → publicar el informe del mes |
 | **Portales — alcance** | `ADMIN` · `RESIDENTE` (lo publicado) |
-| **Portales — afectados** | `CONSEJO` (rol `committee`): hoy no llega al informe; con esta ficha lo ve y lo firma |
+| **Portales — afectados** | `CONSEJO` — desde `PRD-V-PLAT-004` es un **residente con la marca `isCommittee`**, no un rol: lee los totales del informe emitido y lo firma desde `/resident/informes` |
 | **Módulo** | Finanzas y Reportes |
-| **Usuario principal** | `tenant_admin` · **secundarios** `committee` (ve y firma), `resident` (ve lo publicado) |
+| **Usuario principal** | `tenant_admin` · **secundarios** el consejo (ve y firma), `resident` (ve lo publicado) |
 | **Responsable** | David |
-| **Estado** | 🟢 **ENTREGAS 1 Y 2 EN PRODUCCIÓN** (4 sep 2026), con la bandera encendida en **1 de 9** —`tenant-santa-maria`, el canario— y **el primer informe real emitido**. **La entrega 3 sigue en Discovery y bloqueada por el abogado.** *La cabecera decía «Discovery» hasta el 4 de septiembre: se quedó vieja al construir, que es justo lo que este campo no puede hacer.* |
+| **Estado** | 🟢 **ENTREGAS 1 Y 2 EN PRODUCCIÓN** (4 sep 2026), con la bandera encendida en **1 de 9** —`tenant-santa-maria`, el canario— y **el primer informe real emitido**. **La entrega 3 sigue en Discovery y bloqueada por el abogado.** *La cabecera decía «Discovery» hasta el 4 de septiembre: se quedó vieja al construir, que es justo lo que este campo no puede hacer.* **Tres cosas cambiaron el 11 de septiembre con `PLAT-004` entrega 2:** (1) **el PDF se rehace con cada firma** —se archivaba una vez, al emitir, con el bloque de firmas vacío, y ninguna firma lo tocaba—; (2) **el consejo no recibe el PDF mientras `K2` esté cerrado**, porque lista la cartera por unidad: lo abre la administración; (3) 🔴 **`receivables.byUnit` viaja en el documento del informe y la regla se lo entrega entero al consejo** —una regla no oculta campos—: es trabajo de la entrega 3. Detalle en `PRD-V-PLAT-004` §15 |
 | **Dependencias** | `PLAT-003` (plan de cuentas, **sembrado**: 189 cuentas) · `FLOW-004` (cuentas bancarias y saldo inicial, **en producción**) · `FEAT-003` (proveedores, **en producción, 0 filas**) · **NO depende de `FLOW-006`** y no toca `aplicarPago` |
 | **Riesgo** | 🟠 **MEDIO-ALTO.** No toca el camino del dinero, pero **modifica una función programada que ya corre en producción** y **abre al residente una categoría de documento que hoy una regla desplegada le niega** |
 | **Reversibilidad** | Bandera `producto-informe-mensual`. **Lo que no se revierte solo** es un informe ya publicado: se despublica, y queda el rastro. Ver §13 |
