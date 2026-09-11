@@ -89,10 +89,10 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **1981** (11 sep 2026) |
+  | App | `npm test` | **1998** (11 sep 2026) |
   | Functions | `npm --prefix functions test` | **879** |
-  | Reglas | `npm run test:rules:all` | **459** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
-  | Emulador de functions | `npm --prefix functions run test:emulator` | **365 de 367** *(pide emulador)* |
+  | Reglas | `npm run test:rules:all` | **468** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
+  | Emulador de functions | `npm --prefix functions run test:emulator` | **373 de 375** *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
   `payments.emulator.test.ts`. Confirmados **por nombre** el 11 de septiembre de 2026.
@@ -308,6 +308,11 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   sacado de una variable** (`fecha.toISOString()`): ahí solo caza la prueba de comportamiento. El
   servidor sigue en UTC a propósito —ver `docs/pendientes.md`—, salvo la fecha que se PINTA en las
   firmas del PDF del informe (`zonaParaPintarFechas`).
+- **Un mes anterior NO se calcula con `setMonth` sobre la fecha de hoy: un 31 se desborda.** El 31 de
+  marzo, `setMonth(mes - 1)` da el «31 de febrero» —el 3 de marzo—, y el filtro «Mes pasado» del Panel de
+  Control enseñaba el mes en curso los días 29–31 que siguen a un mes corto (en producción hasta el 11 sep,
+  `8e92f51`). Se construye con `new Date(año, mes - n, 1)`: ver `ventanasDelPanel`. Un guardián recorre
+  `src/` en `tests/panel-y-mudanza-hoy-local.test.ts`.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
 ## Seguridad

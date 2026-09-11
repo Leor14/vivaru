@@ -4,7 +4,93 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 10 de septiembre de 2026 (madrugada del 11)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026
+
+> # LOS DOS ⭐ CERRADOS —LA PORTERÍA Y `PLAT-004` ENTREGA 2— Y CUATRO CABOS MÁS DEL MISMO DÍA.
+>
+> **La sesión siguiente empieza por la TAREA IMPORTANTE que David anunció para después del corte:
+> preguntarle cuál es antes de tocar nada.** El menú de frentes, abajo, es para cuando esa acabe.
+>
+> **Estado: los remotos con `git ls-remote`** (esta cabecera no lleva sha a propósito), lo que sirve
+> cada ambiente con `estado-de-apphosting.mjs`, y las reglas con `verificar-reglas-desplegadas.mjs`,
+> **que desde hoy lista un diff de SECUENCIA**: comparaba por pertenencia y callaba una línea quitada
+> si existía igual en otro sitio —así se escondió la única línea de regla de un despliegue—.
+>
+> **Bancos CONTADOS hoy:** `npm test` **1998** · functions **879** · reglas **468** (solo Firestore;
+> `storage.rules.test.ts` enrojece aparte por entorno) · emulador de functions **373 de 375** —`CA12`
+> y `D-B` de `payments.emulator.test.ts`, preexistentes, confirmados por nombre—.
+>
+> ## LO QUE SE HIZO EL 11 — seis entregas
+>
+> | # | Qué | Commits | Staging | Producción |
+> |---|---|---|---|---|
+> | 1 | **La lista de hoy de la portería** y el día de las invitaciones, en el calendario local. «Casaban» no era exacto: con los dos lados en UTC la ventana se corría seis horas, y las reservas estaban directamente mal. Medido: 10 invitaciones corridas en producción y 4 en staging, todas pasadas y ninguna cruza de mes → sin migración | `848f405` | ✅ | ver abajo |
+> | 2 | **`PLAT-004` entrega 2** — el consejero entra por `/resident`: la sesión lee `isCommittee`, «Informes del conjunto» (totales y firma), fuera el rol `committee` del front | `c0295bc` | ✅ visto con la sesión de Carmen: `CA1`, `CA2`, `CA4` | ver abajo |
+> | 3 | **El PDF del informe se rehace con cada firma**: `CA3` era imposible por construcción —el PDF se congelaba al emitir, con las firmas vacías— | `48bf721` | ✅ desplegada, sin mirar (no se autorizó firmar) | ver abajo |
+> | 4 | **Reglas: el consejo lee documentos como un residente** —ni `financiero`/`reporte` con la hoja «Morosos», ni `informe_mensual` mientras `K2` esté cerrado— | `98d9bc6`, `e07cf9b` | ✅ | ver abajo |
+> | 5 | **`FEAT-010`, la cuenta de un pago de cuota**: el servidor la comprueba, el panel de cuotas ofrece «Sale de», y las reglas de `expenses`/`ledgerEntries` exigen una cuenta del conjunto (radio medido: 0) | `63c0fde`, `75c346a`, `ce50233` | ✅ visto antes y después en Santa María | ver abajo |
+> | 6 | **Panel de Control: el «mes pasado» se desbordaba** los días 29–31 tras un mes corto (`setMonth` sobre hoy) —en producción desde siempre—, y el «hoy» del panel y de la mudanza, por fin cubiertos | `8e92f51` | ✅ | ver abajo |
+>
+> ## LAS DECISIONES DE DAVID DEL 11 — no reabrir
+>
+> - **`TBD-B` de `PLAT-004`**: el consejero entra por `/resident`, no por `/admin`.
+> - **`CA3`**: el PDF del informe se rehace con cada firma, en el servidor.
+> - **La regla de `documents`**: cerrada; el consejo lee lo que un residente.
+> - **`K2`**: sin PDF para el consejo mientras esté cerrado; el PDF firmado lo abre la administración.
+>
+> ## LO QUE QUEDÓ ABIERTO, DICHO
+>
+> - 🔴 **`receivables.byUnit` viaja en el documento del informe mensual, y la regla se lo entrega
+>   entero al consejo** desde `PLAT-004` entrega 1: una regla no oculta campos. La pantalla pinta
+>   totales, pero el dato llega al navegador. Es de `FLOW-007` entrega 3 (`K2`).
+> - **`CA3` y `CA5` de `PLAT-004` sin mirar en pantalla**: David no autorizó firmar ni tocar la marca
+>   en staging. Probados, no vistos. `PLAT-004` §15 lo detalla.
+> - **`PLAT-004` entrega 3** (paz y salvo de cualquier unidad, `TBD-C`) espera al abogado.
+> - **El aviso «Visitante programado para hoy»** (`onVisitorPassCreated`) usa el «hoy» UTC del
+>   servidor: es de la misma decisión pendiente que el «vencido» (B·7).
+> - **En staging, con permiso de David:** la override de `producto-informe-mensual` en Palmas y el
+>   informe de agosto de Palmas **emitido**, con su PDF.
+>
+> ## PRODUCCIÓN — la ventana de las 18:00 del 11
+>
+> *(Se completa al terminarla.)* Orden: captura del «antes» de la portería con el build viejo →
+> functions `signMonthlyReport` y `payExpenseInstallment` → `master` → reglas (las dos que
+> restringen: `documents` y la cuenta del movimiento) → captura del «después» → cancelar los dos
+> testigos (`conjunto-las-playas--testigo-porteria-2026-09-1{1,2}`, Coworking, T1-101).
+>
+> ## LO QUE SIGUE — el menú
+>
+> **A · Construible ya**
+> 1. **`FIX-001` entrega 2** — la política de reservas por área (10 de 11 criterios). Fase 2.
+> 2. **`UX-006`**: sus cuatro criterios pendientes se pueden correr (hay Java). `UX-005` en exploración.
+> 3. **Sacar `byUnit` del documento del informe** a uno solo-administración, antes de que `K2` se decida.
+>
+> **B · Espera una decisión de David**
+> 4. **El «vencido» del servidor en UTC** (`calcularSaldo`, `hoyDe`, su espejo, y el aviso de
+>    visitas de hoy): esperar a un cliente real o derivar la zona del `country`.
+> 5. **Encender presupuesto, medidor o tesorería en un conjunto REAL** — no hay ninguno.
+> 6. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** (`accountCode: null` → `2.3`). Es de David.
+> 7. **Las dos categorías de egreso fuera del tipo** (medirlo antes de citarlo).
+> 8. **El tope de gasto de la IA**, en la consola.
+> 9. **Mirar `CA3` y `CA5` de `PLAT-004`**: basta autorizar una firma y tocar la marca en staging.
+>
+> **C · Espera a un tercero o a un dato**
+> 10. **El abogado ecuatoriano** — `FLOW-006`, la entrega 3 de `FLOW-007` y la de `PLAT-004`.
+> 11. **Albert** — el contrato de `vivaruWonSignals`.
+> 12. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos).
+> 13. **Habitanto: 33 P1, 41 P2 y 12 P3** en el backlog largo de Notion.
+>
+> ## NO REABRIR
+>
+> - Las del 11, arriba; y las de antes: las cuatro de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los
+>   dos `TBD` de `FLOW-008`; los dos huecos falsos; `RN-01` de `PLAT-004`; `TBD-A`/`TBD-B` de
+>   `FEAT-008`; las de `FEAT-009` y `FEAT-010`; `G5`.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## EL CIERRE DEL 10 DE SEPTIEMBRE (madrugada del 11) — histórico
 
 > # TESORERÍA ENTERA, DEMO EN LAS PLAYAS Y EL «HOY» EN UTC ARREGLADO EN TODO EL FRONT. NO QUEDA NADA A MEDIAS.
 >

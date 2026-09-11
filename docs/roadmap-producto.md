@@ -1239,6 +1239,33 @@ fecha de revisión.
 
 ## Changelog
 
+### 0.9.68 — 11 de septiembre de 2026 — los dos ⭐ cerrados: la portería y el consejo en el portal del residente
+
+- **La lista de hoy de la portería** (`848f405`): compara con el día local, y las invitaciones guardan el
+  día local de su hora de inicio. «Dos errores que casan» no era exacto: con los dos lados en UTC la
+  ventana se corría seis horas —a las 19:00 escondía las visitas de esa mañana y enseñaba las de mañana—,
+  y las reservas, que guardan el día local, estaban directamente mal. **Medido antes**: 10 invitaciones
+  con el día corrido en producción y 4 en staging, todas pasadas y ninguna cruzando de mes: sin migración.
+- **`PLAT-004` entrega 2** (`c0295bc`, `48bf721`, `98d9bc6`, `e07cf9b`), con cuatro decisiones de David: el
+  consejero entra por `/resident` (`TBD-B`); **el PDF del informe se rehace con cada firma** —`CA3` era
+  imposible por construcción: el PDF se congelaba al emitir, con las firmas vacías—; **la regla de
+  `documents` deja de darle TODO al consejo** —incluía la hoja «Morosos»—; y **sin PDF para el consejo
+  mientras `K2` esté cerrado**. Queda dicho que `receivables.byUnit` sigue en el documento del informe,
+  legible por el consejo, y que `CA3` y `CA5` están probados pero no mirados.
+- **`FEAT-010`, el pago de una cuota con su cuenta** (`63c0fde`, `75c346a`, `ce50233`): el servidor comprueba
+  la cuenta dentro de la transacción, el panel de cuotas ofrece «Sale de» con la misma regla que el
+  formulario, y las reglas de `expenses` y `ledgerEntries` exigen una cuenta del conjunto —el reverso puede
+  copiar la del asiento que anula aunque se haya borrado—. **Radio medido antes: 0** en los dos ambientes.
+- **El «mes pasado» del Panel de Control se desbordaba** los días 29–31 que siguen a un mes corto
+  (`setMonth` sobre la fecha de hoy), en producción desde siempre (`8e92f51`); y el «hoy» del panel y de
+  la mudanza, que salían de una variable, por fin cubiertos.
+- **`verificar-reglas-desplegadas.mjs` compara por secuencia** (`738dab1`): comparaba por pertenencia y
+  escondió la única línea de regla de un despliegue.
+- **Verificado**: staging entero —front, functions y reglas, las reglas con 0 líneas de diff—, con
+  `CA1`, `CA2` y `CA4` vistos con la sesión de Carmen y «Sale de» antes y después contra una predicción
+  leída de la base. Falsación: 8 + 11 + 4 + 5 + 6 + 5 + 7 + 9 mutaciones. Bancos **1998 · 879 · 468 · 373
+  de 375**. Producción: la cabecera de `docs/pendientes.md`.
+
 ### 0.9.67 — 10 de septiembre de 2026 — el «hoy» del resto del front, en el calendario local
 
 - **En producción** (`d91e1af`, solo front, sin bandera), con el mismo gemelo que egresos. **Dinero**: la
