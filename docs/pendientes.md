@@ -20,9 +20,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > mirados en staging; los PDF y el QR, por construcción. **La wiki**, del 1 al 10 sep: ocho páginas
 > nuevas, con las banderas medidas. Detalle en el roadmap (0.9.74) y en la bitácora.
 >
-> **Lo que sirve cada ambiente al cerrar (medido, 21:11 UTC):** producción, el front
-> `build-2026-09-12-006` desde `2f035a3` —`master` no se movió: lo nuevo de front es un tipo y un
-> comentario—; staging, la punta de `develop`. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
+> **Lo que sirve cada ambiente al cerrar (medido):** producción, el front `build-2026-09-12-007` desde
+> `a7ab743` —`develop` llevado a `master` a las 22:11 UTC, y sirviendo desde las 22:18—; staging, la punta
+> de `develop`. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
 > **las dos idénticas al repo**. Functions: `regenerateMonthlyReport`, `issueMonthlyReport`,
 > `signMonthlyReport` y `monthlyFinancialArchive`, a las 19:28 UTC en staging y a las 19:31 en producción.
 >
@@ -69,10 +69,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >     la tarde**, con permiso de David, con la opción nueva `quitar` de `mover-bandera-de-conjunto.mjs`:
 >     `producto-egresos-en-cuotas` en Las Playas y Santa María, y `producto-informe-mensual` en Santa
 >     María. Las dos banderas resuelven 10 de 10 por el valor global; las demás overrides, intactas.
-> 13. **Llevar `develop` a `master`**: David lo pidió el 12, y **el modo automático bloqueó el push**. Lo
->     leyó como «subir cambios de seguridad sin verificar», pero lo que cambia en producción al empujar es
->     el front: un tipo y un comentario. Las reglas y las functions de `CF9` y `K2` ya están vivas. Lo lanza
->     David, o lo reautoriza en el chat: `git push origin develop:master`.
+> 13. ~~Llevar `develop` a `master`~~ — **HECHO el 12 sep por la tarde.** El modo automático bloqueó el
+>     primer intento, y pasó cuando David lo reconfirmó con los hechos delante: lo que cambia en producción
+>     es un tipo y un comentario. `master` quedó en `a7ab743`, un avance directo desde `2f035a3`, y
+>     producción sirve `build-2026-09-12-007` desde las 22:18 UTC.
 > 14. **`UX-005`** (tableros configurables): no se escribe por prioridad, y le falta decidir si la
 >     preferencia es por usuario o por conjunto (`docs/prd/README.md:170`).
 > 15. **Encender presupuesto, medidor o tesorería en un conjunto REAL** —no hay ninguno—; **el asiento
