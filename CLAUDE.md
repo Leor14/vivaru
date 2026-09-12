@@ -672,16 +672,19 @@ que se repite: **el plan solo se siembra al CREAR un conjunto**, y los nueve son
 funcionalidad — nunca hubo backfill. **Antes de contar una capacidad como entregada, preguntar
 cuántas filas tiene la tabla que alimenta.**
 
-**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL. Ninguno, y ya no queda nada por confirmar.** Los nueve
+**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL. Ninguno, y ya no queda nada por confirmar.** Los diez
 conjuntos de `hogaru-1` son de demostración o de prueba interna: David confirmó el 24 de agosto de
 2026 que **`Conjunto Bromelias` y `Queretarock 229` tampoco lo son**. Hasta entonces el roadmap, la
 wiki de IA y la memoria hablaban de «dos conjuntos reales» contándolos a los dos, y la volumetría
 del programa de IA se calculó sobre esa cuenta.
 
-> **Los nueve conjuntos están marcados como de ejemplo (24 ago 2026).** `Queretarock` era el
-> último que faltaba y ya está: `node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1`
-> responde «No hay nada que marcar», y el script lista **0 conjuntos sin clasificar**. La ADC no
-> estaba caducada, al contrario de lo que decía esta nota: lo que fallaba era otra credencial.
+> **Los diez conjuntos están marcados como de ejemplo.** `Queretarock` era el último que faltaba el
+> 24 de agosto. El 11 de septiembre nació un décimo, *Lomas de Sayilbedra*, desde la consola de
+> superadmin y **sin la marca**, y lo destapó una medición al día siguiente: David confirmó que es
+> demo y se marcó el 12. Hoy `node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1`
+> responde «No hay nada que marcar» y lista **0 conjuntos sin clasificar**. **Después de crear un
+> conjunto desde superadmin, correr el script en seco**: este no nació marcado. La ADC no estaba
+> caducada el 24, al contrario de lo que decía esta nota: lo que fallaba era otra credencial.
 
 **EL CRITERIO DE PRIORIZACIÓN CAMBIÓ EL 24 DE AGOSTO DE 2026: cerrar frentes antes que abrirlos.**
 Lo fijó David. La cola empezaba por `FIN-002` porque era el frente de ingeniería más grande

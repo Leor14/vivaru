@@ -78,8 +78,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > `www` sirve bien—. La tabla de recuento de `docs/prd/README.md`, que decía «TRECE funcionales», se
 > recontó el 12 sep: 29, con 24 en producción. **Y producción tiene DIEZ conjuntos, no nueve:** el
 > décimo, *Lomas de Sayilbedra* (administradora Sayil, Puebla), lo creó una cuenta de superadmin el 11 sep a las
-> 18:54 UTC, en `trial`, **sin `isExample`** y vacío —0 cuentas, 0 unidades, medido el 12—. Si detrás
-> hay un prospecto real, lo sabe David.
+> 18:54 UTC, en `trial` y vacío —0 cuentas, 0 unidades—, y nació **sin `isExample`**. David confirmó el 12 que
+> es una demo: marcado ese día (16:03 UTC) con `marcar-conjuntos-de-ejemplo.mjs`, que ya lo lleva en su lista.
 >
 > ## LO QUE SIGUE — el menú
 >

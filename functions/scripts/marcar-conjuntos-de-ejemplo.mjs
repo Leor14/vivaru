@@ -71,9 +71,13 @@ const DEMO = [
   // conjuntos reales» contándolo. No lo era. Con esto, producción no tiene ni
   // uno.
   { id: "6PmHBr6DB8WNVMznz8O8", origen: "Conjunto Bromelias · confirmado por David, 24 ago 2026" },
-  // El último. Con este, «los otros conjuntos» de abajo se queda VACÍO: no hay
-  // ni un cliente real en producción, y la lista deja de ser una aproximación.
+  // El último de agosto. Con este, «los otros conjuntos» de abajo se quedó VACÍO:
+  // ni un cliente real en producción, y la lista dejó de ser una aproximación.
   { id: "queretarock-229-fc4c57", origen: "Queretarock 229 · confirmado por David, 24 ago 2026" },
+  // Y volvió a tener uno. Nació el 11 sep 2026 desde la consola de superadmin, con
+  // su administradora (Sayil), en `trial`, vacío y SIN la marca. Es el caso que
+  // describe la cabecera, y por eso se preguntó antes de marcarlo.
+  { id: "PoyiASYEYoPSMulCWPJa", origen: "Lomas de Sayilbedra · demo, confirmado por David, 12 sep 2026" },
 ];
 
 initializeApp({ credential: applicationDefault(), projectId });
