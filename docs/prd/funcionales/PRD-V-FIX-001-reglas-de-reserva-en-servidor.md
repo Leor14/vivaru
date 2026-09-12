@@ -8,7 +8,7 @@
 | **Módulo** | Reservas |
 | **Usuario principal** | `resident` · `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | ✅ **ENTREGA 1.1 EN PRODUCCIÓN** desde el 12 sep 2026 (05:33–05:40 UTC: functions, front `build-2026-09-12-005` desde `a7353ec`, reglas `5da48636`), después de verificarla en staging con las cuatro pruebas de §16, en pantalla y en los datos: arregla cuatro defectos de la entrega 1. 🟡 **La entrega 2, EN STAGING** desde el 12 sep (functions 06:02Z, front `build-2026-09-12-013` desde `5d38ed0`, reglas `047a0164`) y verificada en vivo (§17); a producción cuando David mire el formulario del administrador. **La entrega 1:** 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios repasados el 12 sep contra código y datos: `CA11` no se cumplía** (§16). |
+| **Estado** | ✅ **ENTREGA 1.1 EN PRODUCCIÓN** desde el 12 sep 2026 (05:33–05:40 UTC: functions, front `build-2026-09-12-005` desde `a7353ec`, reglas `5da48636`), después de verificarla en staging con las cuatro pruebas de §16, en pantalla y en los datos: arregla cuatro defectos de la entrega 1. ✅ **La entrega 2, EN PRODUCCIÓN** desde el 12 sep (14:10–14:17 UTC: functions, front `build-2026-09-12-006` desde `2f035a3`, reglas `6f42ef47`), después de verificarla en vivo en staging (§17). **Con ella, el lote de Habitanto queda completo.** **La entrega 1:** 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios repasados el 12 sep contra código y datos: `CA11` no se cumplía** (§16). |
 | **Dependencias** | Ninguna |
 | **Riesgo** | **Medio.** Cambia por dónde se crea una reserva, que hoy funciona |
 | **Reversibilidad** | **Parcial.** La escritura directa desde el cliente se cierra en las reglas y eso **no se revierte con una bandera** (§13) |
@@ -471,6 +471,16 @@ limpieza entre pruebas.
   - el residente recibió del disparador el aviso «Reserva aprobada».
 - **Limpieza:** la reserva de prueba se canceló y el Gimnasio volvió a su configuración.
 
-**Falta que David mire el formulario del administrador** («Aprobación y morosos»), porque pide su sesión.
-La mora por área no se probó en vivo: en staging no hay ninguna unidad con cargos vencidos, y no se
-fabricaron. La cubren las pruebas del servidor y del cliente.
+**David revisó el formulario del administrador** («Aprobación y morosos») en staging antes de pedir la
+subida. La mora por área no se probó en vivo: en staging no hay ninguna unidad con cargos vencidos, y no
+se fabricaron. La cubren las pruebas del servidor y del cliente.
+
+**Producción (12 sep 2026, 14:10–14:17 UTC)**, en orden functions → front → reglas:
+- **Functions** `createReservationRequest`, `onReservationCreated` y `createMudanzaRequest`, a las 14:10Z.
+- **Front** `build-2026-09-12-006`, desde `2f035a3`, por su rollout automático, esperado por nombre.
+- **Reglas** `6f42ef47`, idénticas al repo.
+
+**Radio medido antes:** ninguna de las 35 áreas de producción tenía los campos nuevos. En producción no
+se creó ningún dato de prueba ni se configuró ninguna área: todas siguen como hoy hasta que un
+administrador lo decida. **Antes de subir caducaron las dos credenciales** (CLI de Firebase y ADC).
+David las renovó, y no se desplegó nada sin poder verificarlo.
