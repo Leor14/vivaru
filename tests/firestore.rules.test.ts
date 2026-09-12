@@ -1216,6 +1216,72 @@ describe("Firestore Rules - HOGARU", () => {
     );
   });
 
+  // `PRD-V-FIX-001` entrega 1.1 — la reserva del administrador lleva su área. El
+  // servidor cuenta aforo y cupo por `amenityId`, y la página la guardaba sin él:
+  // un residente podía reservar encima.
+  it("BLOQUEA al administrador crear una reserva sin amenityId, o con uno vacío", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    const reserva = {
+      tenantId: "tenant-a",
+      unitId: "unit-t2-503",
+      unitLabel: "T2-503",
+      amenity: "Salon social",
+      amenityName: "Salon social",
+      date: "2026-03-20",
+      startTime: "18:00",
+      endTime: "20:00",
+      status: "pending",
+      createdBy: "admin-1",
+    };
+    await assertFails(setDoc(doc(admin.firestore(), "reservations", "res-admin-sin-area"), reserva));
+    await assertFails(setDoc(doc(admin.firestore(), "reservations", "res-admin-area-vacia"), { ...reserva, amenityId: "" }));
+  });
+
+  // `PRD-V-FIX-001` entrega 1.1 — mover una reserva se mide en la hora del CONJUNTO.
+  // Dos defectos, uno encima del otro: la regla comparaba la hora de pared con
+  // `request.time` en UTC, y además NUNCA llegaba a evaluarse —sus helpers sumaban
+  // texto y número y fallaban siempre—, así que ningún administrador pudo mover una
+  // reserva de fecha u hora. `tenant-a` no tiene país: va con México, UTC−6 fijo.
+  function horaDelConjuntoDentroDe(minutos: number, horasBajoUtc = 6) {
+    const pared = new Date(Date.now() + minutos * 60_000 - horasBajoUtc * 60 * 60_000).toISOString();
+    return { date: pared.slice(0, 10), startTime: pared.slice(11, 16) };
+  }
+
+  it("el administrador mueve una reserva a dentro de 2 h en la hora del conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "reservations", "res-own-cancel"), {
+        ...horaDelConjuntoDentroDe(120),
+        updatedBy: "admin-1",
+      }),
+    );
+  });
+
+  it("y a dentro de 10 minutos no: el margen de 30 sigue", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "reservations", "res-own-cancel"), {
+        ...horaDelConjuntoDentroDe(10),
+        updatedBy: "admin-1",
+      }),
+    );
+  });
+
+  // Con la zona de México, las 10 minutos de Bogotá serían 1 h 10 min: pasaría. Que
+  // falle prueba que un conjunto colombiano usa SU desfase, no el de por defecto.
+  it("un conjunto colombiano mide con UTC−5: a 10 minutos en Bogotá, no", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), "tenants", "tenant-a"), { country: "CO" });
+    });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "reservations", "res-own-cancel"), {
+        ...horaDelConjuntoDentroDe(10, 5),
+        updatedBy: "admin-1",
+      }),
+    );
+  });
+
   it("permite al guarda leer reservas del tenant", async () => {
     const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
     await assertSucceeds(getDoc(doc(guard.firestore(), "reservations", "res-other-owner")));

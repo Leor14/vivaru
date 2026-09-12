@@ -254,6 +254,48 @@ service cloud.firestore {
         (dateText > minimumDate || (dateText == minimumDate && timeText >= minimumTime));
     }
 
+    // `PRD-V-FIX-001` entrega 1.1 — la antelacion de una RESERVA, en la hora del
+    // conjunto. El helper de arriba compara la hora de pared con `request.time` en
+    // UTC: en Mexico, mover una reserva a una hora del mismo dia a menos de ~6 h se
+    // rechazaba, y desde las 18:00 locales cualquier hora de ese dia. La zona sale
+    // del pais, como en el servidor (`functions/src/zona-del-conjunto.ts`; decision
+    // de David del 12 sep 2026, solo en reservas). Las reglas no conocen zonas: va
+    // el desfase fijo, que en los tres paises no cambia en el ano. Sin pais, o sin
+    // documento, Mexico. Las visitas siguen con el helper de arriba.
+    function horasBajoUtcDelConjunto(tenantId) {
+      let country = exists(/databases/$(database)/documents/tenants/$(tenantId))
+        ? get(/databases/$(database)/documents/tenants/$(tenantId)).data.get('country', 'MX')
+        : 'MX';
+      return country == 'CO' || country == 'EC' ? 5 : 6;
+    }
+
+    // Y no puede apoyarse en `pad2`, `timestampDateKey` ni `timestampTimeKey`: suman
+    // texto y numero (`'' + value.year()`), que las reglas no admiten. La evaluacion
+    // falla SIEMPRE y la regla deniega: medido el 12 sep 2026 con el emulador
+    // («Unsupported operation: string + int»). Por eso ningun administrador ha podido
+    // nunca mover una reserva de fecha u hora. No se corrigen alli porque tambien los
+    // usan las visitas (`visitorAuthorizations`), fuera de esta entrega: lo decide David.
+    function dosCifras(value) {
+      return value < 10 ? '0' + string(value) : string(value);
+    }
+
+    function fechaDeUnInstante(value) {
+      return string(value.year()) + '-' + dosCifras(value.month()) + '-' + dosCifras(value.day());
+    }
+
+    function horaDeUnInstante(value) {
+      return dosCifras(value.hours()) + ':' + dosCifras(value.minutes());
+    }
+
+    function reservaConAntelacion(tenantId, dateText, timeText, bufferMinutes) {
+      let minimum = request.time - duration.value(horasBajoUtcDelConjunto(tenantId), 'h') + duration.value(bufferMinutes, 'm');
+      let minimumDate = fechaDeUnInstante(minimum);
+      let minimumTime = horaDeUnInstante(minimum);
+      return isValidDateText(dateText) &&
+        isValidTimeText(timeText) &&
+        (dateText > minimumDate || (dateText == minimumDate && timeText >= minimumTime));
+    }
+
     function isValidInvitationWindow(startAt, endAt) {
       return startAt is timestamp &&
         endAt is timestamp &&
@@ -1349,8 +1391,14 @@ service cloud.firestore {
       // reales, «ningun residente escribio directo» se cumple solo.
       //
       // Rollback: volver a desplegar las reglas anteriores. No hay interruptor.
+      //
+      // **Entrega 1.1 (12 sep 2026): la reserva del administrador lleva su area.**
+      // El servidor cuenta aforo y cupo por `amenityId`, y la pagina del
+      // administrador la guardaba sin el: no ocupaba nada y un residente podia
+      // reservar encima. Esta condicion es la que sostiene el arreglo.
       allow create: if tenantOperable(request.resource.data.tenantId) && (
-        signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) &&
+        request.resource.data.amenityId is string && request.resource.data.amenityId.size() > 0
       );
 
       // Tenant admins and superadmin can fully manage reservations.
@@ -1374,7 +1422,7 @@ service cloud.firestore {
       ) && (
         request.resource == null ||
         !request.resource.data.diff(resource.data).changedKeys().hasAny(['date', 'startTime']) ||
-        isDateTimeAtOrAfterBuffer(request.resource.data.date, request.resource.data.startTime, 30)
+        reservaConAntelacion(resource.data.tenantId, request.resource.data.date, request.resource.data.startTime, 30)
       ));
 
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && sameTenant(resource.data.tenantId) && tenantAdminOrSuper(resource.data.tenantId));
