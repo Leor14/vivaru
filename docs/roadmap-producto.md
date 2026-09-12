@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.73 |
-| **Fecha** | 12 de septiembre de 2026, cierre |
-| **Estado** | **Nada a medias, y las bases de información al día.** En producción, lo del 11 —la lista de hoy de la portería, **`PLAT-004` entrega 2**, la cuenta en el pago de una cuota, el «mes pasado» del Panel de Control, **`PRD-V-FIX-004`** y **`PRD-V-PLAT-002` entrega 2**— y lo del 12: **`PRD-V-FIX-005`, salvo App Check**, con el TTL de `limitesDeIntentos` activo en los dos, y **`PRD-V-FIX-001` entera** —la 1.1 (la hora de una reserva en la del conjunto, la mudanza que vuelve, las reservas del administrador con aforo y mover una reserva) y la 2 (la política de reserva por área)—, **con lo que el lote de Habitanto queda completo**. El décimo conjunto de producción, *Lomas de Sayilbedra*, nació sin la marca de ejemplo: es demo y quedó marcado. **Lo que queda espera a David o a terceros:** App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» del servidor en UTC; el abogado ecuatoriano (`FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`); el asiento con `accountCode: null`; el tope de gasto de la IA; Albert y `vivaruWonSignals`; el primer conjunto REAL. Construible sin decisión: los 19 bloques de reglas con la forma de `CF9`. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
-| **Verificado contra** | **Los servicios, al cerrar el 12.** Producción sirve `build-2026-09-12-006` (`2f035a3`) y staging la punta de `develop`; rulesets `6f42ef47` y `047a0164`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. Las functions de la entrega 2 de `FIX-001`, por `updateTime` (14:10 UTC). El décimo conjunto, leído por REST después de marcarlo (`isExample: true`, 16:03 UTC), con el script en seco respondiendo «No hay nada que marcar». Bancos **contados sobre el `develop` final**: `npm test` **2066** · functions **1011**; reglas **494**, medidas en `2f035a3` |
+| **Versión** | 0.9.74 |
+| **Fecha** | 12 de septiembre de 2026, tarde |
+| **Estado** | **Lo construible, cubierto.** En producción desde la tarde del 12: **`CF9` en las dos direcciones** —18 bloques de reglas decidían el `update` con el `tenantId` nuevo y 7 no impedían mudarlo, y las dos formas estaban al alcance de una cuenta de prueba— y **el detalle por unidad fuera del informe que lee el consejo** (`K2`), con los tres informes que había migrados. **`PRD-V-FEAT-007` pasa a Productiva**: el destello y la impresión, mirados en staging; los PDF y el QR, por construcción. **La wiki**, al día del 1 al 10 sep, con las banderas medidas. Antes, el mismo 12, `FIX-005` (salvo App Check) y `FIX-001` entera, con lo que el lote de Habitanto quedó completo. **Lo que queda espera a David o a terceros:** App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» en UTC; tres overrides de bandera redundantes en producción; llevar `develop` a `master`; `UX-005`; el abogado ecuatoriano; Albert; el primer conjunto REAL. Lo construible que resta es menor: el «HOGARU» que no llegó a `develop`, el tipo de `distributionBasis` y las fichas que se contradicen por dentro. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
+| **Verificado contra** | **Los servicios, al cerrar (21:11 UTC).** Producción sirve `build-2026-09-12-006` (`2f035a3`) y staging `build-2026-09-12-021` (`73287d5`, la punta de `develop` en ese momento); rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. Las cuatro functions del informe, por `updateTime` (19:28 UTC en staging, 19:31 en producción). Las banderas, resolviendo conjunto por conjunto con `functions/lib/feature-flags.js`. La migración, releyendo los dos documentos de cada informe. Bancos **contados en `ba98abe`**: `npm test` **2071** · functions **1015** · reglas **591** · emulador de functions **379 de 381** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,39 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.74 — 12 de septiembre de 2026 (tarde) — lo construible, cubierto: `CF9` en las dos direcciones, `byUnit` fuera del informe, `FEAT-007` Productiva y la wiki al día
+
+- **`CF9` en las dos direcciones, en producción** (`d3098ed`). La ficha contaba 19 bloques de reglas con un
+  `update` que decide con el `tenantId` NUEVO; un inventario mecánico dio **18**, más cuatro excluidos con su
+  motivo. Al cerrarlos apareció la variante al revés: **7 bloques** (`tickets`, las tres colecciones de
+  visitas, `unitChangeRequests`, `surveys` y `paymentReceipts`) decidían con el `tenantId` de antes sin
+  impedir que cambiara, así que quien edita su documento podía empujarlo a otro conjunto. **Las dos formas
+  estaban al alcance de una cuenta de prueba**, que nace `tenant_admin` en un conjunto `trial`. Banco de 93
+  pruebas contra el emulador, nacido en rojo y con cuatro falsaciones; guardián estático en `npm test`; radio
+  medido: 0 documentos sin `tenantId` en las 25 colecciones de los dos proyectos.
+- **El detalle por unidad, fuera del informe que lee el consejo** (`ba98abe`, `K2`). `receivables.byUnit`
+  llegaba entero al navegador del consejero; ahora vive en `monthlyReportReceivables`, con el mismo id y solo
+  para la administración, y se escribe en el mismo lote o transacción que el informe. El PDF lo junta en el
+  servidor y se niega a rehacerse sin él. Tres informes migrados —uno en producción y dos en staging—,
+  comprobados releyendo los dos documentos de cada uno.
+- **`PRD-V-FEAT-007`, Productiva.** Cerrados el mismo día, cada uno medido o argumentado:
+  - las pruebas de reglas (`CA4`, `CA8`, `CA17`), comprobadas por nombre;
+  - `CA7`, con los dos únicos `tema` de producción en cuentas de prueba de David;
+  - `CA16`: 0 reglas `prefers-color-scheme` en el CSS servido, contra 21 antes;
+  - el destello (`CA5`/`CA6`), observando `data-tema` en un `iframe` del mismo origen: un cambio con el
+    espejo vacío y ninguno con él escrito;
+  - la impresión del informe (`CA11`), mirada por David;
+  - los PDF y las dos ventanas emergentes (`CA15`, `CA19`), por construcción.
+- **La wiki, al día del 1 al 10 de septiembre** (`73287d5`): ocho páginas nuevas y once actualizadas, con cada
+  bandera **medida** resolviendo conjunto por conjunto. Tres fichas decían otra cosa y se corrigieron: la
+  bandera de `FLOW-007`, que decía «1 de 9», y la fila «Estado» de `FLOW-008`: las dos banderas están en los
+  diez conjuntos. Además, la fila «Estado» de `PLAT-004` se había quedado en la entrega 1.
+- **Método.** El modo automático bloqueó el commit y el push hasta que David los pidió en el chat. Y un
+  agente que escribía él solo la wiki entera se atascó sin dejar nada; funcionó repartir la lectura entre
+  cuatro agentes y escribir las páginas en la sesión principal.
+- Bancos, en `ba98abe`: `npm test` **2071** · functions **1015** · reglas **591** · emulador de functions
+  **379 de 381**.
 
 ### 0.9.73 — 12 de septiembre de 2026 — las bases de información, al día; el décimo conjunto, marcado como ejemplo
 

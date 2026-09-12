@@ -4,7 +4,108 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 12 de septiembre de 2026
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 12 de septiembre de 2026 (tarde)
+
+> # LO CONSTRUIBLE, CUBIERTO: `CF9` EN LAS DOS DIRECCIONES Y `byUnit` FUERA DEL INFORME, EN PRODUCCIÓN. `FEAT-007`, PRODUCTIVA. LA WIKI, AL DÍA.
+>
+> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por qué
+> lo frena, está en «LO QUE SIGUE», justo debajo.
+>
+> **Lo de esta pasada, en una línea:** **`CF9` cerrado en 18 bloques** —la ficha decía 19, contados a
+> ojo— **y en su variante al revés, 7 más** (un `update` que mira el conjunto de antes sin impedir que
+> cambie), con un banco de 93 pruebas contra el emulador y un guardián estático,
+> `tests/el-tenantid-no-se-muda.test.ts`: las dos formas estaban al alcance de una cuenta de prueba, que
+> nace `tenant_admin`. **`byUnit` fuera del informe** que lee el consejo, a `monthlyReportReceivables`,
+> con los tres informes que había migrados. **`FEAT-007` Productiva**: el destello y la impresión,
+> mirados en staging; los PDF y el QR, por construcción. **La wiki**, del 1 al 10 sep: ocho páginas
+> nuevas, con las banderas medidas. Detalle en el roadmap (0.9.74) y en la bitácora.
+>
+> **Lo que sirve cada ambiente al cerrar (medido, 21:11 UTC):** producción, el front
+> `build-2026-09-12-006` desde `2f035a3` —`master` no se movió: lo nuevo de front es un tipo y un
+> comentario—; staging, la punta de `develop`. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
+> **las dos idénticas al repo**. Functions: `regenerateMonthlyReport`, `issueMonthlyReport`,
+> `signMonthlyReport` y `monthlyFinancialArchive`, a las 19:28 UTC en staging y a las 19:31 en producción.
+>
+> ```bash
+> git ls-remote origin refs/heads/master refs/heads/develop
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
+> node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
+> ```
+>
+> **Bancos CONTADOS en `ba98abe`:** `npm test` **2071** · functions **1015** · reglas **591** (sin
+> Storage) · emulador de functions **379 de 381** (los dos rojos, `CA12` y `D-B` de
+> `payments.emulator.test.ts`, preexistentes y confirmados por nombre).
+>
+> ## LO QUE SIGUE — el menú
+>
+> **A · Construible ya** (lo que queda es menor)
+> 1. **El «HOGARU» que no llegó a `develop`**: `Superadmin HOGARU` en `src/lib/constants/roles.ts:21,23` y
+>    `Usuario HOGARU` en `src/lib/auth/session.ts:39`. El arreglo existe en `2e0be85`, en la rama
+>    `claude/nifty-bell-c733cd`, cuyo worktree sigue en `.claude/worktrees/great-bohr-ec49d3` aunque este
+>    documento lo daba por retirado.
+> 2. **`distributionBasis` sin `"consumption"`**: el servidor lo escribe desde `FEAT-008`, y el tipo de
+>    `src/types/domain.ts` solo declara `coefficient | area`.
+> 3. **Las fichas que se contradicen por dentro** (lo encontraron los agentes de la wiki): la fila
+>    «Bandera» de `FEAT-010` dice apagada; `G6` de `PLAT-006` sigue en «falta marcar»; `FEAT-008` cita
+>    `consumption-billing.ts`, que no existe; el cuerpo de `FEAT-009` dice «LISTA PARA DESARROLLO»; §11 de
+>    `FLOW-008` habla de `amount − paidAmount`; y una docena de citas de línea corridas.
+>
+> **B · Espera una decisión de David**
+> 4. **App Check** (`D-CONSOLA`): lo único que le falta a `FIX-005`.
+> 5. **El `country` de cuatro conjuntos de producción** —Santa María, Bromelias, Privada Las Playas y
+>    Tenant E2E—: sin él, sus reservas se leen en hora de México. Dato de producción: permiso uno a uno.
+> 6. **Las fechas de las reglas de visitas** (`pad2` y compañía fallan siempre por `'' + int`): arreglarlo
+>    cambia qué acepta producción.
+> 7. **El «vencido» del servidor en UTC**: esperar a un cliente real o derivar la zona del `country`.
+> 8. **La puerta de buzones**: `sinClienteDetras` en *Lomas de Sayilbedra* y, para encenderla,
+>    identificar la cuenta de portería de Privada Las Playas.
+> 9. **Ver `CA1` de `PLAT-002`** (qué cuenta simular, paso 6) y **`CA3`/`CA5` de `PLAT-004`** (firmar y
+>    tocar la marca en staging).
+> 10. **El TXT `fah-claim`** en Squarespace Domains, para que sirva el dominio sin `www`.
+> 11. **La reserva de prueba de staging `4Mk1AvAePP9bqGZafbH2`** sigue `pending`: cancelarla sin borrar.
+> 12. **Tres overrides de bandera que repiten el valor global en producción**: `producto-egresos-en-cuotas`
+>     en Las Playas y Santa María, y uno de `producto-informe-mensual`. Son ruido, y con ellos puestos
+>     apagar exige el kill switch. Retirarlos es dato de producción.
+> 13. **Llevar `develop` a `master`**: el front de producción no tiene el tipo de `byUnit` ni las pruebas
+>     de hoy. Ningún cambio de conducta.
+> 14. **`UX-005`** (tableros configurables): no se escribe por prioridad, y le falta decidir si la
+>     preferencia es por usuario o por conjunto (`docs/prd/README.md:170`).
+> 15. **Encender presupuesto, medidor o tesorería en un conjunto REAL** —no hay ninguno—; **el asiento
+>     `ledgerEntries/tWgE2rhBeztUbCTWKokt`** (`accountCode: null` → `2.3`); **las dos categorías de
+>     egreso fuera del tipo** (medir antes de citar); y **el tope de gasto de la IA**, en la consola.
+>
+> **C · Espera a un tercero o a un dato**
+> 16. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
+> 17. **Albert** — el contrato de `vivaruWonSignals`.
+> 18. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos a la vez).
+> 19. **Habitanto**: lo que queda de los 108 candidatos vive en la fila 30 del backlog largo de Notion.
+>     Hay tres cifras distintas: **recontar sobre las filas** antes de citarla.
+>
+> ## NO REABRIR
+>
+> - **Las de David del 12 por la tarde:** la variante al revés de `CF9` va con él, en el mismo
+>   despliegue; `byUnit` sale del informe sin esperar a `K2`, con los tres informes migrados; los dos
+>   `tema` de producción son cuentas de prueba de David.
+> - **Las del 12 por la mañana:** `FIX-001` 1.1 primero y sola, antes de la 2; la zona sale del país del
+>   conjunto, **solo en reservas**; *Lomas de Sayilbedra* es una demo.
+> - **Las del 11:** `TBD-B` de `PLAT-004` (el consejero entra por `/resident`); `CA3` (el PDF se rehace con
+>   cada firma, en el servidor); la regla de `documents` (el consejo lee lo que un residente); `K2` (sin
+>   PDF para el consejo mientras esté cerrado); `R2` y `H3c` de `FIX-005` (opción A); y las de admins
+>   (`E2-D1…D5`, `PLAT-002` §16), con `FIX-004` primero y aparte.
+> - **Y las de antes:** las cuatro de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los dos `TBD` de
+>   `FLOW-008`; los dos huecos falsos; `RN-01` de `PLAT-004`; `TBD-A`/`TBD-B` de `FEAT-008`; las de
+>   `FEAT-009` y `FEAT-010`; `G5`.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.** Y dos avisos de esta pasada: **el modo
+> automático bloquea el commit y el push** si David no los pide en el chat —pedir el sí con el alcance
+> exacto antes de desplegar nada—; y el emulador levantado (Java en `:8080`, sin Storage) es un resto del
+> 3 sep que nadie apagó.
+
+---
+
+## EL CIERRE DEL 12 DE SEPTIEMBRE (mediodía) — histórico
 
 > # NADA A MEDIAS: `FIX-005` (SALVO APP CHECK) Y `FIX-001` ENTERA, EN PRODUCCIÓN. LAS BASES DE INFORMACIÓN, AL DÍA.
 >

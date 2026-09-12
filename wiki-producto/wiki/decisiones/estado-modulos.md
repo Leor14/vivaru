@@ -142,7 +142,7 @@ con el código compilado. Producción no tiene clientes: estar encendida en la d
 | [[presupuesto]] (`FEAT-009`) | `producto-presupuesto-anual` | Las Playas (demo) · 2 de staging | Primer uso legal: la asamblea del primer trimestre de 2027 |
 | [[rol-consejo]] (`PLAT-004`) | `producto-rol-consejo` | Santa María · Palmas (staging) | Entregas 1 y 2; la 3 espera al abogado |
 | [[puerta-de-buzones]] (`PLAT-006`) | `producto-puerta-de-buzones` | **ninguno en producción** · Santa María (staging) | Para encenderla falta identificar una cuenta de portería |
-| [[modo-oscuro]] (`FEAT-007`) | `producto-modo-oscuro` | los 10 de los dos ambientes, por el valor global | Quedan por mirar con ojos el destello y la impresión |
+| [[modo-oscuro]] (`FEAT-007`) | `producto-modo-oscuro` | los 10 de los dos ambientes, por el valor global | **Productiva** el 12 sep: todos sus criterios cumplidos |
 
 ## Programa de IA
 

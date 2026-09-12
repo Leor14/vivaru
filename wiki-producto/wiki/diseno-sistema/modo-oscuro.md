@@ -21,7 +21,8 @@ el CSS que sirve `grupovivaru.com` tiene **0** de esas reglas.
   gobierna. La [[tipografia]] de marca se ve igual en los dos temas.
 - **El espejo anti-destello.** `src/lib/ui/tema.ts` guarda una copia en `localStorage` (`vivaru.tema`) y
   un guion en `layout.tsx` la aplica antes del primer pintado; el dato canónico sigue siendo el documento
-  del usuario. Está diseñado para un solo cambio en un dispositivo nuevo, y ninguno en los siguientes.
+  del usuario. **Medido el 12 sep en staging:** un solo cambio en un dispositivo nuevo —de claro a oscuro, 436 ms
+  después, al resolverse la sesión— y ninguno en los siguientes.
 - El interruptor vive en `/admin/settings` ([[configuracion]]) y en el perfil del [[portal-residente]];
   el cambio es optimista y se revierte si falla.
 - **Las reglas:** solo el dueño escribe su `tema`, con una lista cerrada de valores, y puede hacerlo
@@ -41,10 +42,10 @@ en una captura, y ninguna prueba. `text-white` y `bg-white` cumplían papeles op
 ## Bandera y estado
 
 `producto-modo-oscuro` ([[banderas-funcionalidad]]), **global y sin overrides**, encendida en producción
-desde el 3 sep. El 12 sep se cerraron las pruebas de reglas (`CA4`, `CA8`, `CA17`), `CA7` —ningún
-documento ganó `tema` sin que su dueño lo eligiera— y `CA16`. **Quedan por mirar con ojos** el destello
-(`CA5`, `CA6`) y la impresión y los PDF (`CA11`, `CA15`, `CA19`); por eso no está marcada Productiva en
-[[estado-modulos]].
+desde el 3 sep. El 12 sep se cerraron las pruebas de reglas (`CA4`, `CA8`, `CA17`), el destello (`CA5`,
+`CA6`), los PDF (`CA15`, por construcción), `CA7` —ningún documento ganó `tema` sin que su dueño lo
+eligiera—, `CA16`, y la vista previa de impresión: `CA11` mirada con ojos y `CA19` por construcción.
+**Con eso, todos sus criterios están cumplidos, y la ficha pasa a Productiva** ([[estado-modulos]]).
 
 ## Relaciones
 

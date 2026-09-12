@@ -9,7 +9,7 @@
 | **Módulo** | Transversal a la interfaz. Sin módulo de negocio propio, sin entrada en la navegación |
 | **Usuario principal** | `resident` (móvil, uso nocturno) · **secundario** `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | 🟢 **EN PRODUCCIÓN Y ENCENDIDA EN LOS NUEVE CONJUNTOS** (3 sep 2026). *Esta cabecera decía «EN STAGING… en producción la bandera sigue apagada y sin tocar» hasta el 4 de septiembre, y **era falsa**: medido resolviendo el valor efectivo conjunto por conjunto, `producto-modo-oscuro` sale **9/9**.* Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
+| **Estado** | 🟢 **PRODUCTIVA el 12 sep 2026: todos los criterios cumplidos** —los últimos, el destello, la impresión y los PDF, cerrados ese día (ver «Lo que faltaba para marcarla productiva»)—. **EN PRODUCCIÓN Y ENCENDIDA EN LOS NUEVE CONJUNTOS** (3 sep 2026); en los diez, por el valor global, medido el 12 sep. *Esta cabecera decía «EN STAGING… en producción la bandera sigue apagada y sin tocar» hasta el 4 de septiembre, y **era falsa**: medido resolviendo el valor efectivo conjunto por conjunto, `producto-modo-oscuro` sale **9/9**.* Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
 | **Dependencias** | Ninguna bloqueante. **Resuelve la decisión abierta de `UX-005`** (preferencia por usuario), que queda desbloqueada por esta ficha |
 | **Riesgo** | **Medio.** Cero riesgo de dinero, de datos personales y de permisos. El riesgo es de **regresión visual en 145 ficheros** y de **contraste ilegible** |
 | **Reversibilidad** | **Total y en un solo interruptor.** La bandera `producto-modo-oscuro` apagada deja el producto exactamente como está hoy. La migración de color a tokens es inerte en claro por construcción — ver `RN-01` |
@@ -776,13 +776,30 @@ prueban.
 emulador de Firestore no arranca. Eso explica además el «293 vs 347» de esta mañana — **el banco de
 reglas no estaba apagado: no se puede correr aquí**. Declara **354** casos.
 
-### Lo que falta para marcarla productiva
-
-- `CA5` y `CA6` — el destello en la primera carga frente a las siguientes, grabando el primer segundo.
-- `CA11`, `CA15` y `CA19` — impresión y PDF con ojos. `RN-07` está verificada en el CSSOM, pero el
-  diálogo de impresión no se ha abierto.
+### Lo que faltaba para marcarla productiva — nada desde el 12 de septiembre de 2026
 
 **Cerrados el 12 de septiembre de 2026, medidos:**
+
+- **`CA11`** — mirado por David en el diálogo de impresión de Chrome, en staging, con una administradora
+  de Las Playas en oscuro: el Reporte de Comité, con el informe mensual, sale en claro —fondo blanco,
+  texto oscuro, cifras legibles— en 4 páginas. Se miró como administración y no como consejero: la
+  paleta oscura vive dentro de `@media screen` para toda la app, así que la impresión no depende del rol.
+- **`CA19`** — por construcción: el QR de una visita (`printQr`, en `admin/visitors/page.tsx`) y el aviso
+  de mora (`handlePrintOverdueNotice`, en `admin/billing/page.tsx`) abren una ventana con
+  `window.open("")` y escriben en ella un documento NUEVO con estilos en línea, en claro. No cargan el CSS
+  de la app ni el atributo `data-tema`, así que el tema no tiene por dónde entrar. En Las Playas de staging
+  no había ninguna visita con QR que imprimir.
+
+- **`CA5` y `CA6`** — en staging, con una residente de Las Playas puesta en oscuro y devuelta a claro al
+  acabar. Se cargó el portal en un `iframe` del mismo origen, y un `MutationObserver` registró cada
+  cambio de `data-tema` desde que existe el `<body>`: contar cambios del DOM es más estricto que contar
+  fotogramas. **Con el espejo vacío**, `claro` al primer cuerpo y **un solo cambio**, a `oscuro`, 436 ms
+  después, al resolverse la sesión (`CA5`). **Con el espejo escrito**, `oscuro` desde el primer cuerpo y
+  **cero cambios** (`CA6`).
+- **`CA15`** — por construcción: los tres PDF (`src/features/finanzas/comprobante/`: estado de cuenta, paz
+  y salvo y recibo) se dibujan con jsPDF y colores fijos (`setTextColor(120)`, `setDrawColor(200)`), y no
+  leen el DOM, ninguna variable CSS, `data-tema` ni `matchMedia`: el tema no tiene por dónde entrar. No
+  se compararon byte a byte, porque un PDF lleva su fecha de creación.
 
 - **`CA4`, `CA8` y `CA17`** — las 7 pruebas de reglas corrieron por nombre, en verde, contra el
   emulador (`tests/firestore.rules.test.ts`, `-t "FEAT-007"`). Estaban en el banco desde el 2 sep:

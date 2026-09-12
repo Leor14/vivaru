@@ -89,13 +89,13 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **2066** (12 sep 2026, `2f035a3`) |
-  | Functions | `npm --prefix functions test` | **1011** |
-  | Reglas | `npm run test:rules:all` | **494** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
-  | Emulador de functions | `npm --prefix functions run test:emulator` | **373 de 375** *(pide emulador)* |
+  | App | `npm test` | **2071** (12 sep 2026, `ba98abe`) |
+  | Functions | `npm --prefix functions test` | **1015** |
+  | Reglas | `npm run test:rules:all` | **591** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
+  | Emulador de functions | `npm --prefix functions run test:emulator` | **379 de 381** *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
-  `payments.emulator.test.ts`. Confirmados **por nombre** el 11 de septiembre de 2026.
+  `payments.emulator.test.ts`. Confirmados **por nombre** el 12 de septiembre de 2026.
 
   **Este bloque llegó a apilar CINCO épocas de cifras** —1348, 1449, 1510, 1789…— y así no se
   puede saber cuál manda. Se reescribe entero cada vez, como la cabecera de `pendientes.md`.
