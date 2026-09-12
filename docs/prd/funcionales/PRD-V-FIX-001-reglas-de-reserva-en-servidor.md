@@ -8,7 +8,7 @@
 | **Módulo** | Reservas |
 | **Usuario principal** | `resident` · `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios SIN repasar contra producción** (3 sep 2026). |
+| **Estado** | 🟡 **ENTREGA 1.1 EN STAGING** desde el 12 sep 2026 —functions 04:36Z, front `build-2026-09-12-010` (`4516795`), reglas `6aa1d3ba` 04:45Z—: arregla cuatro defectos de la entrega 1 (§16). A producción cuando David la mire en pantalla. **La entrega 1:** 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios repasados el 12 sep contra código y datos: `CA11` no se cumplía** (§16). |
 | **Dependencias** | Ninguna |
 | **Riesgo** | **Medio.** Cambia por dónde se crea una reserva, que hoy funciona |
 | **Reversibilidad** | **Parcial.** La escritura directa desde el cliente se cierra en las reglas y eso **no se revierte con una bandera** (§13) |
