@@ -605,8 +605,12 @@ export interface BillingCampaign {
   /**
    * `PLAT-001` — cómo se repartió. **El servidor ya escribía estos tres campos
    * desde la corrida por coeficiente y esta interfaz no los declaraba.**
+   * `consumption` llegó con `FEAT-008` —el cobro por consumo medido— y el tipo se
+   * quedó en dos valores hasta el 12 sep 2026: la misma historia, otra vez. Desde
+   * entonces `tests/base-de-reparto-espejo.test.ts` saca de `functions/src` los
+   * valores que escribe el servidor y exige que estén aquí.
    */
-  distributionBasis?: "coefficient" | "area";
+  distributionBasis?: "coefficient" | "area" | "consumption";
   /** Importe repartido. Debe ser igual a la suma de los cargos de la corrida. */
   totalDistributed?: number;
   /**

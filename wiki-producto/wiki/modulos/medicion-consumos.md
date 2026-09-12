@@ -28,8 +28,8 @@ conceptos de cobro servía para el agua. `PRD-V-FEAT-008` lo construyó en tres 
 ## Dos decisiones que no se ven
 
 - **Es una tercera base de reparto, no un mecanismo nuevo.** Junto al coeficiente y al área del
-  [[cartera-campanas|cobro por reparto]], el servidor escribe `distributionBasis: "consumption"`. Ojo: el
-  tipo de `src/types/domain.ts` todavía declara solo las dos primeras.
+  [[cartera-campanas|cobro por reparto]], el servidor escribe `distributionBasis: "consumption"`. El tipo de
+  `src/types/domain.ts` no lo declaró hasta el 12 sep; desde entonces lo vigila un guardián.
 - **La cuenta `1.11` tiene `systemKey` propio, `consumo_medido`**, porque `servicios_publicos` ya es la
   cuenta de egreso 2.2 del plan. Y el consumo necesitó un concepto de cargo propio: `aplicarPago` saca la
   cuenta del concepto, no del `accountCode`. Ver [[integridad-financiera]].

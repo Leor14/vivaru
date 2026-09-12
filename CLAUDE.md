@@ -89,7 +89,7 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **2071** (12 sep 2026, `ba98abe`) |
+  | App | `npm test` | **2075** (12 sep 2026, noche) |
   | Functions | `npm --prefix functions test` | **1015** |
   | Reglas | `npm run test:rules:all` | **591** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
   | Emulador de functions | `npm --prefix functions run test:emulator` | **379 de 381** *(pide emulador)* |

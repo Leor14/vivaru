@@ -34,19 +34,23 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
 > ```
 >
-> **Bancos CONTADOS en `ba98abe`:** `npm test` **2071** · functions **1015** · reglas **591** (sin
+> **Bancos CONTADOS en `ba98abe`:** `npm test` **2071** (**2075** por la noche, con los dos guardianes
+> nuevos) · functions **1015** · reglas **591** (sin
 > Storage) · emulador de functions **379 de 381** (los dos rojos, `CA12` y `D-B` de
 > `payments.emulator.test.ts`, preexistentes y confirmados por nombre).
 >
 > ## LO QUE SIGUE — el menú
 >
 > **A · Construible ya** (lo que queda es menor)
-> 1. **El «HOGARU» que no llegó a `develop`**: `Superadmin HOGARU` en `src/lib/constants/roles.ts:21,23` y
->    `Usuario HOGARU` en `src/lib/auth/session.ts:39`. El arreglo existe en `2e0be85`, en la rama
->    `claude/nifty-bell-c733cd`, cuyo worktree sigue en `.claude/worktrees/great-bohr-ec49d3` aunque este
->    documento lo daba por retirado.
-> 2. **`distributionBasis` sin `"consumption"`**: el servidor lo escribe desde `FEAT-008`, y el tipo de
->    `src/types/domain.ts` solo declara `coefficient | area`.
+> 1. ~~El «HOGARU» que no llegó a `develop`~~ — **HECHO el 12 sep por la noche**: «Superadmin Vivaru» en
+>    `ROLE_LABEL` —que no importa nadie, así que no se veía— y «Usuario» a secas como relleno del nombre en
+>    la sesión, como decidió `2e0be85`. Lo vigila `tests/marca-vieja-fuera-del-producto.test.ts`. La rama
+>    `claude/nifty-bell-c733cd` y su worktree (`.claude/worktrees/great-bohr-ec49d3`) siguen ahí: el
+>    vocabulario y la marca ya están en `develop` por otro camino, y queda mirar `c92ef13` (documentación)
+>    antes de retirarlos.
+> 2. ~~`distributionBasis` sin `"consumption"`~~ — **HECHO**: el tipo lo declara, y
+>    `tests/base-de-reparto-espejo.test.ts` saca de `functions/src` los valores que escribe el servidor y
+>    exige que estén en el tipo.
 > 3. **Las fichas que se contradicen por dentro** (lo encontraron los agentes de la wiki): la fila
 >    «Bandera» de `FEAT-010` dice apagada; `G6` de `PLAT-006` sigue en «falta marcar»; `FEAT-008` cita
 >    `consumption-billing.ts`, que no existe; el cuerpo de `FEAT-009` dice «LISTA PARA DESARROLLO»; §11 de
