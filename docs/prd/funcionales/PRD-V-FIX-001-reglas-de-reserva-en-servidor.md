@@ -447,8 +447,10 @@ reserva lleva `autoApproved`. Si el administrador crea una reserva ya aprobada, 
 nuevo, así que un administrador podía quedarse el área de otro conjunto reescribiéndolo. Se reprodujo
 en el emulador: la prueba de `CF9` salió en rojo, y el cambio llegó a contaminar la prueba del guarda
 que venía después. Ahora el `update` usa el conjunto de antes y no deja cambiarlo. **El mismo patrón
-aparece en otros 19 bloques de las reglas**: queda fuera de esta ficha y está propuesto como tarea
-aparte.
+estaba en otros 18 bloques de las reglas** —la cuenta de «19» era a ojo; el inventario mecánico da
+18—, y su variante al revés en siete más: se cerraron fuera de esta ficha el 12 de septiembre de
+2026, con `tests/cf9-conjunto-de-antes.rules.test.ts` y el guardián
+`tests/el-tenantid-no-se-muda.test.ts`. Detalle en `wiki-producto/wiki/decisiones/trampas-conocidas.md`.
 
 **Las reglas validan los tipos** de los tres campos: `blockOnDebt` booleano o null, `autoApprove`
 booleano y `minAdvanceMinutes` entero de 0 a 10 080. Los escribe el cliente (§11.1) y el servidor los

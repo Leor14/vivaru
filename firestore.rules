@@ -459,7 +459,10 @@ service cloud.firestore {
 
     match /units/{docId} {
       allow read: if signedIn() && sameTenant(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
@@ -489,8 +492,10 @@ service cloud.firestore {
       // bloquearía cambiarle el teléfono a cualquiera de las once direcciones
       // que ya están dentro — a las que esta ficha protege por la SALIDA, no
       // echándolas. Misma trampa que `calendarioDeCobranzaValido`.
-      allow update: if tenantOperable(request.resource.data.tenantId)
-        && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId))
+      allow update: if tenantOperable(resource.data.tenantId)
+        && (signedIn() && tenantAdminOrSuper(resource.data.tenantId))
+        // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+        && request.resource.data.tenantId == resource.data.tenantId
         && (
           request.resource.data.get('email', '') == resource.data.get('email', '')
           || puertaDeBuzonesPermite(request.resource.data.tenantId, request.resource.data.get('email', ''))
@@ -549,9 +554,13 @@ service cloud.firestore {
       allow read: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && sameTenant(resource.data.tenantId);
 
       // Strict write policy: tenant admins manage operational collections, residents limited per collection below.
-      allow create, update: if signedIn() && relaxedTenantCollection(collection) && request.resource.data.tenantId is string && tenantOperable(request.resource.data.tenantId) && (
+      allow create: if signedIn() && relaxedTenantCollection(collection) && request.resource.data.tenantId is string && tenantOperable(request.resource.data.tenantId) && (
         superadmin() || tenantRole(request.resource.data.tenantId, 'tenant_admin')
       );
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && tenantOperable(resource.data.tenantId) && (
+        superadmin() || tenantRole(resource.data.tenantId, 'tenant_admin')
+      ) && request.resource.data.tenantId == resource.data.tenantId;
 
       // Delete must validate against existing resource because request.resource is null on deletes.
       allow delete: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && tenantOperable(resource.data.tenantId) && (
@@ -583,7 +592,10 @@ service cloud.firestore {
         request.resource == null ||
         !request.resource.data.diff(resource.data).changedKeys().hasAny(['startAt', 'endAt']) ||
         isValidInvitationWindow(request.resource.data.startAt, request.resource.data.endAt)
-      ));
+      )
+      // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto. En un borrado no hay
+      // documento nuevo que comparar.
+      && (request.resource == null || request.resource.data.tenantId == resource.data.tenantId));
     }
 
     match /visitorPasses/{docId} {
@@ -641,7 +653,9 @@ service cloud.firestore {
           securityGuardRole(resource.data.tenantId) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guardNotes'])
         )
-      ));
+      )
+      // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto.
+      && request.resource.data.tenantId == resource.data.tenantId);
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && sameTenant(resource.data.tenantId) && (
         tenantAdminOrSuper(resource.data.tenantId) ||
         (
@@ -681,7 +695,10 @@ service cloud.firestore {
         request.resource == null ||
         !request.resource.data.diff(resource.data).changedKeys().hasAny(['startDate', 'startTime']) ||
         isDateTimeAtOrAfterBuffer(request.resource.data.startDate, request.resource.data.startTime, 15)
-      ));
+      )
+      // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto. En un borrado no hay
+      // documento nuevo que comparar.
+      && (request.resource == null || request.resource.data.tenantId == resource.data.tenantId));
     }
 
     // `advanceAppliedAmount` (FLOW-002 R4) lo escribe SOLO el servidor, y esta es
@@ -735,12 +752,20 @@ service cloud.firestore {
       //     el autor que quisiera. **Es la lección de `CF8` al revés**: allí la
       //     callable escribía lo que la regla vetaba; aquí la regla veta lo que
       //     solo la callable debe escribir.
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
-        && request.resource.data.get('advanceAppliedAmount', 0) == (resource == null ? 0 : resource.data.get('advanceAppliedAmount', 0))
-        && request.resource.data.get('sourceExpenseId', '') == (resource == null ? '' : resource.data.get('sourceExpenseId', ''))
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && request.resource.data.get('advanceAppliedAmount', 0) == 0
+        && request.resource.data.get('sourceExpenseId', '') == ''
         && request.resource.data.get('status', '') != 'cancelled'
-        && request.resource.data.get('cancelledBy', '') == (resource == null ? '' : resource.data.get('cancelledBy', ''))
-        && request.resource.data.get('cancellationReason', '') == (resource == null ? '' : resource.data.get('cancellationReason', ''));
+        && request.resource.data.get('cancelledBy', '') == ''
+        && request.resource.data.get('cancellationReason', '') == '';
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.get('advanceAppliedAmount', 0) == resource.data.get('advanceAppliedAmount', 0)
+        && request.resource.data.get('sourceExpenseId', '') == resource.data.get('sourceExpenseId', '')
+        && request.resource.data.get('status', '') != 'cancelled'
+        && request.resource.data.get('cancelledBy', '') == resource.data.get('cancelledBy', '')
+        && request.resource.data.get('cancellationReason', '') == resource.data.get('cancellationReason', '');
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
@@ -796,21 +821,30 @@ service cloud.firestore {
     // Cobros programados (F3): solo admin; el cron los publica con Admin SDK.
     match /billingSchedules/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
     // Campañas de cobro (C1): solo admin; el cron las crea con Admin SDK.
     match /billingCampaigns/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
     // Recordatorios programados: solo admin; el cron los envía con Admin SDK.
     match /billingReminderJobs/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
@@ -894,9 +928,11 @@ service cloud.firestore {
       // cliente**, y **con plan el ESTADO tampoco**: lo deriva el servidor al pagar
       // o al anular. Sin plan, el estado se cambia como siempre — los 52 egresos de
       // producción no notan esta regla.
-      allow update: if tenantOperable(request.resource.data.tenantId)
-        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
-        && previewModuleWritable(request.resource.data.tenantId)
+      allow update: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && previewModuleWritable(resource.data.tenantId)
+        // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+        && request.resource.data.tenantId == resource.data.tenantId
         && request.resource.data.get('paidAmount', 0) == resource.data.get('paidAmount', 0)
         // **`R8` · el calendario NO se escribe desde el cliente, ni una coma.**
         // Desde la entrega 2 la deuda del conjunto se deriva de las cuotas vivas,
@@ -955,7 +991,10 @@ service cloud.firestore {
     // conjunto se valida en el formulario; la regla no puede consultarla.
     match /vendors/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if false;
     }
 
@@ -989,7 +1028,10 @@ service cloud.firestore {
         tenantAdminOrSuper(resource.data.tenantId) ||
         (tenantRole(resource.data.tenantId, 'resident') && resource.data.active == true)
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
@@ -998,7 +1040,10 @@ service cloud.firestore {
     // el dato que no podia quedarse arriba.
     match /bankAccountBalances/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
@@ -1030,8 +1075,10 @@ service cloud.firestore {
         && request.resource.data.get('matchedTransferId', null) == null;
       // PRD-V-FEAT-010 2b: el enlace con un tramo de traspaso, igual que el del
       // asiento, lo escribe SOLO el servidor.
-      allow update: if tenantOperable(request.resource.data.tenantId)
-        && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+      allow update: if tenantOperable(resource.data.tenantId)
+        && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+        && request.resource.data.tenantId == resource.data.tenantId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reconciled', 'matchedLedgerEntryId', 'matchedTransferId', 'matchedTransferLeg'].toSet());
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
@@ -1186,7 +1233,9 @@ service cloud.firestore {
         // del asiento que anula (ver `reversoConLaCuentaDelOriginal`).
         && (cuentaDelMovimientoValida(request.resource.data)
               || reversoConLaCuentaDelOriginal(request.resource.data));
-      allow update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId))
+        // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+        && request.resource.data.tenantId == resource.data.tenantId
         && cuentaIgualOValida(request.resource.data, resource.data)
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['reconciled', 'bankStatementLineId', 'reconciledAt'].toSet())
@@ -1207,7 +1256,10 @@ service cloud.firestore {
     // transacción pueda inicializar el contador.
     match /financialCounters/{docId} {
       allow read: if signedIn() && (resource == null || tenantAdminOrSuper(resource.data.tenantId));
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && superadmin());
     }
 
@@ -1272,7 +1324,10 @@ service cloud.firestore {
         (tenantRole(resource.data.tenantId, 'resident') &&
           resource.data.get('category', '') in ['asamblea', 'comunicado', 'acuerdo', 'reglamento', 'plano', 'memoria', 'otro'])
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
@@ -1335,7 +1390,9 @@ service cloud.firestore {
           resource.data.createdBy == request.auth.uid &&
           request.resource.data.unitId == resource.data.unitId
         )
-      ));
+      )
+      // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto.
+      && request.resource.data.tenantId == resource.data.tenantId);
     }
 
     // ── Soporte al cliente (PRD-V-FEAT-001) ──────────────────────────────────
@@ -1454,7 +1511,10 @@ service cloud.firestore {
         tenantAdminOrSuper(resource.data.tenantId) ||
         (tenantRole(resource.data.tenantId, 'resident') && resource.data.status == 'active')
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
@@ -1643,8 +1703,12 @@ service cloud.firestore {
         tenantAdminOrSuper(resource.data.tenantId) ||
         tenantRole(resource.data.tenantId, 'resident')
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId)
+      allow create: if tenantOperable(request.resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
@@ -1907,7 +1971,9 @@ service cloud.firestore {
       allow update: if signedIn() && (
         // Solo admin del tenant o superadmin pueden aprobar/rechazar
         tenantAdminOrSuper(resource.data.tenantId)
-      );
+      )
+        // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto.
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if false;
     }
 
@@ -1933,7 +1999,9 @@ service cloud.firestore {
           request.resource.data.diff(resource.data)
             .affectedKeys().hasOnly(['responseCount'])
         )
-      ));
+      ))
+        // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto.
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
@@ -1967,7 +2035,9 @@ service cloud.firestore {
         request.resource.data.uploadedBy == request.auth.uid &&
         request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
       // Only admins can update status (approve/reject); residents cannot edit.
-      allow update: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow update: if signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        // CF9 al revés: quien edita lo suyo no lo empuja a otro conjunto.
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
     // ─── Firmas de reglamento (REG-01) ───────────────────────────────────────
@@ -1992,7 +2062,10 @@ service cloud.firestore {
 
     match /committee_agreements/{docId} {
       allow read: if signedIn() && sameTenant(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId))
+        && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 

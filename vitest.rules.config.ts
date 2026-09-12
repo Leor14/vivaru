@@ -34,6 +34,7 @@ export default defineConfig({
       "tests/tesoreria-traspasos.rules.test.ts",
       "tests/tesoreria-caja-chica.rules.test.ts",
       "tests/egresos-en-cuotas.rules.test.ts",
+      "tests/cf9-conjunto-de-antes.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.

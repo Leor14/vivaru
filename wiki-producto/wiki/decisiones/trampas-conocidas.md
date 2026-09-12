@@ -584,10 +584,26 @@ el `tenantId` a A**, y la regla lo aprueba: el rol se mira en su propio conjunto
 reprodujo en `amenities`: un área de otro conjunto, quedada con una edición.
 
 **La forma buena mira los dos lados:** el rol contra `resource.data.tenantId` —lo que el documento
-ES— y además `request.resource.data.tenantId == resource.data.tenantId`, que no se mude. En
-`amenities` se cerró el 12 de septiembre de 2026; **quedan 19 bloques de reglas con la misma forma**,
-por revisar en una tarea aparte. Es el principio de [[multi-tenancy]] aplicado al documento que ya
-existe, no solo al que se crea.
+ES— y además `request.resource.data.tenantId == resource.data.tenantId`, que no se mude. Se cerró el
+12 de septiembre de 2026 en `amenities` y, el mismo día, en los **otros 18 bloques** con la misma
+forma: los contó un inventario mecánico del fichero, no los «19» que se habían contado a ojo. Es el
+principio de [[multi-tenancy]] aplicado al documento que ya existe, no solo al que se crea.
+
+**Y tiene una variante al revés, que salió al cerrarla.** Un `update` que decide con el `tenantId` de
+ANTES pero no impide que cambie deja a quien edita su documento **empujarlo a otro conjunto**: un
+[[pqrs|PQRS]], una visita de [[visitantes]] o un recibo que aparece en un conjunto ajeno. Estaba en
+siete bloques —`tickets`, las tres colecciones de visitas, `unitChangeRequests`, `surveys` y
+`paymentReceipts`—. **Las dos formas estaban al alcance de cualquiera**: el
+[[ciclo-de-vida-tenant|alta de prueba]] da una membresía de `tenant_admin` en un conjunto `trial`, y
+`tenantOperable` admite `trial`.
+
+**Lo que sostiene el invariante es un guardián que mide el fichero**,
+`tests/el-tenantid-no-se-muda.test.ts`: todo `update` que hable del `tenantId` del documento tiene
+que decir que no cambia. Lleva tres excepciones con su motivo —`pushTokens`, `treasuryTransfers` y
+`pettyCashFunds`— y comprueba que el motivo siga siendo cierto. Quita los comentarios antes de
+buscar: con la igualdad escrita solo en un comentario, sigue en rojo. Y en un bloque
+`update, delete` la cláusula lleva `request.resource == null ||`, porque en un borrado no hay
+documento nuevo que comparar.
 
 Y una trampa de la propia prueba: el documento del exploit **persistía entre casos**, porque
 `clearFirestore` corría una vez por fichero, y hacía fallar al guardián siguiente. Una prueba que
