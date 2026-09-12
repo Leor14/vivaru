@@ -7,6 +7,7 @@ import { persistLead } from "@/lib/marketing/leads";
 import { envSubject, resolveNotifyTo } from "@/lib/marketing/notify-target";
 import { atribucionSchema } from "@/lib/marketing/attribution";
 import { consentimientoSchema, registrarConsentimiento } from "@/lib/marketing/lead-consent";
+import { ipDelCliente } from "@/lib/http/ip-del-cliente";
 
 export const runtime = "nodejs";
 
@@ -37,10 +38,10 @@ const RATE_WINDOW_MS = 10 * 60 * 1000; // 10 min
 const RATE_LIMIT = 3; // stricter than /api/lead since this is a live form
 const buckets = new Map<string, Bucket>();
 
-function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+// `PRD-V-FIX-005` · H5: la IP que ve la infraestructura, no la primera de `X-Forwarded-For`, que
+// la escribe quien llama. Si la cabecera no trae lo esperado, no hay IP y no se limita por IP.
+function getClientIp(req: Request): string | null {
+  return ipDelCliente(req.headers.get("x-forwarded-for"));
 }
 
 function rateLimited(ip: string): boolean {
@@ -90,7 +91,8 @@ const TIMELINE_LABELS: Record<string, string> = {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  if (rateLimited(ip)) {
+  if (!ip) console.warn("[api/demo] X-Forwarded-For sin la IP del cliente: no se limita por IP");
+  if (ip && rateLimited(ip)) {
     return NextResponse.json(
       { ok: false, error: "rate_limited" },
       { status: 429 }

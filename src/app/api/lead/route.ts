@@ -14,6 +14,7 @@ import {
   buildKamNotificationEmail,
   buildLeadConfirmationEmail,
 } from "@/lib/marketing/emails/lead-notification";
+import { ipDelCliente } from "@/lib/http/ip-del-cliente";
 
 export const runtime = "nodejs";
 
@@ -24,12 +25,10 @@ const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT = 5;
 const buckets = new Map<string, Bucket>();
 
-function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  const real = req.headers.get("x-real-ip");
-  if (real) return real;
-  return "unknown";
+// `PRD-V-FIX-005` · H5: la IP que ve la infraestructura, no la primera de `X-Forwarded-For`, que
+// la escribe quien llama. Si la cabecera no trae lo esperado, no hay IP y no se limita por IP.
+function getClientIp(req: Request): string | null {
+  return ipDelCliente(req.headers.get("x-forwarded-for"));
 }
 
 function rateLimited(ip: string): boolean {
@@ -73,16 +72,9 @@ const NOTIFY_FROM =
 const sobreSchema = z.object({ attribution: atribucionSchema });
 
 export async function POST(request: Request) {
-  // TEMPORAL — `PRD-V-FIX-005` · H5: medir en staging qué posición de `X-Forwarded-For` añade la
-  // infraestructura de App Hosting. Se quita en cuanto se mida. Solo en staging, y antes de tocar nada.
-  if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "vivaru-staging-02") {
-    console.info("[fix005-h5] /api/lead cabeceras de IP", {
-      xff: request.headers.get("x-forwarded-for"),
-      xRealIp: request.headers.get("x-real-ip"),
-    });
-  }
   const ip = getClientIp(request);
-  if (rateLimited(ip)) {
+  if (!ip) console.warn("[api/lead] X-Forwarded-For sin la IP del cliente: no se limita por IP");
+  if (ip && rateLimited(ip)) {
     return NextResponse.json(
       { ok: false, error: "rate_limited" },
       { status: 429 },
