@@ -10,10 +10,14 @@ import {
   type ReactNode,
 } from "react";
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   getIdToken,
   getIdTokenResult,
+  indexedDBLocalPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signOut,
   type User,
@@ -75,7 +79,8 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   isConfigured: boolean;
-  login: (email: string, password: string) => Promise<SessionUser>;
+  /** `recordar` es la casilla «Recordar sesión» (`PRD-V-FIX-005` · R6); por omisión, sí. */
+  login: (email: string, password: string, recordar?: boolean) => Promise<SessionUser>;
   requestPasswordReset: (email: string) => Promise<void>;
   completeForcedPasswordChange: (input: { currentPassword: string; newPassword: string; confirmPassword: string }) => Promise<void>;
   refreshSessionProfile: (options?: { preferServerReads?: boolean }) => Promise<void>;
@@ -645,13 +650,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, recordar = true) => {
     const firebaseAuth = assertFirebaseConfigured();
     setStatus("loading");
     setError(null);
     console.info("[auth.login] submit:start", { email });
 
     try {
+      // `PRD-V-FIX-005` · R6: «Recordar sesión» decide dónde vive la sesión. Marcada, como
+      // siempre —IndexedDB, y el almacenamiento local si el navegador no lo tiene—;
+      // desmarcada, la sesión muere al cerrar el navegador.
+      if (recordar) {
+        await setPersistence(firebaseAuth, indexedDBLocalPersistence).catch(() =>
+          setPersistence(firebaseAuth, browserLocalPersistence),
+        );
+      } else {
+        await setPersistence(firebaseAuth, browserSessionPersistence);
+      }
       const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
       console.info("[auth.login] signIn:success", { uid: credential.user.uid });
 

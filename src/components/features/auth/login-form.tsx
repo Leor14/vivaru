@@ -61,7 +61,7 @@ export function LoginForm() {
   async function onSubmit(values: FormValues) {
     console.info("[login-form] submit:start", { email: values.email });
     try {
-      const session = await login(values.email, values.password);
+      const session = await login(values.email, values.password, values.remember);
       console.info("[login-form] submit:login-ok", {
         uid: session.uid,
         role: session.role,
