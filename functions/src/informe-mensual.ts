@@ -9,6 +9,7 @@ import {
   type AsientoDelNucleo,
   type PlanParaInformes,
 } from "./nucleo-estado-financiero";
+import { zonaDelConjunto } from "./zona-del-conjunto";
 
 /**
  * `PRD-V-FLOW-007`, entrega 2 — el informe mensual **emitible y firmable**.
@@ -702,15 +703,14 @@ export function instantaneaDeUnInformeSellado(d: Record<string, unknown>): Insta
 /**
  * La zona en la que se ESCRIBE una fecha para el conjunto, sacada de su país.
  *
- * **Solo para pintar, no para decidir nada**: el servidor sigue calculando en UTC a
- * propósito —el «vencido» espera una decisión de David (`docs/pendientes.md`)—. Pero una
- * firma puesta a las 19:30 en México no puede salir en el papel con la fecha del día
- * siguiente, que es lo que escribiría UTC. México tiene varias zonas: se usa la de la capital.
+ * **Aquí, solo para pintar**: una firma puesta a las 19:30 en México no puede salir en
+ * el papel con la fecha del día siguiente, que es lo que escribiría UTC. El «vencido»
+ * sigue en UTC a propósito —espera una decisión de David (`docs/pendientes.md`)—. Desde
+ * el 12 sep 2026 la MISMA zona decide también en reservas, por decisión suya: el país se
+ * traduce a zona en un solo sitio, `zona-del-conjunto.ts`.
  */
 export function zonaParaPintarFechas(country: unknown): string {
-  if (country === "CO") return "America/Bogota";
-  if (country === "EC") return "America/Guayaquil";
-  return "America/Mexico_City";
+  return zonaDelConjunto(country);
 }
 
 /** Las firmas tal como van al papel: nombre, cargo y fecha, escrita en la zona del conjunto. */

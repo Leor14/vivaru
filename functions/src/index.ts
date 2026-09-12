@@ -75,7 +75,7 @@ import {
   revocarAccesoDeResidente,
   type RevocarAccesoInput,
 } from "./resident-access";
-import { crearReserva, type CrearReservaInput } from "./reservations";
+import { crearMudanza, crearReserva, type CrearMudanzaInput, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertBuzonAdmisible } from "./buzones-admisibles";
@@ -5017,6 +5017,30 @@ export const createSupportTicket = onCall<{
 // permite la escritura directa del residente se cierra en el paso 4 del
 // despliegue (PRD-V-FIX-001 §13), NUNCA antes de verificar que la interfaz ya
 // usa esta vía.
+/**
+ * Quién puede reservar para qué unidad —la misma condición que la regla
+ * `residentOwnUnit`—. La comparten la reserva y la mudanza (entrega 1.1): dos
+ * copias de una comprobación de permisos acaban divergiendo. El estado del
+ * conjunto se mira al FINAL, después del rol, para no contarle a quien no es
+ * miembro que el conjunto está suspendido.
+ */
+async function autorizarReserva(tenantId: string, unitId: string, uid: string, tokenRole: unknown) {
+  const membership = await assertTenantMember(tenantId, uid);
+  const role = membership.role;
+  const isAdmin = role === "tenant_admin" || role === "admin_tenant" || tokenRole === "superadmin";
+
+  if (!isAdmin && role !== "resident") {
+    throw new HttpsError("permission-denied", "No tienes permisos para reservar.");
+  }
+  // El residente solo reserva para SU unidad. El administrador, para cualquiera.
+  if (!isAdmin && membership.unitId !== unitId) {
+    throw new HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
+  }
+
+  await assertTenantOperable(tenantId);
+  return membership;
+}
+
 export const createReservationRequest = onCall<CrearReservaInput>(
   { cors: callableCorsOrigins, invoker: "public" },
   async (request) => {
@@ -5028,20 +5052,7 @@ export const createReservationRequest = onCall<CrearReservaInput>(
       throw new HttpsError("invalid-argument", "Datos incompletos para crear la reserva.");
     }
 
-    const membership = await assertTenantMember(data.tenantId, uid);
-    const role = membership.role;
-    const isAdmin = role === "tenant_admin" || role === "admin_tenant" || request.auth?.token?.role === "superadmin";
-
-    if (!isAdmin && role !== "resident") {
-      throw new HttpsError("permission-denied", "No tienes permisos para reservar.");
-    }
-    // El residente solo reserva para SU unidad — la misma condición que la
-    // regla `residentOwnUnit`. El administrador puede reservar para cualquiera.
-    if (!isAdmin && membership.unitId !== data.unitId) {
-      throw new HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
-    }
-
-    await assertTenantOperable(data.tenantId);
+    const membership = await autorizarReserva(data.tenantId, data.unitId, uid, request.auth?.token?.role);
 
     return crearReserva(
       {
@@ -5053,6 +5064,43 @@ export const createReservationRequest = onCall<CrearReservaInput>(
         startTime: normalizeText(data.startTime),
         endTime: normalizeText(data.endTime),
         exclusiveUse: data.exclusiveUse === true,
+        createdByName:
+          normalizeText(data.createdByName) ||
+          (typeof membership.fullName === "string" ? membership.fullName : ""),
+      },
+      uid,
+    );
+  },
+);
+
+// `CA11` (entrega 1.1): la mudanza del residente. Hasta el 24 ago 2026 se creaba
+// con `addDoc` desde el navegador, y el paso 4 le cerró la puerta sin que nadie lo
+// notara. Escribe el mismo documento de siempre (`construirMudanza`).
+export const createMudanzaRequest = onCall<CrearMudanzaInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.unitId || !data.date || !data.startTime || !data.endTime) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para solicitar la mudanza.");
+    }
+
+    const membership = await autorizarReserva(data.tenantId, data.unitId, uid, request.auth?.token?.role);
+
+    return crearMudanza(
+      {
+        tenantId: data.tenantId,
+        unitId: data.unitId,
+        unitLabel: normalizeText(data.unitLabel),
+        date: normalizeText(data.date),
+        startTime: normalizeText(data.startTime),
+        endTime: normalizeText(data.endTime),
+        requiresElevator: data.requiresElevator === true,
+        depositPaid: data.depositPaid === true,
+        depositAmount: typeof data.depositAmount === "number" ? data.depositAmount : undefined,
+        additionalNotes: typeof data.additionalNotes === "string" ? data.additionalNotes : undefined,
         createdByName:
           normalizeText(data.createdByName) ||
           (typeof membership.fullName === "string" ? membership.fullName : ""),

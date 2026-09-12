@@ -34,8 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.billConsumptionPeriod = exports.reopenMeterPeriod = exports.closeMeterPeriod = exports.registerMeterReading = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.setTenantAdminAccess = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = void 0;
+exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createMudanzaRequest = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -3922,6 +3922,27 @@ exports.createSupportTicket = (0, https_1.onCall)({ cors: http_config_1.callable
 // permite la escritura directa del residente se cierra en el paso 4 del
 // despliegue (PRD-V-FIX-001 §13), NUNCA antes de verificar que la interfaz ya
 // usa esta vía.
+/**
+ * Quién puede reservar para qué unidad —la misma condición que la regla
+ * `residentOwnUnit`—. La comparten la reserva y la mudanza (entrega 1.1): dos
+ * copias de una comprobación de permisos acaban divergiendo. El estado del
+ * conjunto se mira al FINAL, después del rol, para no contarle a quien no es
+ * miembro que el conjunto está suspendido.
+ */
+async function autorizarReserva(tenantId, unitId, uid, tokenRole) {
+    const membership = await assertTenantMember(tenantId, uid);
+    const role = membership.role;
+    const isAdmin = role === "tenant_admin" || role === "admin_tenant" || tokenRole === "superadmin";
+    if (!isAdmin && role !== "resident") {
+        throw new https_1.HttpsError("permission-denied", "No tienes permisos para reservar.");
+    }
+    // El residente solo reserva para SU unidad. El administrador, para cualquiera.
+    if (!isAdmin && membership.unitId !== unitId) {
+        throw new https_1.HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
+    }
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
+    return membership;
+}
 exports.createReservationRequest = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     const uid = request.auth?.uid;
     if (!uid)
@@ -3930,18 +3951,7 @@ exports.createReservationRequest = (0, https_1.onCall)({ cors: http_config_1.cal
     if (!data?.tenantId || !data.unitId || !data.amenityId || !data.date || !data.startTime || !data.endTime) {
         throw new https_1.HttpsError("invalid-argument", "Datos incompletos para crear la reserva.");
     }
-    const membership = await assertTenantMember(data.tenantId, uid);
-    const role = membership.role;
-    const isAdmin = role === "tenant_admin" || role === "admin_tenant" || request.auth?.token?.role === "superadmin";
-    if (!isAdmin && role !== "resident") {
-        throw new https_1.HttpsError("permission-denied", "No tienes permisos para reservar.");
-    }
-    // El residente solo reserva para SU unidad — la misma condición que la
-    // regla `residentOwnUnit`. El administrador puede reservar para cualquiera.
-    if (!isAdmin && membership.unitId !== data.unitId) {
-        throw new https_1.HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
-    }
-    await (0, tenant_status_1.assertTenantOperable)(data.tenantId);
+    const membership = await autorizarReserva(data.tenantId, data.unitId, uid, request.auth?.token?.role);
     return (0, reservations_1.crearReserva)({
         tenantId: data.tenantId,
         unitId: data.unitId,
@@ -3951,6 +3961,33 @@ exports.createReservationRequest = (0, https_1.onCall)({ cors: http_config_1.cal
         startTime: normalizeText(data.startTime),
         endTime: normalizeText(data.endTime),
         exclusiveUse: data.exclusiveUse === true,
+        createdByName: normalizeText(data.createdByName) ||
+            (typeof membership.fullName === "string" ? membership.fullName : ""),
+    }, uid);
+});
+// `CA11` (entrega 1.1): la mudanza del residente. Hasta el 24 ago 2026 se creaba
+// con `addDoc` desde el navegador, y el paso 4 le cerró la puerta sin que nadie lo
+// notara. Escribe el mismo documento de siempre (`construirMudanza`).
+exports.createMudanzaRequest = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.unitId || !data.date || !data.startTime || !data.endTime) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para solicitar la mudanza.");
+    }
+    const membership = await autorizarReserva(data.tenantId, data.unitId, uid, request.auth?.token?.role);
+    return (0, reservations_1.crearMudanza)({
+        tenantId: data.tenantId,
+        unitId: data.unitId,
+        unitLabel: normalizeText(data.unitLabel),
+        date: normalizeText(data.date),
+        startTime: normalizeText(data.startTime),
+        endTime: normalizeText(data.endTime),
+        requiresElevator: data.requiresElevator === true,
+        depositPaid: data.depositPaid === true,
+        depositAmount: typeof data.depositAmount === "number" ? data.depositAmount : undefined,
+        additionalNotes: typeof data.additionalNotes === "string" ? data.additionalNotes : undefined,
         createdByName: normalizeText(data.createdByName) ||
             (typeof membership.fullName === "string" ? membership.fullName : ""),
     }, uid);

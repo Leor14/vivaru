@@ -1,7 +1,7 @@
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
-import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
+import { isDateTimeValid } from "./utils/datetimeValidation";
 import {
   formatRangeLabel,
   isRangeAvailable,
@@ -10,6 +10,7 @@ import {
   parseSlotRange,
   type TimeRange,
 } from "./time-range";
+import { diaDeLaSemana, instanteEnZona, zonaDelConjunto } from "./zona-del-conjunto";
 
 /**
  * `PRD-V-FIX-001` entrega 1 — las reglas de reserva se cumplen en el servidor.
@@ -52,6 +53,18 @@ import {
  *    fijo de 30 minutos, política de mora a nivel de conjunto, sin
  *    autoaprobación. La política por área es la entrega 2, nunca en el mismo
  *    despliegue que la corrección.
+ *
+ * **Entrega 1.1 (12 sep 2026) — tres defectos de la entrega 1, corregidos solos**
+ * (decisión de David: primero el arreglo, después la entrega 2):
+ *
+ * - La hora elegida se leía en la zona del PROCESO, UTC: la antelación rechazaba
+ *   reservas del mismo día a menos de ~6 h y `startAt` quedaba desplazado. Ahora
+ *   es hora de pared del conjunto (`zona-del-conjunto.ts`).
+ * - La mudanza del residente se creaba con `addDoc` desde el navegador, y el
+ *   paso 4 le cerró la puerta: `CA11` no se cumplía. Ahora la escribe
+ *   `crearMudanza`, con el mismo documento de siempre.
+ * - En el cliente, las reservas del administrador no llevaban `amenityId`, y aquí
+ *   se cuentan por ese campo: no ocupaban aforo ni cupo.
  */
 
 // `initializeApp()` corre en index.ts y los imports se evalúan antes.
@@ -138,6 +151,8 @@ export type ContextoDecision = {
   saldoVencido: number | null;
   /** Inyectado para que la función sea pura y testeable. */
   ahora: Date;
+  /** Zona IANA del conjunto: la hora elegida es hora de pared de ahí (entrega 1.1). */
+  zona: string;
 };
 
 function rangoDeReserva(reserva: ReservaExistente): TimeRange | null {
@@ -168,7 +183,7 @@ export function evaluarReglasDeReserva(
     return { ok: false, regla: "rango_invalido", mensaje: "Selecciona un rango horario válido para continuar." };
   }
 
-  const inicio = combineDateAndTime(input.date, input.startTime);
+  const inicio = instanteEnZona(input.date, input.startTime, ctx.zona);
   if (!inicio || !isDateTimeValid(inicio, "reservation", ctx.ahora)) {
     return {
       ok: false,
@@ -178,9 +193,11 @@ export function evaluarReglasDeReserva(
   }
 
   // Día disponible: día de la semana, fechas bloqueadas y ventana de vigencia.
-  const dia = inicio.getDay();
+  // El día es el de la FECHA elegida: del instante no sirve, porque las 20:00 de
+  // un sábado en México ya son domingo en UTC.
+  const dia = diaDeLaSemana(input.date);
   const weekdays = ctx.amenity.availableWeekdays;
-  if (Array.isArray(weekdays) && weekdays.length > 0 && !weekdays.includes(dia)) {
+  if (Array.isArray(weekdays) && weekdays.length > 0 && (dia === null || !weekdays.includes(dia))) {
     return { ok: false, regla: "dia_no_disponible", mensaje: "El área no está disponible ese día de la semana." };
   }
 
@@ -317,6 +334,12 @@ async function saldoVencidoDeUnidad(tenantId: string, unitId: string): Promise<n
   return total;
 }
 
+/** La zona del conjunto, por su país (entrega 1.1). Sin documento o sin país, la de la capital de México. */
+async function zonaDe(tenantId: string): Promise<string> {
+  const snap = await db().collection("tenants").doc(tenantId).get();
+  return zonaDelConjunto((snap.data() as { country?: unknown } | undefined)?.country);
+}
+
 export type CrearReservaResultado = {
   ok: true;
   reservationId: string;
@@ -354,6 +377,7 @@ export async function crearReserva(
   }
 
   const saldoVencido = await saldoVencidoDeUnidad(input.tenantId, input.unitId);
+  const zona = await zonaDe(input.tenantId);
 
   const primerDiaDelMes = `${input.date.slice(0, 7)}-01`;
 
@@ -392,6 +416,7 @@ export async function crearReserva(
       usoMensualDeLaUnidad,
       saldoVencido,
       ahora: new Date(),
+      zona,
     });
 
     if (!decision.ok) {
@@ -400,7 +425,7 @@ export async function crearReserva(
 
     const startMinutes = parseClockTime(input.startTime) as number;
     const endMinutes = parseClockTime(input.endTime) as number;
-    const inicio = combineDateAndTime(input.date, input.startTime) as Date;
+    const inicio = instanteEnZona(input.date, input.startTime, zona) as Date;
 
     const reservaRef = firestore.collection("reservations").doc();
     tx.set(reservaRef, {
@@ -431,4 +456,118 @@ export async function crearReserva(
 
     return { ok: true as const, reservationId: reservaRef.id, status: "pending" as const };
   });
+}
+
+// ── Mudanza (`CA11`, entrega 1.1) ────────────────────────────────────────────
+
+export type CrearMudanzaInput = {
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  /** `YYYY-MM-DD`. */
+  date: string;
+  /** `HH:mm`. */
+  startTime: string;
+  endTime: string;
+  requiresElevator: boolean;
+  depositPaid: boolean;
+  depositAmount?: number;
+  additionalNotes?: string;
+  createdByName?: string;
+};
+
+export type ReglaDeMudanza = "rango_invalido" | "anticipacion" | "datos_invalidos";
+
+/** El asistente no tenía tope; el servidor pone este y el asistente, el mismo. */
+export const MAX_NOTAS_DE_MUDANZA = 2000;
+
+/**
+ * El documento de una mudanza, decidido en el servidor. Es el MISMO que escribía
+ * `createMudanzaReservation` desde el navegador hasta el 24 ago 2026 —cuando el
+ * paso 4 le cerró la puerta sin que nadie lo notara—, más `createdVia` y `startAt`
+ * en la hora del conjunto. No añade reglas: la mudanza «sigue su camino actual»
+ * (§5 de la ficha), sin aforo ni cupo. Un recibo por URL no se acepta: el asistente
+ * nunca lo mandó, y sería un enlace que el administrador abre sin saber adónde va.
+ */
+export function construirMudanza(
+  input: CrearMudanzaInput,
+  uid: string,
+  ctx: { ahora: Date; zona: string },
+):
+  | { ok: true; documento: Record<string, unknown> }
+  | { ok: false; regla: ReglaDeMudanza; mensaje: string } {
+  const startMinutes = parseClockTime(input.startTime);
+  const endMinutes = parseClockTime(input.endTime);
+  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+    return { ok: false, regla: "rango_invalido", mensaje: "Selecciona un rango horario válido para continuar." };
+  }
+
+  const inicio = instanteEnZona(input.date, input.startTime, ctx.zona);
+  if (!inicio || !isDateTimeValid(inicio, "reservation", ctx.ahora)) {
+    return { ok: false, regla: "anticipacion", mensaje: "La mudanza requiere al menos 30 minutos de anticipación." };
+  }
+
+  const mudanza: Record<string, unknown> = {
+    requiresElevator: input.requiresElevator === true,
+    depositPaid: input.depositPaid === true,
+  };
+  if (input.depositPaid === true && input.depositAmount != null) {
+    const monto = input.depositAmount;
+    if (typeof monto !== "number" || !Number.isFinite(monto) || monto < 0) {
+      return { ok: false, regla: "datos_invalidos", mensaje: "El monto del depósito no es válido." };
+    }
+    mudanza.depositAmount = monto;
+  }
+  const notas = typeof input.additionalNotes === "string" ? input.additionalNotes.trim() : "";
+  if (notas.length > MAX_NOTAS_DE_MUDANZA) {
+    return {
+      ok: false,
+      regla: "datos_invalidos",
+      mensaje: `Las notas admiten hasta ${MAX_NOTAS_DE_MUDANZA} caracteres.`,
+    };
+  }
+  if (notas) mudanza.additionalNotes = notas;
+
+  const nombre = input.createdByName?.trim() || "";
+  return {
+    ok: true,
+    documento: {
+      tenantId: input.tenantId,
+      createdBy: uid,
+      createdByName: nombre,
+      residentName: nombre,
+      updatedBy: uid,
+      unitId: input.unitId,
+      amenityId: "mudanza",
+      amenity: "Mudanza",
+      amenityName: "Mudanza",
+      unitLabel: input.unitLabel,
+      date: input.date,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      slot: formatRangeLabel(startMinutes, endMinutes),
+      exclusiveUse: true,
+      kind: "mudanza",
+      mudanza,
+      status: "pending",
+      startAt: Timestamp.fromDate(inicio),
+      createdVia: "callable",
+    },
+  };
+}
+
+/** Crea la mudanza. La membresía y la unidad ya las validó el llamador (index.ts). */
+export async function crearMudanza(input: CrearMudanzaInput, uid: string): Promise<CrearReservaResultado> {
+  const decision = construirMudanza(input, uid, { ahora: new Date(), zona: await zonaDe(input.tenantId) });
+  if (!decision.ok) {
+    const codigo = decision.regla === "datos_invalidos" ? "invalid-argument" : "failed-precondition";
+    throw new HttpsError(codigo, decision.mensaje, { regla: decision.regla });
+  }
+  const ref = db().collection("reservations").doc();
+  await ref.set({
+    ...decision.documento,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { ok: true, reservationId: ref.id, status: "pending" };
 }

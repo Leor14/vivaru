@@ -1,3 +1,9 @@
+// `AHORA` va sin zona a propósito y se lee en la del proceso: se fija UTC, la de
+// Cloud Functions, y el conjunto también en UTC, para que estas pruebas sigan
+// midiendo cada regla y no la conversión. La zona tiene su propio fichero:
+// `fix-001-e11-zona.test.ts`.
+process.env.TZ = "UTC";
+
 import { describe, expect, it } from "vitest";
 
 import { evaluarReglasDeReserva, type ContextoDecision } from "../src/reservations";
@@ -22,6 +28,7 @@ function contexto(overrides: Partial<ContextoDecision> = {}): ContextoDecision {
     usoMensualDeLaUnidad: 0,
     saldoVencido: null,
     ahora: AHORA,
+    zona: "UTC",
     ...overrides,
   };
 }
