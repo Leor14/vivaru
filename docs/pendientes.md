@@ -22,8 +22,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > **Lo que sirve cada ambiente al cerrar (medido):** producción, el front `build-2026-09-12-009` desde
 > `dfc7b80` —`develop` llevado a `master` tres veces el 12, a las 22:11, 22:36 y 23:18 UTC (la última,
-> solo documentos y un comentario), y sirviendo a las 23:24—; staging, la punta de `develop`, que va por
-> delante solo con la nota que anota esto. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
+> solo documentos y un comentario), y sirviendo a las 23:24—; staging, el mismo commit
+> (`build-2026-09-12-027`). Detrás solo vinieron las notas que anotan esto, sin código, llevadas a las dos
+> ramas: `master` = `develop`. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
 > **las dos idénticas al repo**. Functions: `regenerateMonthlyReport`, `issueMonthlyReport`,
 > `signMonthlyReport` y `monthlyFinancialArchive`, a las 19:28 UTC en staging y a las 19:31 en producción.
 >
