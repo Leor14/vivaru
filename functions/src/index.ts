@@ -88,6 +88,7 @@ import {
   VENTANA_DE_PRUEBA_MS,
 } from "./trial-modules";
 import { consumirIntento } from "./limites-de-intentos";
+import { ipQueAnadioGoogle } from "./ip-del-cliente";
 import {
   asociarConjunto,
   guardarAdministradora,
@@ -4703,22 +4704,16 @@ export const notifyPendingVisitorExits = onSchedule("0 8 * * *", async () => {
 export const createTrialWorkspace = onCall<CreateTrialInput>(
   { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },
   async (request) => {
-    // TEMPORAL — `PRD-V-FIX-005` · H5: medir en staging qué posición de `X-Forwarded-For` añade la
-    // infraestructura de las callables. Se quita en cuanto se mida. Solo en staging.
-    if ((process.env.GCLOUD_PROJECT ?? "") === "vivaru-staging-02") {
-      console.info("[fix005-h5] createTrialWorkspace cabeceras de IP", {
-        xff: request.rawRequest.headers["x-forwarded-for"],
-        ip: request.rawRequest.ip,
-      });
-    }
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
       throw new HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
     }
 
     // `PRD-V-FIX-005` · H1: la misma respuesta exista o no la cuenta, con el límite de intentos
-    // mirado ANTES que la cuenta. La IP todavía no cuenta: falta medir en staging cuál es la de
-    // verdad (H5). Las credenciales de prueba NO se devuelven: el admin las ve dentro del portal.
+    // —por correo y por IP— mirado ANTES que la cuenta. La IP es la que añadió Google al final de
+    // `X-Forwarded-For` (H5, medido en staging); `request.rawRequest.ip` da la que manda el cliente.
+    // Las credenciales de prueba NO se devuelven: el admin las ve dentro del portal.
+    const ip = ipQueAnadioGoogle(request.rawRequest.headers["x-forwarded-for"]);
     return atenderAltaDePrueba(d, {
       consumirIntento,
       cuentaConEseCorreo: async (email) => {
@@ -4759,7 +4754,7 @@ export const createTrialWorkspace = onCall<CreateTrialInput>(
           tenantId,
         }).catch((error) => console.error("[createTrialWorkspace] no se pudo avisar al dueño", error));
       },
-    });
+    }, ip);
   },
 );
 

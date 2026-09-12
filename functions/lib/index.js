@@ -71,6 +71,7 @@ const trial_lifecycle_1 = require("./trial-lifecycle");
 const buzones_admisibles_1 = require("./buzones-admisibles");
 const trial_modules_1 = require("./trial-modules");
 const limites_de_intentos_1 = require("./limites-de-intentos");
+const ip_del_cliente_1 = require("./ip-del-cliente");
 const management_companies_1 = require("./management-companies");
 const tenant_membership_1 = require("./tenant-membership");
 const acceso_de_administradores_1 = require("./acceso-de-administradores");
@@ -3684,21 +3685,15 @@ exports.notifyPendingVisitorExits = (0, scheduler_1.onSchedule)("0 8 * * *", asy
 // abuso es rate limiting + verificación de correo del lado del llamador, y el
 // "un correo = un trial" que valida provisionTrialWorkspace.
 exports.createTrialWorkspace = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
-    // TEMPORAL — `PRD-V-FIX-005` · H5: medir en staging qué posición de `X-Forwarded-For` añade la
-    // infraestructura de las callables. Se quita en cuanto se mida. Solo en staging.
-    if ((process.env.GCLOUD_PROJECT ?? "") === "vivaru-staging-02") {
-        console.info("[fix005-h5] createTrialWorkspace cabeceras de IP", {
-            xff: request.rawRequest.headers["x-forwarded-for"],
-            ip: request.rawRequest.ip,
-        });
-    }
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
         throw new https_1.HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
     }
     // `PRD-V-FIX-005` · H1: la misma respuesta exista o no la cuenta, con el límite de intentos
-    // mirado ANTES que la cuenta. La IP todavía no cuenta: falta medir en staging cuál es la de
-    // verdad (H5). Las credenciales de prueba NO se devuelven: el admin las ve dentro del portal.
+    // —por correo y por IP— mirado ANTES que la cuenta. La IP es la que añadió Google al final de
+    // `X-Forwarded-For` (H5, medido en staging); `request.rawRequest.ip` da la que manda el cliente.
+    // Las credenciales de prueba NO se devuelven: el admin las ve dentro del portal.
+    const ip = (0, ip_del_cliente_1.ipQueAnadioGoogle)(request.rawRequest.headers["x-forwarded-for"]);
     return (0, trial_workspace_1.atenderAltaDePrueba)(d, {
         consumirIntento: limites_de_intentos_1.consumirIntento,
         cuentaConEseCorreo: async (email) => {
@@ -3738,7 +3733,7 @@ exports.createTrialWorkspace = (0, https_1.onCall)({ cors: http_config_1.callabl
                 tenantId,
             }).catch((error) => console.error("[createTrialWorkspace] no se pudo avisar al dueño", error));
         },
-    });
+    }, ip);
 });
 // ── Ciclo de vida de los ambientes de prueba (Fase 4 del self-service) ───────
 // Diario a las 10:00 UTC. Avisa en los días 7/3/1, pasa a `expired` al vencer
