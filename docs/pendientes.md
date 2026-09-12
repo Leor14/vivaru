@@ -6,10 +6,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026, por la noche (12 en UTC)
 
-> # LAS DOS VENTANAS DE PRODUCCIÓN, HECHAS: LO DEL DÍA, Y `FIX-004` + `PLAT-002` ENTREGA 2. SIGUE `FIX-005`.
+> # LAS DOS VENTANAS DE PRODUCCIÓN, HECHAS, Y `FIX-005` EN PRODUCCIÓN EL 12 —SALVO APP CHECK—.
 >
-> **`PRD-V-FIX-005` arranca sola tras las ventanas, por decisión de David** —su ficha dice qué va
-> primero—. Lo que pide consola (App Check, reCAPTCHA) **se le pide a David cuando toque**, no antes.
+> **Lo que queda de `FIX-005` es de David:** la clave de reCAPTCHA Enterprise y registrar la app en App Check
+> (`D-CONSOLA`), y el permiso para la política de TTL de `limitesDeIntentos`. El detalle, en la línea «0» del menú.
 >
 > **Estado: los remotos con `git ls-remote`** (esta cabecera no lleva sha a propósito), lo que sirve
 > cada ambiente con `estado-de-apphosting.mjs`, y las reglas con `verificar-reglas-desplegadas.mjs`
@@ -80,12 +80,12 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE — el menú
 >
-> **0 · En curso: `PRD-V-FIX-005`**, rama `trabajo/fix-005-puertas-publicas`, **en staging desde el 12 sep**
-> (functions, front y reglas, y la migración de soporte). **Hechas:** H1 —con la decisión de David, R2 opción A:
-> en una prueba se da de alta al portero real, con tope de intentos—, H2, H3a, H3b, H3c (opción A), H4a, H4b y
-> **H5** (el límite cuenta la IP real: la última en las callables, la tercera desde el final en App Hosting; `CF8`
-> visto en vivo). **Falta:** mirarlo en pantalla —pide iniciar sesión: David—, App Check (`D-CONSOLA`), la
-> política de TTL de `limitesDeIntentos` (configuración, con su permiso) y producción, con su permiso.
+> **0 · `PRD-V-FIX-005` EN PRODUCCIÓN** desde el 12 sep (02:52–03:00 UTC, `b852082`), después de que David lo
+> revisara en staging: las 5 functions con su `updateTime`, el front por su rollout automático, las reglas
+> idénticas (`ebd89e30`; radio de H2: 0, las 41 membresías activas) y `CF9` en el paquete de `/login` de `www`.
+> **Hechas:** H1 (R2 opción A: el portero real sí, con tope de intentos), H2, H3a–H3c, H4a, H4b y H5 (la IP real:
+> la última en las callables, la tercera desde el final en App Hosting). **Falta:** App Check (`D-CONSOLA`) y la
+> política de TTL de `limitesDeIntentos`, que es configuración y pide permiso.
 >
 > **A · Construible ya**
 > 1. **`FIX-001` entrega 2** — la política de reservas por área (10 de 11 criterios). Fase 2.

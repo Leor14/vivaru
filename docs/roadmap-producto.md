@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.69 |
+| **Versión** | 0.9.70 |
 | **Fecha** | 11 de septiembre de 2026, por la noche (12 en UTC) |
-| **Estado** | **Las dos ventanas de producción del 11, hechas y verificadas.** La primera subió lo del día —la lista de hoy de la portería en el calendario local, **`PLAT-004` entrega 2** (el consejero entra por `/resident`, el PDF del informe se rehace con cada firma, la regla de `documents`), la cuenta en el pago de una cuota de `FEAT-010` y el «mes pasado» del Panel de Control—; la segunda, **`PRD-V-FIX-004`** —las acciones de residente solo tocan cuentas de residente— y **`PRD-V-PLAT-002` entrega 2** —el superadmin da varios conjuntos a una persona, con aviso si es residente—. **Sigue, arrancada sola por decisión de David: `PRD-V-FIX-005`**, las puertas públicas que delatan cuentas. **Lo anterior, vigente:** decidir si el servidor —que marca vencido desde las 18:00 de México— deriva la zona del país del conjunto; el abogado ecuatoriano sin contestar (`FLOW-006`, `FLOW-007` entrega 3, `PLAT-004` entrega 3); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; el primer conjunto REAL; y quedan **33 P1, 41 P2 y 12 P3** de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Estado** | **Las dos ventanas de producción del 11, hechas y verificadas.** La primera subió lo del día —la lista de hoy de la portería en el calendario local, **`PLAT-004` entrega 2** (el consejero entra por `/resident`, el PDF del informe se rehace con cada firma, la regla de `documents`), la cuenta en el pago de una cuota de `FEAT-010` y el «mes pasado» del Panel de Control—; la segunda, **`PRD-V-FIX-004`** —las acciones de residente solo tocan cuentas de residente— y **`PRD-V-PLAT-002` entrega 2** —el superadmin da varios conjuntos a una persona, con aviso si es residente—. **Y `PRD-V-FIX-005` en producción el 12 (UTC), salvo App Check**: las puertas públicas ya no delatan cuentas, una membresía desactivada deja de abrir las reglas al instante, y el conjunto ya no ve el uid ni el correo de nadie del equipo de Vivaru. **Lo anterior, vigente:** decidir si el servidor —que marca vencido desde las 18:00 de México— deriva la zona del país del conjunto; el abogado ecuatoriano sin contestar (`FLOW-006`, `FLOW-007` entrega 3, `PLAT-004` entrega 3); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; el primer conjunto REAL; y quedan **33 P1, 41 P2 y 12 P3** de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, pieza por pieza.** Functions por `updateTime` —`signMonthlyReport` y `payExpenseInstallment` a las 00:17 UTC; las ocho de la segunda ventana entre las 00:48 y las 00:50, con `setTenantAdminAccess` **creada** y `run.invoker = allUsers`—; reglas con el ruleset vivo diferenciado contra el repo antes y después de cada despliegue (`9a2ffde1` y luego `8b7821ab`, «idéntico al repo: SÍ»); el front por su rollout, **por nombre**. **El primer push no creó rollout**: App Hosting compiló `025d5d5` y no lo desplegó —en los pushes buenos el build y el rollout nacen en el mismo instante—; con permiso de David se creó a mano (`build-2026-09-12-002`), y el segundo push nació normal (`build-2026-09-12-003`, `fde9931`). **En pantalla**, la portería de Las Playas en `www`: el build viejo listaba el testigo de MAÑANA (10:00) y el nuevo el de HOY (20:00); los dos testigos, cancelados sin borrar, y la lista quedó en 0. Bancos **contados sobre `develop` fusionado**: `npm test` **2014** · functions **941**; reglas **475**, medidas en la rama |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -1238,6 +1238,30 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.70 — 12 de septiembre de 2026 (UTC; noche del 11 en México) — `PRD-V-FIX-005` en producción, salvo App Check
+
+- **Las puertas públicas ya no delatan cuentas**: el login responde igual a un correo que no existe y a una
+  clave mala —un código de Auth desconocido da el mensaje genérico, nunca el crudo—; el alta de prueba responde
+  lo mismo exista o no la cuenta, y si existe le llega un aviso al dueño; y el paquete de `/login` ya no lleva
+  el correo del superadmin (`CF9`, medido en `www`). «Recordarme» decide ahora la persistencia de la sesión.
+- **Límites que cuentan antes de buscar la cuenta**: 5 altas de prueba por hora, por correo y por IP; y en un
+  ambiente de prueba, hasta 10 altas de personal operativo en sus 15 días (R2 opción A: el portero real sí).
+  La IP es la que añadió Google —la última en las callables, la tercera desde el final en App Hosting, también
+  para los formularios del landing—: la primera la escribe quien llama.
+- **Una membresía desactivada deja de abrir las reglas al instante** (H2; radio medido antes: 0, las 41
+  membresías activas).
+- **Soporte sin el uid del equipo**: el conjunto lee el ticket entero —las reglas no esconden campos—, así que
+  quién respondió o lo tiene asignado vive en `supportTickets/{id}/equipo`, que solo lee el superadmin, y los
+  adjuntos del equipo van a `support/equipo/` (H3c opción A). Migración: 3 tickets en staging, 0 en producción.
+- **Orden: functions → front → reglas**, porque las reglas restringen: las cinco functions
+  (`createSupportTicket`, `createTenantOperationalUser`, `createTrialWorkspace`, `replyToSupportTicket`,
+  `updateSupportTicketStatus`) con su `updateTime`; el front por el rollout automático del push
+  (`rollout-2026-09-12-002`, `build-2026-09-12-004`, esperado por nombre); las reglas cuando el front ya servía
+  (`ebd89e30`, idénticas al fichero).
+- **Falta, y es de David**: App Check (`D-CONSOLA`) y el permiso para la política de TTL de `limitesDeIntentos`.
+  Los formularios de producción no se probaron, a propósito; `CF8` se vio en vivo en staging.
+- Bancos sobre `b852082`: `npm test` **2039** · functions **969** · reglas **486**; typecheck en 0.
 
 ### 0.9.69 — 11 de septiembre de 2026, noche — las dos ventanas de producción, con `FIX-004` y `PLAT-002` entrega 2
 

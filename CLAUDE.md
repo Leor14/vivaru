@@ -60,7 +60,7 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
   aquí no hay «preexistentes» que tolerar, al revés que en la raíz.
 - Build functions (obligatorio antes de desplegar): `npm --prefix functions run build`
 - Deploy functions: `firebase deploy --only functions --project hogaru-1`
-- Deploy reglas: `firebase deploy --only firestore:rules`
+- Deploy reglas: `firebase deploy --only firestore:rules --project hogaru-1` — **siempre con `--project`**: sin él apunta a producción.
 - Secret de Resend (lo hace el USUARIO, no el agente): `firebase functions:secrets:set RESEND_API_KEY`
 - Tests app: `npm test` (vitest)
 - Tests functions: `npm --prefix functions test` — banco propio desde ago 2026 (`functions/tests/`, config en `functions/vitest.config.mts`). No se pueden poner en `tests/` de la raíz: importar `functions/` desde ahí rompe el build de App Hosting.
@@ -89,9 +89,9 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **1998** (11 sep 2026) |
-  | Functions | `npm --prefix functions test` | **879** |
-  | Reglas | `npm run test:rules:all` | **468** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
+  | App | `npm test` | **2039** (12 sep 2026, `b852082`) |
+  | Functions | `npm --prefix functions test` | **969** |
+  | Reglas | `npm run test:rules:all` | **486** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
   | Emulador de functions | `npm --prefix functions run test:emulator` | **373 de 375** *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
