@@ -73,6 +73,14 @@ const NOTIFY_FROM =
 const sobreSchema = z.object({ attribution: atribucionSchema });
 
 export async function POST(request: Request) {
+  // TEMPORAL — `PRD-V-FIX-005` · H5: medir en staging qué posición de `X-Forwarded-For` añade la
+  // infraestructura de App Hosting. Se quita en cuanto se mida. Solo en staging, y antes de tocar nada.
+  if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "vivaru-staging-02") {
+    console.info("[fix005-h5] /api/lead cabeceras de IP", {
+      xff: request.headers.get("x-forwarded-for"),
+      xRealIp: request.headers.get("x-real-ip"),
+    });
+  }
   const ip = getClientIp(request);
   if (rateLimited(ip)) {
     return NextResponse.json(

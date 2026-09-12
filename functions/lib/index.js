@@ -3684,6 +3684,14 @@ exports.notifyPendingVisitorExits = (0, scheduler_1.onSchedule)("0 8 * * *", asy
 // abuso es rate limiting + verificación de correo del lado del llamador, y el
 // "un correo = un trial" que valida provisionTrialWorkspace.
 exports.createTrialWorkspace = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
+    // TEMPORAL — `PRD-V-FIX-005` · H5: medir en staging qué posición de `X-Forwarded-For` añade la
+    // infraestructura de las callables. Se quita en cuanto se mida. Solo en staging.
+    if ((process.env.GCLOUD_PROJECT ?? "") === "vivaru-staging-02") {
+        console.info("[fix005-h5] createTrialWorkspace cabeceras de IP", {
+            xff: request.rawRequest.headers["x-forwarded-for"],
+            ip: request.rawRequest.ip,
+        });
+    }
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
         throw new https_1.HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");

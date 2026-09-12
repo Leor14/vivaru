@@ -4703,6 +4703,14 @@ export const notifyPendingVisitorExits = onSchedule("0 8 * * *", async () => {
 export const createTrialWorkspace = onCall<CreateTrialInput>(
   { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },
   async (request) => {
+    // TEMPORAL — `PRD-V-FIX-005` · H5: medir en staging qué posición de `X-Forwarded-For` añade la
+    // infraestructura de las callables. Se quita en cuanto se mida. Solo en staging.
+    if ((process.env.GCLOUD_PROJECT ?? "") === "vivaru-staging-02") {
+      console.info("[fix005-h5] createTrialWorkspace cabeceras de IP", {
+        xff: request.rawRequest.headers["x-forwarded-for"],
+        ip: request.rawRequest.ip,
+      });
+    }
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
       throw new HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
