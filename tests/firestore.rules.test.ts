@@ -1028,6 +1028,60 @@ describe("Firestore Rules - HOGARU", () => {
     );
   });
 
+  // `PRD-V-FIX-001` entrega 2 — la política por área la escribe el administrador desde
+  // el cliente (§11.1), así que es la regla la que valida los tipos: el servidor lee
+  // estos tres campos para decidir mora, anticipación y aprobación.
+  const areaDeTenantA = {
+    tenantId: "tenant-a",
+    name: "Gimnasio",
+    category: "sports",
+    status: "active",
+    createdBy: "admin-1",
+    updatedBy: "admin-1",
+  };
+
+  it("permite al administrador guardar la política por área con tipos válidos", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "amenities", "am-pol-1"), {
+        ...areaDeTenantA,
+        blockOnDebt: false,
+        autoApprove: true,
+        minAdvanceMinutes: 120,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "amenities", "am-pol-2"), { ...areaDeTenantA, blockOnDebt: null, minAdvanceMinutes: 0 }),
+    );
+  });
+
+  it("BLOQUEA una política por área con tipos que el servidor no sabría leer", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    const malos: [string, Record<string, unknown>][] = [
+      ["am-mal-1", { minAdvanceMinutes: -5 }],
+      ["am-mal-2", { minAdvanceMinutes: 20000 }],
+      ["am-mal-3", { minAdvanceMinutes: "60" }],
+      ["am-mal-4", { minAdvanceMinutes: 45.5 }],
+      ["am-mal-5", { blockOnDebt: "si" }],
+      ["am-mal-6", { autoApprove: "true" }],
+    ];
+    for (const [id, malo] of malos) {
+      await assertFails(setDoc(doc(admin.firestore(), "amenities", id), { ...areaDeTenantA, ...malo }));
+    }
+  });
+
+  it("el administrador edita la política de un área de su conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(updateDoc(doc(admin.firestore(), "amenities", "am-1"), { blockOnDebt: true, minAdvanceMinutes: 60 }));
+  });
+
+  // CF9 — configurar un área de OTRO conjunto. La regla de `update` solo miraba el
+  // `tenantId` NUEVO: reescribirlo al propio dejaba pasar a cualquier administrador.
+  it("CF9 · BLOQUEA al administrador quedarse el área de otro conjunto reescribiendo su tenantId", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(updateDoc(doc(admin.firestore(), "amenities", "am-b-1"), { tenantId: "tenant-a", autoApprove: true }));
+  });
+
   it("bloquea lectura cross-tenant de amenidades", async () => {
     const residentOtherTenant = testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-b" });
     await assertFails(getDoc(doc(residentOtherTenant.firestore(), "amenities", "am-1")));

@@ -296,6 +296,16 @@ service cloud.firestore {
         (dateText > minimumDate || (dateText == minimumDate && timeText >= minimumTime));
     }
 
+    // `PRD-V-FIX-001` entrega 2 — los tres campos de la politica por area, con los
+    // tipos que el servidor sabe leer (`functions/src/reservations.ts`): `blockOnDebt`
+    // booleano o null (null = hereda del conjunto), `autoApprove` booleano y
+    // `minAdvanceMinutes` entero de 0 a una semana. Ausentes, valen lo de hoy.
+    function politicaDeReservaValida(data) {
+      return (!('blockOnDebt' in data) || data.blockOnDebt == null || data.blockOnDebt is bool) &&
+        (!('autoApprove' in data) || data.autoApprove is bool) &&
+        (!('minAdvanceMinutes' in data) || (data.minAdvanceMinutes is int && data.minAdvanceMinutes >= 0 && data.minAdvanceMinutes <= 10080));
+    }
+
     function isValidInvitationWindow(startAt, endAt) {
       return startAt is timestamp &&
         endAt is timestamp &&
@@ -1291,7 +1301,16 @@ service cloud.firestore {
           (!('deletedAt' in resource.data) || resource.data.deletedAt == null)
         )
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      // `PRD-V-FIX-001` entrega 2: la politica por area la escribe el administrador desde
+      // el cliente (§11.1), asi que aqui se validan sus tipos.
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)) &&
+        politicaDeReservaValida(request.resource.data);
+      // CF9: el `update` miraba solo el `tenantId` NUEVO, y reescribirlo al propio dejaba a
+      // un administrador quedarse el area de otro conjunto. Manda el conjunto de ANTES, y
+      // no cambia.
+      allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId)) &&
+        request.resource.data.tenantId == resource.data.tenantId &&
+        politicaDeReservaValida(request.resource.data);
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
