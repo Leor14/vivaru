@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.67 |
-| **Fecha** | 10 de septiembre de 2026 |
-| **Estado** | **`PRD-V-FEAT-010` — TESORERÍA — LAS CUATRO ENTREGAS EN PRODUCCIÓN** (10 sep, `b415636`), encendida **solo en Las Playas, donde se sembró una demo**: cuánto hay en cada cuenta —con el total igual al saldo de fondos—, traspasos entre cuentas propias que **no tocan el libro**, y la caja chica con fondo fijo, reposición y cierre. **La 2b cerró el circuito**: cada tramo de un traspaso se concilia contra el extracto de su banco, y **el libro no se entera**. ⚠️ **`G0` superada por decisión de David, no por dolor**: la administradora no la pidió (`C7`, `C8`). **Lo construible de Habitanto sigue hecho**: `FEAT-008` y `FEAT-009` en producción, también encendidas solo en Las Playas con la demo. **Y el «hoy» dejó de ir en UTC en todo el front** (10 sep, `b850dd4` y `d91e1af`, en producción): lo registrado por la tarde en México ya no se fecha mañana —egresos, cobros, recibos, anticipos, libro, Cartera y tableros—, y un cargo que vence hoy ya no pasa a vencido por la tarde. **Lo siguiente:** la lista de hoy de la portería, que mezcla reservas con el día local y visitas guardadas con el día UTC; decidir si el servidor —que marca vencido unas horas antes, desde las 18:00 de México— deriva la zona del país del conjunto; `PLAT-004` entrega 2; y el primer conjunto REAL que use alguna de las tres. **Lo anterior, vigente:** el abogado ecuatoriano sin contestar (`FLOW-006` y la entrega 3 de `FLOW-007`); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; y quedan **33 P1, 41 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos ambientes, midiendo y mirando.** Reglas con **el ruleset VIVO diferenciado contra el repo** después de cada despliegue (`c55fc54a` en staging, `f2afe2d9` en producción, «idéntico al repo: SÍ»); front **por procedencia del build** (`build-2026-09-11-003` desde `b415636`, `READY`); la bandera **resolviendo con el compilado** en los nueve, y **0 cajas** en producción. En pantalla, sobre Las Playas en staging, **el ciclo entero de la caja contra una predicción escrita antes** —apertura, egreso desde la caja, reposición (propuso 800) y cierre— al centavo, con el saldo de fondos **igual al de Libro y fondos**, y **leído también en la base**. **Falseado**: la 3, reglas 29 de 30 (la otra es equivalente) y código 12 de 12; la 2b, 23 mutaciones de reglas, servidor y espejo, con los dos huecos que destapó cerrados. **La 2b, vista también en staging**: los dos tramos casados, **ningún asiento nuevo**, y anular devolvió las dos líneas a pendientes con `traspaso_anulado`, leído en la base. **El arreglo del «hoy», antes y después en producción**, en Santa María: egresos (22:39 → 22:44, `b850dd4`), «Libro y fondos» y Cartera (23:12 → 23:19, `d91e1af`, `build-2026-09-11-005`) pasaron de proponer `2026-09-11` a `2026-09-10`. Bancos **contados, no citados**: `npm test` **1955** · functions **870** · reglas **457** · emulador **365 de 367**, con `CA12` y `D-B` **preexistentes** |
+| **Versión** | 0.9.69 |
+| **Fecha** | 11 de septiembre de 2026, por la noche (12 en UTC) |
+| **Estado** | **Las dos ventanas de producción del 11, hechas y verificadas.** La primera subió lo del día —la lista de hoy de la portería en el calendario local, **`PLAT-004` entrega 2** (el consejero entra por `/resident`, el PDF del informe se rehace con cada firma, la regla de `documents`), la cuenta en el pago de una cuota de `FEAT-010` y el «mes pasado» del Panel de Control—; la segunda, **`PRD-V-FIX-004`** —las acciones de residente solo tocan cuentas de residente— y **`PRD-V-PLAT-002` entrega 2** —el superadmin da varios conjuntos a una persona, con aviso si es residente—. **Sigue, arrancada sola por decisión de David: `PRD-V-FIX-005`**, las puertas públicas que delatan cuentas. **Lo anterior, vigente:** decidir si el servidor —que marca vencido desde las 18:00 de México— deriva la zona del país del conjunto; el abogado ecuatoriano sin contestar (`FLOW-006`, `FLOW-007` entrega 3, `PLAT-004` entrega 3); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; el primer conjunto REAL; y quedan **33 P1, 41 P2 y 12 P3** de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, pieza por pieza.** Functions por `updateTime` —`signMonthlyReport` y `payExpenseInstallment` a las 00:17 UTC; las ocho de la segunda ventana entre las 00:48 y las 00:50, con `setTenantAdminAccess` **creada** y `run.invoker = allUsers`—; reglas con el ruleset vivo diferenciado contra el repo antes y después de cada despliegue (`9a2ffde1` y luego `8b7821ab`, «idéntico al repo: SÍ»); el front por su rollout, **por nombre**. **El primer push no creó rollout**: App Hosting compiló `025d5d5` y no lo desplegó —en los pushes buenos el build y el rollout nacen en el mismo instante—; con permiso de David se creó a mano (`build-2026-09-12-002`), y el segundo push nació normal (`build-2026-09-12-003`, `fde9931`). **En pantalla**, la portería de Las Playas en `www`: el build viejo listaba el testigo de MAÑANA (10:00) y el nuevo el de HOY (20:00); los dos testigos, cancelados sin borrar, y la lista quedó en 0. Bancos **contados sobre `develop` fusionado**: `npm test` **2014** · functions **941**; reglas **475**, medidas en la rama |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,23 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.69 — 11 de septiembre de 2026, noche — las dos ventanas de producción, con `FIX-004` y `PLAT-002` entrega 2
+
+- **Ventana 1, lo de la 0.9.68 en producción**: functions (`signMonthlyReport`, `payExpenseInstallment`),
+  front y reglas (`9a2ffde1`), en ese orden. **El push a `master` compiló y no desplegó** —build sin
+  rollout, la primera vez que pasa—; el rollout se creó a mano con permiso de David. La portería de Las
+  Playas, vista antes y después en `www` con dos reservas testigo, canceladas al terminar.
+- **`PRD-V-FIX-004` en producción**: «Enviar acceso» ya no reutiliza la cuenta de un admin o de la
+  portería, «Quitar acceso» no toca una cuenta que no sea residente de ese conjunto, y `people.authUid`
+  pasa a ser solo del servidor —las reglas, las últimas, porque restringen—.
+- **`PRD-V-PLAT-002` entrega 2 en producción**: el superadmin da y quita conjuntos a una persona desde
+  la pestaña Admins, con la administradora como atajo; un residente pasa a admin con aviso y conserva su
+  lado de residente; la portería, no. Sobre una cuenta con acceso a otros conjuntos, las acciones de
+  `/admin/users` las gestiona Vivaru.
+- **Verificado**: `updateTime` de las diez functions, el IAM de la nueva, los dos rulesets idénticos al
+  repo y los dos rollouts por nombre; la lista de functions de la segunda ventana, contra el código.
+  Bancos sobre `develop` fusionado: `npm test` **2014** · functions **941**.
 
 ### 0.9.68 — 11 de septiembre de 2026 — los dos ⭐ cerrados: la portería y el consejo en el portal del residente
 

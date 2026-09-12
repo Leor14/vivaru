@@ -4,32 +4,32 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026, por la noche (12 en UTC)
 
-> # LOS DOS ⭐ CERRADOS —LA PORTERÍA Y `PLAT-004` ENTREGA 2— Y CUATRO CABOS MÁS DEL MISMO DÍA.
+> # LAS DOS VENTANAS DE PRODUCCIÓN, HECHAS: LO DEL DÍA, Y `FIX-004` + `PLAT-002` ENTREGA 2. SIGUE `FIX-005`.
 >
-> **La sesión siguiente empieza por la TAREA IMPORTANTE que David anunció para después del corte:
-> preguntarle cuál es antes de tocar nada.** El menú de frentes, abajo, es para cuando esa acabe.
+> **`PRD-V-FIX-005` arranca sola tras las ventanas, por decisión de David** —su ficha dice qué va
+> primero—. Lo que pide consola (App Check, reCAPTCHA) **se le pide a David cuando toque**, no antes.
 >
 > **Estado: los remotos con `git ls-remote`** (esta cabecera no lleva sha a propósito), lo que sirve
-> cada ambiente con `estado-de-apphosting.mjs`, y las reglas con `verificar-reglas-desplegadas.mjs`,
-> **que desde hoy lista un diff de SECUENCIA**: comparaba por pertenencia y callaba una línea quitada
-> si existía igual en otro sitio —así se escondió la única línea de regla de un despliegue—.
+> cada ambiente con `estado-de-apphosting.mjs`, y las reglas con `verificar-reglas-desplegadas.mjs`
+> —diff de SECUENCIA desde el 11—.
 >
-> **Bancos CONTADOS hoy:** `npm test` **1998** · functions **879** · reglas **468** (solo Firestore;
-> `storage.rules.test.ts` enrojece aparte por entorno) · emulador de functions **373 de 375** —`CA12`
-> y `D-B` de `payments.emulator.test.ts`, preexistentes, confirmados por nombre—.
+> **Bancos CONTADOS el 11 por la noche, sobre `develop` ya fusionado:** `npm test` **2014** · functions
+> **941**. **Sin recontar tras la fusión** (piden emulador): reglas **475**, medidas en la rama, y el
+> emulador de functions —el último, **373 de 375** antes de la rama, con `CA12` y `D-B` de
+> `payments.emulator.test.ts` preexistentes—.
 >
 > ## LO QUE SE HIZO EL 11 — seis entregas
 >
 > | # | Qué | Commits | Staging | Producción |
 > |---|---|---|---|---|
-> | 1 | **La lista de hoy de la portería** y el día de las invitaciones, en el calendario local. «Casaban» no era exacto: con los dos lados en UTC la ventana se corría seis horas, y las reservas estaban directamente mal. Medido: 10 invitaciones corridas en producción y 4 en staging, todas pasadas y ninguna cruza de mes → sin migración | `848f405` | ✅ | ver abajo |
-> | 2 | **`PLAT-004` entrega 2** — el consejero entra por `/resident`: la sesión lee `isCommittee`, «Informes del conjunto» (totales y firma), fuera el rol `committee` del front | `c0295bc` | ✅ visto con la sesión de Carmen: `CA1`, `CA2`, `CA4` | ver abajo |
-> | 3 | **El PDF del informe se rehace con cada firma**: `CA3` era imposible por construcción —el PDF se congelaba al emitir, con las firmas vacías— | `48bf721` | ✅ desplegada, sin mirar (no se autorizó firmar) | ver abajo |
-> | 4 | **Reglas: el consejo lee documentos como un residente** —ni `financiero`/`reporte` con la hoja «Morosos», ni `informe_mensual` mientras `K2` esté cerrado— | `98d9bc6`, `e07cf9b` | ✅ | ver abajo |
-> | 5 | **`FEAT-010`, la cuenta de un pago de cuota**: el servidor la comprueba, el panel de cuotas ofrece «Sale de», y las reglas de `expenses`/`ledgerEntries` exigen una cuenta del conjunto (radio medido: 0) | `63c0fde`, `75c346a`, `ce50233` | ✅ visto antes y después en Santa María | ver abajo |
-> | 6 | **Panel de Control: el «mes pasado» se desbordaba** los días 29–31 tras un mes corto (`setMonth` sobre hoy) —en producción desde siempre—, y el «hoy» del panel y de la mudanza, por fin cubiertos | `8e92f51` | ✅ | ver abajo |
+> | 1 | **La lista de hoy de la portería** y el día de las invitaciones, en el calendario local. «Casaban» no era exacto: con los dos lados en UTC la ventana se corría seis horas, y las reservas estaban directamente mal. Medido: 10 invitaciones corridas en producción y 4 en staging, todas pasadas y ninguna cruza de mes → sin migración | `848f405` | ✅ | ✅ ventana 1 (11 sep, noche) |
+> | 2 | **`PLAT-004` entrega 2** — el consejero entra por `/resident`: la sesión lee `isCommittee`, «Informes del conjunto» (totales y firma), fuera el rol `committee` del front | `c0295bc` | ✅ visto con la sesión de Carmen: `CA1`, `CA2`, `CA4` | ✅ ventana 1 (11 sep, noche) |
+> | 3 | **El PDF del informe se rehace con cada firma**: `CA3` era imposible por construcción —el PDF se congelaba al emitir, con las firmas vacías— | `48bf721` | ✅ desplegada, sin mirar (no se autorizó firmar) | ✅ ventana 1 (11 sep, noche) |
+> | 4 | **Reglas: el consejo lee documentos como un residente** —ni `financiero`/`reporte` con la hoja «Morosos», ni `informe_mensual` mientras `K2` esté cerrado— | `98d9bc6`, `e07cf9b` | ✅ | ✅ ventana 1 (11 sep, noche) |
+> | 5 | **`FEAT-010`, la cuenta de un pago de cuota**: el servidor la comprueba, el panel de cuotas ofrece «Sale de», y las reglas de `expenses`/`ledgerEntries` exigen una cuenta del conjunto (radio medido: 0) | `63c0fde`, `75c346a`, `ce50233` | ✅ visto antes y después en Santa María | ✅ ventana 1 (11 sep, noche) |
+> | 6 | **Panel de Control: el «mes pasado» se desbordaba** los días 29–31 tras un mes corto (`setMonth` sobre hoy) —en producción desde siempre—, y el «hoy» del panel y de la mudanza, por fin cubiertos | `8e92f51` | ✅ | ✅ ventana 1 (11 sep, noche) |
 >
 > ## LAS DECISIONES DE DAVID DEL 11 — no reabrir
 >
@@ -51,14 +51,37 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > - **En staging, con permiso de David:** la override de `producto-informe-mensual` en Palmas y el
 >   informe de agosto de Palmas **emitido**, con su PDF.
 >
-> ## PRODUCCIÓN — la ventana de las 18:00 del 11
+> ## PRODUCCIÓN — las dos ventanas del 11 (18:05–19:00 de México; 00:05–01:00 UTC del 12)
 >
-> *(Se completa al terminarla.)* Orden: captura del «antes» de la portería con el build viejo →
-> functions `signMonthlyReport` y `payExpenseInstallment` → `master` → reglas (las dos que
-> restringen: `documents` y la cuenta del movimiento) → captura del «después» → cancelar los dos
-> testigos (`conjunto-las-playas--testigo-porteria-2026-09-1{1,2}`, Coworking, T1-101).
+> **Ventana 1 — lo del día.** `signMonthlyReport` y `payExpenseInstallment` (00:17 UTC) → `master` a
+> `025d5d5` → **App Hosting compiló y NO desplegó**: nació `build-2026-09-12-001` sin rollout y el
+> tráfico siguió en el build viejo. En los pushes buenos el build y el rollout nacen en el mismo
+> instante; causa no encontrada (auditoría vacía; el único error de la franja sale igual en pushes que
+> sí desplegaron). **Con permiso de David**, rollout a mano del mismo commit (`build-2026-09-12-002`,
+> 00:42 UTC) → reglas `9a2ffde1`, idénticas al repo → la portería de Las Playas en `www` pasó de enseñar
+> el testigo de MAÑANA (10:00) al de HOY (20:00) → **los dos testigos, cancelados sin borrar**, y la
+> lista quedó en 0.
+>
+> **Ventana 2 — `FIX-004` y `PLAT-002` entrega 2.** `develop` fusionada en avance rápido → las dos de
+> `FIX-004` primero (00:48 UTC) → las seis de la entrega 2 (00:50; `setTenantAdminAccess` **creada**,
+> `run.invoker = allUsers`, CORS desde `www`) → `master` a `fde9931`, con rollout **automático** esta
+> vez (`build-2026-09-12-003`, 00:58) → **reglas las últimas**, solo `authUid` en `people`:
+> `8b7821ab`, idénticas. La lista de ocho functions se comprobó contra el código con el cierre
+> transitivo del diff **sin comentarios** —con comentarios salía una novena, por un «ver …»—.
+>
+> **Sin hacer, y es de David:** el paso 6 del guion —simular en producción, sin escribir, el acceso de
+> una cuenta a varios conjuntos— necesita que diga **qué cuenta**; y dar de verdad un segundo conjunto
+> a alguien es dato de producción. Con eso se vería por fin `CA1` de `PLAT-002`.
+>
+> **Abierto, fuera de las ventanas:** el dominio sin `www` (`grupovivaru.com`) está en
+> `OWNERSHIP_MISMATCH` y no sirve —falta el TXT `fah-claim` en Squarespace Domains, que pone David;
+> `www` sirve bien—. Y la tabla de recuento de `docs/prd/README.md` sigue diciendo «TRECE funcionales»:
+> está desfasada, hay que recontarla sobre la tabla.
 >
 > ## LO QUE SIGUE — el menú
+>
+> **0 · En curso: `PRD-V-FIX-005`** — las puertas públicas no delatan cuentas, y lo desactivado se
+> cierra al instante. Arranca sola, por decisión de David del 11.
 >
 > **A · Construible ya**
 > 1. **`FIX-001` entrega 2** — la política de reservas por área (10 de 11 criterios). Fase 2.
@@ -82,7 +105,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## NO REABRIR
 >
-> - Las del 11, arriba; y las de antes: las cuatro de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los
+> - Las del 11, arriba; **las de David del 11 sobre admins** (`E2-D1…D5`, `PLAT-002` §16): acceso por
+>   persona desde la pestaña Admins con la administradora como atajo, solo el superadmin, el residente
+>   pasa a admin con aviso y conserva su lado de residente, la portería no, y `FIX-004` primero y
+>   aparte; y las de antes: las cuatro de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los
 >   dos `TBD` de `FLOW-008`; los dos huecos falsos; `RN-01` de `PLAT-004`; `TBD-A`/`TBD-B` de
 >   `FEAT-008`; las de `FEAT-009` y `FEAT-010`; `G5`.
 >
