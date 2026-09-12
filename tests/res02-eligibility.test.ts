@@ -70,6 +70,12 @@ describe("checkReservationEligibility", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    // `clearAllMocks` no vacía las colas de `mockResolvedValueOnce`: lo que una prueba no
+    // consumió lo recibía la siguiente. Con la elegibilidad rota a propósito (falsación
+    // MC1 de FIX-001 e2), T9 pasaba con el `getDoc` que T8 dejó sin usar: en verde por el
+    // motivo equivocado. Estos dos no tienen implementación por defecto: se reinician.
+    getDocMock.mockReset();
+    getDocsMock.mockReset();
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -153,6 +159,30 @@ describe("checkReservationEligibility", () => {
     const result = await checkReservationEligibility("tenant1", "unit1");
 
     expect(result).toEqual({ eligible: false, amountDue: 50000, reason: "OVERDUE_BALANCE" });
+  });
+
+  // `PRD-V-FIX-001` entrega 2 (R3): la política del ÁREA manda sobre la del conjunto.
+  // ─────────────────────────────────────────────────────────────────────────
+  it("T8 — el área bloquea aunque el conjunto no: mira la cartera", async () => {
+    getDocMock
+      .mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: false }))
+      .mockResolvedValueOnce(unidadPorId({ tenantId: "tenant1", reservationExempt: false }));
+    getDocsMock.mockResolvedValueOnce(makeBillingSnap([30000])); // billing
+
+    const result = await checkReservationEligibility("tenant1", "unit1", true);
+
+    expect(result).toEqual({ eligible: false, amountDue: 30000, reason: "OVERDUE_BALANCE" });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  it("T9 — CA4: el área permite morosos aunque el conjunto los bloquee", async () => {
+    getDocMock.mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }));
+
+    const result = await checkReservationEligibility("tenant1", "unit1", false);
+
+    expect(result).toEqual({ eligible: true, amountDue: 0 });
+    expect(getDocMock).toHaveBeenCalledTimes(1);
+    expect(getDocsMock).not.toHaveBeenCalled();
   });
 
   // ─────────────────────────────────────────────────────────────────────────

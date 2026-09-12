@@ -28,6 +28,12 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { CalendarDays, FilterX, X } from "lucide-react";
 
 import { amenityIdPorNombre } from "@/features/reservations/amenity-por-nombre";
+import {
+  MAX_ANTICIPACION_MINUTOS,
+  politicaDeMoraAFormulario,
+  politicaDeMoraDesdeFormulario,
+  type PoliticaDeMoraDelFormulario,
+} from "@/features/reservations/politica-del-area";
 import { findReservationConflict } from "@/features/reservations/conflicts";
 import { normalizeTower } from "@/utils/tower";
 import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
@@ -133,6 +139,9 @@ export default function AdminReservationsPage() {
   const [amenityMaxDuration, setAmenityMaxDuration] = useState("");
   const [amenityMaxPerMonth, setAmenityMaxPerMonth] = useState("");
   const [amenityUsageRules, setAmenityUsageRules] = useState("");
+  const [amenityPoliticaDeMora, setAmenityPoliticaDeMora] = useState<PoliticaDeMoraDelFormulario>("heredar");
+  const [amenityAutoApprove, setAmenityAutoApprove] = useState(false);
+  const [amenityMinAdvance, setAmenityMinAdvance] = useState("");
   // Edit amenity config state
   const [editAmenityOperatingStart, setEditAmenityOperatingStart] = useState("");
   const [editAmenityOperatingEnd, setEditAmenityOperatingEnd] = useState("");
@@ -142,6 +151,9 @@ export default function AdminReservationsPage() {
   const [editAmenityMaxDuration, setEditAmenityMaxDuration] = useState("");
   const [editAmenityMaxPerMonth, setEditAmenityMaxPerMonth] = useState("");
   const [editAmenityUsageRules, setEditAmenityUsageRules] = useState("");
+  const [editAmenityPoliticaDeMora, setEditAmenityPoliticaDeMora] = useState<PoliticaDeMoraDelFormulario>("heredar");
+  const [editAmenityAutoApprove, setEditAmenityAutoApprove] = useState(false);
+  const [editAmenityMinAdvance, setEditAmenityMinAdvance] = useState("");
 
   const [calendarDate, setCalendarDate] = useState<string | null>(null);
 
@@ -338,6 +350,12 @@ export default function AdminReservationsPage() {
       return;
     }
 
+    const minAdvance = amenityMinAdvance === "" ? undefined : Number(amenityMinAdvance);
+    if (minAdvance !== undefined && (!Number.isInteger(minAdvance) || minAdvance < 0 || minAdvance > MAX_ANTICIPACION_MINUTOS)) {
+      toast.error(`La anticipación mínima va de 0 a ${MAX_ANTICIPACION_MINUTOS} minutos, en números enteros.`);
+      return;
+    }
+
     if (savingAmenity) return;
 
     setSavingAmenity(true);
@@ -354,6 +372,12 @@ export default function AdminReservationsPage() {
         ...(amenityMaxDuration && { maxReservationDurationMinutes: Number(amenityMaxDuration) }),
         ...(amenityMaxPerMonth !== "" && { maxReservationsPerUnitPerMonth: Number(amenityMaxPerMonth) }),
         ...(amenityUsageRules.trim() && { usageRules: amenityUsageRules.trim() }),
+        // `PRD-V-FIX-001` entrega 2: sin tocar, el área se comporta como hoy (CA10).
+        ...(politicaDeMoraDesdeFormulario(amenityPoliticaDeMora) !== undefined && {
+          blockOnDebt: politicaDeMoraDesdeFormulario(amenityPoliticaDeMora),
+        }),
+        ...(amenityAutoApprove && { autoApprove: true }),
+        ...(minAdvance !== undefined && { minAdvanceMinutes: minAdvance }),
       });
       if (pendingPhotos.length > 0) {
         for (const file of pendingPhotos) {
@@ -369,6 +393,9 @@ export default function AdminReservationsPage() {
       setAmenityMaxDuration("");
       setAmenityMaxPerMonth("");
       setAmenityUsageRules("");
+      setAmenityPoliticaDeMora("heredar");
+      setAmenityAutoApprove(false);
+      setAmenityMinAdvance("");
       setPendingPhotos([]);
       setAmenityPanelOpen(false);
       toast.success("Amenidad creada.");
@@ -410,6 +437,9 @@ export default function AdminReservationsPage() {
     setEditAmenityMaxDuration(item.maxReservationDurationMinutes !== undefined ? String(item.maxReservationDurationMinutes) : "");
     setEditAmenityMaxPerMonth(item.maxReservationsPerUnitPerMonth !== undefined ? String(item.maxReservationsPerUnitPerMonth) : "");
     setEditAmenityUsageRules(item.usageRules ?? "");
+    setEditAmenityPoliticaDeMora(politicaDeMoraAFormulario(item.blockOnDebt));
+    setEditAmenityAutoApprove(item.autoApprove === true);
+    setEditAmenityMinAdvance(item.minAdvanceMinutes !== undefined ? String(item.minAdvanceMinutes) : "");
   }
 
   async function handleSaveAmenityEdit() {
@@ -417,6 +447,11 @@ export default function AdminReservationsPage() {
     const cleanName = editAmenityName.trim();
     if (!cleanName) {
       toast.error("Ingresa un nombre válido.");
+      return;
+    }
+    const editMinAdvance = editAmenityMinAdvance === "" ? undefined : Number(editAmenityMinAdvance);
+    if (editMinAdvance !== undefined && (!Number.isInteger(editMinAdvance) || editMinAdvance < 0 || editMinAdvance > MAX_ANTICIPACION_MINUTOS)) {
+      toast.error(`La anticipación mínima va de 0 a ${MAX_ANTICIPACION_MINUTOS} minutos, en números enteros.`);
       return;
     }
     setSavingAmenityEdit(true);
@@ -432,6 +467,11 @@ export default function AdminReservationsPage() {
         ...(editAmenityMaxDuration && { maxReservationDurationMinutes: Number(editAmenityMaxDuration) }),
         ...(editAmenityMaxPerMonth !== "" && { maxReservationsPerUnitPerMonth: Number(editAmenityMaxPerMonth) }),
         usageRules: editAmenityUsageRules.trim() || undefined,
+        // `PRD-V-FIX-001` entrega 2: `undefined` borra el campo (lo hace `updateAmenity`), así
+        // que «como el conjunto» y «30 por defecto» vuelven a no escribir nada.
+        blockOnDebt: politicaDeMoraDesdeFormulario(editAmenityPoliticaDeMora),
+        autoApprove: editAmenityAutoApprove,
+        minAdvanceMinutes: editMinAdvance,
       });
       toast.success("Amenidad actualizada.");
       setEditingAmenity(null);
@@ -667,6 +707,9 @@ export default function AdminReservationsPage() {
           setAmenityMaxDuration("");
           setAmenityMaxPerMonth("");
           setAmenityUsageRules("");
+          setAmenityPoliticaDeMora("heredar");
+          setAmenityAutoApprove(false);
+          setAmenityMinAdvance("");
           setPendingPhotos([]);
         }}
         title="Nueva amenidad"
@@ -751,6 +794,27 @@ export default function AdminReservationsPage() {
               Reservas por unidad al mes
               <Input type="number" min={0} placeholder="0 = sin límite" value={amenityMaxPerMonth} onChange={(e) => setAmenityMaxPerMonth(e.target.value)} />
               <span className="text-xs text-[var(--slate-500)]">Escribe 0 para no aplicar límite mensual</span>
+            </label>
+          </div>
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Aprobación y morosos</p>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Anticipación mínima (min)
+              <Input type="number" min={0} max={MAX_ANTICIPACION_MINUTOS} step={1} placeholder="30 por defecto" value={amenityMinAdvance} onChange={(e) => setAmenityMinAdvance(e.target.value)} />
+              <span className="text-xs text-[var(--slate-500)]">Déjalo vacío para los 30 minutos de siempre</span>
+            </label>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Unidades en mora
+              <select className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={amenityPoliticaDeMora} onChange={(e) => setAmenityPoliticaDeMora(e.target.value as PoliticaDeMoraDelFormulario)}>
+                <option value="heredar">Como el conjunto (Ajustes)</option>
+                <option value="bloquear">No pueden reservar esta área</option>
+                <option value="permitir">Pueden reservar esta área</option>
+              </select>
+              <span className="text-xs text-[var(--slate-500)]">Una unidad exenta reserva siempre</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm text-[var(--slate-700)]">
+              <input type="checkbox" checked={amenityAutoApprove} onChange={(e) => setAmenityAutoApprove(e.target.checked)} />
+              Aprobar las reservas al instante, sin revisión
             </label>
           </div>
           <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
@@ -1129,6 +1193,27 @@ export default function AdminReservationsPage() {
               Reservas por unidad al mes
               <Input type="number" min={0} placeholder="0 = sin límite" value={editAmenityMaxPerMonth} onChange={(e) => setEditAmenityMaxPerMonth(e.target.value)} />
               <span className="text-xs text-[var(--slate-500)]">Escribe 0 para no aplicar límite mensual</span>
+            </label>
+          </div>
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Aprobación y morosos</p>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Anticipación mínima (min)
+              <Input type="number" min={0} max={MAX_ANTICIPACION_MINUTOS} step={1} placeholder="30 por defecto" value={editAmenityMinAdvance} onChange={(e) => setEditAmenityMinAdvance(e.target.value)} />
+              <span className="text-xs text-[var(--slate-500)]">Déjalo vacío para los 30 minutos de siempre</span>
+            </label>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Unidades en mora
+              <select className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={editAmenityPoliticaDeMora} onChange={(e) => setEditAmenityPoliticaDeMora(e.target.value as PoliticaDeMoraDelFormulario)}>
+                <option value="heredar">Como el conjunto (Ajustes)</option>
+                <option value="bloquear">No pueden reservar esta área</option>
+                <option value="permitir">Pueden reservar esta área</option>
+              </select>
+              <span className="text-xs text-[var(--slate-500)]">Una unidad exenta reserva siempre</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm text-[var(--slate-700)]">
+              <input type="checkbox" checked={editAmenityAutoApprove} onChange={(e) => setEditAmenityAutoApprove(e.target.checked)} />
+              Aprobar las reservas al instante, sin revisión
             </label>
           </div>
           <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">

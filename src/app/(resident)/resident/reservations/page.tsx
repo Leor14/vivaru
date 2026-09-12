@@ -49,7 +49,8 @@ import {
   SLOT_GRANULARITY_MINUTES,
   type TimeRange,
 } from "@/features/reservations/time-range";
-import { combineDateAndTime, getMinAllowedDateTime, isDateTimeValid, isSameDay } from "@/utils/datetimeValidation";
+import { combineDateAndTime, isSameDay } from "@/utils/datetimeValidation";
+import { anticipacionDelArea, minimoPermitido } from "@/features/reservations/politica-del-area";
 import { getStatusLabel } from "@/utils/statusMapper";
 import type { Reservation } from "@/types/domain";
 
@@ -204,10 +205,11 @@ export default function ResidentReservationsPage() {
 
   useEffect(() => {
     if (!tenantId || !user?.unitId) return;
-    checkReservationEligibility(tenantId, user.unitId)
+    // `PRD-V-FIX-001` entrega 2 (R3): con un área elegida, manda SU política de mora.
+    checkReservationEligibility(tenantId, user.unitId, selectedAmenityDetail?.blockOnDebt)
       .then((result) => setEligibility(result))
       .catch(() => setEligibility({ eligible: true, amountDue: 0 }));
-  }, [tenantId, user?.unitId]);
+  }, [tenantId, user?.unitId, selectedAmenityDetail?.blockOnDebt]);
 
   useEffect(() => {
     if (!tenantId || !user?.unitId || !selectedAmenityDetail) {
@@ -319,7 +321,7 @@ export default function ResidentReservationsPage() {
 
   const nowDateTime = new Date();
   const todayStart = new Date(nowDateTime.getFullYear(), nowDateTime.getMonth(), nowDateTime.getDate());
-  const minReservationDateTime = getMinAllowedDateTime("reservation", nowDateTime);
+  const minReservationDateTime = minimoPermitido(nowDateTime, anticipacionDelArea(selectedAmenity ?? {}));
 
   const getMinimumStartMinuteForDate = (dateKey: string) => {
     const parsed = parseDateKey(dateKey);
@@ -446,7 +448,7 @@ export default function ResidentReservationsPage() {
       if (!parsed) return null;
       const freshNow = new Date();
       if (!isSameDay(parsed, freshNow)) return null;
-      const minDt = getMinAllowedDateTime("reservation", freshNow);
+      const minDt = minimoPermitido(freshNow, anticipacionDelArea(selectedAmenity ?? {}));
       return minDt.getHours() * 60 + minDt.getMinutes();
     })();
 
@@ -701,14 +703,15 @@ export default function ResidentReservationsPage() {
     }
 
     const selectedDateTime = combineDateAndTime(selectedDate, selectedStartTime);
-    if (!selectedDateTime || !isDateTimeValid(selectedDateTime, "reservation")) {
-      toast.error("La reserva requiere al menos 30 minutos de anticipación.");
+    const anticipacion = anticipacionDelArea(selectedAmenity);
+    if (!selectedDateTime || selectedDateTime < minimoPermitido(new Date(), anticipacion)) {
+      toast.error(`La reserva requiere al menos ${anticipacion} minutos de anticipación.`);
       return;
     }
 
     try {
       setSubmitting(true);
-      await createReservation({
+      const creada = await createReservation({
         tenantId,
         userId: user.uid,
         createdByName: user.fullName,
@@ -723,7 +726,7 @@ export default function ResidentReservationsPage() {
         viaServidor: reservasEnServidor,
       });
 
-      toast.success("Reserva creada en estado pendiente.");
+      toast.success(creada?.status === "approved" ? "Reserva aprobada." : "Reserva creada en estado pendiente.");
       debugResidentReservations("[resident-reservations] create:success", {
         tenantId,
         uid: user.uid,
@@ -1412,6 +1415,16 @@ function AmenityDetailView({
             </dd>
           </div>
         ) : null}
+
+        <div className="flex items-center gap-2">
+          <Clock3 className="h-3.5 w-3.5 shrink-0 text-[var(--brand-700)]" />
+          <dd>Anticipación mínima: {anticipacionDelArea(amenity)} min</dd>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ConciergeBell className="h-3.5 w-3.5 shrink-0 text-[var(--brand-700)]" />
+          <dd>{amenity.autoApprove === true ? "Se aprueba al instante" : "La aprueba la administración"}</dd>
+        </div>
       </dl>
 
       {amenity.usageRules ? (

@@ -108,7 +108,7 @@ export async function createReservationRequestCallable(input: CreateReservationR
     throw new Error("Firebase Functions no esta configurado en este entorno.");
   }
 
-  const callable = httpsCallable<CreateReservationRequestInput, { ok: true; reservationId: string; status: "pending" }>(
+  const callable = httpsCallable<CreateReservationRequestInput, { ok: true; reservationId: string; status: "pending" | "approved" }>(
     functions,
     "createReservationRequest",
   );

@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { aplicaMora } from "@/features/reservations/politica-del-area";
 
 /**
  * Checks whether a resident unit is eligible to create new reservations.
@@ -23,6 +24,8 @@ import { db } from "@/lib/firebase/client";
 export async function checkReservationEligibility(
   tenantId: string,
   unitId: string,
+  /** `PRD-V-FIX-001` entrega 2: la política del área elegida; sin ella, la del conjunto. */
+  politicaDelArea?: boolean | null,
 ): Promise<{ eligible: boolean; amountDue: number; reason?: string }> {
   if (!db) {
     // Fail-open: if Firebase isn't configured, don't block the user.
@@ -34,7 +37,7 @@ export async function checkReservationEligibility(
   const settingsSnap = await getDoc(settingsRef);
   const settings = settingsSnap.data() as { reservationPolicy?: { blockOnDebt?: boolean } } | undefined;
 
-  if (!settings?.reservationPolicy?.blockOnDebt) {
+  if (!aplicaMora(settings?.reservationPolicy?.blockOnDebt, politicaDelArea)) {
     return { eligible: true, amountDue: 0 };
   }
 

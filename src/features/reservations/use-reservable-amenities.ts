@@ -23,6 +23,10 @@ export interface ReservableAmenity {
   maxReservationDurationMinutes?: number;
   maxReservationsPerUnitPerMonth?: number;
   usageRules?: string;
+  /** `PRD-V-FIX-001` entrega 2: política por área. `null` o ausente = hereda del conjunto. */
+  blockOnDebt?: boolean | null;
+  autoApprove?: boolean;
+  minAdvanceMinutes?: number;
   operatingHoursStart?: string;
   operatingHoursEnd?: string;
   slotDurationMinutes?: number;

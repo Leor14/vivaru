@@ -215,6 +215,10 @@ export type AmenityItem = {
   maxReservationDurationMinutes?: number;
   maxReservationsPerUnitPerMonth?: number;
   usageRules?: string;
+  /** `PRD-V-FIX-001` entrega 2: política por área. `null` o ausente = hereda del conjunto. */
+  blockOnDebt?: boolean | null;
+  autoApprove?: boolean;
+  minAdvanceMinutes?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -1192,7 +1196,7 @@ export async function createAmenity(
   payload: Pick<AmenityItem, "name" | "category" | "status"> & Partial<Pick<AmenityItem,
     "operatingHoursStart" | "operatingHoursEnd" | "slotDurationMinutes" |
     "availableWeekdays" | "maxReservationsPerSlot" | "maxReservationDurationMinutes" |
-    "maxReservationsPerUnitPerMonth" | "usageRules">>,
+    "maxReservationsPerUnitPerMonth" | "usageRules" | "blockOnDebt" | "autoApprove" | "minAdvanceMinutes">>,
 ) {
   if (!tenantId?.trim()) {
     throw new Error("No se pudo identificar el tenant para crear la amenidad.");

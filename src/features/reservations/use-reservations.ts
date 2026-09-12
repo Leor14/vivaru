@@ -128,7 +128,7 @@ export async function createReservation(input: {
   if (input.viaServidor) {
     // El mensaje del servidor ya nombra la regla incumplida (R7) y
     // `executeCallable` lo deja pasar limpio: no se re-normaliza aquí.
-    await createReservationRequestCallable({
+    const creada = await createReservationRequestCallable({
       tenantId: input.tenantId,
       unitId: input.unitId,
       unitLabel: input.unitLabel,
@@ -139,7 +139,8 @@ export async function createReservation(input: {
       exclusiveUse: input.exclusiveUse,
       createdByName: input.createdByName,
     });
-    return;
+    // Entrega 2: con `autoApprove` la reserva nace aprobada, y la pantalla lo dice.
+    return { status: creada.status };
   }
 
   if (!db) {
