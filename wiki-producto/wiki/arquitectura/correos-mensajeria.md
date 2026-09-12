@@ -3,7 +3,7 @@ tags: [arquitectura, correos, mensajeria, resend, seguridad, entregabilidad]
 tipo: tecnica
 fuentes: ["remediacion-auth-2026"]
 fecha_creacion: 2026-06-09
-fecha_actualizacion: 2026-08-27
+fecha_actualizacion: 2026-09-12
 ---
 
 # Correos y Mensajería
@@ -40,6 +40,8 @@ El enlace de los correos abre la página propia `/restablecer` (en español, con
 
 Esta página cubre los **correos de identidad** (onboarding y reset). Los **avisos operativos a residentes** (cartera, PQRS, reservas, etc.) son un sistema aparte — in-app + email opcional, con catálogo de copias editable por tenant. Su detalle vive en [[notificaciones-residentes]], usado intensamente por [[cartera-campanas|Cartera]]. Comparten el mismo secret `RESEND_API_KEY` y el remitente `notificaciones.grupovivaru.com`.
 
+Delante de los dos envíos está la [[puerta-de-buzones]] (`PRD-V-PLAT-006`, sep 2026): en un conjunto marcado como «sin cliente detrás», solo sale correo a direcciones de prueba o del equipo, y cada rechazo deja una fila `rechazado-puerta`. Está construida y, en producción, con la bandera apagada.
+
 ## Entrega medida: `emailDeliveries` y el webhook de Resend (`PRD-V-FLOW-003`)
 
 **En producción desde el 27 de agosto de 2026, y validado de punta a punta.** Antes, un correo que
@@ -69,6 +71,6 @@ si el aviso no tiene el email activo para ese conjunto, no hay envío y por tant
 
 ## Relaciones
 
-- Véase también: [[autenticacion-roles]], [[usuarios]], [[firebase-firestore]], [[notificaciones-residentes]]
+- Véase también: [[autenticacion-roles]], [[usuarios]], [[firebase-firestore]], [[notificaciones-residentes]], [[puerta-de-buzones]]
 - Depende de: [[stack-tecnico]], [[middleware-ts]]
 - Se conecta con: [[portal-residente]], [[multi-tenancy]], [[trampas-conocidas]], [[estado-modulos]]

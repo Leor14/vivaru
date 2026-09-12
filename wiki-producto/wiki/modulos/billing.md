@@ -3,7 +3,7 @@ tags: [modulo, admin, billing, cartera]
 tipo: concepto
 fuentes: ["domain.ts", "DESIGN.md", "BACKLOG.md", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-31
+fecha_actualizacion: 2026-09-12
 ---
 
 # Billing (Cartera)
@@ -52,6 +52,10 @@ defecto documentado del campo, y hoy lo son 30 de los 221 cobros de producción.
 > desde `concept` y la escribe en el ASIENTO, que es lo que leen los informes. Rellenar los 220 no
 > movería un solo número.
 
+## El cobro por consumo medido (sep 2026)
+
+Desde `FEAT-008`, un cobro puede nacer del **consumo medido**: al cerrar un período de lecturas, `billConsumptionPeriod` genera los cargos con un concepto propio y la cuenta `1.11`, porque `aplicarPago` saca la cuenta del concepto y no del `accountCode`. Hoy solo está encendido en la demo de Las Playas. Ver [[medicion-consumos]].
+
 ## Crear cobro: destinatario, lote y programación
 
 El formulario "Crear nuevo cobro" combina **destinatario** (Una unidad / Lote) × **tiempo** (inmediato / programado):
@@ -74,7 +78,7 @@ Comprobantes semi-ágil, tipos de cobro, lote/programación, trazabilidad y cier
 
 - Véase también: [[cartera-campanas]], [[notificaciones-residentes]], [[domain-types]]
 - Depende de: [[multi-tenancy]], [[firebase-firestore]]
-- Se conecta con: [[dashboard-admin]], [[portal-residente]], [[fusion-unidades]], [[tokens-color]]
+- Se conecta con: [[dashboard-admin]], [[portal-residente]], [[fusion-unidades]], [[tokens-color]], [[medicion-consumos]]
 
 ## Fuentes
 

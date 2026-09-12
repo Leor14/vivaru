@@ -3,7 +3,7 @@ tags: [modulo, admin, reportes]
 tipo: concepto
 fuentes: ["BACKLOG.md", "PRODUCT.md"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-09-12
 ---
 
 # Reportes
@@ -20,6 +20,13 @@ El administrador necesita reportes para rendir cuentas ante la asamblea de propi
 - **Reporte de visitas**: historial de [[visitantes|VisitorPasses]] por rango de fechas
 - **Reporte de PQRS**: tickets abiertos y cerrados por categoría y período, desde el módulo [[pqrs]]
 - **Reporte de reservaciones**: uso de amenidades por mes, desde [[reservaciones]]
+
+## El informe mensual y el presupuesto (septiembre de 2026)
+
+`/admin/reports` aloja además el **informe económico mensual** que exige el Decreto 462 —anclado al
+banco, emitido, con las cifras congeladas y firmado— en `InformeMensualCard`. Ver [[informe-mensual]] y
+[[rol-consejo]]. El [[presupuesto]] contra ejecución vive en `/admin/finanzas/presupuesto`, y lee lo
+ejecutado del mismo cálculo que el Reporte de Comité.
 
 ## Estado: 🔲 pendiente critique
 

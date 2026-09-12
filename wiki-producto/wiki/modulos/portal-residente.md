@@ -3,7 +3,7 @@ tags: [modulo, residente, mobile-first]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "BACKLOG.md"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-09-12
 ---
 
 # Portal Residente
@@ -30,6 +30,10 @@ El residente puede acceder a:
 - Pre-registrar visitas y compartir QR → [[visitantes]]
 - Leer comunicados del administrador → [[comunicaciones]]
 - Consultar el reglamento y actas → [[reglamento]]
+- Ver las lecturas de consumo de su unidad → [[medicion-consumos]]
+- Elegir tema claro u oscuro en su perfil → [[modo-oscuro]]
+
+**El consejero entra por aquí** (`PLAT-004`): es un residente con una marca en su membresía, y su menú gana «Informes del conjunto», con los totales del informe mensual y el botón de firmar. Ver [[rol-consejo]].
 
 ## Estado: ✅ fixes mobile aplicados
 
@@ -43,7 +47,7 @@ El primer acceso usa contraseña temporal gestionada por [[usuarios]]. El [[midd
 
 - Véase también: [[mobile-first-ios]], [[layout-patterns]], [[product-md]]
 - Depende de: [[autenticacion-roles]], [[middleware-ts]]
-- Se conecta con: [[billing]], [[pqrs]], [[reservaciones]], [[visitantes]], [[paquetes]], [[comunicaciones]]
+- Se conecta con: [[billing]], [[pqrs]], [[reservaciones]], [[visitantes]], [[paquetes]], [[comunicaciones]], [[rol-consejo]], [[modo-oscuro]]
 
 ## Fuentes
 

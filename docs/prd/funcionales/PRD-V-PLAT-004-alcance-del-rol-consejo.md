@@ -9,7 +9,7 @@
 | **Usuario principal** | Miembro del consejo de administración |
 | **Usuarios secundarios** | `tenant_admin` (concede el rol), `superadmin` (soporte) |
 | **Responsable** | David |
-| **Estado** | **Entrega 1 EN PRODUCCIÓN Y STAGING** (9 sep 2026, `8db685b`), encendida en Santa María (producción) y Palmas (staging) · entregas 2 y 3 pendientes |
+| **Estado** | **Entregas 1 y 2 EN PRODUCCIÓN Y STAGING** —la 1 el 9 sep 2026 (`8db685b`), la 2 el 11 sep—, encendida en Santa María (producción) y Palmas (staging) · la entrega 3 (paz y salvo de cualquier unidad, `TBD-C`) espera al abogado · `CA3` y `CA5` probados y sin mirar en pantalla · el detalle por unidad fuera del informe desde el 12 sep (§15). *Esta celda decía «entregas 2 y 3 pendientes» hasta el 12 de septiembre: se quedó en la entrega 1* |
 | **Dependencias** | `PRD-V-FLOW-007` (firma del informe, **ya en producción**) · `PRD-V-PLAT-002` (multiconjunto) |
 | **Riesgo** | Medio-alto — toca permisos y el padrón |
 | **Reversibilidad** | Reversible por bandera **salvo el modelo de datos** (ver §13) |
@@ -446,10 +446,12 @@ repositorio. Producción: la cabecera de `docs/pendientes.md`.
 2. **La regla de `documents` le daba al consejo todos los documentos** —`financiero` y `reporte`,
    con la hoja «Morosos»—, justificado en que su única pantalla era `/admin/documents`. Con `TBD-B`
    esa razón desapareció. Dos pruebas de reglas afirmaban lo contrario y se invirtieron.
-3. 🔴 **`receivables.byUnit` viaja en el documento del informe**, y la regla de `monthlyReports` se lo
-   entrega entero al consejo desde la entrega 1: una regla no oculta campos. La pantalla pinta solo
-   totales, pero el dato llega al navegador. **Queda abierto** y es de `FLOW-007` entrega 3 (`K2`):
-   sacar el detalle por unidad a un documento solo-administración.
+3. ✅ **`receivables.byUnit` viajaba en el documento del informe**, y la regla de `monthlyReports` se
+   lo entregaba entero al consejo desde la entrega 1: una regla no oculta campos. La pantalla pintaba
+   solo totales, pero el dato llegaba al navegador. **Cerrado el 12 de septiembre de 2026**
+   (`ba98abe`, sin esperar a `K2`): el detalle por unidad vive en `monthlyReportReceivables`, con el
+   mismo id y solo-administración; el PDF lo junta en el servidor. En los dos ambientes, con los tres
+   informes existentes migrados (`functions/scripts/sacar-detalle-por-unidad-del-informe.mjs`).
 4. **El front no leía la marca en ningún sitio**: un consejero nombrado no tenía una sola pantalla
    desde la que abrir o firmar un informe. La sesión lee ahora `isCommittee` de la misma membresía
    que da el rol y la unidad, y `veLasPantallasDelConsejo` (`src/lib/auth/consejo.ts`) exige bandera,
@@ -475,7 +477,6 @@ front, 4 en el servidor y 5 en las reglas.
 ### Lo que queda
 
 - **La entrega 3**: el paz y salvo de cualquier unidad (`TBD-C`), que espera al abogado.
-- **`byUnit`** en el documento del informe (arriba, 3), con `K2`.
 - **Mirar `CA3` y `CA5`** el día que haya permiso para firmar y tocar la marca en staging.
 
 ---

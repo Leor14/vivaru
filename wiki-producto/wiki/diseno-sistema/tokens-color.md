@@ -3,7 +3,7 @@ tags: [diseno, tokens, color]
 tipo: herramienta
 fuentes: ["DESIGN.md", "consolidacion-landing-2026", "globals-css"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-31
+fecha_actualizacion: 2026-09-12
 ---
 
 # Tokens de Color
@@ -80,13 +80,13 @@ Los tokens de espaciado semántico también viven en `@theme`:
 
 ⚠️ Estos tokens colisionan con `max-w-sm`, `max-w-md`, `max-w-lg`, `max-w-xl`, `max-w-3xl` en Tailwind v4. El fix está en [[tailwind-v4-spacing-fix]] — sin él, los textos se renderizan a 8–96px de ancho.
 
-## Sin dark mode (deuda técnica)
+## Modo oscuro (desde el 3 de septiembre de 2026)
 
-No existen tokens de dark mode ni en el SaaS ni en el landing. Si se necesita en el futuro, requerirá una migración completa de hex a OKLCH. Ver [[design-md]] para el registro de esta deuda técnica.
+**Esta sección decía «sin dark mode, deuda técnica» y dejó de ser cierta el 3 de septiembre de 2026.** El SaaS tiene tema claro u oscuro, elegido por cada usuario: la paleta oscura vive en `globals.css`, dentro de `@media screen`, y **1.048 usos de color literal en 145 ficheros** pasaron a token. En la migración aparecieron seis formas distintas de pintar un color sin token. `--on-fill` —el texto sobre un relleno— no gira con el tema. El landing sigue en claro: sus 21 reglas `prefers-color-scheme` dejaron de dispararse. Detalle en [[modo-oscuro]].
 
 ## Relaciones
 
-- Véase también: [[design-md]], [[tipografia]], [[componentes]], [[tailwind-v4-spacing-fix]]
+- Véase también: [[design-md]], [[tipografia]], [[componentes]], [[tailwind-v4-spacing-fix]], [[modo-oscuro]]
 - Depende de: [[product-md]]
 - Se conecta con: [[billing]], [[pqrs]], [[animaciones]], [[absolute-bans]], [[landing-marketing]]
 

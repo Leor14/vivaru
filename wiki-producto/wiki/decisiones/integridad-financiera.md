@@ -3,7 +3,7 @@ tags: [decision, finanzas, contabilidad, auditoria]
 tipo: decision
 fuentes: ["sesion-auditoria-ux-2026-07", "FIN-001", "PRD-V-PLAT-003"]
 fecha_creacion: 2026-07-03
-fecha_actualizacion: 2026-08-27
+fecha_actualizacion: 2026-09-12
 ---
 
 # Integridad Financiera — Reversos, Confirmaciones y Mora Real
@@ -115,6 +115,14 @@ engañaba.** Lo que no se puede es desplegarlas **al revés**. La exclusión sol
 la [[banderas-funcionalidad|bandera]] `producto-concepto-al-libro` esté apagada, porque entonces
 todo asiento de cobro es `billingStatement` **y** `alicuota` a la vez y las dos reglas seleccionan
 el mismo conjunto. **La regla real: la exclusión primero, o a la vez, nunca después.**
+
+## 6. Tres capacidades de septiembre que se apoyan en estas reglas
+
+- **Las cuotas de un egreso** dejan cada una su asiento, y la deuda con el proveedor se deriva de las
+  cuotas vivas: [[cuentas-por-pagar]].
+- **Un traspaso entre cuentas propias no es un asiento, ni una caja chica es una cuenta**: [[tesoreria]].
+- **El presupuesto no recalcula lo ejecutado**: lo lee del mismo cálculo que el Reporte de Comité. Ver
+  [[presupuesto]].
 
 ## Relaciones
 

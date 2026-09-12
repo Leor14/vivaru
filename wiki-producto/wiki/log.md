@@ -10,6 +10,15 @@ fecha_actualizacion: 2026-09-12
 
 ---
 
+## [2026-09-12] update | Lo del 1 al 10 de septiembre: informe mensual, cuotas, tesorería, consumos, presupuesto, consejo, buzones y modo oscuro
+
+- **Páginas creadas**: 8 — [[informe-mensual]] (`FLOW-007`), [[cuentas-por-pagar]] (`FLOW-008`), [[tesoreria]] (`FEAT-010`), [[medicion-consumos]] (`FEAT-008`), [[presupuesto]] (`FEAT-009`), [[rol-consejo]] (`PLAT-004`), [[puerta-de-buzones]] (`PLAT-006`) y [[modo-oscuro]] (`FEAT-007`)
+- **Páginas actualizadas**: [[tokens-color]] («sin dark mode» era falso desde el 3 sep), [[reportes]], [[estado-modulos]], [[correos-mensajeria]], [[notificaciones-residentes]], [[autenticacion-roles]], [[portal-residente]], [[integridad-financiera]], [[billing]], [[index]] y este log
+- **Entidades extraídas**: `monthlyReports` y `monthlyReportReceivables`, `installments` y `paidAmount`, `treasuryTransfers` y `pettyCashFunds`, `meteredServices` y `meterReadings`, `budgets`, `isCommittee`, `sinClienteDetras` y `config/correosDelEquipo`, `users.tema`
+- **Nota de método**: el estado de cada bandera se **midió** el 12 sep resolviendo conjunto por conjunto con el código compilado, en vez de copiarlo de las fichas. La de `FLOW-007` decía «1 de 9» y está en los 10; la fila «Bandera» de `FLOW-008` decía «0 de 9» y también está en los 10. Los hechos de cada ficha los sacaron cuatro agentes de solo lectura, con cita `fichero:línea`. Un primer intento, un solo agente escribiendo las ocho páginas, se atascó sin dejar nada.
+
+---
+
 ## [2026-09-12] update | Reservas en el servidor, cuentas que no se delatan y tres trampas de reglas
 
 - **Páginas creadas**: 0

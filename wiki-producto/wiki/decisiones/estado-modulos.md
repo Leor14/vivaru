@@ -128,6 +128,22 @@ aplicaron **las dos reglas de exclusión, la vieja y la nueva, sobre los 89 asie
 producción**, y se contó cuántos cambian de lado. Cambió **uno**. Comparar el estado financiero
 antes y después no habría probado nada — el «antes» se calcula con el código nuevo.
 
+## Lo del 1 al 12 de septiembre de 2026 — en producción
+
+Cada fila dice dónde está **encendida**, medido el 12 sep resolviendo la bandera conjunto por conjunto
+con el código compilado. Producción no tiene clientes: estar encendida en la demo de Las Playas no es uso.
+
+| Capacidad | Bandera | Dónde está encendida | Notas |
+|---|---|---|---|
+| [[informe-mensual]] (`FLOW-007`) | `producto-informe-mensual` | los 10 de producción · 3 de staging | La entrega 3, publicarlo al residente, espera al abogado. El detalle por unidad, aparte desde el 12 sep |
+| [[cuentas-por-pagar]] (`FLOW-008`) | `producto-egresos-en-cuotas` | los 10 de producción · 1 de staging | Las tres entregas; `R8` cerrado |
+| [[tesoreria]] (`FEAT-010`) | `producto-tesoreria` | Las Playas (demo) · 2 de staging | Cuatro entregas el 10 sep y una el 11 |
+| [[medicion-consumos]] (`FEAT-008`) | `producto-medicion-de-consumos` | Las Playas (demo) · 2 de staging | Tercera base de reparto |
+| [[presupuesto]] (`FEAT-009`) | `producto-presupuesto-anual` | Las Playas (demo) · 2 de staging | Primer uso legal: la asamblea del primer trimestre de 2027 |
+| [[rol-consejo]] (`PLAT-004`) | `producto-rol-consejo` | Santa María · Palmas (staging) | Entregas 1 y 2; la 3 espera al abogado |
+| [[puerta-de-buzones]] (`PLAT-006`) | `producto-puerta-de-buzones` | **ninguno en producción** · Santa María (staging) | Para encenderla falta identificar una cuenta de portería |
+| [[modo-oscuro]] (`FEAT-007`) | `producto-modo-oscuro` | los 10 de los dos ambientes, por el valor global | Quedan por mirar con ojos el destello y la impresión |
+
 ## Programa de IA
 
 **Construido y en producción desde el 15 de agosto de 2026** — esta sección decía «0% construido, no existe código de IA en el repositorio» hasta el 17 de agosto, y llevaba dos semanas siendo falsa.

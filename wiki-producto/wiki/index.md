@@ -47,6 +47,8 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[banderas-funcionalidad]] | 🆕 Encender y apagar capacidades sin desplegar: precedencia, kill switch maestro y aislamiento de overrides |
 | [[puerta-ia]] | Dos puertas —sesión y servidor— sobre un solo tramo de ejecución. El conjunto sale de la sesión; proveedor real vía Vertex |
 | [[integracion-albert]] | 🆕 Vivaru es TENANT de Albert CRM, y eso decide la arquitectura: sin webhooks, sin OIDC, con usuario de servicio. Tenant dado de alta el 22 ago 2026 |
+| [[rol-consejo]] | 🆕 El consejo es un atributo de la membresía, no un rol: lee lo emitido, firma, y no ve el detalle por unidad (`PLAT-004`) |
+| [[puerta-de-buzones]] | 🆕 En un conjunto sin cliente detrás solo entran y salen direcciones de prueba o del equipo (`PLAT-006`) |
 
 ---
 
@@ -72,6 +74,11 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[superadmin]] | Consola global del equipo interno Vivaru |
 | [[soporte]] | 🆕 Tickets del administrador hacia Vivaru: estados, notas internas, adjuntos y la excepción a `tenantOperable` |
 | [[onboarding-guiado]] | 🆕 Guía de puesta en marcha: 18 pasos en 4 bloques, dos recorridos y señales de completado |
+| [[informe-mensual]] | 🆕 El informe del Decreto 462: anclado al banco, emitido, congelado y firmado; el detalle por unidad, aparte (`FLOW-007`) |
+| [[cuentas-por-pagar]] | 🆕 Egresos con calendario de cuotas: cada cuota se paga y deja su asiento (`FLOW-008`) |
+| [[tesoreria]] | 🆕 Saldo por cuenta, traspasos que no son asientos y caja chica (`FEAT-010`) |
+| [[medicion-consumos]] | 🆕 El agua medida con foto: lecturas, cierre de período y cobro por consumo (`FEAT-008`) |
+| [[presupuesto]] | 🆕 El presupuesto anual contra lo ejecutado, para la asamblea (`FEAT-009`) |
 
 ## Módulos Marketing
 
@@ -92,6 +99,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[layout-patterns]] | Admin page layout, resident page layout, grids KPI, dashboard widgets |
 | [[tailwind-v4-spacing-fix]] | Bug --spacing-* vs max-w-* en Tailwind v4 y fix con .marketing-theme scoped |
 | [[transiciones-navegacion]] | 🆕 Velo con logo al navegar, dónde SÍ y dónde no, y el barrido de 20 tokens sin declarar |
+| [[modo-oscuro]] | 🆕 Tema claro u oscuro elegido por cada usuario; seis formas de color literal, y lo impreso siempre en claro (`FEAT-007`) |
 
 ---
 

@@ -39,6 +39,8 @@ Otras claves cubren PQRS, reservas, reglamento, encuestas y acuerdos de comité 
 
 `deliverResidentNotifications` crea la notificación in-app para los `residentUids` y, **si el tipo tiene email activo**, envía por Resend. La puerta es una sola línea —`if (!copy.emailEnabled) return;`, en `index.ts:595`— y **está antes de resolver destinatarios**: con el email apagado no se lee ni una dirección. Si el envío sale y `producto-entrega-de-correo` está encendida, cada correo deja su fila en `emailDeliveries` — ver [[correos-mensajeria]]. Los destinatarios se resuelven con `listResidentUidsByUnit`, que consulta `tenantUsers` con rol `resident` **activos**. Consecuencia clave: un cobro pendiente cuya unidad **no tiene residente con cuenta activa** no se notifica; `sendBillingReminder` reporta cuántas unidades quedaron sin destinatario para que el admin las dé de alta (ver [[usuarios]]).
 
+Y antes de enviar, el correo pasa por la [[puerta-de-buzones]]: en un conjunto marcado como «sin cliente detrás», solo sale a direcciones de prueba o del equipo, y cada rechazo deja una fila `rechazado-puerta`. En producción la bandera sigue apagada.
+
 ## Disparadores (triggers y crons)
 
 La mayoría son Cloud Functions de [[firebase-firestore]]:
@@ -50,7 +52,7 @@ Todas referencian el secret `RESEND_API_KEY` (ver [[trampas-conocidas]] sobre el
 
 ## Relaciones
 
-- Véase también: [[correos-mensajeria]], [[cartera-campanas]], [[billing]]
+- Véase también: [[correos-mensajeria]], [[cartera-campanas]], [[billing]], [[puerta-de-buzones]]
 - Depende de: [[firebase-firestore]], [[multi-tenancy]]
 - Se conecta con: [[configuracion]], [[usuarios]], [[comunicaciones]], [[portal-residente]]
 

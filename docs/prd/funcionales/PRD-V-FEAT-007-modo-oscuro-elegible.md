@@ -778,12 +778,21 @@ reglas no estaba apagado: no se puede correr aquí**. Declara **354** casos.
 
 ### Lo que falta para marcarla productiva
 
-- Correr el banco de reglas donde haya Java (`CA4`, `CA8`, `CA17`).
 - `CA5` y `CA6` — el destello en la primera carga frente a las siguientes, grabando el primer segundo.
 - `CA11`, `CA15` y `CA19` — impresión y PDF con ojos. `RN-07` está verificada en el CSSOM, pero el
   diálogo de impresión no se ha abierto.
-- `CA7` — contar en producción que **ningún** documento ganó `tema` sin que su dueño lo eligiera.
-- **`CA16` en producción**, con su valor de partida ya medido.
+
+**Cerrados el 12 de septiembre de 2026, medidos:**
+
+- **`CA4`, `CA8` y `CA17`** — las 7 pruebas de reglas corrieron por nombre, en verde, contra el
+  emulador (`tests/firestore.rules.test.ts`, `-t "FEAT-007"`). Estaban en el banco desde el 2 sep:
+  se contaban en cada corrida, pero nadie las había comprobado por nombre.
+- **`CA7`** — en producción, 2 de 41 documentos de `users` llevan `tema` (los dos `oscuro`), y son las
+  dos cuentas de prueba de David, que lo eligió él. El único código que escribe el campo es el
+  interruptor del propio usuario (`tema-context.tsx` → `profile-service.ts`), y la regla solo se lo
+  deja al dueño (`CA4`).
+- **`CA16`** — el CSS que sirve `grupovivaru.com` lleva **0** reglas `prefers-color-scheme`, contra las
+  21 del valor de partida.
 
 ---
 

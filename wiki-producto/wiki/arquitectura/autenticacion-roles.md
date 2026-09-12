@@ -56,6 +56,10 @@ Dos fichas cerraron los caminos por los que un tercero —o un administrador— 
 - **`FIX-004` (11 sep).** «Enviar acceso» a un residente reutilizaba cualquier cuenta con ese correo: le cambiaba la clave y la volvía residente aunque fuera un admin de otro conjunto o el superadmin. Ahora rechaza un correo que ya es de administración o portería, y «Quitar acceso» no toca una cuenta que no sea residente de ese conjunto. **El enlace de la ficha con su cuenta (`people.authUid`) lo escribe solo el servidor**: era un puntero que el propio admin podía reescribir. Ver [[usuarios]].
 - **`FIX-005` (12 sep).** El login da un solo mensaje para credenciales inválidas. El alta de prueba responde igual exista o no la cuenta —al dueño le llega un correo—, con límite por correo y por IP en `limitesDeIntentos`, que caduca sola por TTL. Una membresía desactivada deja de abrir los datos del conjunto en el acto: las reglas exigen que esté activa. El conjunto ya no ve el uid ni el correo del equipo de Vivaru, ni en [[soporte]] ni en el código del navegador. Y «Recordar sesión» hace lo que dice. **Falta App Check**, que se configura en la consola.
 
+## El consejo, un atributo de la membresía (sep 2026)
+
+El rol `committee` existía en las reglas y nadie podía concederlo. Desde `PLAT-004`, el consejo es una **marca de la membresía** (`isCommittee`) sobre un residente, no un valor de `role`: conserva su unidad y su estado de cuenta, entra por el portal del residente, y la marca solo la escribe el servidor. Ver [[rol-consejo]].
+
 ## Seguridad de las callables
 
 Las Cloud Functions callable de identidad restringen el origen con `callableCorsOrigins`; debe incluir el dominio que sirve la app (`www.grupovivaru.com`) o el `POST` se bloquea por CORS. Ver [[trampas-conocidas]] y [[firebase-firestore]].
@@ -66,7 +70,7 @@ Para los límites, la IP de quien llama es la **última** de `X-Forwarded-For` e
 
 - Véase también: [[middleware-ts]], [[multi-tenancy]], [[firebase-firestore]], [[correos-mensajeria]], [[ciclo-de-vida-tenant]]
 - Depende de: [[domain-types]], [[stack-tecnico]]
-- Se conecta con: [[usuarios]], [[portal-residente]], [[portal-guardia]], [[estructura-app-router]], [[soporte]], [[trampas-conocidas]]
+- Se conecta con: [[usuarios]], [[portal-residente]], [[portal-guardia]], [[estructura-app-router]], [[soporte]], [[trampas-conocidas]], [[rol-consejo]]
 
 ## Fuentes
 
