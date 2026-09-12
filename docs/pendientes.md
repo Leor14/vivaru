@@ -82,9 +82,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > **0 · En curso: `PRD-V-FIX-005`**, rama `trabajo/fix-005-puertas-publicas`, **en staging desde el 12 sep**
 > (functions, front y reglas, y la migración de soporte). **Hechas:** H1 —con la decisión de David, R2 opción A:
-> en una prueba se da de alta al portero real, con tope de intentos—, H2, H3a, H3b, H3c (opción A), H4a y H4b.
-> **Falta:** mirarlo en pantalla —pide iniciar sesión: David—, H5 y la IP en el límite del alta (medir
-> `X-Forwarded-For` en staging), App Check (`D-CONSOLA`) y producción, con su permiso.
+> en una prueba se da de alta al portero real, con tope de intentos—, H2, H3a, H3b, H3c (opción A), H4a, H4b y
+> **H5** (el límite cuenta la IP real: la última en las callables, la tercera desde el final en App Hosting; `CF8`
+> visto en vivo). **Falta:** mirarlo en pantalla —pide iniciar sesión: David—, App Check (`D-CONSOLA`), la
+> política de TTL de `limitesDeIntentos` (configuración, con su permiso) y producción, con su permiso.
 >
 > **A · Construible ya**
 > 1. **`FIX-001` entrega 2** — la política de reservas por área (10 de 11 criterios). Fase 2.
