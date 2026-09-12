@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
-import { collection, getCountFromServer, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
+import { contarUsoMensual, rangoDelMes } from "@/features/reservations/uso-mensual";
+import { toDateInputValue } from "@/utils/datetimeValidation";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -212,21 +214,24 @@ export default function ResidentReservationsPage() {
       setMonthlyUsageCount(null);
       return;
     }
-    const now = new Date();
-    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
     if (!db) return;
-    const reservationsRef = collection(db, "tenants", tenantId, "reservations");
+    // `PRD-V-FIX-001` entrega 1.1: en la colección RAÍZ, filtrando el conjunto, y
+    // con el mes de la fecha elegida —los mismos límites que el servidor—. Contaba
+    // en `tenants/{id}/reservations`, que no existe: siempre fallaba, el `catch` lo
+    // callaba y el botón nunca se desactivaba.
+    const { desde, hasta } = rangoDelMes(selectedDate || toDateInputValue(new Date()));
     const q = query(
-      reservationsRef,
+      collection(db, "reservations"),
+      where("tenantId", "==", tenantId),
       where("amenityId", "==", selectedAmenityDetail.id),
       where("unitId", "==", user.unitId),
-      where("date", ">=", firstOfMonth),
-      where("status", "!=", "cancelled"),
+      where("date", ">=", desde),
+      where("date", "<=", hasta),
     );
-    getCountFromServer(q)
-      .then((snap) => setMonthlyUsageCount(snap.data().count))
+    getDocs(q)
+      .then((snap) => setMonthlyUsageCount(contarUsoMensual(snap.docs.map((d) => d.data() as { status?: string }))))
       .catch(() => setMonthlyUsageCount(null));
-  }, [tenantId, user?.unitId, selectedAmenityDetail]);
+  }, [tenantId, user?.unitId, selectedAmenityDetail, selectedDate]);
 
   useEffect(() => {
     if (amenities.length === 0) {

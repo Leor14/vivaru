@@ -83,42 +83,76 @@ describe("checkReservationEligibility", () => {
     expect(getDocsMock).not.toHaveBeenCalled();
   });
 
+  // `PRD-V-FIX-001` entrega 1.1: la exención se busca por el DOC ID de la unidad,
+  // que es lo que viaja en la sesión, como hace el servidor. Buscarla por el campo
+  // `unitId` —un slug— no casaba nunca, y una unidad exenta veía el aviso de mora
+  // mientras el servidor la dejaba reservar. El campo queda como caída para
+  // unidades viejas cuyo id no case.
+  const unidadPorId = (d: { tenantId?: string; reservationExempt?: boolean } | null) => ({
+    exists: () => d !== null,
+    data: () => d ?? undefined,
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
-  it("T2 — flag on, unit exempt → eligible, never queries billing", async () => {
-    getDocMock.mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }));
-    // First getDocs call = units query
-    getDocsMock.mockResolvedValueOnce(makeUnitSnap([{ reservationExempt: true }]));
+  it("T2 — unidad exenta encontrada por su doc id → elegible, sin mirar la cartera", async () => {
+    getDocMock
+      .mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }))
+      .mockResolvedValueOnce(unidadPorId({ tenantId: "tenant1", reservationExempt: true }));
 
     const result = await checkReservationEligibility("tenant1", "unit1");
 
     expect(result).toEqual({ eligible: true, amountDue: 0 });
-    // Only units was queried; billing was NOT queried (only 1 getDocs call)
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(getDocsMock).not.toHaveBeenCalled();
   });
 
   // ─────────────────────────────────────────────────────────────────────────
   it("T3 — flag on, not exempt, overdue balance → ineligible with summed amountDue", async () => {
-    getDocMock.mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }));
-    getDocsMock
-      .mockResolvedValueOnce(makeUnitSnap([{ reservationExempt: false }])) // units
-      .mockResolvedValueOnce(makeBillingSnap([150000, 75000]));             // billing
+    getDocMock
+      .mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }))
+      .mockResolvedValueOnce(unidadPorId({ tenantId: "tenant1", reservationExempt: false }));
+    getDocsMock.mockResolvedValueOnce(makeBillingSnap([150000, 75000])); // billing
 
     const result = await checkReservationEligibility("tenant1", "unit1");
 
     expect(result).toEqual({ eligible: false, amountDue: 225000, reason: "OVERDUE_BALANCE" });
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(getDocsMock).toHaveBeenCalledTimes(1);
   });
 
   // ─────────────────────────────────────────────────────────────────────────
   it("T4 — flag on, not exempt, no overdue docs → eligible", async () => {
-    getDocMock.mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }));
-    getDocsMock
-      .mockResolvedValueOnce(makeUnitSnap([{ reservationExempt: false }])) // units
-      .mockResolvedValueOnce(makeBillingSnap([]));                          // billing empty
+    getDocMock
+      .mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }))
+      .mockResolvedValueOnce(unidadPorId({ tenantId: "tenant1", reservationExempt: false }));
+    getDocsMock.mockResolvedValueOnce(makeBillingSnap([])); // billing empty
 
     const result = await checkReservationEligibility("tenant1", "unit1");
 
     expect(result).toEqual({ eligible: true, amountDue: 0 });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  it("T6 — unidad vieja cuyo id no casa: cae al campo unitId y respeta su exención", async () => {
+    getDocMock
+      .mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }))
+      .mockResolvedValueOnce(unidadPorId(null));
+    getDocsMock.mockResolvedValueOnce(makeUnitSnap([{ reservationExempt: true }])); // units por campo
+
+    const result = await checkReservationEligibility("tenant1", "unit1");
+
+    expect(result).toEqual({ eligible: true, amountDue: 0 });
+    expect(getDocsMock).toHaveBeenCalledTimes(1);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  it("T7 — una unidad de OTRO conjunto con ese id no exime", async () => {
+    getDocMock
+      .mockResolvedValueOnce(makeSettingsSnap({ blockOnDebt: true }))
+      .mockResolvedValueOnce(unidadPorId({ tenantId: "otro", reservationExempt: true }));
+    getDocsMock.mockResolvedValueOnce(makeBillingSnap([50000])); // billing
+
+    const result = await checkReservationEligibility("tenant1", "unit1");
+
+    expect(result).toEqual({ eligible: false, amountDue: 50000, reason: "OVERDUE_BALANCE" });
   });
 
   // ─────────────────────────────────────────────────────────────────────────

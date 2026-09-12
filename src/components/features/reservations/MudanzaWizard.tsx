@@ -266,6 +266,7 @@ export function MudanzaWizard({
             <label className="block text-sm text-[var(--slate-700)]">
               Notas adicionales
               <Textarea
+                maxLength={2000}
                 value={additionalNotes}
                 onChange={(event) => setAdditionalNotes(event.target.value)}
                 placeholder="Empresa de mudanzas, vehiculo, contacto..."

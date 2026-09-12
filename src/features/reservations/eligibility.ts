@@ -38,19 +38,26 @@ export async function checkReservationEligibility(
     return { eligible: true, amountDue: 0 };
   }
 
-  // Step 2 — per-unit exemption check
-  const unitsRef = collection(db, "units");
-  const unitQuery = query(
-    unitsRef,
-    where("tenantId", "==", tenantId),
-    where("unitId", "==", unitId),
-  );
-  const unitSnap = await getDocs(unitQuery);
-
-  if (!unitSnap.empty) {
-    const unitData = unitSnap.docs[0].data() as { reservationExempt?: boolean };
-    if (unitData.reservationExempt === true) {
+  // Step 2 — per-unit exemption check. `PRD-V-FIX-001` entrega 1.1: por el DOC ID,
+  // que es lo que viaja en la sesión —como hace el servidor—, y por el campo
+  // `unitId` solo para unidades viejas cuyo id no case. Buscarla solo por el campo
+  // (un slug) no casaba nunca: una unidad exenta veía el aviso de mora mientras el
+  // servidor la dejaba reservar.
+  const unitByIdSnap = await getDoc(doc(db, "units", unitId));
+  if (unitByIdSnap.exists()) {
+    const unitData = unitByIdSnap.data() as { tenantId?: string; reservationExempt?: boolean };
+    if (unitData.tenantId === tenantId && unitData.reservationExempt === true) {
       return { eligible: true, amountDue: 0 };
+    }
+  } else {
+    const unitSnap = await getDocs(
+      query(collection(db, "units"), where("tenantId", "==", tenantId), where("unitId", "==", unitId)),
+    );
+    if (!unitSnap.empty) {
+      const unitData = unitSnap.docs[0].data() as { reservationExempt?: boolean };
+      if (unitData.reservationExempt === true) {
+        return { eligible: true, amountDue: 0 };
+      }
     }
   }
 

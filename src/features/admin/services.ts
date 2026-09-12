@@ -178,6 +178,8 @@ export type ReservationItem = {
   id: string;
   tenantId: string;
   amenityName: string;
+  /** `PRD-V-FIX-001` entrega 1.1: el servidor cuenta aforo y cupo por este campo. */
+  amenityId?: string;
   unitId: string;
   reservedBy: string;
   date: string;
@@ -1132,6 +1134,12 @@ export async function createReservation(
 
   if (!isDateTimeValid(reservationDateTime, "reservation")) {
     throw new Error("La reserva requiere al menos 30 minutos de anticipacion.");
+  }
+
+  // `PRD-V-FIX-001` entrega 1.1: sin `amenityId` el servidor no ve esta reserva al
+  // contar aforo y cupo, y un residente podía reservar encima.
+  if (!payload.amenityId?.trim()) {
+    throw new Error("No fue posible identificar el área de la reserva.");
   }
 
   const firestore = assertDb();

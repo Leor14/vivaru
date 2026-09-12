@@ -115,6 +115,36 @@ export async function createReservationRequestCallable(input: CreateReservationR
   return executeCallable(callable, input, "No fue posible crear la reserva en este momento.");
 }
 
+export type CreateMudanzaRequestInput = {
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  requiresElevator: boolean;
+  depositPaid: boolean;
+  depositAmount?: number;
+  additionalNotes?: string;
+  createdByName?: string;
+};
+
+/**
+ * PRD-V-FIX-001 entrega 1.1 · `CA11`: la mudanza del residente, escrita por el
+ * servidor. El mensaje de rechazo ya viene listo para mostrarse.
+ */
+export async function createMudanzaRequestCallable(input: CreateMudanzaRequestInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<CreateMudanzaRequestInput, { ok: true; reservationId: string; status: "pending" }>(
+    functions,
+    "createMudanzaRequest",
+  );
+  return executeCallable(callable, input, "No fue posible enviar la solicitud de mudanza en este momento.");
+}
+
 export type GenerateCoefficientCampaignInput = {
   tenantId: string;
   totalAmount: number;

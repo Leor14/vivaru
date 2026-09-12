@@ -27,6 +27,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { CalendarDays, FilterX, X } from "lucide-react";
 
+import { amenityIdPorNombre } from "@/features/reservations/amenity-por-nombre";
 import { findReservationConflict } from "@/features/reservations/conflicts";
 import { normalizeTower } from "@/utils/tower";
 import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
@@ -295,13 +296,21 @@ export default function AdminReservationsPage() {
       return;
     }
 
+    // `PRD-V-FIX-001` entrega 1.1: la reserva lleva el id del área, que es por donde
+    // el servidor cuenta aforo y cupo. Sin él, un residente podía reservar encima.
+    const amenityId = amenityIdPorNombre(amenities, values.amenityName);
+    if (!amenityId) {
+      toast.error("No se pudo identificar el área elegida. Recarga la página e inténtalo de nuevo.");
+      return;
+    }
+
     setSaving(true);
     try {
       if (editingItem) {
-        await updateReservation(editingItem.id, user.uid, values);
+        await updateReservation(editingItem.id, user.uid, { ...values, amenityId });
         toast.success("Reserva actualizada.");
       } else {
-        await createReservation(user.tenantId, user.uid, values);
+        await createReservation(user.tenantId, user.uid, { ...values, amenityId });
         toast.success("Reserva registrada.");
       }
       setOpenModal(false);

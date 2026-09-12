@@ -148,7 +148,7 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
   // verificada contra el commit anterior**: no es una excepción nueva, es la de
   // siempre desplazada — y que este guardián lo cazara es justo lo que promete su
   // segundo caso.
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:730"]);
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:732"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);

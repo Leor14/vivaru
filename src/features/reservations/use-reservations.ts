@@ -27,7 +27,7 @@ import {
 import type { Reservation } from "@/types/domain";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import { checkReservationEligibility } from "@/features/reservations/eligibility";
-import { createReservationRequestCallable } from "@/lib/firebase/callables";
+import { createMudanzaRequestCallable, createReservationRequestCallable } from "@/lib/firebase/callables";
 
 function debugReservations(message: string, payload: Record<string, unknown>) {
   const enabled = process.env.NEXT_PUBLIC_DEBUG_GUARD_RESERVATIONS === "true";
@@ -329,14 +329,8 @@ export async function createMudanzaReservation(input: {
   requiresElevator: boolean;
   depositPaid: boolean;
   depositAmount?: number;
-  receiptUrl?: string;
-  receiptName?: string;
   additionalNotes?: string;
 }) {
-  if (!db) {
-    throw new Error("Firebase no esta configurado en este entorno.");
-  }
-
   if (!input.unitId.trim()) {
     throw new Error("No fue posible identificar tu unidad. Cierra sesion e inicia nuevamente.");
   }
@@ -355,42 +349,21 @@ export async function createMudanzaReservation(input: {
     throw new Error("La mudanza requiere al menos 30 minutos de anticipacion.");
   }
 
-  const mudanzaPayload: Record<string, unknown> = {
-    requiresElevator: input.requiresElevator,
-    depositPaid: input.depositPaid,
-  };
-  if (input.depositAmount != null) mudanzaPayload.depositAmount = input.depositAmount;
-  if (input.receiptUrl) mudanzaPayload.receiptUrl = input.receiptUrl;
-  if (input.receiptName) mudanzaPayload.receiptName = input.receiptName;
-  if (input.additionalNotes?.trim()) mudanzaPayload.additionalNotes = input.additionalNotes.trim();
-
-  const payload = {
+  // `PRD-V-FIX-001` entrega 1.1 · `CA11`: la escribe el servidor. Esto era un
+  // `addDoc` desde el navegador, y el paso 4 —que el 24 ago 2026 retiró la rama del
+  // residente del `create` de `reservations`— lo dejó rechazado sin que nadie lo
+  // notara: en ningún ambiente se había pedido nunca una mudanza.
+  await createMudanzaRequestCallable({
     tenantId: input.tenantId,
-    createdBy: input.userId,
-    createdByName: input.createdByName?.trim() || "",
-    residentName: input.createdByName?.trim() || "",
-    updatedBy: input.userId,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
     unitId: input.unitId,
-    amenityId: "mudanza",
-    amenity: "Mudanza",
-    amenityName: "Mudanza",
     unitLabel: input.unitLabel,
     date: input.date,
     startTime: input.startTime,
     endTime: input.endTime,
-    slot: formatRangeLabel(startMinutes, endMinutes),
-    exclusiveUse: true,
-    kind: "mudanza" as const,
-    mudanza: mudanzaPayload,
-    status: "pending" as const,
-  };
-
-  try {
-    const reservationsRef = collection(db, "reservations");
-    await addDoc(reservationsRef, payload);
-  } catch (error) {
-    throw new Error(normalizeReservationCreateError(error));
-  }
+    requiresElevator: input.requiresElevator,
+    depositPaid: input.depositPaid,
+    depositAmount: input.depositAmount,
+    additionalNotes: input.additionalNotes,
+    createdByName: input.createdByName,
+  });
 }
