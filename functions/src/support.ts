@@ -83,10 +83,21 @@ export type AttachmentInput = { name: string; path: string; url: string };
  * Lo que no pasa el filtro se BORRA: un archivo subido que nunca llega a un
  * ticket es basura que nadie va a limpiar después.
  */
+/**
+ * `PRD-V-FIX-005` · H3c: la carpeta de los adjuntos de un ticket. El equipo de Vivaru sube a
+ * `support/equipo/`: la ruta —y la `url`, que la lleva codificada— viaja en el hilo que el
+ * administrador del conjunto lee entero, y con su uid dentro era la tercera vía a él. El cliente
+ * sigue bajo su propio uid, que es suyo. Espejo de `src/features/support/ruta-de-adjunto.ts`.
+ */
+export function prefijoDeAdjuntos(tenantId: string, uid: string, esVivaru: boolean): string {
+  return `tenants/${tenantId}/support/${esVivaru ? "equipo" : uid}/`;
+}
+
 async function validateAttachments(
   entrada: unknown,
   tenantId: string,
   uid: string,
+  esVivaru = false,
 ): Promise<Array<{ name: string; path: string; url: string; size: number; contentType: string }>> {
   if (!Array.isArray(entrada) || entrada.length === 0) return [];
   if (entrada.length > MAX_ATTACHMENTS) {
@@ -94,7 +105,7 @@ async function validateAttachments(
   }
 
   const bucket = getStorage().bucket();
-  const prefijo = `tenants/${tenantId}/support/${uid}/`;
+  const prefijo = prefijoDeAdjuntos(tenantId, uid, esVivaru);
   const salida: Array<{ name: string; path: string; url: string; size: number; contentType: string }> = [];
 
   for (const raw of entrada as AttachmentInput[]) {
@@ -433,7 +444,7 @@ export async function replySupportTicket(
     }
   }
 
-  const adjuntos = await validateAttachments(input.attachments, data.tenantId, uid);
+  const adjuntos = await validateAttachments(input.attachments, data.tenantId, uid, esVivaru);
 
   const nowIso = new Date().toISOString();
   // Vivaru responde ⇒ la pelota pasa al cliente. El cliente responde ⇒ vuelve

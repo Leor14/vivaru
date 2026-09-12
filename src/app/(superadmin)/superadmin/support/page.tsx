@@ -205,7 +205,8 @@ export default function SuperadminSupportPage() {
     try {
       // La evidencia del equipo va al Storage del conjunto del ticket: es donde
       // la callable la espera y donde el cliente puede leerla.
-      const files = await uploadSupportAttachments(selected.tenantId, adjuntos);
+      // `FIX-005` · H3c: el equipo sube a `support/equipo/`, sin su uid en la ruta del hilo.
+      const files = await uploadSupportAttachments(selected.tenantId, adjuntos, { comoEquipo: true });
       await replyAsVivaru(selected.id, reply.trim(), files);
       toast.success("Respuesta enviada al cliente.");
       setReply("");

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SUPPORT_LIMITS = void 0;
+exports.prefijoDeAdjuntos = prefijoDeAdjuntos;
 exports.createSupportTicket = createSupportTicket;
 exports.marcasSup001 = marcasSup001;
 exports.entradaDelHilo = entradaDelHilo;
@@ -84,14 +85,23 @@ const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
  * Lo que no pasa el filtro se BORRA: un archivo subido que nunca llega a un
  * ticket es basura que nadie va a limpiar después.
  */
-async function validateAttachments(entrada, tenantId, uid) {
+/**
+ * `PRD-V-FIX-005` · H3c: la carpeta de los adjuntos de un ticket. El equipo de Vivaru sube a
+ * `support/equipo/`: la ruta —y la `url`, que la lleva codificada— viaja en el hilo que el
+ * administrador del conjunto lee entero, y con su uid dentro era la tercera vía a él. El cliente
+ * sigue bajo su propio uid, que es suyo. Espejo de `src/features/support/ruta-de-adjunto.ts`.
+ */
+function prefijoDeAdjuntos(tenantId, uid, esVivaru) {
+    return `tenants/${tenantId}/support/${esVivaru ? "equipo" : uid}/`;
+}
+async function validateAttachments(entrada, tenantId, uid, esVivaru = false) {
     if (!Array.isArray(entrada) || entrada.length === 0)
         return [];
     if (entrada.length > MAX_ATTACHMENTS) {
         throw new https_1.HttpsError("invalid-argument", `Máximo ${MAX_ATTACHMENTS} archivos por mensaje.`);
     }
     const bucket = (0, storage_1.getStorage)().bucket();
-    const prefijo = `tenants/${tenantId}/support/${uid}/`;
+    const prefijo = prefijoDeAdjuntos(tenantId, uid, esVivaru);
     const salida = [];
     for (const raw of entrada) {
         const path = typeof raw?.path === "string" ? raw.path : "";
@@ -349,7 +359,7 @@ async function replySupportTicket(input, uid, role) {
             throw new https_1.HttpsError("failed-precondition", "Este ticket ya no admite respuestas.");
         }
     }
-    const adjuntos = await validateAttachments(input.attachments, data.tenantId, uid);
+    const adjuntos = await validateAttachments(input.attachments, data.tenantId, uid, esVivaru);
     const nowIso = new Date().toISOString();
     // Vivaru responde ⇒ la pelota pasa al cliente. El cliente responde ⇒ vuelve
     // a nuestra cola. Es lo que hace que «pendiente» sea un número accionable.
