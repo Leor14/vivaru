@@ -197,8 +197,11 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
   let memberships: TenantMembership[] = [];
   let isCommittee = false;
 
-  if (role === "superadmin" || firebaseUser.email === "superadmin@hogaru.co") {
-    role = "superadmin";
+  // El rol sale del claim —y del perfil, que se lee debajo—, nunca del correo: escribir
+  // aquí el correo del superadmin lo ponía en el paquete que descarga cualquiera en
+  // `/login` (`PRD-V-FIX-005` · CF9). Medido el 11 sep: esa cuenta tiene el claim en los
+  // dos ambientes, así que quitarlo no deja a nadie fuera.
+  if (role === "superadmin") {
     tenantId = undefined;
   }
 
