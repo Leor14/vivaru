@@ -1262,6 +1262,10 @@ fecha de revisión.
 - **Falta, y es de David**: App Check (`D-CONSOLA`). **El TTL de `limitesDeIntentos.expiraEn`, con su permiso, `ACTIVE`
   en los dos proyectos** (03:12Z staging, 03:18Z producción) y declarado en `firestore.indexes.json`. Los formularios
   de producción no se probaron, a propósito; `CF8` se vio en vivo en staging.
+- **De paso, con permiso de David: fuera el índice huérfano `documents (tenantId ↑, uploadedAt ↓)`** de los dos
+  proyectos (staging 03:46:05Z, producción 03:46:24Z). Nada lo consultaba desde que la lista de documentos dejó de
+  ordenar por `uploadedAt` (24 ago), y no estaba en el repo. Su gemelo de `paymentReceipts`, que sí se usa, sigue
+  `READY`; las dos bases quedan en 66 índices. Si hiciera falta, se recrea con esos dos campos en ámbito `COLLECTION`.
 - Bancos sobre `b852082`: `npm test` **2039** · functions **969** · reglas **486**; typecheck en 0.
 
 ### 0.9.69 — 11 de septiembre de 2026, noche — las dos ventanas de producción, con `FIX-004` y `PLAT-002` entrega 2
