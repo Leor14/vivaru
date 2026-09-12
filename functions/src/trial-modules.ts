@@ -31,6 +31,22 @@ const PREVIEW_MODULES: ReadonlySet<TrialModuleKey> = new Set<TrialModuleKey>([
 
 const RESTRICTED_STATUSES = new Set(["trial", "expired"]);
 
+/** `PRD-V-FIX-005`: ¿el conjunto está en prueba, o su prueba venció? Un estado ausente no lo es. */
+export function esAmbienteDePrueba(status: unknown): boolean {
+  return typeof status === "string" && RESTRICTED_STATUSES.has(status);
+}
+
+/**
+ * `PRD-V-FIX-005` · R2, opción A de David (11 sep): el tope de intentos de alta de usuarios
+ * operativos en una prueba. La guía propone dar de alta al portero real, y un conjunto de prueba
+ * tiene uno o dos; diez intentos en los quince días de la prueba sobran para eso y no dan para
+ * usar el alta de oráculo.
+ */
+export const MAX_OPERATIVOS_EN_PRUEBA = 10;
+export const VENTANA_DE_PRUEBA_MS = 15 * 24 * 60 * 60 * 1000;
+export const MENSAJE_TOPE_DE_PRUEBA =
+  "Durante la prueba puedes intentar dar de alta hasta 10 usuarios. Para seguir, habla con un asesor de Vivaru.";
+
 /**
  * Lanza si el módulo está bajo llave para el estado actual del tenant.
  * Los clientes (`active`) nunca se bloquean.

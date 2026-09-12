@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FULL_SERVICE_PLAN_ID = exports.TRIAL_PLAN_ID = exports.TRIAL_DAYS = void 0;
+exports.MAX_ALTAS_POR_HORA = exports.MENSAJE_ALTA_NO_DISPONIBLE = exports.RESPUESTA_DEL_ALTA = exports.FULL_SERVICE_PLAN_ID = exports.TRIAL_PLAN_ID = exports.TRIAL_DAYS = void 0;
+exports.atenderAltaDePrueba = atenderAltaDePrueba;
 exports.provisionTrialWorkspace = provisionTrialWorkspace;
 const node_crypto_1 = require("node:crypto");
 const auth_1 = require("firebase-admin/auth");
@@ -71,9 +72,51 @@ function buildTenantId(conjunto) {
 function demoPassword() {
     return `Demo${(0, node_crypto_1.randomUUID)().slice(0, 4).toUpperCase()}*`;
 }
+// ── PRD-V-FIX-005 · H1: el alta de prueba no delata cuentas ───────────────────
+//
+// `createTrialWorkspace` es pública —sin sesión— y respondía «Ya existe una cuenta con ese correo»
+// a cualquiera: bastaba con probar correos. Ahora responde lo mismo exista o no la cuenta (R1), y
+// al dueño le llega un correo. Los intentos tienen límite por correo —y por IP cuando H5 diga
+// cuál es la de verdad— (R8), mirado ANTES que la cuenta para que el rechazo tampoco diga nada.
+// Las dependencias van inyectadas para poder probarlo sin Firebase.
+/** Lo que responde el alta, exista o no la cuenta. */
+exports.RESPUESTA_DEL_ALTA = Object.freeze({ ok: true });
+/** El rechazo del límite: el mismo texto por correo o por IP, sin decir cuál. */
+exports.MENSAJE_ALTA_NO_DISPONIBLE = "No pudimos procesar tu solicitud en este momento. Intenta de nuevo más tarde.";
+/** R8: la ficha recomienda 5 por hora. */
+exports.MAX_ALTAS_POR_HORA = 5;
+const HORA_MS = 60 * 60 * 1000;
+async function atenderAltaDePrueba(input, deps, ip) {
+    const email = input.email.trim().toLowerCase();
+    const porCorreo = await deps.consumirIntento(`alta-de-prueba:correo:${email}`, exports.MAX_ALTAS_POR_HORA, HORA_MS);
+    const porIp = ip ? await deps.consumirIntento(`alta-de-prueba:ip:${ip}`, exports.MAX_ALTAS_POR_HORA, HORA_MS) : true;
+    if (!porCorreo || !porIp)
+        throw new https_1.HttpsError("resource-exhausted", exports.MENSAJE_ALTA_NO_DISPONIBLE);
+    const cuenta = await deps.cuentaConEseCorreo(email);
+    if (cuenta) {
+        await deps.avisarQueYaTieneCuenta(email, cuenta.tenantId);
+        return exports.RESPUESTA_DEL_ALTA;
+    }
+    let resultado;
+    try {
+        resultado = await deps.crearAmbiente(input);
+    }
+    catch (error) {
+        // Otra alta con el mismo correo ganó la carrera entre la comprobación y la creación.
+        if (error instanceof https_1.HttpsError && error.code === "already-exists") {
+            await deps.avisarQueYaTieneCuenta(email, null);
+            return exports.RESPUESTA_DEL_ALTA;
+        }
+        throw error;
+    }
+    await deps.alCrear(resultado, email, input.nombre.trim());
+    return exports.RESPUESTA_DEL_ALTA;
+}
 /**
- * Crea el ambiente de prueba completo. El llamador es responsable de haber
- * verificado el correo del prospecto y de aplicar rate limiting.
+ * Crea el ambiente de prueba completo. **Quien la llama es `atenderAltaDePrueba`**, que ya aplicó
+ * el límite y comprobó que el correo no tiene cuenta; la comprobación de aquí queda para la
+ * carrera entre dos altas con el mismo correo. *(Este comentario decía que «el llamador aplica el
+ * rate limiting», y el llamador no aplicaba ninguno.)*
  */
 async function provisionTrialWorkspace(input) {
     const db = getDb();

@@ -365,10 +365,8 @@ export async function createTrialWorkspaceCallable(input: {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
   }
 
-  const callable = httpsCallable<typeof input, { tenantId: string; trialEndsAt: string }>(
-    functions,
-    "createTrialWorkspace",
-  );
+  // `PRD-V-FIX-005` · R1: responde lo mismo exista o no la cuenta, así que no trae nada más.
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "createTrialWorkspace");
   // Sin sesión: no se puede usar executeCallable (que exige usuario autenticado).
   try {
     const response = await callable(input);

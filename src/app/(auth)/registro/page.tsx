@@ -88,13 +88,15 @@ export default function RegistroPage() {
                 <Mail className="h-6 w-6" />
               </div>
               <h1 className="text-2xl font-bold text-[var(--slate-900)]">Revisa tu correo</h1>
+              {/* `PRD-V-FIX-005` · R1: esta pantalla es la misma exista o no la cuenta, así que no
+                  puede afirmar que se creó nada. El correo dice lo que corresponde a cada caso. */}
               <p className="mt-2 text-sm text-[var(--slate-600)]">
-                Creamos el ambiente de <strong>{conjunto.trim()}</strong> y te enviamos a{" "}
-                <strong>{email.trim().toLowerCase()}</strong> el enlace para definir tu contraseña y entrar.
+                Te enviamos a <strong>{email.trim().toLowerCase()}</strong> las instrucciones para entrar a
+                Vivaru.
               </p>
               <p className="mt-4 rounded-xl bg-[var(--surface-soft)] p-3 text-xs text-[var(--slate-600)]">
-                Tienes <strong>15 días</strong> de prueba. Si no ves el correo en unos minutos, revisa la
-                carpeta de spam.
+                Si es tu primera vez en Vivaru, tienes <strong>15 días</strong> de prueba. Si no ves el
+                correo en unos minutos, revisa la carpeta de spam.
               </p>
               <Link
                 href="/login"

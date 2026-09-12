@@ -1,5 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.MENSAJE_TOPE_DE_PRUEBA = exports.VENTANA_DE_PRUEBA_MS = exports.MAX_OPERATIVOS_EN_PRUEBA = void 0;
+exports.esAmbienteDePrueba = esAmbienteDePrueba;
 exports.assertModuleAllowed = assertModuleAllowed;
 exports.assertCanInviteRealPeople = assertCanInviteRealPeople;
 const firestore_1 = require("firebase-admin/firestore");
@@ -12,6 +14,19 @@ const PREVIEW_MODULES = new Set([
     "regulations",
 ]);
 const RESTRICTED_STATUSES = new Set(["trial", "expired"]);
+/** `PRD-V-FIX-005`: ¿el conjunto está en prueba, o su prueba venció? Un estado ausente no lo es. */
+function esAmbienteDePrueba(status) {
+    return typeof status === "string" && RESTRICTED_STATUSES.has(status);
+}
+/**
+ * `PRD-V-FIX-005` · R2, opción A de David (11 sep): el tope de intentos de alta de usuarios
+ * operativos en una prueba. La guía propone dar de alta al portero real, y un conjunto de prueba
+ * tiene uno o dos; diez intentos en los quince días de la prueba sobran para eso y no dan para
+ * usar el alta de oráculo.
+ */
+exports.MAX_OPERATIVOS_EN_PRUEBA = 10;
+exports.VENTANA_DE_PRUEBA_MS = 15 * 24 * 60 * 60 * 1000;
+exports.MENSAJE_TOPE_DE_PRUEBA = "Durante la prueba puedes intentar dar de alta hasta 10 usuarios. Para seguir, habla con un asesor de Vivaru.";
 /**
  * Lanza si el módulo está bajo llave para el estado actual del tenant.
  * Los clientes (`active`) nunca se bloquean.

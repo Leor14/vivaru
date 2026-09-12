@@ -79,7 +79,15 @@ import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertBuzonAdmisible } from "./buzones-admisibles";
-import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import {
+  assertCanInviteRealPeople,
+  assertModuleAllowed,
+  esAmbienteDePrueba,
+  MAX_OPERATIVOS_EN_PRUEBA,
+  MENSAJE_TOPE_DE_PRUEBA,
+  VENTANA_DE_PRUEBA_MS,
+} from "./trial-modules";
+import { consumirIntento } from "./limites-de-intentos";
 import {
   asociarConjunto,
   guardarAdministradora,
@@ -141,7 +149,7 @@ import {
   type EmitirPazYSalvoInput,
 } from "./clearance-certificates";
 import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
-import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
+import { atenderAltaDePrueba, provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
   resolveNotificationCopy,
   type NotificationKey,
@@ -1621,6 +1629,18 @@ export const createTenantOperationalUser = onCall<CreateTenantOperationalUserInp
       const tenantSnap = await tenantRef.get();
       if (!tenantSnap.exists) {
         throw new HttpsError("not-found", "El tenant no existe.");
+      }
+
+      // `PRD-V-FIX-005` · R2, opción A de David (11 sep): en una prueba se puede dar de alta al
+      // portero real —la guía lo propone—, pero el alta no puede servir de oráculo para saber
+      // quién tiene cuenta: los intentos tienen tope, contado ANTES de buscar el correo.
+      if (esAmbienteDePrueba(tenantSnap.data()?.status)) {
+        const permitido = await consumirIntento(
+          `operativos-en-prueba:${targetTenantId}`,
+          MAX_OPERATIVOS_EN_PRUEBA,
+          VENTANA_DE_PRUEBA_MS,
+        );
+        if (!permitido) throw new HttpsError("resource-exhausted", MENSAJE_TOPE_DE_PRUEBA);
       }
 
       // `PLAT-006`: sobre el conjunto REAL del actor, no sobre el que vino en la
@@ -4688,33 +4708,50 @@ export const createTrialWorkspace = onCall<CreateTrialInput>(
       throw new HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
     }
 
-    const result = await provisionTrialWorkspace(d);
-
-    // Enlace de activación: es también la verificación del correo — sin acceso
-    // al buzón no se entra al ambiente. Reutiliza el flujo probado de
-    // accountInvites + /activar, sin tocarlo.
-    await sendOnboardingInvite(
-      result.adminUid,
-      d.email.trim().toLowerCase(),
-      d.nombre.trim(),
-      result.tenantId,
-      "tenant_admin",
-    );
-
-    await writeAuditLog(result.tenantId, undefined, "create_trial_workspace", {
-      email: d.email.trim().toLowerCase(),
-      conjunto: d.conjunto.trim(),
-      trialEndsAt: result.trialEndsAt,
-      seeded: result.seeded,
+    // `PRD-V-FIX-005` · H1: la misma respuesta exista o no la cuenta, con el límite de intentos
+    // mirado ANTES que la cuenta. La IP todavía no cuenta: falta medir en staging cuál es la de
+    // verdad (H5). Las credenciales de prueba NO se devuelven: el admin las ve dentro del portal.
+    return atenderAltaDePrueba(d, {
+      consumirIntento,
+      cuentaConEseCorreo: async (email) => {
+        const cuenta = await getAuth().getUserByEmail(email).catch(() => null);
+        if (!cuenta) return null;
+        const perfil = (await db.collection("users").doc(cuenta.uid).get()).data() as
+          | { tenantId?: unknown }
+          | undefined;
+        return { tenantId: typeof perfil?.tenantId === "string" ? perfil.tenantId : null };
+      },
+      crearAmbiente: provisionTrialWorkspace,
+      alCrear: async (result, email, nombre) => {
+        // Enlace de activación: es también la verificación del correo — sin acceso
+        // al buzón no se entra al ambiente. Reutiliza el flujo probado de
+        // accountInvites + /activar, sin tocarlo.
+        await sendOnboardingInvite(result.adminUid, email, nombre, result.tenantId, "tenant_admin");
+        await writeAuditLog(result.tenantId, undefined, "create_trial_workspace", {
+          email,
+          conjunto: d.conjunto.trim(),
+          trialEndsAt: result.trialEndsAt,
+          seeded: result.seeded,
+        });
+      },
+      avisarQueYaTieneCuenta: async (email, tenantId) => {
+        // Sin el nombre del formulario: lo escribe quien pide el alta, que puede no ser el
+        // dueño, y no puede meter texto suyo en un correo a otra persona.
+        await sendNotificationEmail({
+          to: email,
+          subject: "Ya tienes una cuenta en Vivaru",
+          body: [
+            "Alguien —quizá tú— pidió crear un ambiente de prueba de Vivaru con este correo, que ya tiene una cuenta. No creamos nada nuevo.",
+            "",
+            "Si fuiste tú, inicia sesión; si no recuerdas tu contraseña, puedes recuperarla desde la misma pantalla.",
+            "",
+            "Si no fuiste tú, puedes ignorar este mensaje.",
+          ].join("\n"),
+          link: "/login",
+          tenantId,
+        }).catch((error) => console.error("[createTrialWorkspace] no se pudo avisar al dueño", error));
+      },
     });
-
-    // Las credenciales de prueba NO se devuelven al cliente en claro por esta
-    // vía: el admin las ve dentro del portal, ya autenticado.
-    return {
-      tenantId: result.tenantId,
-      trialEndsAt: result.trialEndsAt,
-      seeded: result.seeded,
-    };
   },
 );
 

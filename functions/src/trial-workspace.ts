@@ -111,9 +111,71 @@ function demoPassword(): string {
   return `Demo${randomUUID().slice(0, 4).toUpperCase()}*`;
 }
 
+// ── PRD-V-FIX-005 · H1: el alta de prueba no delata cuentas ───────────────────
+//
+// `createTrialWorkspace` es pública —sin sesión— y respondía «Ya existe una cuenta con ese correo»
+// a cualquiera: bastaba con probar correos. Ahora responde lo mismo exista o no la cuenta (R1), y
+// al dueño le llega un correo. Los intentos tienen límite por correo —y por IP cuando H5 diga
+// cuál es la de verdad— (R8), mirado ANTES que la cuenta para que el rechazo tampoco diga nada.
+// Las dependencias van inyectadas para poder probarlo sin Firebase.
+
+/** Lo que responde el alta, exista o no la cuenta. */
+export const RESPUESTA_DEL_ALTA = Object.freeze({ ok: true as const });
+
+/** El rechazo del límite: el mismo texto por correo o por IP, sin decir cuál. */
+export const MENSAJE_ALTA_NO_DISPONIBLE =
+  "No pudimos procesar tu solicitud en este momento. Intenta de nuevo más tarde.";
+
+/** R8: la ficha recomienda 5 por hora. */
+export const MAX_ALTAS_POR_HORA = 5;
+const HORA_MS = 60 * 60 * 1000;
+
+export type DependenciasDelAlta = {
+  consumirIntento: (clave: string, max: number, ventanaMs: number) => Promise<boolean>;
+  /** `null` si el correo no tiene cuenta; si la tiene, su conjunto, para la puerta de buzones. */
+  cuentaConEseCorreo: (email: string) => Promise<{ tenantId: string | null } | null>;
+  crearAmbiente: (input: CreateTrialInput) => Promise<CreateTrialResult>;
+  alCrear: (resultado: CreateTrialResult, email: string, nombre: string) => Promise<void>;
+  avisarQueYaTieneCuenta: (email: string, tenantId: string | null) => Promise<void>;
+};
+
+export async function atenderAltaDePrueba(
+  input: CreateTrialInput,
+  deps: DependenciasDelAlta,
+  ip?: string | null,
+): Promise<typeof RESPUESTA_DEL_ALTA> {
+  const email = input.email.trim().toLowerCase();
+
+  const porCorreo = await deps.consumirIntento(`alta-de-prueba:correo:${email}`, MAX_ALTAS_POR_HORA, HORA_MS);
+  const porIp = ip ? await deps.consumirIntento(`alta-de-prueba:ip:${ip}`, MAX_ALTAS_POR_HORA, HORA_MS) : true;
+  if (!porCorreo || !porIp) throw new HttpsError("resource-exhausted", MENSAJE_ALTA_NO_DISPONIBLE);
+
+  const cuenta = await deps.cuentaConEseCorreo(email);
+  if (cuenta) {
+    await deps.avisarQueYaTieneCuenta(email, cuenta.tenantId);
+    return RESPUESTA_DEL_ALTA;
+  }
+
+  let resultado: CreateTrialResult;
+  try {
+    resultado = await deps.crearAmbiente(input);
+  } catch (error) {
+    // Otra alta con el mismo correo ganó la carrera entre la comprobación y la creación.
+    if (error instanceof HttpsError && error.code === "already-exists") {
+      await deps.avisarQueYaTieneCuenta(email, null);
+      return RESPUESTA_DEL_ALTA;
+    }
+    throw error;
+  }
+  await deps.alCrear(resultado, email, input.nombre.trim());
+  return RESPUESTA_DEL_ALTA;
+}
+
 /**
- * Crea el ambiente de prueba completo. El llamador es responsable de haber
- * verificado el correo del prospecto y de aplicar rate limiting.
+ * Crea el ambiente de prueba completo. **Quien la llama es `atenderAltaDePrueba`**, que ya aplicó
+ * el límite y comprobó que el correo no tiene cuenta; la comprobación de aquí queda para la
+ * carrera entre dos altas con el mismo correo. *(Este comentario decía que «el llamador aplica el
+ * rate limiting», y el llamador no aplicaba ninguno.)*
  */
 export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<CreateTrialResult> {
   const db = getDb();
