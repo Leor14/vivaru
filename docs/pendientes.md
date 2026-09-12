@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026, por la noche (12 en UTC)
 
-> # `FIX-005` EN PRODUCCIÓN —SALVO APP CHECK— Y `FIX-001` ENTREGA 1.1 EN STAGING, ESPERANDO A QUE DAVID LA MIRE.
+> # `FIX-005` —SALVO APP CHECK— Y LA ENTREGA 1.1 DE `FIX-001`, EN PRODUCCIÓN EL 12. SIGUE LA ENTREGA 2 DE `FIX-001`.
 >
 > **Lo que queda de `FIX-005` es de David:** la clave de reCAPTCHA Enterprise y registrar la app en App Check
 > (`D-CONSOLA`). El TTL de `limitesDeIntentos` ya está activo en los dos proyectos. El detalle, en la línea «0» del menú.
@@ -89,12 +89,13 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > Aún no hay documentos que borrar: el primero que venza se borrará, normalmente, en menos de 24 h.
 >
 > **A · Construible ya**
-> 1. **`FIX-001`: la entrega 1.1 EN STAGING** desde el 12 sep (functions 04:36Z, front `build-2026-09-12-010`,
->    reglas `6aa1d3ba`): cuatro defectos de la entrega 1 —la hora en UTC, la mudanza rota (`CA11`), las reservas
->    del admin sin `amenityId` y mover una reserva, que nunca funcionó—, en la §16 de la ficha. **Falta:** que David
->    la mire en pantalla, y producción con su permiso; el `country` de 4 conjuntos de producción, con permiso uno a
->    uno. **Fuera y de David:** las visitas, con los mismos helpers de fecha rotos. **Después, la entrega 2**
->    —`blockOnDebt`, `autoApprove` y `minAdvanceMinutes` por área—, que cierra el lote de Habitanto (10 de 11).
+> 1. **`FIX-001`: la entrega 1.1 EN PRODUCCIÓN** desde el 12 sep (05:33–05:40 UTC; functions, front
+>    `build-2026-09-12-005` desde `a7353ec`, reglas `5da48636`): cuatro defectos de la entrega 1 —la hora en UTC, la
+>    mudanza rota (`CA11`), las reservas del admin sin `amenityId` y mover una reserva, que nunca funcionó—, en la
+>    §16 de la ficha. Verificada antes en staging con las cuatro pruebas, que ejecutó Claude con las sesiones de
+>    David y comprobó en los datos. **De David:** el `country` de 4 conjuntos de producción (permiso uno a uno) y las
+>    visitas, con los mismos helpers de fecha rotos. **Sigue la entrega 2** —`blockOnDebt`, `autoApprove` y
+>    `minAdvanceMinutes` por área—, que cierra el lote de Habitanto (10 de 11).
 > 2. **`UX-006`**: sus cuatro criterios pendientes se pueden correr (hay Java). `UX-005` en exploración.
 > 3. **Sacar `byUnit` del documento del informe** a uno solo-administración, antes de que `K2` se decida.
 >

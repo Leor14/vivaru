@@ -8,7 +8,7 @@
 | **Módulo** | Reservas |
 | **Usuario principal** | `resident` · `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | 🟡 **ENTREGA 1.1 EN STAGING** desde el 12 sep 2026 —functions 04:36Z, front `build-2026-09-12-010` (`4516795`), reglas `6aa1d3ba` 04:45Z—: arregla cuatro defectos de la entrega 1 (§16). A producción cuando David la mire en pantalla. **La entrega 1:** 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios repasados el 12 sep contra código y datos: `CA11` no se cumplía** (§16). |
+| **Estado** | ✅ **ENTREGA 1.1 EN PRODUCCIÓN** desde el 12 sep 2026 (05:33–05:40 UTC: functions, front `build-2026-09-12-005` desde `a7353ec`, reglas `5da48636`), después de verificarla en staging con las cuatro pruebas de §16, en pantalla y en los datos: arregla cuatro defectos de la entrega 1. **Sigue la entrega 2.** **La entrega 1:** 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios repasados el 12 sep contra código y datos: `CA11` no se cumplía** (§16). |
 | **Dependencias** | Ninguna |
 | **Riesgo** | **Medio.** Cambia por dónde se crea una reserva, que hoy funciona |
 | **Reversibilidad** | **Parcial.** La escritura directa desde el cliente se cierra en las reglas y eso **no se revierte con una bandera** (§13) |
@@ -401,3 +401,23 @@ servidor y 4 de reglas), cada una enrojeciendo exactamente la suya. Bancos: app 
   colombiana**: una hora de diferencia hasta que tenga su país. Ponérselo es escribir en
   producción: con permiso, uno a uno.
 - **`minAdvanceMinutes` por área** figuraba en el MVP y no se construyó: va con la entrega 2.
+- **En el historial del residente, las reservas creadas por el administrador salen sin nombre de área**: guardan
+  `amenityName` pero no `amenity`. Ya pasaba con las antiguas; no es de esta entrega.
+
+**Verificación (12 sep 2026).** En staging —functions 04:36Z, front `build-2026-09-12-010`, reglas
+`6aa1d3ba`— las cuatro pruebas las ejecutó Claude en el Chrome de David, con sus sesiones, y se comprobaron
+en los datos. **La primera revisión no dejó ningún rastro en la base**: ni reservas nuevas ni llamadas a las
+callables; se detectó antes de subir, y por eso se repitió así.
+
+| Prueba | Resultado | Documento |
+|---|---|---|
+| El administrador crea una reserva | Nace con `amenityId = amenity-playas-gym` | `4Mk1AvAePP9bqGZafbH2` |
+| El administrador la mueve a las 00:30 | Se guarda. Con las reglas de antes se denegaba siempre, y en UTC también | el mismo |
+| El residente pide una mudanza con 1 h 7 min de antelación | Entra por la callable con el documento de siempre y `startAt = 06:30Z` | `HX1NBG192dnsBtUcAiev` |
+| El residente reserva el Gimnasio con 6 h 28 min de antelación | Entra con `startAt = 12:00Z`; el código de antes la rechazaba por «anticipación» | `cgu0ugGzpPWR0aRjgRGa` |
+
+La mudanza y el Gimnasio de prueba se cancelaron; la reserva del administrador queda pendiente en staging,
+marcada «Prueba FIX-001 1.1 (Claude)». **Producción, en orden functions → front → reglas:** functions 05:33Z
+(`createMudanzaRequest` invocable por `allUsers`), front `build-2026-09-12-005` desde `a7353ec` por su
+rollout automático, esperado por nombre, y reglas `5da48636` a las 05:39Z, idénticas al repo. En producción
+no se creó ningún dato de prueba.

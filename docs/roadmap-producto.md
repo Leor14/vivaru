@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.70 |
+| **Versión** | 0.9.71 |
 | **Fecha** | 11 de septiembre de 2026, por la noche (12 en UTC) |
-| **Estado** | **Las dos ventanas de producción del 11, hechas y verificadas.** La primera subió lo del día —la lista de hoy de la portería en el calendario local, **`PLAT-004` entrega 2** (el consejero entra por `/resident`, el PDF del informe se rehace con cada firma, la regla de `documents`), la cuenta en el pago de una cuota de `FEAT-010` y el «mes pasado» del Panel de Control—; la segunda, **`PRD-V-FIX-004`** —las acciones de residente solo tocan cuentas de residente— y **`PRD-V-PLAT-002` entrega 2** —el superadmin da varios conjuntos a una persona, con aviso si es residente—. **Y `PRD-V-FIX-005` en producción el 12 (UTC), salvo App Check**: las puertas públicas ya no delatan cuentas, una membresía desactivada deja de abrir las reglas al instante, y el conjunto ya no ve el uid ni el correo de nadie del equipo de Vivaru. **Lo anterior, vigente:** decidir si el servidor —que marca vencido desde las 18:00 de México— deriva la zona del país del conjunto; el abogado ecuatoriano sin contestar (`FLOW-006`, `FLOW-007` entrega 3, `PLAT-004` entrega 3); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; el primer conjunto REAL; y quedan **33 P1, 41 P2 y 12 P3** de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Estado** | **Las dos ventanas de producción del 11, hechas y verificadas.** La primera subió lo del día —la lista de hoy de la portería en el calendario local, **`PLAT-004` entrega 2** (el consejero entra por `/resident`, el PDF del informe se rehace con cada firma, la regla de `documents`), la cuenta en el pago de una cuota de `FEAT-010` y el «mes pasado» del Panel de Control—; la segunda, **`PRD-V-FIX-004`** —las acciones de residente solo tocan cuentas de residente— y **`PRD-V-PLAT-002` entrega 2** —el superadmin da varios conjuntos a una persona, con aviso si es residente—. **Y `PRD-V-FIX-005` en producción el 12 (UTC), salvo App Check**: las puertas públicas ya no delatan cuentas, una membresía desactivada deja de abrir las reglas al instante, y el conjunto ya no ve el uid ni el correo de nadie del equipo de Vivaru. **Y la entrega 1.1 de `PRD-V-FIX-001`, también el 12**: la hora de una reserva se lee en la del conjunto, la mudanza del residente vuelve a funcionar y las reservas del administrador ocupan aforo. **Lo anterior, vigente:** decidir si el servidor —que marca vencido desde las 18:00 de México— deriva la zona del país del conjunto; el abogado ecuatoriano sin contestar (`FLOW-006`, `FLOW-007` entrega 3, `PLAT-004` entrega 3); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; el primer conjunto REAL; y quedan **33 P1, 41 P2 y 12 P3** de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, pieza por pieza.** Functions por `updateTime` —`signMonthlyReport` y `payExpenseInstallment` a las 00:17 UTC; las ocho de la segunda ventana entre las 00:48 y las 00:50, con `setTenantAdminAccess` **creada** y `run.invoker = allUsers`—; reglas con el ruleset vivo diferenciado contra el repo antes y después de cada despliegue (`9a2ffde1` y luego `8b7821ab`, «idéntico al repo: SÍ»); el front por su rollout, **por nombre**. **El primer push no creó rollout**: App Hosting compiló `025d5d5` y no lo desplegó —en los pushes buenos el build y el rollout nacen en el mismo instante—; con permiso de David se creó a mano (`build-2026-09-12-002`), y el segundo push nació normal (`build-2026-09-12-003`, `fde9931`). **En pantalla**, la portería de Las Playas en `www`: el build viejo listaba el testigo de MAÑANA (10:00) y el nuevo el de HOY (20:00); los dos testigos, cancelados sin borrar, y la lista quedó en 0. Bancos **contados sobre `develop` fusionado**: `npm test` **2014** · functions **941**; reglas **475**, medidas en la rama |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -1238,6 +1238,24 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.71 — 12 de septiembre de 2026 (UTC; noche del 11 en México) — `PRD-V-FIX-001` entrega 1.1 en producción
+
+- **Al empezar la entrega 2 se midió la 1, y tenía cuatro defectos** (§16 de la ficha). Por decisión de David,
+  primero el arreglo, desplegado solo:
+  - la hora de una reserva se leía en UTC: la antelación rechazaba reservas del mismo día a menos de ~6 h y
+    `startAt` quedaba desplazado. Ahora manda la zona del país del conjunto, solo en reservas;
+  - la mudanza del residente estaba rota desde el 24 ago (`CA11`): callable nueva `createMudanzaRequest`;
+  - las reservas del administrador no llevaban `amenityId` y no ocupaban aforo: la página lo resuelve y la regla
+    lo exige;
+  - mover una reserva de fecha u hora nunca funcionó: los helpers de fecha de las reglas sumaban texto y número.
+- **Verificada en staging con cuatro pruebas**, ejecutadas por Claude con las sesiones de David y comprobadas en
+  los datos. La primera revisión no dejó ningún rastro en la base, y se detectó antes de subir.
+- **Producción, en orden functions → front → reglas:** functions 05:33Z, front `build-2026-09-12-005`
+  (`a7353ec`, rollout automático esperado por nombre) y reglas `5da48636`, idénticas al repo.
+- **Queda de David:** el `country` de cuatro conjuntos y las visitas (los mismos helpers rotos). **Sigue la
+  entrega 2.**
+- Bancos: `npm test` **2050** · functions **992** · reglas **490**; 10 mutaciones de falsación.
 
 ### 0.9.70 — 12 de septiembre de 2026 (UTC; noche del 11 en México) — `PRD-V-FIX-005` en producción, salvo App Check
 
