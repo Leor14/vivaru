@@ -1305,6 +1305,14 @@ service cloud.firestore {
         allow read: if superadmin();
         allow write: if false;  // solo el Admin SDK
       }
+
+      // `PRD-V-FIX-005` · R4: el uid de quien atiende el ticket y de quien escribió cada
+      // respuesta. Fuera del documento, que el administrador del conjunto lee entero, y
+      // fuera de `internal`, que la consola lista como notas.
+      match /equipo/{docId} {
+        allow read: if superadmin();
+        allow write: if false;  // solo el Admin SDK
+      }
     }
 
     match /reservations/{docId} {

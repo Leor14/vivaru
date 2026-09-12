@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SUPPORT_LIMITS = void 0;
 exports.createSupportTicket = createSupportTicket;
 exports.marcasSup001 = marcasSup001;
+exports.entradaDelHilo = entradaDelHilo;
+exports.seAsignaAlResponder = seAsignaAlResponder;
+exports.repartoDeAsignacion = repartoDeAsignacion;
 exports.replySupportTicket = replySupportTicket;
 exports.updateSupportTicket = updateSupportTicket;
 exports.reopenSupportTicket = reopenSupportTicket;
@@ -283,12 +286,48 @@ function marcasSup001(actual, ctx) {
     const marcas = {};
     if (!actual.firstResponseAt)
         marcas.firstResponseAt = ctx.nowIso;
-    if (!actual.assignedTo) {
-        marcas.assignedTo = ctx.uid;
-        marcas.assignedToName = ctx.autorNombre;
-        marcas.assignedAt = ctx.nowIso;
+    if (seAsignaAlResponder(actual, ctx)) {
+        Object.assign(marcas, repartoDeAsignacion({ uid: ctx.uid, nombre: ctx.autorNombre }, ctx.nowIso).ticket);
     }
     return marcas;
+}
+// ── PRD-V-FIX-005 · R4: ningún conjunto ve el uid de nadie del equipo ──────────
+//
+// El administrador del conjunto lee el documento ENTERO de su ticket —las reglas no
+// filtran campos—, así que lo que va ahí es suyo. El uid del equipo va a
+// `supportTickets/{id}/equipo`, que solo lee el superadmin: `equipo/asignacion` (quién
+// atiende el ticket; lo necesita el «Asignármelo» de la consola) y `equipo/respuesta-{id}`
+// (quién escribió cada respuesta). Estas funciones deciden qué va a cada sitio; las
+// callables solo escriben lo que devuelven. La ruta de un adjunto del equipo todavía lleva
+// su uid (`support/{uid}/…`): es la rebanada H3c de la ficha.
+/** La entrada del hilo. El cliente firma con su propio uid, que es suyo; el equipo no. */
+function entradaDelHilo(ctx) {
+    return {
+        id: ctx.id,
+        role: ctx.esVivaru ? "vivaru" : "cliente",
+        ...(ctx.esVivaru ? {} : { authorUid: ctx.uid }),
+        authorName: ctx.autorNombre,
+        message: ctx.message,
+        ...(ctx.adjuntos.length ? { attachments: ctx.adjuntos } : {}),
+        createdAt: ctx.nowIso,
+    };
+}
+/**
+ * `SUP-001` · quien responde primero se queda el ticket si no tenía responsable. Cuenta el
+ * nombre, que es lo que ahora queda en el ticket, y también el `assignedTo` de los tickets
+ * de antes de `FIX-005`, que la migración retira.
+ */
+function seAsignaAlResponder(actual, ctx) {
+    return ctx.esVivaru && !actual.assignedToName && !actual.assignedTo;
+}
+/** Qué va al ticket y qué a `equipo/asignacion`. En el ticket, `null` es borrar el campo. */
+function repartoDeAsignacion(asignado, nowIso) {
+    if (!asignado)
+        return { ticket: { assignedToName: null, assignedAt: null }, equipo: null };
+    return {
+        ticket: { assignedToName: asignado.nombre, assignedAt: nowIso },
+        equipo: { uid: asignado.uid, updatedAt: nowIso },
+    };
 }
 async function replySupportTicket(input, uid, role) {
     const ticketId = typeof input.ticketId === "string" ? input.ticketId.trim() : "";
@@ -316,22 +355,26 @@ async function replySupportTicket(input, uid, role) {
     // a nuestra cola. Es lo que hace que «pendiente» sea un número accionable.
     const nuevoEstado = esVivaru ? "esperando_respuesta" : "en_proceso";
     const sup001 = marcasSup001(data, { esVivaru, uid, autorNombre, nowIso });
-    await ref.update({
+    const idEntrada = (0, node_crypto_1.randomUUID)();
+    // `FIX-005`: el ticket y lo que solo sabe el equipo se escriben a la vez.
+    const lote = ref.firestore.batch();
+    lote.update(ref, {
         // arrayUnion garantiza append: nada se edita ni se borra.
-        thread: firestore_1.FieldValue.arrayUnion({
-            id: (0, node_crypto_1.randomUUID)(),
-            role: esVivaru ? "vivaru" : "cliente",
-            authorUid: uid,
-            authorName: autorNombre,
-            message,
-            ...(adjuntos.length ? { attachments: adjuntos } : {}),
-            createdAt: nowIso,
-        }),
+        thread: firestore_1.FieldValue.arrayUnion(entradaDelHilo({ esVivaru, uid, autorNombre, nowIso, id: idEntrada, message, adjuntos })),
         status: nuevoEstado,
         lastActivityAt: nowIso,
         updatedAt: firestore_1.Timestamp.now(),
         ...sup001,
     });
+    if (esVivaru) {
+        lote.set(ref.collection("equipo").doc(`respuesta-${idEntrada}`), { uid, createdAt: nowIso });
+        const reparto = seAsignaAlResponder(data, { esVivaru })
+            ? repartoDeAsignacion({ uid, nombre: autorNombre }, nowIso)
+            : null;
+        if (reparto?.equipo)
+            lote.set(ref.collection("equipo").doc("asignacion"), reparto.equipo);
+    }
+    await lote.commit();
     if (esVivaru) {
         await notifyClient(data, "Tienes una respuesta de Vivaru", [
             `Respondimos tu ticket «${data.subject ?? ""}».`,
@@ -384,13 +427,13 @@ async function updateSupportTicket(input, uid, role) {
     // lo primero deja la asignación como esté (este update iba de otra cosa) y
     // lo segundo la retira a propósito. Con `undefined` en ambos casos no habría
     // forma de desasignar.
+    //
+    // `FIX-005`: el uid va a `equipo/asignacion`, que solo lee el superadmin; en el ticket
+    // quedan el nombre y la hora. `undefined` aquí es «no se toca la asignación».
+    let equipoAsignacion;
     if (input.assignedTo !== undefined) {
-        if (input.assignedTo === null || input.assignedTo === "") {
-            patch.assignedTo = firestore_1.FieldValue.delete();
-            patch.assignedToName = firestore_1.FieldValue.delete();
-            patch.assignedAt = firestore_1.FieldValue.delete();
-        }
-        else {
+        let asignado = null;
+        if (input.assignedTo !== null && input.assignedTo !== "") {
             // Solo se asigna a alguien de Vivaru: el soporte lo opera Vivaru, y un
             // ticket asignado a un administrador de conjunto no significaría nada.
             const destino = await (0, auth_1.getAuth)()
@@ -401,16 +444,29 @@ async function updateSupportTicket(input, uid, role) {
             if (destino.customClaims?.role !== "superadmin") {
                 throw new https_1.HttpsError("failed-precondition", "Solo se puede asignar a alguien de Vivaru.");
             }
-            patch.assignedTo = input.assignedTo;
             // El nombre que manda el cliente es solo comodidad para pintar; si no
-            // viene o viene vacío, la fuente fiable es la propia cuenta.
+            // viene o viene vacío, la fuente fiable es la propia cuenta. Nunca su
+            // correo: este nombre lo lee también el administrador del conjunto.
             const nombreEnviado = typeof input.assignedToName === "string" ? input.assignedToName.trim().slice(0, 120) : "";
-            patch.assignedToName =
-                nombreEnviado || destino.displayName || destino.email || "Equipo Vivaru";
-            patch.assignedAt = nowIso;
+            asignado = { uid: input.assignedTo, nombre: nombreEnviado || destino.displayName || "Equipo Vivaru" };
         }
+        const reparto = repartoDeAsignacion(asignado, nowIso);
+        patch.assignedToName = reparto.ticket.assignedToName ?? firestore_1.FieldValue.delete();
+        patch.assignedAt = reparto.ticket.assignedAt ?? firestore_1.FieldValue.delete();
+        // El `assignedTo` de los tickets de antes se va con cualquier cambio de asignación.
+        patch.assignedTo = firestore_1.FieldValue.delete();
+        equipoAsignacion = reparto.equipo;
     }
-    await ref.update(patch);
+    const lote = ref.firestore.batch();
+    lote.update(ref, patch);
+    if (equipoAsignacion !== undefined) {
+        const asignacion = ref.collection("equipo").doc("asignacion");
+        if (equipoAsignacion)
+            lote.set(asignacion, equipoAsignacion);
+        else
+            lote.delete(asignacion);
+    }
+    await lote.commit();
     if (input.status === "resuelto") {
         await notifyClient(data, "Tu ticket quedó resuelto", [
             `Marcamos como resuelto «${data.subject ?? ""}».`,

@@ -93,7 +93,12 @@ export type SupportAttachment = {
 export type SupportMessage = {
   id: string;
   role: SupportAuthorRole;
-  authorUid: string;
+  /**
+   * Solo en los mensajes del cliente. Los del equipo de Vivaru no lo llevan desde
+   * `PRD-V-FIX-005`: el administrador del conjunto lee el documento entero, y el uid del
+   * equipo va a `supportTickets/{id}/equipo`, que solo lee el superadmin.
+   */
+  authorUid?: string;
   authorName: string;
   message: string;
   attachments?: SupportAttachment[];
@@ -125,6 +130,10 @@ export type SupportTicket = {
    * responder por primera vez (quien contesta se lo queda) y se puede
    * reasignar desde Superadmin. Sin la asignación automática, un ticket
    * contestado seguiría sin responsable hasta que alguien pulsara un botón.
+   */
+  /**
+   * Solo en tickets anteriores a `PRD-V-FIX-005`, hasta que la migración lo retire. Ya no se
+   * escribe: el uid de quien atiende va a `equipo/asignacion`, y aquí queda el nombre.
    */
   assignedTo?: string;
   assignedToName?: string;

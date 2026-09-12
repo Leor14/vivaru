@@ -3827,3 +3827,43 @@ describe("FIX-005 · una membresía inactive no abre las reglas", () => {
     await assertSucceeds(getDoc(doc(como(INACTIVO).firestore(), "tenantUsers", `${T}_${INACTIVO}`)));
   });
 });
+
+/**
+ * `PRD-V-FIX-005` · H3 / R4 — el uid del equipo de Vivaru vive en `supportTickets/{id}/equipo`,
+ * no en el documento del ticket, que el administrador del conjunto lee entero. Subcolección
+ * aparte y no `internal`: la consola lista `internal` como notas.
+ */
+describe("FIX-005 · el uid del equipo en soporte, solo para el superadmin", () => {
+  const T = "tenant-fix005-soporte";
+  const ADMIN = "admin-fix005-soporte";
+  const TICKET = "ticket-fix005";
+  const admin = () => testEnv.authenticatedContext(ADMIN, { role: "tenant_admin", tenantId: T });
+  const superadmin = () => testEnv.authenticatedContext("superadmin-fix005", { role: "superadmin" });
+
+  beforeAll(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "tenantUsers", `${T}_${ADMIN}`), { uid: ADMIN, tenantId: T, role: "tenant_admin", status: "active" });
+      await setDoc(doc(db, "supportTickets", TICKET), { tenantId: T, subject: "Ayuda", assignedToName: "Equipo Vivaru" });
+      await setDoc(doc(db, "supportTickets", TICKET, "equipo", "asignacion"), { uid: "uid-equipo-fix005" });
+    });
+  });
+
+  it("el admin del conjunto sigue leyendo su ticket, con el nombre de quien lo atiende", async () => {
+    await assertSucceeds(getDoc(doc(admin().firestore(), "supportTickets", TICKET)));
+  });
+
+  it("CF6 · pero no lee `equipo`, donde está el uid", async () => {
+    await assertFails(getDoc(doc(admin().firestore(), "supportTickets", TICKET, "equipo", "asignacion")));
+  });
+
+  it("el superadmin sí lo lee: la consola lo necesita para «Asignármelo»", async () => {
+    await assertSucceeds(getDoc(doc(superadmin().firestore(), "supportTickets", TICKET, "equipo", "asignacion")));
+  });
+
+  it("nadie lo escribe desde el cliente, tampoco el superadmin: solo el servidor", async () => {
+    await assertFails(
+      setDoc(doc(superadmin().firestore(), "supportTickets", TICKET, "equipo", "asignacion"), { uid: "otro" }),
+    );
+  });
+});

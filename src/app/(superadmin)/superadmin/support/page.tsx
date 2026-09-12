@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -95,6 +95,27 @@ function useInternalNotes(ticketId: string | undefined) {
   return notes;
 }
 
+/**
+ * `PRD-V-FIX-005` · quién atiende el ticket abierto. El uid vive en `equipo/asignacion`,
+ * que solo lee el superadmin: en el ticket lo leería también el administrador del conjunto.
+ */
+function useAsignacion(ticketId: string | undefined) {
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ticketId || !db) {
+      setUid(null);
+      return;
+    }
+    const unsub = onSnapshot(
+      doc(db, "supportTickets", ticketId, "equipo", "asignacion"),
+      (snap) => setUid((snap.data() as { uid?: string } | undefined)?.uid ?? null),
+      () => setUid(null),
+    );
+    return () => unsub();
+  }, [ticketId]);
+  return uid;
+}
+
 export default function SuperadminSupportPage() {
   const { user } = useAuth();
   const [tenantSearch, setTenantSearch] = useState("");
@@ -142,6 +163,8 @@ export default function SuperadminSupportPage() {
     [filtrados, selectedId],
   );
   const notes = useInternalNotes(selected?.id);
+  // Hasta que la migración de `FIX-005` pase por un ticket viejo, su uid sigue en `assignedTo`.
+  const asignadoA = useAsignacion(selected?.id) ?? selected?.assignedTo ?? null;
 
   function openDrawer(ticket: SupportTicket) {
     setSelectedId(ticket.id);
@@ -466,7 +489,7 @@ export default function SuperadminSupportPage() {
                   )}
                 </span>
                 <span className="flex gap-2">
-                  {selected.assignedTo !== user?.uid ? (
+                  {asignadoA !== user?.uid ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -476,7 +499,7 @@ export default function SuperadminSupportPage() {
                       Asignármelo
                     </Button>
                   ) : null}
-                  {selected.assignedTo ? (
+                  {selected.assignedToName || asignadoA ? (
                     <Button
                       variant="ghost"
                       size="sm"

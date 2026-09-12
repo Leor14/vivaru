@@ -38,9 +38,11 @@ describe("SUP-001 · primera respuesta", () => {
 });
 
 describe("SUP-001 · asignación automática", () => {
+  // `PRD-V-FIX-005`: el uid ya no va en el ticket —lo lee el admin del conjunto—; va a
+  // `equipo`, que solo lee el superadmin. Aquí queda el nombre, que es lo que se pinta.
   it("quien responde primero se queda el ticket si no tenía dueño", () => {
     const m = marcasSup001({}, CTX);
-    expect(m.assignedTo).toBe("uid-soporte");
+    expect(m.assignedTo).toBeUndefined();
     expect(m.assignedToName).toBe("Equipo Vivaru");
     expect(m.assignedAt).toBe(CTX.nowIso);
   });
