@@ -128,7 +128,8 @@ import {
   assertPeriodoValido,
   filasDeCabecera,
   firmasParaElPdf,
-  instantaneaDeUnInformeSellado,
+  instantaneaParaRehacerElPdf,
+  DETALLE_POR_UNIDAD,
   leerYConstruirInstantanea,
   seccionesDelInforme,
   sellarEmision,
@@ -5481,8 +5482,9 @@ export const issueMonthlyReport = onCall<{ tenantId: string; period: string }>(
 /**
  * `PRD-V-PLAT-004` `CA3` — rehace el PDF de un informe emitido con las firmas que lleva.
  *
- * Se reconstruye con las cifras CONGELADAS del documento (`instantaneaDeUnInformeSellado`),
- * sin recalcular nada, y se archiva con el MISMO id que la emisión: la ruta de Storage y la
+ * Se reconstruye con las cifras CONGELADAS del documento y de su detalle por unidad
+ * (`instantaneaParaRehacerElPdf`), sin recalcular nada, y se archiva con el MISMO id que la
+ * emisión: la ruta de Storage y la
  * fila de `documents` se sobrescriben, así que el `documentId` del informe sigue valiendo.
  * Lo que no está emitido o publicado no se toca: un borrador no tiene PDF, y un anulado ya
  * no se firma.
@@ -5494,11 +5496,15 @@ async function rehacerPdfDelInforme(tenantId: string, reportId: string): Promise
   if (informe.status !== "emitido" && informe.status !== "publicado") return;
 
   const period = String(informe.period ?? "");
-  const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+  const [tenantSnap, detalleSnap] = await Promise.all([
+    db.collection("tenants").doc(tenantId).get(),
+    // `K2`: el detalle por unidad vive aparte, en un documento que el consejo no lee.
+    db.collection(DETALLE_POR_UNIDAD).doc(reportId).get(),
+  ]);
   const tenant = tenantSnap.data() as
     | { name?: string; country?: string; branding?: { logoUrl?: string } }
     | undefined;
-  const instantanea = instantaneaDeUnInformeSellado(informe);
+  const instantanea = instantaneaParaRehacerElPdf(informe, detalleSnap.data());
   const firmas = firmasParaElPdf(informe.signatures, zonaParaPintarFechas(tenant?.country));
 
   const pdf = await buildInformeMensualPdf({

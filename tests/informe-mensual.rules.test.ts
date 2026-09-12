@@ -52,9 +52,17 @@ const cifras = {
   totalIncome: 200_000,
   totalExpenses: 400_000,
   netResult: -200_000,
-  receivables: { total: 80_220_000, byUnit: [{ unitId: "u-1", unitLabel: "APTO 101", balance: 80_220_000, periods: 3 }] },
+  // Solo el total, como lo escribe el servidor desde `K2`: el detalle vive aparte.
+  receivables: { total: 80_220_000 },
   payables: { total: 4_890_000, overdue: 0, byVendor: [] },
 };
+
+/** El detalle por unidad, en `monthlyReportReceivables` con el mismo id que el informe. */
+const detalle = (tenantId: string, period: string) => ({
+  tenantId,
+  period,
+  byUnit: [{ unitId: "u-1", unitLabel: "APTO 101", balance: 80_220_000, periods: 3 }],
+});
 
 async function sembrar() {
   await testEnv.clearFirestore();
@@ -90,6 +98,7 @@ async function sembrar() {
         ...cifras,
         ...(status === "anulado" ? { voidReason: "Un egreso de marzo con fecha de abril." } : {}),
       });
+      await setDoc(doc(db, "monthlyReportReceivables", id), detalle(tenantId, id.slice(-7)));
     }
   });
 }
@@ -217,5 +226,40 @@ describe("FLOW-007 · quién LEE el informe", () => {
   it("sin sesión, nada", async () => {
     const anonimo = testEnv.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(anonimo, "monthlyReports", `${CONJUNTO}_2026-03`)));
+  });
+});
+
+/**
+ * **`K2` · el detalle por unidad —quién debe y cuánto— solo lo lee la administración.**
+ *
+ * Viajaba dentro de `monthlyReports`, que el consejo lee desde `PRD-V-PLAT-004`: la pantalla
+ * pintaba totales y el detalle llegaba igual a su navegador, porque una regla no oculta
+ * campos. Ahora vive en `monthlyReportReceivables`, con el mismo id.
+ */
+describe("FLOW-007 · `K2` · el detalle por unidad, aparte y solo para la administración", () => {
+  const EMITIDO = `${CONJUNTO}_2026-02`;
+
+  it("la administración lo lee, y el superadmin también", async () => {
+    await assertSucceeds(getDoc(doc(admin(), "monthlyReportReceivables", EMITIDO)));
+    await assertSucceeds(getDoc(doc(superadmin(), "monthlyReportReceivables", EMITIDO)));
+  });
+
+  it("DEBE FALLAR: el consejo no lo lee, aunque SÍ lea el informe emitido", async () => {
+    // El par: lo que se niega es el detalle, no el informe.
+    await assertSucceeds(getDoc(doc(consejo(), "monthlyReports", EMITIDO)));
+    await assertFails(getDoc(doc(consejo(), "monthlyReportReceivables", EMITIDO)));
+  });
+
+  it("DEBE FALLAR: ni el residente, ni la portería, ni un residente de otro conjunto", async () => {
+    await assertFails(getDoc(doc(residente(), "monthlyReportReceivables", EMITIDO)));
+    await assertFails(getDoc(doc(porteria(), "monthlyReportReceivables", EMITIDO)));
+    await assertFails(getDoc(doc(residente(), "monthlyReportReceivables", `${OTRO}_2026-03`)));
+  });
+
+  it("DEBE FALLAR: nadie lo escribe desde el cliente; lo escribe el servidor con el informe", async () => {
+    await assertFails(updateDoc(doc(admin(), "monthlyReportReceivables", EMITIDO), { byUnit: [] }));
+    await assertFails(setDoc(doc(admin(), "monthlyReportReceivables", `${CONJUNTO}_2026-04`), detalle(CONJUNTO, "2026-04")));
+    await assertFails(deleteDoc(doc(admin(), "monthlyReportReceivables", EMITIDO)));
+    await assertFails(updateDoc(doc(superadmin(), "monthlyReportReceivables", EMITIDO), { byUnit: [] }));
   });
 });

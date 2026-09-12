@@ -40,7 +40,12 @@ export type MonthlyReport = {
   totalIncome: number;
   totalExpenses: number;
   netResult: number;
-  receivables: { total: number; byUnit: { unitId: string; unitLabel: string; balance: number; periods: number }[] };
+  /**
+   * **Solo el total.** El detalle por unidad —quién debe y cuánto— vive aparte, en
+   * `monthlyReportReceivables`, que solo lee la administración (`K2`): este documento lo
+   * lee también el consejo, y una regla no oculta campos.
+   */
+  receivables: { total: number };
   payables: { total: number; overdue: number; byVendor: { vendorId?: string; vendorName: string; amount: number }[] };
   signatures?: { uid: string; name: string; role: string; signedAt?: { seconds: number } }[];
   issuedBy?: string;

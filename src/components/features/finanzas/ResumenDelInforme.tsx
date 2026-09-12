@@ -12,8 +12,9 @@ import type { MonthlyReport } from "@/features/finanzas/use-monthly-reports";
  * (`PRD-V-PLAT-004` entrega 2): dos copias de este bloque serían dos sitios donde un «$0»
  * sin dato podría volver a colarse (`CA4`) y donde un anulado podría dejar de verse anulado.
  *
- * Pinta TOTALES, como siempre. El informe trae además la cartera por unidad
- * (`receivables.byUnit`), y esta vista no la enseña.
+ * Pinta TOTALES, como siempre. La cartera por unidad ya no viaja en el informe: vive en
+ * `monthlyReportReceivables`, que solo lee la administración (`K2`), porque este documento lo
+ * lee también el consejo.
  */
 export function ResumenDelInforme({ informe }: { informe: MonthlyReport }) {
   const { formatAmount } = useTenantCurrency();

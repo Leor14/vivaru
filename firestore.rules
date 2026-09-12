@@ -1890,6 +1890,18 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // `PRD-V-FLOW-007` `K2` · **el detalle por unidad del informe, FUERA del informe.**
+    //
+    // `receivables.byUnit` dice quién debe y cuánto, y viajaba dentro de `monthlyReports`,
+    // que el consejo lee: una regla no oculta campos, así que la pantalla pintaba totales y
+    // el detalle llegaba igual a su navegador. Vive aquí, con el MISMO id que el informe, y
+    // solo lo lee la administración —el precedente es `bankAccountBalances`—. Lo escribe el
+    // servidor en el mismo lote que el informe; el cliente no escribe nada.
+    match /monthlyReportReceivables/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update, delete: if false;
+    }
+
     match /clearanceCertificates/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PIE_DEL_INFORME = void 0;
+exports.PIE_DEL_INFORME = exports.DETALLE_POR_UNIDAD = void 0;
+exports.partirInstantanea = partirInstantanea;
 exports.sumarSaldoDeApertura = sumarSaldoDeApertura;
 exports.detallarCarteraPorUnidad = detallarCarteraPorUnidad;
 exports.detallarDeudaAProveedores = detallarDeudaAProveedores;
@@ -15,6 +16,7 @@ exports.sellarEmision = sellarEmision;
 exports.firmarInforme = firmarInforme;
 exports.anularInforme = anularInforme;
 exports.instantaneaDeUnInformeSellado = instantaneaDeUnInformeSellado;
+exports.instantaneaParaRehacerElPdf = instantaneaParaRehacerElPdf;
 exports.zonaParaPintarFechas = zonaParaPintarFechas;
 exports.firmasParaElPdf = firmasParaElPdf;
 exports.filasDeCabecera = filasDeCabecera;
@@ -66,6 +68,25 @@ const zona_del_conjunto_1 = require("./zona-del-conjunto");
  * hechas.
  */
 const db = () => (0, firestore_1.getFirestore)();
+// ── El detalle por unidad, FUERA del documento del informe (`K2`) ─────────────
+//
+// **`receivables.byUnit` —quién debe y cuánto— no viaja en el documento que lee el
+// consejo.** Una regla de Firestore concede el documento entero o no concede nada, y el
+// consejo lee los informes emitidos desde `PRD-V-PLAT-004`: la pantalla pintaba solo
+// totales, pero el detalle llegaba a su navegador. Se guarda aparte, con el MISMO id y
+// solo para la administración —el precedente es `bankAccountBalances`—, y el PDF, que lo
+// dibuja el servidor, lo vuelve a juntar.
+/** La colección hermana del informe: mismo id, y solo la lee la administración. */
+exports.DETALLE_POR_UNIDAD = "monthlyReportReceivables";
+/**
+ * Parte la instantánea en lo que va al documento del informe y el detalle por unidad.
+ * **Es la única puerta por la que una instantánea llega a `monthlyReports`**: el borrador
+ * y la emisión pasan los dos por aquí.
+ */
+function partirInstantanea(i) {
+    const { receivables, ...resto } = i;
+    return { delDocumento: { ...resto, receivables: { total: receivables.total } }, porUnidad: receivables.byUnit };
+}
 /**
  * Suma el saldo de apertura de las cuentas del conjunto.
  *
@@ -286,17 +307,22 @@ function assertPeriodoValido(period) {
  * una deuda que nadie tiene.
  */
 async function guardarBorrador(input) {
-    const ref = db().collection("monthlyReports").doc(idDelInforme(input.tenantId, input.period));
+    const firestore = db();
+    const ref = firestore.collection("monthlyReports").doc(idDelInforme(input.tenantId, input.period));
     const snap = await ref.get();
     const previo = snap.data();
     if (previo?.status && previo.status !== "borrador") {
         return { escrito: false, motivo: previo.status };
     }
-    await ref.set({
+    const { delDocumento, porUnidad } = partirInstantanea(input.instantanea);
+    // Los dos documentos en UN lote: un informe sin su detalle, o un detalle sin su
+    // informe, no existe ni un instante.
+    const lote = firestore.batch();
+    lote.set(ref, {
         tenantId: input.tenantId,
         period: input.period,
         status: "borrador",
-        ...input.instantanea,
+        ...delDocumento,
         generatedBy: input.actorUid,
         generatedAt: firestore_1.FieldValue.serverTimestamp(),
         updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -306,6 +332,8 @@ async function guardarBorrador(input) {
         // que alguien pulsó «regenerar».
         createdAt: previo?.createdAt ?? firestore_1.FieldValue.serverTimestamp(),
     }, { merge: false });
+    lote.set(firestore.collection(exports.DETALLE_POR_UNIDAD).doc(ref.id), { tenantId: input.tenantId, period: input.period, byUnit: porUnidad, updatedAt: firestore_1.FieldValue.serverTimestamp() }, { merge: false });
+    await lote.commit();
     return { escrito: true };
 }
 /**
@@ -333,7 +361,10 @@ async function prepararEmision(input) {
         throw new https_1.HttpsError("failed-precondition", "Ese informe está anulado. Un informe anulado no se reemite: se genera y se emite uno nuevo.");
     }
     if (estado === "emitido" || estado === "publicado") {
-        return { instantanea: snap.data(), yaEmitido: true };
+        // El detalle por unidad vive en su documento aparte: se junta, para que lo devuelto sea
+        // de verdad la instantánea que se selló y no una sin cartera por unidad.
+        const detalle = await db().collection(exports.DETALLE_POR_UNIDAD).doc(ref.id).get();
+        return { instantanea: instantaneaDeUnInformeSellado(snap.data() ?? {}, detalle.data()), yaEmitido: true };
     }
     // Sin borrador no se emite. El borrador no es un trámite: es la versión que
     // alguien miró antes de firmar, y emitir sin él sería firmar sin haber visto.
@@ -366,14 +397,18 @@ async function sellarEmision(input) {
                 ? "Ese informe fue anulado mientras se emitía."
                 : "Ese informe ya fue emitido.");
         }
+        const { delDocumento, porUnidad } = partirInstantanea(input.instantanea);
         tx.update(ref, {
             status: "emitido",
-            ...input.instantanea,
+            // `receivables` va entero y sin `byUnit`: un `update` con un mapa lo SUSTITUYE, así que
+            // el detalle que trajera un borrador de antes de `K2` también sale de aquí.
+            ...delDocumento,
             issuedBy: input.actorUid,
             issuedAt: firestore_1.FieldValue.serverTimestamp(),
             documentId: input.documentId,
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         });
+        tx.set(firestore.collection(exports.DETALLE_POR_UNIDAD).doc(ref.id), { tenantId: input.tenantId, period: input.period, byUnit: porUnidad, updatedAt: firestore_1.FieldValue.serverTimestamp() }, { merge: false });
     });
 }
 /**
@@ -488,17 +523,22 @@ async function anularInforme(input) {
 // nadie**, y `CA3` de `PLAT-004` pedía justo eso. Ahora `signMonthlyReport` lo rehace tras
 // cada firma, con estas tres piezas.
 /**
- * La instantánea de un informe YA SELLADO, leída de su propio documento.
+ * La instantánea de un informe YA SELLADO, leída de su propio documento y del de su
+ * detalle por unidad.
  *
- * `sellarEmision` escribe la instantánea entera en el documento, así que el PDF se rehace
+ * `sellarEmision` escribe la instantánea en esos dos documentos, así que el PDF se rehace
  * desde ahí **sin recalcular nada**: las cifras de un informe emitido están congeladas, y
  * volver a calcularlas al firmar podría cambiarlas bajo una firma que aprobó otras. Lee con
  * valores por defecto porque lo que llega es `doc.data()`.
+ *
+ * **Un informe sellado antes de `K2` lleva el detalle dentro**, y se sigue leyendo de ahí:
+ * así el orden entre desplegar y migrar no rompe ningún papel.
  */
-function instantaneaDeUnInformeSellado(d) {
+function instantaneaDeUnInformeSellado(d, detalle) {
     const n = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
     const lista = (v) => (Array.isArray(v) ? v : []);
     const cobrar = (d.receivables ?? {});
+    const porUnidad = detalle && Array.isArray(detalle.byUnit) ? detalle.byUnit : cobrar.byUnit;
     const pagar = (d.payables ?? {});
     return {
         openingBalance: n(d.openingBalance),
@@ -510,9 +550,25 @@ function instantaneaDeUnInformeSellado(d) {
         totalIncome: n(d.totalIncome),
         totalExpenses: n(d.totalExpenses),
         netResult: n(d.netResult),
-        receivables: { total: n(cobrar.total), byUnit: lista(cobrar.byUnit) },
+        receivables: { total: n(cobrar.total), byUnit: lista(porUnidad) },
         payables: { total: n(pagar.total), overdue: n(pagar.overdue), byVendor: lista(pagar.byVendor) },
     };
+}
+/**
+ * La instantánea para REHACER el papel de un informe sellado (`signMonthlyReport`).
+ *
+ * Junta el detalle por unidad de su documento aparte —si es del mismo conjunto— y, **si no
+ * está en ninguno de los dos sitios, se niega**: el papel diría «por cobrar» sin decir de
+ * quién, y parecería completo. La firma sigue en pie; la respuesta dice que el PDF no se
+ * rehízo.
+ */
+function instantaneaParaRehacerElPdf(informe, detalle) {
+    const delMismoConjunto = detalle && detalle.tenantId === informe.tenantId ? detalle : undefined;
+    const cobrar = (informe.receivables ?? {});
+    if (!(delMismoConjunto && Array.isArray(delMismoConjunto.byUnit)) && !Array.isArray(cobrar.byUnit)) {
+        throw new Error("El informe no tiene su detalle por unidad: el PDF no se rehace sin él.");
+    }
+    return instantaneaDeUnInformeSellado(informe, delMismoConjunto);
 }
 /**
  * La zona en la que se ESCRIBE una fecha para el conjunto, sacada de su país.

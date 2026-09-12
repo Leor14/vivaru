@@ -4290,8 +4290,9 @@ exports.issueMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableC
 /**
  * `PRD-V-PLAT-004` `CA3` — rehace el PDF de un informe emitido con las firmas que lleva.
  *
- * Se reconstruye con las cifras CONGELADAS del documento (`instantaneaDeUnInformeSellado`),
- * sin recalcular nada, y se archiva con el MISMO id que la emisión: la ruta de Storage y la
+ * Se reconstruye con las cifras CONGELADAS del documento y de su detalle por unidad
+ * (`instantaneaParaRehacerElPdf`), sin recalcular nada, y se archiva con el MISMO id que la
+ * emisión: la ruta de Storage y la
  * fila de `documents` se sobrescriben, así que el `documentId` del informe sigue valiendo.
  * Lo que no está emitido o publicado no se toca: un borrador no tiene PDF, y un anulado ya
  * no se firma.
@@ -4304,9 +4305,13 @@ async function rehacerPdfDelInforme(tenantId, reportId) {
     if (informe.status !== "emitido" && informe.status !== "publicado")
         return;
     const period = String(informe.period ?? "");
-    const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+    const [tenantSnap, detalleSnap] = await Promise.all([
+        db.collection("tenants").doc(tenantId).get(),
+        // `K2`: el detalle por unidad vive aparte, en un documento que el consejo no lee.
+        db.collection(informe_mensual_1.DETALLE_POR_UNIDAD).doc(reportId).get(),
+    ]);
     const tenant = tenantSnap.data();
-    const instantanea = (0, informe_mensual_1.instantaneaDeUnInformeSellado)(informe);
+    const instantanea = (0, informe_mensual_1.instantaneaParaRehacerElPdf)(informe, detalleSnap.data());
     const firmas = (0, informe_mensual_1.firmasParaElPdf)(informe.signatures, (0, informe_mensual_1.zonaParaPintarFechas)(tenant?.country));
     const pdf = await (0, pdf_resumen_1.buildInformeMensualPdf)({
         tenantName: tenant?.name ?? tenantId,

@@ -6,6 +6,7 @@ import {
   filasDeCabecera,
   firmasParaElPdf,
   instantaneaDeUnInformeSellado,
+  instantaneaParaRehacerElPdf,
   seccionesDelInforme,
   zonaParaPintarFechas,
   type InstantaneaDelInforme,
@@ -38,9 +39,13 @@ const INSTANTANEA: InstantaneaDelInforme = {
   payables: { total: 120_000, overdue: 0, byVendor: [{ vendorName: "Aseo Total", amount: 120_000 }] },
 };
 
-/** Lo que guarda `sellarEmision`: la instantánea entera más los campos del documento. */
+/**
+ * Lo que guarda `sellarEmision`: la instantánea con la cartera reducida a su total, más los
+ * campos del documento. El detalle por unidad va aparte (`K2`), en `DETALLE`.
+ */
 const DOCUMENTO_SELLADO: Record<string, unknown> = {
   ...INSTANTANEA,
+  receivables: { total: INSTANTANEA.receivables.total },
   tenantId: "tenant-palmas",
   period: "2026-08",
   status: "emitido",
@@ -48,6 +53,16 @@ const DOCUMENTO_SELLADO: Record<string, unknown> = {
   issuedBy: "admin-1",
   signatures: [],
 };
+
+/** Su documento aparte en `monthlyReportReceivables`, con el mismo id. */
+const DETALLE: Record<string, unknown> = {
+  tenantId: "tenant-palmas",
+  period: "2026-08",
+  byUnit: INSTANTANEA.receivables.byUnit,
+};
+
+/** Un informe sellado ANTES de `K2`: la instantánea entera dentro del documento. */
+const SELLADO_ANTES_DE_K2: Record<string, unknown> = { ...DOCUMENTO_SELLADO, receivables: INSTANTANEA.receivables };
 
 /** 19:30 del 10 de septiembre en Ciudad de México = 01:30 del 11 en UTC. */
 const FIRMA_DE_LA_TARDE = {
@@ -58,18 +73,18 @@ const FIRMA_DE_LA_TARDE = {
 };
 
 describe("instantaneaDeUnInformeSellado — el PDF se rehace con lo CONGELADO", () => {
-  it("devuelve exactamente la instantánea que se selló, sin los campos del documento", () => {
-    expect(instantaneaDeUnInformeSellado(DOCUMENTO_SELLADO)).toEqual(INSTANTANEA);
+  it("devuelve exactamente la instantánea que se selló, juntando el detalle de su documento aparte", () => {
+    expect(instantaneaDeUnInformeSellado(DOCUMENTO_SELLADO, DETALLE)).toEqual(INSTANTANEA);
   });
 
   it("y el papel rehecho lleva las mismas cifras de cabecera y las mismas secciones", () => {
-    const rehecha = instantaneaDeUnInformeSellado(DOCUMENTO_SELLADO);
+    const rehecha = instantaneaDeUnInformeSellado(DOCUMENTO_SELLADO, DETALLE);
     expect(filasDeCabecera(rehecha)).toEqual(filasDeCabecera(INSTANTANEA));
     expect(seccionesDelInforme(rehecha)).toEqual(seccionesDelInforme(INSTANTANEA));
   });
 
   it("un saldo de apertura sin dato sigue sin dato, no «$0» (`CA4`)", () => {
-    const sinApertura = instantaneaDeUnInformeSellado({ ...DOCUMENTO_SELLADO, openingBalanceSource: undefined });
+    const sinApertura = instantaneaDeUnInformeSellado({ ...DOCUMENTO_SELLADO, openingBalanceSource: undefined }, DETALLE);
     expect(sinApertura.openingBalanceSource).toBe("ausente");
     expect(filasDeCabecera(sinApertura)[0][1]).toBe("Sin saldo bancario de apertura");
   });
@@ -79,6 +94,27 @@ describe("instantaneaDeUnInformeSellado — el PDF se rehace con lo CONGELADO", 
     expect(vacia.income).toEqual([]);
     expect(vacia.receivables.byUnit).toEqual([]);
     expect(seccionesDelInforme(vacia)).toHaveLength(4);
+  });
+});
+
+describe("instantaneaParaRehacerElPdf — `K2`: el detalle por unidad vive aparte", () => {
+  it("junta el detalle de su documento aparte y rehace el mismo papel", () => {
+    expect(instantaneaParaRehacerElPdf(DOCUMENTO_SELLADO, DETALLE)).toEqual(INSTANTANEA);
+  });
+
+  it("un informe sellado ANTES de K2, con el detalle dentro, se sigue rehaciendo", () => {
+    // Así el orden entre desplegar y migrar no rompe ningún papel.
+    expect(instantaneaParaRehacerElPdf(SELLADO_ANTES_DE_K2, undefined)).toEqual(INSTANTANEA);
+  });
+
+  it("DEBE FALLAR: sin detalle en ningún sitio no rehace un papel que parecería completo", () => {
+    expect(() => instantaneaParaRehacerElPdf(DOCUMENTO_SELLADO, undefined)).toThrow(/detalle por unidad/);
+  });
+
+  it("DEBE FALLAR: el detalle de OTRO conjunto no se junta, aunque lleve el mismo id", () => {
+    expect(() => instantaneaParaRehacerElPdf(DOCUMENTO_SELLADO, { ...DETALLE, tenantId: "tenant-ajeno" })).toThrow(
+      /detalle por unidad/,
+    );
   });
 });
 

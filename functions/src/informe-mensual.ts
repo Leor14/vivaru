@@ -104,6 +104,36 @@ export type InstantaneaDelInforme = {
   payables: { total: number; overdue: number; byVendor: DeudaAProveedor[] };
 };
 
+// ── El detalle por unidad, FUERA del documento del informe (`K2`) ─────────────
+//
+// **`receivables.byUnit` —quién debe y cuánto— no viaja en el documento que lee el
+// consejo.** Una regla de Firestore concede el documento entero o no concede nada, y el
+// consejo lee los informes emitidos desde `PRD-V-PLAT-004`: la pantalla pintaba solo
+// totales, pero el detalle llegaba a su navegador. Se guarda aparte, con el MISMO id y
+// solo para la administración —el precedente es `bankAccountBalances`—, y el PDF, que lo
+// dibuja el servidor, lo vuelve a juntar.
+
+/** La colección hermana del informe: mismo id, y solo la lee la administración. */
+export const DETALLE_POR_UNIDAD = "monthlyReportReceivables";
+
+/** Lo que va al documento del informe: la instantánea con la cartera reducida a su total. */
+export type InstantaneaDelDocumento = Omit<InstantaneaDelInforme, "receivables"> & {
+  receivables: { total: number };
+};
+
+/**
+ * Parte la instantánea en lo que va al documento del informe y el detalle por unidad.
+ * **Es la única puerta por la que una instantánea llega a `monthlyReports`**: el borrador
+ * y la emisión pasan los dos por aquí.
+ */
+export function partirInstantanea(i: InstantaneaDelInforme): {
+  delDocumento: InstantaneaDelDocumento;
+  porUnidad: UnidadConDeuda[];
+} {
+  const { receivables, ...resto } = i;
+  return { delDocumento: { ...resto, receivables: { total: receivables.total } }, porUnidad: receivables.byUnit };
+}
+
 export type FirmaDelInforme = {
   uid: string;
   name: string;
@@ -400,19 +430,25 @@ export async function guardarBorrador(input: {
   instantanea: InstantaneaDelInforme;
   actorUid: string;
 }): Promise<{ escrito: boolean; motivo?: EstadoDelInforme }> {
-  const ref = db().collection("monthlyReports").doc(idDelInforme(input.tenantId, input.period));
+  const firestore = db();
+  const ref = firestore.collection("monthlyReports").doc(idDelInforme(input.tenantId, input.period));
   const snap = await ref.get();
   const previo = snap.data() as { status?: EstadoDelInforme; createdAt?: Timestamp } | undefined;
   if (previo?.status && previo.status !== "borrador") {
     return { escrito: false, motivo: previo.status };
   }
 
-  await ref.set(
+  const { delDocumento, porUnidad } = partirInstantanea(input.instantanea);
+  // Los dos documentos en UN lote: un informe sin su detalle, o un detalle sin su
+  // informe, no existe ni un instante.
+  const lote = firestore.batch();
+  lote.set(
+    ref,
     {
       tenantId: input.tenantId,
       period: input.period,
       status: "borrador" satisfies EstadoDelInforme,
-      ...input.instantanea,
+      ...delDocumento,
       generatedBy: input.actorUid,
       generatedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -424,6 +460,12 @@ export async function guardarBorrador(input: {
     },
     { merge: false },
   );
+  lote.set(
+    firestore.collection(DETALLE_POR_UNIDAD).doc(ref.id),
+    { tenantId: input.tenantId, period: input.period, byUnit: porUnidad, updatedAt: FieldValue.serverTimestamp() },
+    { merge: false },
+  );
+  await lote.commit();
   return { escrito: true };
 }
 
@@ -468,7 +510,10 @@ export async function prepararEmision(input: {
     );
   }
   if (estado === "emitido" || estado === "publicado") {
-    return { instantanea: snap.data() as unknown as InstantaneaDelInforme, yaEmitido: true };
+    // El detalle por unidad vive en su documento aparte: se junta, para que lo devuelto sea
+    // de verdad la instantánea que se selló y no una sin cartera por unidad.
+    const detalle = await db().collection(DETALLE_POR_UNIDAD).doc(ref.id).get();
+    return { instantanea: instantaneaDeUnInformeSellado(snap.data() ?? {}, detalle.data()), yaEmitido: true };
   }
 
   // Sin borrador no se emite. El borrador no es un trámite: es la versión que
@@ -517,14 +562,22 @@ export async function sellarEmision(input: {
           : "Ese informe ya fue emitido.",
       );
     }
+    const { delDocumento, porUnidad } = partirInstantanea(input.instantanea);
     tx.update(ref, {
       status: "emitido" satisfies EstadoDelInforme,
-      ...input.instantanea,
+      // `receivables` va entero y sin `byUnit`: un `update` con un mapa lo SUSTITUYE, así que
+      // el detalle que trajera un borrador de antes de `K2` también sale de aquí.
+      ...delDocumento,
       issuedBy: input.actorUid,
       issuedAt: FieldValue.serverTimestamp(),
       documentId: input.documentId,
       updatedAt: FieldValue.serverTimestamp(),
     });
+    tx.set(
+      firestore.collection(DETALLE_POR_UNIDAD).doc(ref.id),
+      { tenantId: input.tenantId, period: input.period, byUnit: porUnidad, updatedAt: FieldValue.serverTimestamp() },
+      { merge: false },
+    );
   });
 }
 
@@ -673,17 +726,25 @@ export async function anularInforme(input: {
 // cada firma, con estas tres piezas.
 
 /**
- * La instantánea de un informe YA SELLADO, leída de su propio documento.
+ * La instantánea de un informe YA SELLADO, leída de su propio documento y del de su
+ * detalle por unidad.
  *
- * `sellarEmision` escribe la instantánea entera en el documento, así que el PDF se rehace
+ * `sellarEmision` escribe la instantánea en esos dos documentos, así que el PDF se rehace
  * desde ahí **sin recalcular nada**: las cifras de un informe emitido están congeladas, y
  * volver a calcularlas al firmar podría cambiarlas bajo una firma que aprobó otras. Lee con
  * valores por defecto porque lo que llega es `doc.data()`.
+ *
+ * **Un informe sellado antes de `K2` lleva el detalle dentro**, y se sigue leyendo de ahí:
+ * así el orden entre desplegar y migrar no rompe ningún papel.
  */
-export function instantaneaDeUnInformeSellado(d: Record<string, unknown>): InstantaneaDelInforme {
+export function instantaneaDeUnInformeSellado(
+  d: Record<string, unknown>,
+  detalle?: Record<string, unknown>,
+): InstantaneaDelInforme {
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
   const lista = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
   const cobrar = (d.receivables ?? {}) as { total?: unknown; byUnit?: unknown };
+  const porUnidad = detalle && Array.isArray(detalle.byUnit) ? detalle.byUnit : cobrar.byUnit;
   const pagar = (d.payables ?? {}) as { total?: unknown; overdue?: unknown; byVendor?: unknown };
   return {
     openingBalance: n(d.openingBalance),
@@ -695,9 +756,29 @@ export function instantaneaDeUnInformeSellado(d: Record<string, unknown>): Insta
     totalIncome: n(d.totalIncome),
     totalExpenses: n(d.totalExpenses),
     netResult: n(d.netResult),
-    receivables: { total: n(cobrar.total), byUnit: lista<UnidadConDeuda>(cobrar.byUnit) },
+    receivables: { total: n(cobrar.total), byUnit: lista<UnidadConDeuda>(porUnidad) },
     payables: { total: n(pagar.total), overdue: n(pagar.overdue), byVendor: lista<DeudaAProveedor>(pagar.byVendor) },
   };
+}
+
+/**
+ * La instantánea para REHACER el papel de un informe sellado (`signMonthlyReport`).
+ *
+ * Junta el detalle por unidad de su documento aparte —si es del mismo conjunto— y, **si no
+ * está en ninguno de los dos sitios, se niega**: el papel diría «por cobrar» sin decir de
+ * quién, y parecería completo. La firma sigue en pie; la respuesta dice que el PDF no se
+ * rehízo.
+ */
+export function instantaneaParaRehacerElPdf(
+  informe: Record<string, unknown>,
+  detalle: Record<string, unknown> | undefined,
+): InstantaneaDelInforme {
+  const delMismoConjunto = detalle && detalle.tenantId === informe.tenantId ? detalle : undefined;
+  const cobrar = (informe.receivables ?? {}) as { byUnit?: unknown };
+  if (!(delMismoConjunto && Array.isArray(delMismoConjunto.byUnit)) && !Array.isArray(cobrar.byUnit)) {
+    throw new Error("El informe no tiene su detalle por unidad: el PDF no se rehace sin él.");
+  }
+  return instantaneaDeUnInformeSellado(informe, delMismoConjunto);
 }
 
 /**

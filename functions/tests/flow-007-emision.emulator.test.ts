@@ -7,6 +7,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import {
+  DETALLE_POR_UNIDAD,
   anularInforme,
   firmarInforme,
   guardarBorrador,
@@ -58,6 +59,7 @@ async function limpiar(col: string) {
 async function sembrarElMes() {
   await Promise.all([limpiar("billingStatements"), limpiar("ledgerEntries"), limpiar("bankAccountBalances"), limpiar("expenses")]);
   await db.collection("monthlyReports").doc(ID).delete();
+  await db.collection(DETALLE_POR_UNIDAD).doc(ID).delete();
 
   await db.collection("bankAccountBalances").doc(`${T}-cuenta`).set({ tenantId: T, openingBalance: 5_000 });
   await db.collection("ledgerEntries").doc(`${T}-asiento`).set({
@@ -310,5 +312,66 @@ describe("FLOW-007 · anular · `CA15` y `CA16`", () => {
     await expect(
       anularInforme({ tenantId: "otro-conjunto", reportId: ID, reason: "x", actorUid: ADMIN }),
     ).rejects.toThrow(/no pertenece a este conjunto/i);
+  });
+});
+
+/**
+ * **`K2` — el detalle por unidad NO viaja en el documento que lee el consejo.**
+ *
+ * `receivables.byUnit` dice quién debe y cuánto. El consejo lee los informes emitidos, y una
+ * regla concede el documento entero: por eso el detalle se escribe aparte, en
+ * `monthlyReportReceivables` con el mismo id, que solo lee la administración.
+ */
+describe("FLOW-007 · `K2` · el detalle por unidad va aparte", () => {
+  const detalle = async () => (await db.collection(DETALLE_POR_UNIDAD).doc(ID).get()).data();
+  const crudo = async () => JSON.stringify((await db.collection("monthlyReports").doc(ID).get()).data());
+  const FILA = { unitId: "u-1", unitLabel: "APTO 101", balance: 1_000, periods: 1 };
+
+  it("el control: el mes SÍ tiene detalle por unidad que partir", async () => {
+    // Sin esto, «el informe no lleva el detalle» se cumpliría con un mes sin deudas.
+    expect((await leerYConstruirInstantanea(T, PERIODO)).receivables.byUnit).toEqual([FILA]);
+  });
+
+  it("el borrador guarda solo el total, y el detalle en su documento aparte", async () => {
+    await crearBorrador();
+    expect((await leer()).receivables).toEqual({ total: 1_000 });
+    expect(await crudo()).not.toContain("APTO 101");
+    expect(await detalle()).toMatchObject({ tenantId: T, period: PERIODO, byUnit: [FILA] });
+  });
+
+  it("emitir tampoco lo mete en el informe: el emitido es el que lee el consejo", async () => {
+    await crearBorrador();
+    await emitir();
+    const i = await leer();
+    expect(i.status).toBe("emitido");
+    expect(i.receivables).toEqual({ total: 1_000 });
+    expect(await crudo()).not.toContain("APTO 101");
+    expect((await detalle())?.byUnit).toEqual([FILA]);
+  });
+
+  it("un borrador de ANTES de K2, con el detalle dentro, lo suelta al emitirse", async () => {
+    // Lo que dejaba la entrega 2: la instantánea entera en el documento.
+    const i = await leerYConstruirInstantanea(T, PERIODO);
+    await db.collection("monthlyReports").doc(ID).set({ tenantId: T, period: PERIODO, status: "borrador", ...i });
+    expect(await crudo()).toContain("APTO 101"); // el control: el de antes SÍ lo llevaba
+    await emitir();
+    expect(await crudo()).not.toContain("APTO 101");
+    expect((await detalle())?.byUnit).toEqual([FILA]);
+  });
+
+  it("regenerar sustituye también el detalle: sin deudas, la lista queda vacía", async () => {
+    await crearBorrador();
+    await db.collection("billingStatements").doc(`${T}-cargo`).delete();
+    await crearBorrador();
+    expect((await detalle())?.byUnit).toEqual([]);
+    expect((await leer()).receivables).toEqual({ total: 0 });
+  });
+
+  it("reemitir devuelve la instantánea que se selló, con su detalle juntado", async () => {
+    await crearBorrador();
+    await emitir();
+    const otra = await prepararEmision({ tenantId: T, period: PERIODO });
+    expect(otra.yaEmitido).toBe(true);
+    expect(otra.instantanea.receivables.byUnit).toEqual([FILA]);
   });
 });
