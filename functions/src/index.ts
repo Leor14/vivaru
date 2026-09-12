@@ -75,7 +75,13 @@ import {
   revocarAccesoDeResidente,
   type RevocarAccesoInput,
 } from "./resident-access";
-import { crearMudanza, crearReserva, type CrearMudanzaInput, type CrearReservaInput } from "./reservations";
+import {
+  avisoAlResidenteDeReservaCreada,
+  crearMudanza,
+  crearReserva,
+  type CrearMudanzaInput,
+  type CrearReservaInput,
+} from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertBuzonAdmisible } from "./buzones-admisibles";
@@ -3210,8 +3216,13 @@ export const onPackageCreated = onDocumentCreated("packages/{packageId}", async 
 });
 
 export const onReservationCreated = onDocumentCreated("reservations/{reservationId}", async (event) => {
-  const data = event.data?.data() as { tenantId?: string; amenity?: string; createdBy?: string; unitLabel?: string } | undefined;
+  const data = event.data?.data() as
+    | { tenantId?: string; amenity?: string; createdBy?: string; unitLabel?: string; status?: string; autoApproved?: boolean }
+    | undefined;
   if (!data?.tenantId) return;
+  // `PRD-V-FIX-001` entrega 2: una reserva que NACE aprobada no pasa por
+  // `onReservationUpdated`, que solo avisa cuando el estado cambia.
+  const alResidente = avisoAlResidenteDeReservaCreada(data);
 
   const adminUids = await listTenantUidsByRoles(data.tenantId, ["tenant_admin"]);
   const superadminUids = await listSuperadminUids();
@@ -3232,6 +3243,7 @@ export const onReservationCreated = onDocumentCreated("reservations/{reservation
       description: `Tenant ${data.tenantId} registro una nueva reserva.`,
       link: "/superadmin/analytics",
     })),
+    ...(alResidente ? [alResidente] : []),
   ]);
 });
 

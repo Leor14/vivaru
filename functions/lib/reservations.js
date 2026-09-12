@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MAX_NOTAS_DE_MUDANZA = void 0;
+exports.MAX_NOTAS_DE_MUDANZA = exports.MAX_ANTICIPACION_MINUTOS = exports.MIN_ANTICIPACION_POR_DEFECTO = void 0;
+exports.anticipacionDelArea = anticipacionDelArea;
+exports.aplicaMora = aplicaMora;
+exports.estadoInicial = estadoInicial;
+exports.avisoAlResidenteDeReservaCreada = avisoAlResidenteDeReservaCreada;
 exports.evaluarReglasDeReserva = evaluarReglasDeReserva;
 exports.crearReserva = crearReserva;
 exports.construirMudanza = construirMudanza;
@@ -63,6 +67,11 @@ const zona_del_conjunto_1 = require("./zona-del-conjunto");
  *   `crearMudanza`, con el mismo documento de siempre.
  * - En el cliente, las reservas del administrador no llevaban `amenityId`, y aquí
  *   se cuentan por ese campo: no ocupaban aforo ni cupo.
+ *
+ * **Entrega 2 (12 sep 2026) — la política baja al ÁREA** (§7.1): `blockOnDebt`
+ * (R3: si el área lo define, manda el área; `null` hereda del conjunto),
+ * `minAdvanceMinutes` (R5: 30 por defecto) y `autoApprove` (R6: nace aprobada). Los
+ * tres valen por defecto lo de hoy: un área sin configurar no cambia nada (CA10).
  */
 // `initializeApp()` corre en index.ts y los imports se evalúan antes.
 const db = () => (0, firestore_1.getFirestore)();
@@ -80,6 +89,43 @@ function rangoDeReserva(reserva) {
 function esReservaViva(reserva) {
     return reserva.status !== "cancelled" && reserva.status !== "rejected";
 }
+/** Entrega 2 · R5 — el margen de hoy, y el máximo que admite un área (una semana). */
+exports.MIN_ANTICIPACION_POR_DEFECTO = 30;
+exports.MAX_ANTICIPACION_MINUTOS = 10_080;
+/** La anticipación del área. Un dato roto no deja reservar sin margen: cae a los 30 de hoy, no a cero. */
+function anticipacionDelArea(amenity) {
+    const valor = amenity.minAdvanceMinutes;
+    return typeof valor === "number" && Number.isInteger(valor) && valor >= 0 && valor <= exports.MAX_ANTICIPACION_MINUTOS
+        ? valor
+        : exports.MIN_ANTICIPACION_POR_DEFECTO;
+}
+/** Entrega 2 · R3 — si el área tiene política de mora, manda el área; si no, la del conjunto. */
+function aplicaMora(politicaDelConjunto, politicaDelArea) {
+    if (typeof politicaDelArea === "boolean")
+        return politicaDelArea;
+    return politicaDelConjunto === true;
+}
+/** Entrega 2 · R6 — con `autoApprove` la reserva nace aprobada; sin él, pendiente, como hoy. */
+function estadoInicial(amenity) {
+    return amenity.autoApprove === true ? "approved" : "pending";
+}
+/**
+ * El aviso al residente de una reserva que NACE aprobada. `onReservationUpdated` solo
+ * avisa cuando el estado cambia, así que sin esto el residente no se enteraría. Una
+ * reserva que el administrador crea ya aprobada no avisa, como hoy.
+ */
+function avisoAlResidenteDeReservaCreada(reserva) {
+    if (reserva.status !== "approved" || reserva.autoApproved !== true || !reserva.createdBy || !reserva.tenantId)
+        return null;
+    return {
+        userId: reserva.createdBy,
+        tenantId: reserva.tenantId,
+        type: "reservation",
+        title: "Reserva aprobada",
+        description: `Tu reserva de ${reserva.amenity ?? "amenidad"} fue aprobada.`,
+        link: "/resident/reservations",
+    };
+}
 /**
  * Las trece reglas, en el orden en que fallan más barato. Devuelve la PRIMERA
  * incumplida: el mensaje al residente nombra una causa concreta, no una lista.
@@ -91,11 +137,12 @@ function evaluarReglasDeReserva(input, ctx) {
         return { ok: false, regla: "rango_invalido", mensaje: "Selecciona un rango horario válido para continuar." };
     }
     const inicio = (0, zona_del_conjunto_1.instanteEnZona)(input.date, input.startTime, ctx.zona);
-    if (!inicio || !(0, datetimeValidation_1.isDateTimeValid)(inicio, "reservation", ctx.ahora)) {
+    const anticipacion = anticipacionDelArea(ctx.amenity);
+    if (!inicio || inicio.getTime() < ctx.ahora.getTime() + anticipacion * 60_000) {
         return {
             ok: false,
             regla: "anticipacion",
-            mensaje: "La reserva requiere al menos 30 minutos de anticipación.",
+            mensaje: `La reserva requiere al menos ${anticipacion} minutos de anticipación.`,
         };
     }
     // Día disponible: día de la semana, fechas bloqueadas y ventana de vigencia.
@@ -185,11 +232,12 @@ function evaluarReglasDeReserva(input, ctx) {
  * viejos), y devuelve `null` cuando la política está apagada o la unidad
  * exenta — que significa «no aplica», no «sin deuda».
  */
-async function saldoVencidoDeUnidad(tenantId, unitId) {
+async function saldoVencidoDeUnidad(tenantId, unitId, politicaDelArea) {
     const firestore = db();
     const settingsSnap = await firestore.collection("tenantSettings").doc(tenantId).get();
     const settings = settingsSnap.data();
-    if (!settings?.reservationPolicy?.blockOnDebt)
+    // Entrega 2 · R3: la política del área manda; sin ella, la del conjunto.
+    if (!aplicaMora(settings?.reservationPolicy?.blockOnDebt, politicaDelArea))
         return null;
     // Exención por unidad: primero por doc id — que es lo que viaja en la
     // sesión y en la membresía — y, para unidades antiguas cuyo id no case,
@@ -253,7 +301,7 @@ async function crearReserva(input, uid) {
     if (!reservable) {
         throw new https_1.HttpsError("failed-precondition", "El área no está disponible para reservas.");
     }
-    const saldoVencido = await saldoVencidoDeUnidad(input.tenantId, input.unitId);
+    const saldoVencido = await saldoVencidoDeUnidad(input.tenantId, input.unitId, amenity.blockOnDebt);
     const zona = await zonaDe(input.tenantId);
     const primerDiaDelMes = `${input.date.slice(0, 7)}-01`;
     const reservasDelDiaQuery = firestore
@@ -295,6 +343,7 @@ async function crearReserva(input, uid) {
         const startMinutes = (0, time_range_1.parseClockTime)(input.startTime);
         const endMinutes = (0, time_range_1.parseClockTime)(input.endTime);
         const inicio = (0, zona_del_conjunto_1.instanteEnZona)(input.date, input.startTime, zona);
+        const estado = estadoInicial(amenity);
         const reservaRef = firestore.collection("reservations").doc();
         tx.set(reservaRef, {
             tenantId: input.tenantId,
@@ -316,12 +365,14 @@ async function crearReserva(input, uid) {
             startAt: firestore_1.Timestamp.fromDate(inicio),
             slot: (0, time_range_1.formatRangeLabel)(startMinutes, endMinutes),
             exclusiveUse: input.exclusiveUse === true,
-            status: "pending",
+            status: estado,
+            // Entrega 2: marca la aprobación automática para que el disparador avise al residente.
+            ...(estado === "approved" && { autoApproved: true }),
             // Deja rastro de la vía: cuando la regla de Firestore se cierre (paso 4
             // del despliegue), este campo distingue lo creado por el servidor.
             createdVia: "callable",
         });
-        return { ok: true, reservationId: reservaRef.id, status: "pending" };
+        return { ok: true, reservationId: reservaRef.id, status: estado };
     });
 }
 /** El asistente no tenía tope; el servidor pone este y el asistente, el mismo. */

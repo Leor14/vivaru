@@ -2442,6 +2442,9 @@ exports.onReservationCreated = (0, firestore_2.onDocumentCreated)("reservations/
     const data = event.data?.data();
     if (!data?.tenantId)
         return;
+    // `PRD-V-FIX-001` entrega 2: una reserva que NACE aprobada no pasa por
+    // `onReservationUpdated`, que solo avisa cuando el estado cambia.
+    const alResidente = (0, reservations_1.avisoAlResidenteDeReservaCreada)(data);
     const adminUids = await listTenantUidsByRoles(data.tenantId, ["tenant_admin"]);
     const superadminUids = await listSuperadminUids();
     await createNotifications([
@@ -2460,6 +2463,7 @@ exports.onReservationCreated = (0, firestore_2.onDocumentCreated)("reservations/
             description: `Tenant ${data.tenantId} registro una nueva reserva.`,
             link: "/superadmin/analytics",
         })),
+        ...(alResidente ? [alResidente] : []),
     ]);
 });
 exports.onReservationUpdated = (0, firestore_2.onDocumentUpdated)({ document: "reservations/{reservationId}", secrets: [email_1.resendApiKey] }, async (event) => {
