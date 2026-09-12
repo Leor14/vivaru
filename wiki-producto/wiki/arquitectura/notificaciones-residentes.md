@@ -3,7 +3,7 @@ tags: [arquitectura, notificaciones, mensajeria, billing]
 tipo: tecnica
 fuentes: ["sesion-cartera-crm-2026-06", "notification-catalog.ts"]
 fecha_creacion: 2026-06-23
-fecha_actualizacion: 2026-08-27
+fecha_actualizacion: 2026-09-12
 ---
 
 # Notificaciones a residentes
@@ -42,7 +42,7 @@ Otras claves cubren PQRS, reservas, reglamento, encuestas y acuerdos de comité 
 ## Disparadores (triggers y crons)
 
 La mayoría son Cloud Functions de [[firebase-firestore]]:
-- Triggers: `onBillingStatementCreated` (cobro nuevo), `onPaymentVoucherCreated`, `onTicketUpdated`, `onReservationUpdated`, `onRegulationDocumentCreated`, `onSurveyUpdated`.
+- Triggers: `onBillingStatementCreated` (cobro nuevo), `onPaymentVoucherCreated`, `onTicketUpdated`, `onReservationCreated` (desde el 12 sep 2026 avisa además al residente cuando su reserva nace aprobada por la política del área — ver [[reservaciones]]), `onReservationUpdated`, `onRegulationDocumentCreated`, `onSurveyUpdated`.
 - Callables: `notifyBillingBatch`, `sendBillingReminder`, `notifyResidentReceipt`.
 - Crons: `updateOverdueStatements` (mora), `publishScheduledCharges` (cobros programados), `sendScheduledReminders` (recordatorios programados).
 

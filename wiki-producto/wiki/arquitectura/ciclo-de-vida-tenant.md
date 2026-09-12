@@ -1,9 +1,9 @@
 ---
 tags: [arquitectura, multi-tenancy, trial, permisos]
 tipo: tecnica
-fuentes: ["plan-self-service-trial", "firestore.rules", "trial-modules.ts"]
+fuentes: ["plan-self-service-trial", "firestore.rules", "trial-modules.ts", "PRD-V-FIX-005"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-09-12
 ---
 
 # Ciclo de vida del conjunto — de prueba a cliente
@@ -41,6 +41,8 @@ Un conjunto `active` no pasa por esta matriz: tiene servicio completo. La distin
 El alta nace de un lead del landing ([[landing-marketing]]), se aprovisiona un ambiente sembrado con datos de ejemplo, y a los 15 días el ciclo automatizado lo marca `expired`. La conversión la hace el equipo comercial desde la consola de [[superadmin]], que cambia `status` a `active` y fija `onboardingTrack`.
 
 Ese campo importa más de lo que parece: decide qué guía ve el usuario al entrar. Ver [[onboarding-guiado]].
+
+**El alta de prueba es la única puerta pública que crea una cuenta**, y desde el 12 de septiembre de 2026 no delata si el correo ya tenía una: responde igual en los dos casos —al dueño de la cuenta existente le llega un correo—, con límite por correo y por IP. Dentro de una prueba, además, el alta de usuarios tiene tope (`PRD-V-FIX-005`). Ver [[autenticacion-roles]].
 
 ## La trampa de la sesión
 

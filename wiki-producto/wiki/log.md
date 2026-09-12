@@ -3,10 +3,19 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-27
+fecha_actualizacion: 2026-09-12
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-09-12] update | Reservas en el servidor, cuentas que no se delatan y tres trampas de reglas
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 8 — [[reservaciones]] (reescrita: era de mayo y no sabía que decide el servidor), [[trampas-conocidas]] (tres entradas: el helper de reglas que falla siempre, `CF9` y la hora del conjunto), [[autenticacion-roles]] (`FIX-004` y `FIX-005`; «no hay auto-registro» era falso desde que existe el alta de prueba), [[ciclo-de-vida-tenant]] (el alta de prueba no delata cuentas), [[estado-modulos]] (la fila de `FIX-001`, y la frase de las banderas apagadas, falsa desde el 25 de agosto), [[notificaciones-residentes]] (el aviso de reserva aprobada), [[index]] y este log
+- **Entidades extraídas**: `createMudanzaRequest`, `zonaDelConjunto` e `instanteEnZona`, `blockOnDebt`/`minAdvanceMinutes`/`autoApprove` por área, `limitesDeIntentos` con TTL, `people.authUid` solo del servidor, el patrón `CF9`
+- **Nota**: la wiki no se tocaba desde el 31 de agosto. Esta pasada cubre lo del 11 y el 12 de septiembre que cae en estas páginas; **lo del 1 al 10 —`FLOW-007`, `FLOW-008`, `FEAT-007` a `FEAT-010`, `PLAT-004`, `PLAT-006`— sigue sin entrar** y pide una sincronización aparte, como la del 22 de agosto.
 
 ---
 

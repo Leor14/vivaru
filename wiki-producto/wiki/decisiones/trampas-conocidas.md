@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-27
+fecha_actualizacion: 2026-09-12
 ---
 
 # Trampas Conocidas
@@ -556,3 +556,53 @@ apareció, y estuvo diecisiete minutos existiendo y vacío. Es de la misma famil
 `emulators:exec` que muere por el npm anidado y se reporta con código 0, o que el rollout que se da
 por bueno leyendo solo la primera página: **el código de salida no es la verdad, el estado del
 recurso sí.** La forma general de la trampa está en [[falsacion-de-pruebas]].
+
+## Una función de reglas que falla siempre, y la prueba negativa la aplaude
+
+Las reglas de Firestore **no suman texto y número**: `'' + value.year()` es un error de evaluación,
+y un error deniega igual que una política — desde el cliente las dos cosas son `permission-denied`.
+Los tres helpers de fecha de `firestore.rules` (`pad2`, `timestampDateKey`, `timestampTimeKey`) están
+escritos así, de modo que **toda condición que los usa se niega siempre**. Por eso ningún
+administrador pudo nunca mover una [[reservaciones|reserva]] de fecha u hora, y nadie lo vio: ninguna
+prueba recorría ese camino con `assertSucceeds`, y los `assertFails` de alrededor seguían en verde
+**por el motivo equivocado**.
+
+Lo delató el emulador, no leer la regla: `evaluation error at L1387:24 … Unsupported operation.
+Received: string + int`. En reservas se reescribieron el 12 de septiembre de 2026 con `string()` y
+un desfase fijo por país (CO y EC, 5 h; MX, 6 h). **[[visitantes]] los sigue usando** en
+`visitorAuthorizations`, y arreglarlo es decisión de David.
+
+**La regla:** todo helper de reglas necesita al menos un `assertSucceeds` que lo recorra; y cuando una
+regla deniega lo que no debe, correr esa prueba sola y leer el mensaje del emulador antes de
+teorizar. Ver [[pruebas-reglas-emulador]] y [[falsacion-de-pruebas]].
+
+## Un `update` que mira solo el `tenantId` nuevo deja quedarse un documento ajeno
+
+Si la regla de `update` comprueba el rol contra `request.resource.data.tenantId` —el valor
+**nuevo**—, un administrador del conjunto A puede editar un documento del conjunto B **cambiándole
+el `tenantId` a A**, y la regla lo aprueba: el rol se mira en su propio conjunto. Es `CF9`, y se
+reprodujo en `amenities`: un área de otro conjunto, quedada con una edición.
+
+**La forma buena mira los dos lados:** el rol contra `resource.data.tenantId` —lo que el documento
+ES— y además `request.resource.data.tenantId == resource.data.tenantId`, que no se mude. En
+`amenities` se cerró el 12 de septiembre de 2026; **quedan 19 bloques de reglas con la misma forma**,
+por revisar en una tarea aparte. Es el principio de [[multi-tenancy]] aplicado al documento que ya
+existe, no solo al que se crea.
+
+Y una trampa de la propia prueba: el documento del exploit **persistía entre casos**, porque
+`clearFirestore` corría una vez por fichero, y hacía fallar al guardián siguiente. Una prueba que
+escribe tiene que limpiar lo suyo.
+
+## El servidor vive en UTC: la hora de una reserva es la del conjunto
+
+Cloud Functions corre en UTC, así que construir el instante con `new Date(\`${fecha}T${hora}\`)` en
+el servidor da las 10:00 **UTC**, no las 10:00 del residente que las eligió. Con eso se rechazaban
+reservas del mismo día a menos de unas seis horas en México. Ahora se lee con
+`instanteEnZona(fecha, hora, zona)` —`Intl` en dos pasadas, que corrige el desfase si cae en un
+cambio de horario—, y la zona sale del `country` del conjunto (`zonaDelConjunto`). **Un conjunto sin
+`country` cae a México**, y en producción son cuatro.
+
+**Y el día de la semana se saca de la FECHA escrita, no del instante**: una reserva a las 20:00 de
+México ya es mañana en UTC, y preguntarle el día al instante la cuenta en el siguiente. Es la misma
+familia que el «hoy» del front con `toISOString()`, arreglado el 10 de septiembre. Ver
+[[reservaciones]].

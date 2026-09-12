@@ -3,7 +3,7 @@ tags: [decision, estado, modulos, backlog]
 tipo: decision
 fuentes: ["BACKLOG.md", "consolidacion-landing-2026", "FIN-001", "lote-habitanto"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-23
+fecha_actualizacion: 2026-09-12
 ---
 
 # Estado de Módulos
@@ -101,14 +101,16 @@ primero desde el 20 de agosto.
 
 **Casi todo sigue detrás de una [[banderas-funcionalidad|bandera apagada]]**, así que estar en
 producción **no significa que un usuario lo vea**. Las cinco banderas de producto no tienen
-documento en `featureFlags`, de modo que resuelven al default del catálogo.
+documento en `featureFlags`, de modo que resuelven al default del catálogo. *(Esto era la foto del
+23: desde el 25 de agosto las banderas del lote están encendidas en todos los conjuntos, sin
+overrides, y el 12 de septiembre el lote quedó completo con `FIX-001` entrega 2.)*
 
 | Pieza | Bandera | Notas |
 |---|---|---|
 | Decimales por moneda | **sin bandera — se ve** | MXN y USD muestran sus centavos; COP sigue sin ellos. De los nueve conjuntos, **tres tienen MXN y solo uno está activo** |
 | Vocabulario por país | **sin bandera — se ve** | El término lo decide el país del conjunto **y la audiencia**. Solo cambia en los cuatro conjuntos que tienen `country` |
 | `PLAT-002` — la autoridad del admin es su membresía | **sin bandera** | **La única del lote que no se revierte apagando nada.** Abre el multi-conjunto |
-| `FIX-001` entrega 1 — reglas de reserva en servidor | `producto-reservas-servidor` | La compuerta de morosos existía y **solo se comprobaba en el cliente**. Ver [[reservaciones]] |
+| `FIX-001` — reglas de reserva en servidor | `producto-reservas-servidor` (entrega 1; la 1.1 y la 2 van sin bandera) | La compuerta de morosos existía y **solo se comprobaba en el cliente**. **Completa el 12 sep 2026**: la 1.1 lee la hora en la zona del conjunto y devuelve la mudanza; la 2 da a cada área su política de mora, anticipación y aprobación. Ver [[reservaciones]] |
 | `PLAT-001` — coeficiente y cobro por reparto | `producto-cobro-por-coeficiente` | Ver [[cartera-campanas]] |
 | `FEAT-003` — registro de proveedores | `producto-registro-proveedores` | Datos bancarios que el residente no ve nunca |
 | `PLAT-003` entregas 1a y 1b | `producto-plan-de-cuentas` · `producto-concepto-al-libro` | El concepto del cargo llega al libro y el recaudo se reparte. Ver [[integridad-financiera]] §5 |

@@ -3,7 +3,7 @@ tags: [indice, navegacion]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06", "estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-27
+fecha_actualizacion: 2026-09-12
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -35,7 +35,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 |---|---|
 | [[estructura-app-router]] | Rutas Next.js 15: portales SaaS + route group (marketing) público |
 | [[landing-marketing]] | 🆕 Route group (marketing): rutas, componentes, lib y assets del landing |
-| [[autenticacion-roles]] | Firebase Auth, Custom Claims, RBAC, onboarding por enlace y recuperación |
+| [[autenticacion-roles]] | Firebase Auth, Custom Claims, RBAC, onboarding por enlace, recuperación y las puertas que no delatan cuentas (`FIX-004`, `FIX-005`) |
 | [[correos-mensajeria]] | 🆕 Mensajería híbrida: Resend (onboarding) + Firebase nativo, página /restablecer |
 | [[notificaciones-residentes]] | 🆕 Avisos in-app + email a residentes: catálogo editable, triggers y crons |
 | [[multi-tenancy]] | Modelo multi-tenant lógico sobre Firestore, aislamiento y planes |
@@ -58,7 +58,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[billing]] | Cartera y cobros: CRM de cobros, comprobantes, tipos de cobro, lote/programación |
 | [[cartera-campanas]] | 🆕 Campañas, listados por pestaña, embudo CRM, recordatorios y cierre de períodos |
 | [[pqrs]] | Tickets residente→administración: radicado, semáforo de 15 días hábiles, editor de clasificación y capa de IA con modo sombra |
-| [[reservaciones]] | Reserva de amenidades y mudanzas: slots, aprobación, depósitos |
+| [[reservaciones]] | Reservas de áreas comunes y mudanzas: decide el servidor (`FIX-001`), política por área y la hora del conjunto |
 | [[visitantes]] | Registro de visitas, QR, check-in/out, guardas |
 | [[paquetes]] | Paquetería: recepción, notificación y entrega a residente |
 | [[comunicaciones]] | Comunicados del administrador a propietarios e inquilinos |
