@@ -36,8 +36,8 @@ informe al saldo real del banco ([[integridad-financiera]]) y lo volvió **emiti
 ## Bandera y estado
 
 `producto-informe-mensual` ([[banderas-funcionalidad]]). **Medido el 12 sep resolviendo conjunto por
-conjunto:** encendida en los **10** conjuntos de producción —nueve por el valor global y uno por
-override— y en tres de staging. Las entregas 1 y 2 están en producción desde el 3 y el 4 sep. **La
+conjunto:** encendida en los **10** conjuntos de producción, todos por el valor global —el override del
+canario se retiró ese día—, y en tres de staging. Las entregas 1 y 2 están en producción desde el 3 y el 4 sep. **La
 entrega 3, publicar el informe al residente, espera al abogado ecuatoriano**, igual que la mora legal
 (`FLOW-006`).
 

@@ -65,11 +65,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    tocar la marca en staging).
 > 10. **El TXT `fah-claim`** en Squarespace Domains, para que sirva el dominio sin `www`.
 > 11. **La reserva de prueba de staging `4Mk1AvAePP9bqGZafbH2`** sigue `pending`: cancelarla sin borrar.
-> 12. **Tres overrides de bandera que repiten el valor global en producción**: `producto-egresos-en-cuotas`
->     en Las Playas y Santa María, y uno de `producto-informe-mensual`. Son ruido, y con ellos puestos
->     apagar exige el kill switch. Retirarlos es dato de producción.
-> 13. **Llevar `develop` a `master`**: el front de producción no tiene el tipo de `byUnit` ni las pruebas
->     de hoy. Ningún cambio de conducta.
+> 12. ~~Tres overrides de bandera que repetían el valor global en producción~~ — **RETIRADOS el 12 sep por
+>     la tarde**, con permiso de David, con la opción nueva `quitar` de `mover-bandera-de-conjunto.mjs`:
+>     `producto-egresos-en-cuotas` en Las Playas y Santa María, y `producto-informe-mensual` en Santa
+>     María. Las dos banderas resuelven 10 de 10 por el valor global; las demás overrides, intactas.
+> 13. **Llevar `develop` a `master`**: David lo pidió el 12, y **el modo automático bloqueó el push**. Lo
+>     leyó como «subir cambios de seguridad sin verificar», pero lo que cambia en producción al empujar es
+>     el front: un tipo y un comentario. Las reglas y las functions de `CF9` y `K2` ya están vivas. Lo lanza
+>     David, o lo reautoriza en el chat: `git push origin develop:master`.
 > 14. **`UX-005`** (tableros configurables): no se escribe por prioridad, y le falta decidir si la
 >     preferencia es por usuario o por conjunto (`docs/prd/README.md:170`).
 > 15. **Encender presupuesto, medidor o tesorería en un conjunto REAL** —no hay ninguno—; **el asiento

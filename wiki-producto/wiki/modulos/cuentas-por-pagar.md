@@ -33,9 +33,9 @@ se paga, se anula y deja su propio asiento en el libro.
 ## Bandera
 
 `producto-egresos-en-cuotas`, con la precedencia que explica [[banderas-funcionalidad]]. **Medido el 12
-sep resolviendo conjunto por conjunto:** encendida en los **10** conjuntos de producción —ocho por el
-valor global y dos, Las Playas y Santa María, por un override que dice lo mismo— y en staging solo en
-Santa María. Con esos overrides puestos, apagarla en todos exige el kill switch.
+sep resolviendo conjunto por conjunto:** encendida en los **10** conjuntos de producción, los diez por el
+valor global —los dos overrides que repetían lo mismo se retiraron ese día—, y en staging solo en Santa
+María.
 
 ## Trampas que dejó
 

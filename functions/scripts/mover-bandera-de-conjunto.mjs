@@ -16,10 +16,17 @@
 //   · NO toca el killSwitch, y avisa si hay uno puesto — si no, se pierde el rato
 //     de «la encendí y no pasa nada».
 //
-// Uso: node functions/scripts/mover-bandera-de-conjunto.mjs <projectId> <tenantId> <clave> <true|false>
+// Y `quitar` RETIRA la override de una clave, que no es lo mismo que ponerla en
+// `false`: la deja resolver otra vez por el valor global. Hace falta cuando la
+// override repite lo que ya dice el global —es ruido, y con ella puesta apagar la
+// global no la apaga en ese conjunto—, y la fusión de mapas de abajo no borra
+// nada. Hasta el 12 sep 2026 la única forma era un comando suelto, que es justo
+// lo que dejó el `override-cli` sin rastro.
+//
+// Uso: node functions/scripts/mover-bandera-de-conjunto.mjs <projectId> <tenantId> <clave> <true|false|quitar>
 
 import { initializeApp, applicationDefault } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const [projectId, tenantId, clave, valorCrudo] = process.argv.slice(2);
 
@@ -72,8 +79,8 @@ const CLAVES = [
   "operacion-app-check-monitor",
 ];
 
-if (!projectId || !tenantId || !clave || (valorCrudo !== "true" && valorCrudo !== "false")) {
-  console.error("Uso: node mover-bandera-de-conjunto.mjs <projectId> <tenantId> <clave> <true|false>");
+if (!projectId || !tenantId || !clave || !["true", "false", "quitar"].includes(valorCrudo)) {
+  console.error("Uso: node mover-bandera-de-conjunto.mjs <projectId> <tenantId> <clave> <true|false|quitar>");
   console.error("Claves:", CLAVES.join(", "));
   process.exit(1);
 }
@@ -110,6 +117,7 @@ if (!CLAVES.includes(clave)) {
 }
 
 const valor = valorCrudo === "true";
+const quitar = valorCrudo === "quitar";
 
 initializeApp({ credential: applicationDefault(), projectId });
 const db = getFirestore();
@@ -135,26 +143,45 @@ console.log(
     : `${valorAntes} (por ${antes?.updatedBy ?? "?"})`,
 );
 
-await ref.set(
-  {
-    tenantId,
-    flags: { [clave]: valor },
-    updatedAt: Timestamp.now(),
-    updatedBy: `mover-bandera-de-conjunto:${process.env.USER ?? "cli"}`,
-  },
-  // `merge: true` y no `mergeFields`: la ruta de campo sería `flags.<clave>` y
-  // las claves llevan guiones, que en una ruta de Firestore hay que escapar con
-  // acentos graves. Con merge normal la fusión de mapas es profunda —las otras
-  // banderas del conjunto se conservan— y no hay nada que escapar. El propio
-  // script lo comprueba imprimiéndolas después.
-  { merge: true },
-);
+const firma = `mover-bandera-de-conjunto:${process.env.USER ?? "cli"}`;
+
+if (quitar) {
+  if (valorAntes === undefined) {
+    console.log("  No había override de esta clave: no se escribe nada.\n");
+    process.exit(0);
+  }
+  // `FieldPath` por segmentos, y no la cadena `flags.<clave>`: las claves llevan
+  // guiones, y así no hay nada que escapar. Borra SOLO esta clave; las demás
+  // overrides del conjunto se quedan, y se imprimen abajo para comprobarlo.
+  await ref.update(new FieldPath("flags", clave), FieldValue.delete(), "updatedAt", Timestamp.now(), "updatedBy", firma);
+} else {
+  await ref.set(
+    {
+      tenantId,
+      flags: { [clave]: valor },
+      updatedAt: Timestamp.now(),
+      updatedBy: firma,
+    },
+    // `merge: true` y no `mergeFields`: la ruta de campo sería `flags.<clave>` y
+    // las claves llevan guiones, que en una ruta de Firestore hay que escapar con
+    // acentos graves. Con merge normal la fusión de mapas es profunda —las otras
+    // banderas del conjunto se conservan— y no hay nada que escapar. El propio
+    // script lo comprueba imprimiéndolas después.
+    { merge: true },
+  );
+}
 
 const despues = (await ref.get()).data();
-console.log("  después:", despues?.flags?.[clave]);
+console.log("  después:", despues?.flags?.[clave] ?? "(sin override)");
 console.log("  otras overrides de este conjunto:", JSON.stringify(despues?.flags ?? {}));
 
 const propia = (await db.collection("featureFlags").doc(clave).get()).data();
+if (quitar) {
+  console.log(
+    "  ahora resuelve por:",
+    propia?.enabled === undefined ? "el default del catálogo" : `el valor global, enabled: ${propia.enabled}`,
+  );
+}
 const maestro = (await db.collection("featureFlags").doc("_global").get()).data();
 if (maestro?.killSwitch === true) {
   console.log("\n  OJO: el kill switch MAESTRO está puesto. La capacidad sigue apagada.");
