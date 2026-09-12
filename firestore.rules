@@ -13,8 +13,15 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid));
     }
 
+    // **`PRD-V-FIX-005` · R3: existir no basta, la membresía tiene que estar ACTIVA.**
+    // Por existencia, desactivar una membresía dejaba abiertas las reglas hasta que
+    // caducaba el token (≤ 1 h), mientras las functions ya la rechazaban. Mismo criterio
+    // que ellas —`(status ?? "active") === "active"`—: sin `status`, o nulo, cuenta como
+    // activa. Es la base de `tenantRole`, `esConsejo` y `residentOwnUnit`: las cierra todas.
     function tenantMember(tenantId) {
-      return signedIn() && exists(/databases/$(database)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid));
+      return signedIn()
+        && exists(/databases/$(database)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid))
+        && membershipDoc(tenantId).data.get('status', null) in [null, 'active'];
     }
 
     function tenantRole(tenantId, role) {

@@ -3758,3 +3758,72 @@ describe("FIX-004 · people.authUid solo lo escribe el servidor", () => {
     );
   });
 });
+
+/**
+ * `PRD-V-FIX-005` · H2 / R3 — una membresía `inactive` no abre NINGUNA regla.
+ *
+ * `tenantMember` concedía por la EXISTENCIA del documento, así que desactivar una
+ * membresía dejaba las reglas abiertas hasta que caducaba el token (≤ 1 h), mientras
+ * las functions ya la rechazaban. Se entra por tres caminos —`sameTenant`, `tenantRole`
+ * y `residentOwnUnit`—, y los tres pasan por `tenantMember`: se prueban los tres.
+ */
+describe("FIX-005 · una membresía inactive no abre las reglas", () => {
+  const T = "tenant-fix005";
+  const UNIDAD = "u-fix005";
+  const ACTIVO = "residente-activo-fix005";
+  const INACTIVO = "residente-inactivo-fix005";
+  const SIN_STATUS = "residente-sin-status-fix005";
+  const como = (uid: string) => testEnv.authenticatedContext(uid, { role: "resident", tenantId: T });
+  const membresia = (uid: string, extra: Record<string, unknown>) => ({
+    uid,
+    tenantId: T,
+    role: "resident",
+    unitId: UNIDAD,
+    unitLabel: "T1-101",
+    ...extra,
+  });
+  const comprobante = (uid: string) => ({ tenantId: T, unitId: UNIDAD, uploadedBy: uid, amount: 100, status: "pending" });
+
+  beforeAll(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "tenants", T), { name: "Conjunto FIX-005", status: "active" });
+      await setDoc(doc(db, "tenantUsers", `${T}_${ACTIVO}`), membresia(ACTIVO, { status: "active" }));
+      await setDoc(doc(db, "tenantUsers", `${T}_${INACTIVO}`), membresia(INACTIVO, { status: "inactive" }));
+      await setDoc(doc(db, "tenantUsers", `${T}_${SIN_STATUS}`), membresia(SIN_STATUS, {}));
+      await setDoc(doc(db, "committee_agreements", "ca-fix005"), { tenantId: T, title: "Acuerdo" });
+      await setDoc(doc(db, "surveys", "enc-fix005"), { tenantId: T, title: "Encuesta", status: "open" });
+    });
+  });
+
+  it("CA3 · una membresía active lee lo del conjunto, como hoy", async () => {
+    await assertSucceeds(getDoc(doc(como(ACTIVO).firestore(), "committee_agreements", "ca-fix005")));
+    await assertSucceeds(getDoc(doc(como(ACTIVO).firestore(), "surveys", "enc-fix005")));
+  });
+
+  it("una membresía sin status —datos viejos— cuenta como activa, igual que en las functions", async () => {
+    await assertSucceeds(getDoc(doc(como(SIN_STATUS).firestore(), "committee_agreements", "ca-fix005")));
+  });
+
+  it("CF5 · una membresía inactive no lee por sameTenant", async () => {
+    await assertFails(getDoc(doc(como(INACTIVO).firestore(), "committee_agreements", "ca-fix005")));
+  });
+
+  it("CF5 · ni por su rol", async () => {
+    await assertFails(getDoc(doc(como(INACTIVO).firestore(), "surveys", "enc-fix005")));
+  });
+
+  it("CF5 · ni escribe como residente de su unidad", async () => {
+    await assertFails(setDoc(doc(como(INACTIVO).firestore(), "paymentReceipts", "rec-fix005-inactivo"), comprobante(INACTIVO)));
+  });
+
+  // El control del anterior: si la activa tampoco pudiera, el CF5 de escritura fallaría
+  // por otra causa y no probaría nada.
+  it("la activa sí sube su comprobante: el camino de escritura sigue abierto", async () => {
+    await assertSucceeds(setDoc(doc(como(ACTIVO).firestore(), "paymentReceipts", "rec-fix005-activo"), comprobante(ACTIVO)));
+  });
+
+  it("la inactiva sigue leyendo SU membresía, para que la sesión sepa que está desactivada", async () => {
+    await assertSucceeds(getDoc(doc(como(INACTIVO).firestore(), "tenantUsers", `${T}_${INACTIVO}`)));
+  });
+});
