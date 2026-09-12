@@ -421,3 +421,40 @@ marcada «Prueba FIX-001 1.1 (Claude)». **Producción, en orden functions → f
 (`createMudanzaRequest` invocable por `allUsers`), front `build-2026-09-12-005` desde `a7353ec` por su
 rollout automático, esperado por nombre, y reglas `5da48636` a las 05:39Z, idénticas al repo. En producción
 no se creó ningún dato de prueba.
+
+## 17. Entrega 2 — la política baja al área (12 sep 2026)
+
+Tres campos en `amenities`, **con valores por defecto iguales a lo de hoy**: un área sin configurar no
+cambia nada (`CA10`).
+
+| Campo | Qué hace | Sin él |
+|---|---|---|
+| `blockOnDebt` | `true` bloquea a las unidades en mora en ESA área; `false` las deja reservar aunque el conjunto las bloquee (`CA4`). La exención de la unidad sigue mandando (R4) | Hereda `tenantSettings.reservationPolicy.blockOnDebt` (R3) |
+| `minAdvanceMinutes` | Margen mínimo del área: un entero de 0 a 10 080 (una semana). El rechazo nombra los minutos (R7) | 30, los de hoy (R5) |
+| `autoApprove` | La reserva nace `approved` y el residente recibe «Reserva aprobada» (R6, `CA5`) | Nace `pending`, como hoy |
+
+**Dónde se ve.**
+- **El administrador** los configura al crear y al editar cada área, en «Aprobación y morosos».
+- **El residente** ve en la ficha del área la anticipación y si se aprueba al instante. El aviso de
+  mora sigue la política del área elegida, y la antelación del formulario es la del área.
+- **Decide el servidor** (`crearReserva`); la interfaz solo la muestra (§12).
+
+**El aviso.** Una reserva que NACE aprobada no pasa por `onReservationUpdated`, que solo avisa cuando
+cambia el estado, así que `onReservationCreated` le añade al residente el «Reserva aprobada» cuando la
+reserva lleva `autoApproved`. Si el administrador crea una reserva ya aprobada, no hay aviso, como hoy.
+
+**`CF9` no se cumplía, y se cerró aquí.** La regla de `update` de `amenities` solo miraba el `tenantId`
+nuevo, así que un administrador podía quedarse el área de otro conjunto reescribiéndolo. Se reprodujo
+en el emulador: la prueba de `CF9` salió en rojo, y el cambio llegó a contaminar la prueba del guarda
+que venía después. Ahora el `update` usa el conjunto de antes y no deja cambiarlo. **El mismo patrón
+aparece en otros 19 bloques de las reglas**: queda fuera de esta ficha y está propuesto como tarea
+aparte.
+
+**Las reglas validan los tipos** de los tres campos: `blockOnDebt` booleano o null, `autoApprove`
+booleano y `minAdvanceMinutes` entero de 0 a 10 080. Los escribe el cliente (§11.1) y el servidor los
+lee para decidir.
+
+**Pruebas:** 19 del servidor, 16 del cliente y 4 de reglas, **falsadas con 13 mutaciones** (6 del
+servidor, 4 del cliente y 3 de reglas). Una de ellas destapó que la prueba T9 de elegibilidad pasaba
+en verde por el motivo equivocado: usaba el `getDoc` que T8 había dejado sin consumir. Se corrigió la
+limpieza entre pruebas.
