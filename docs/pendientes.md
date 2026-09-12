@@ -80,12 +80,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE — el menú
 >
-> **0 · En curso: `PRD-V-FIX-005`**, rama `trabajo/fix-005-puertas-publicas`, **sin desplegar**. **Hechas:** H2
-> (una membresía `inactive` ya no abre las reglas), H3a y H3b (el uid y el correo del equipo, fuera de lo que
-> ve el conjunto) y H4a y H4b (el login no delata cuentas; «Recordar sesión» funciona). **Falta**, y la línea
-> de estado de la ficha dice por qué: H1 —**su R2 choca con el paso «Da de alta a tu portería» de la guía**,
-> que invita a dar de alta al portero real en la prueba; decide David—, H3c (la ruta de un adjunto del
-> equipo), H5 (medir `X-Forwarded-For` en staging) y desplegar.
+> **0 · En curso: `PRD-V-FIX-005`**, rama `trabajo/fix-005-puertas-publicas`, **en staging desde el 12 sep**
+> (functions, front y reglas, y la migración de soporte). **Hechas:** H1 —con la decisión de David, R2 opción A:
+> en una prueba se da de alta al portero real, con tope de intentos—, H2, H3a, H3b, H3c (opción A), H4a y H4b.
+> **Falta:** mirarlo en pantalla —pide iniciar sesión: David—, H5 y la IP en el límite del alta (medir
+> `X-Forwarded-For` en staging), App Check (`D-CONSOLA`) y producción, con su permiso.
 >
 > **A · Construible ya**
 > 1. **`FIX-001` entrega 2** — la política de reservas por área (10 de 11 criterios). Fase 2.
