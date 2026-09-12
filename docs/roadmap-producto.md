@@ -1259,8 +1259,9 @@ fecha de revisión.
   `updateSupportTicketStatus`) con su `updateTime`; el front por el rollout automático del push
   (`rollout-2026-09-12-002`, `build-2026-09-12-004`, esperado por nombre); las reglas cuando el front ya servía
   (`ebd89e30`, idénticas al fichero).
-- **Falta, y es de David**: App Check (`D-CONSOLA`) y el permiso para la política de TTL de `limitesDeIntentos`.
-  Los formularios de producción no se probaron, a propósito; `CF8` se vio en vivo en staging.
+- **Falta, y es de David**: App Check (`D-CONSOLA`). **El TTL de `limitesDeIntentos.expiraEn`, con su permiso, `ACTIVE`
+  en los dos proyectos** (03:12Z staging, 03:18Z producción) y declarado en `firestore.indexes.json`. Los formularios
+  de producción no se probaron, a propósito; `CF8` se vio en vivo en staging.
 - Bancos sobre `b852082`: `npm test` **2039** · functions **969** · reglas **486**; typecheck en 0.
 
 ### 0.9.69 — 11 de septiembre de 2026, noche — las dos ventanas de producción, con `FIX-004` y `PLAT-002` entrega 2

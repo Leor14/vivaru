@@ -9,7 +9,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > # LAS DOS VENTANAS DE PRODUCCIÓN, HECHAS, Y `FIX-005` EN PRODUCCIÓN EL 12 —SALVO APP CHECK—.
 >
 > **Lo que queda de `FIX-005` es de David:** la clave de reCAPTCHA Enterprise y registrar la app en App Check
-> (`D-CONSOLA`), y el permiso para la política de TTL de `limitesDeIntentos`. El detalle, en la línea «0» del menú.
+> (`D-CONSOLA`). El TTL de `limitesDeIntentos` ya está activo en los dos proyectos. El detalle, en la línea «0» del menú.
 >
 > **Estado: los remotos con `git ls-remote`** (esta cabecera no lleva sha a propósito), lo que sirve
 > cada ambiente con `estado-de-apphosting.mjs`, y las reglas con `verificar-reglas-desplegadas.mjs`
@@ -84,8 +84,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > revisara en staging: las 5 functions con su `updateTime`, el front por su rollout automático, las reglas
 > idénticas (`ebd89e30`; radio de H2: 0, las 41 membresías activas) y `CF9` en el paquete de `/login` de `www`.
 > **Hechas:** H1 (R2 opción A: el portero real sí, con tope de intentos), H2, H3a–H3c, H4a, H4b y H5 (la IP real:
-> la última en las callables, la tercera desde el final en App Hosting). **Falta:** App Check (`D-CONSOLA`) y la
-> política de TTL de `limitesDeIntentos`, que es configuración y pide permiso.
+> la última en las callables, la tercera desde el final en App Hosting). **Falta:** App Check (`D-CONSOLA`). El TTL
+> de `limitesDeIntentos.expiraEn`, con permiso de David, está `ACTIVE` en los dos (03:12Z staging, 03:18Z producción).
+> Aún no hay documentos que borrar: el primero que venza se borrará, normalmente, en menos de 24 h.
 >
 > **A · Construible ya**
 > 1. **`FIX-001` entrega 2** — la política de reservas por área (10 de 11 criterios). Fase 2.
