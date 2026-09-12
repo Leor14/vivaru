@@ -367,3 +367,37 @@ los dos rompió algo.**
 
 **Lista para desarrollo**, partida en dos entregas por D1. **La primera es una corrección de
 seguridad de regla de negocio y no cambia nada de lo que el usuario ve.**
+
+## 16. Entrega 1.1 — lo que la entrega 1 dejó roto (12 sep 2026)
+
+Al empezar la entrega 2 se midió la 1 contra el código y los datos de los dos ambientes, y tenía
+**cuatro defectos**. **Decisiones de David (12 sep):** primero el arreglo, **desplegado solo** —es
+D1: nunca arreglo y novedad en el mismo despliegue—; y la zona horaria **sale del país del conjunto,
+solo en reservas**. El «vencido» de la cartera sigue en UTC hasta que él decida.
+
+| # | Defecto | Evidencia | Arreglo |
+|---|---|---|---|
+| 1 | La hora elegida se leía en la zona del servidor, **UTC** | En producción, Santa María reservó el 21 sep a las 08:30 y se guardó `startAt = 08:30Z`: las 08:30 de Bogotá son las 13:30Z. La antelación rechazaba reservas del mismo día a menos de ~5,5 h (Colombia) o ~6,5 h (México). Nunca dejaba pasar de más | `instanteEnZona` con `zonaDelConjunto(country)` (`functions/src/zona-del-conjunto.ts`). El día de la semana sale de la FECHA: las 20:00 de un sábado en México ya son domingo en UTC |
+| 2 | **`CA11` no se cumplía**: la mudanza del residente se creaba con `addDoc`, y el paso 4 le cerró la puerta el 24 ago | El `create` de `reservations` solo admite al administrador y no tiene rama de mudanza. **Cero mudanzas en la historia de los dos ambientes**: nadie lo vio | Callable `createMudanzaRequest`, con el mismo documento de siempre (`construirMudanza`). Comparte `autorizarReserva` con `createReservationRequest` |
+| 3 | Las reservas del administrador **no llevaban `amenityId`**: el servidor cuenta aforo y cupo por ese campo y no las veía, así que un residente podía reservar encima | `createReservation` escribía el formulario, que va por `amenityName` | La página lo resuelve (`amenityIdPorNombre`; medido: ningún conjunto repite nombre de área) y **la regla lo exige** |
+| 4 | Mover una reserva de fecha u hora **nunca funcionó** | Los helpers de fecha de las reglas (`pad2`, `timestampDateKey`, `timestampTimeKey`) suman texto y número, y la evaluación fallaba SIEMPRE: el emulador lo dice, `string + int`. Además comparaban en UTC | `reservaConAntelacion`, con helpers propios que usan `string()` y el desfase fijo del país (Colombia y Ecuador −5, México −6, sin país México) |
+
+Y dos **espejos del cliente** que no casaban con el servidor: la exención se buscaba por el campo
+`unitId` —ahora por el doc id, con caída al campo— y el contador del cupo mensual consultaba una
+subcolección que no existe —ahora cuenta en `reservations`, con el mes de la fecha elegida—.
+
+**Pruebas:** 23 del servidor, 11 del cliente y 4 de reglas, **falsadas con 10 mutaciones** (6 del
+servidor y 4 de reglas), cada una enrojeciendo exactamente la suya. Bancos: app **2050** · functions
+**992** · reglas **490** (`storage.rules.test.ts` aparte, por entorno).
+
+**Queda fuera, y es de David:**
+
+- **Las visitas.** Los mismos helpers rotos gobiernan `visitorAuthorizations`: el administrador no
+  puede cambiar la fecha u hora de una autorización, y la rama del residente —que el cliente no
+  usa— tampoco llegaría a evaluar. Arreglarlo es corregir esos tres helpers; no se hizo porque la
+  decisión fue «solo reservas».
+- **Cuatro conjuntos de producción sin `country`** (Santa María, Bromelias, Privada Las Playas y
+  Tenant E2E) y uno en staging (Santa María) caen en la zona de México. **Santa María es
+  colombiana**: una hora de diferencia hasta que tenga su país. Ponérselo es escribir en
+  producción: con permiso, uno a uno.
+- **`minAdvanceMinutes` por área** figuraba en el MVP y no se construyó: va con la entrega 2.
