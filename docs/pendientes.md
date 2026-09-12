@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026, por la noche (12 en UTC)
 
-> # `FIX-005` —SALVO APP CHECK— Y LA ENTREGA 1.1 DE `FIX-001`, EN PRODUCCIÓN EL 12. SIGUE LA ENTREGA 2 DE `FIX-001`.
+> # `FIX-005` —SALVO APP CHECK— Y LA ENTREGA 1.1 DE `FIX-001`, EN PRODUCCIÓN EL 12. LA ENTREGA 2, EN STAGING: ESPERA A DAVID.
 >
 > **Lo que queda de `FIX-005` es de David:** la clave de reCAPTCHA Enterprise y registrar la app en App Check
 > (`D-CONSOLA`). El TTL de `limitesDeIntentos` ya está activo en los dos proyectos. El detalle, en la línea «0» del menú.
@@ -94,8 +94,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    mudanza rota (`CA11`), las reservas del admin sin `amenityId` y mover una reserva, que nunca funcionó—, en la
 >    §16 de la ficha. Verificada antes en staging con las cuatro pruebas, que ejecutó Claude con las sesiones de
 >    David y comprobó en los datos. **De David:** el `country` de 4 conjuntos de producción (permiso uno a uno) y las
->    visitas, con los mismos helpers de fecha rotos. **Sigue la entrega 2** —`blockOnDebt`, `autoApprove` y
->    `minAdvanceMinutes` por área—, que cierra el lote de Habitanto (10 de 11).
+>    visitas, con los mismos helpers de fecha rotos. **La entrega 2, EN STAGING** desde el 12 sep: `blockOnDebt`,
+>    `autoApprove` y `minAdvanceMinutes` por área, y `CF9` cerrado en `amenities`. Verificada en vivo (§17).
+>    **Falta:** que David mire el formulario del administrador, y producción con su permiso. Cierra el lote de
+>    Habitanto (11 de 11). **Tarea aparte propuesta:** el mismo hueco de `CF9` en otros 19 bloques de las reglas.
 > 2. **`UX-006`**: sus cuatro criterios pendientes se pueden correr (hay Java). `UX-005` en exploración.
 > 3. **Sacar `byUnit` del documento del informe** a uno solo-administración, antes de que `K2` se decida.
 >
