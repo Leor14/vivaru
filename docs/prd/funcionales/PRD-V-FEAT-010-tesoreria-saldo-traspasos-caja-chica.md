@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN** (10 sep 2026) · bandera encendida **solo en Las Playas**, con una demo sembrada; apagada en los otros ocho |
+| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN** (10 sep 2026), **y el 11 sep la cuenta de salida en el pago de una cuota** · bandera encendida **solo en Las Playas**, con una demo sembrada; apagada en los otros nueve de producción. En staging, en Las Playas y Santa María. *(Medido el 12 sep 2026 resolviendo conjunto por conjunto. Esta celda decía «los otros ocho» y omitía la entrega del 11.)* |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -65,14 +65,14 @@ Habitanto (`docs/inventario-habitanto.md` §A.7): son los candidatos **`C7`** (c
 |---|---|---|
 | Saldo por cuenta en el código | **No existe.** Ninguna función lo calcula | La entrega 1 es la base de las otras dos |
 | `LedgerEntryType` | `"ingreso" \| "egreso"`, y **16 ficheros** lo leen (8 en `functions/`, 8 en `src/`) | Añadir `"traspaso"` obliga a revisar los 16 más el núcleo con espejo |
-| Sitios que tratan «lo que no es X» como Y | **Dos**: `conciliacion.ts:88` (todo lo que no es ingreso resta) y `conciliacion-casos.ts:114` (todo lo que no es egreso es ingreso) | 🔴 Un tercer tipo se convertiría en gasto o en ingreso **sin avisar**. `RN-01` |
+| Sitios que tratan «lo que no es X» como Y | **Dos**: `efectoContable`, en `conciliacion.ts` (todo lo que no es ingreso resta), y `comoAsiento`, en `conciliacion-casos.ts` (todo lo que no es egreso es ingreso) | 🔴 Un tercer tipo se convertiría en gasto o en ingreso **sin avisar**. `RN-01` |
 | Cuentas bancarias en producción | **4, una por conjunto** (Santa María, Las Playas, Queretarock, Qintilab); dos son «Banco de ejemplo» | **Ningún conjunto tiene dos cuentas**: los traspasos nacen sobre tabla vacía |
 | Asientos con cuenta | **77 de 95**. Sin cuenta: 6 egresos, 4 recaudos, 3 reversos, 1 anticipo, 4 manuales | El saldo por cuenta necesita una línea «sin cuenta asignada». `RN-03` |
 | Santa María | Tiene su cuenta (Santander), pero **ninguno de sus asientos la lleva** | Su saldo por cuenta saldrá entero en «sin cuenta» — y es verdad |
 | 🔴 **Recaudo en el libro frente a lo cobrado según Cartera** | Coincide en **2 de 7** conjuntos. Santa María: libro $1.120.000, Cartera $2.200.000. Queretarock y Qintilab: libro $0, Cartera **$15.300.000** cada uno | **El saldo de fondos sale de Cartera**, así que un saldo por cuenta sumado desde el libro **no cuadra con el total en cinco conjuntos**. `RN-04` |
 | El residente y las cuentas | Las lee con `active == true` (`/resident/account`), para decir **a qué cuenta pagó** | 🔴 **Una caja chica guardada como cuenta bancaria le aparecería como destino de pago.** `RN-08` |
-| La conciliación | Busca pareja **solo entre asientos** (`conciliacion-casos.ts:579`) | Cada tramo de un traspaso aparecerá en el extracto de su banco. `RN-07` |
-| El egreso | Ya elige la cuenta de la que sale (`bankAccountId`, en los 52 egresos) | Los gastos de la caja chica son **egresos normales** que salen de la caja |
+| La conciliación | Busca pareja **solo entre asientos** (`leerCascada`, en `conciliacion-casos.ts`) —al escribir la ficha: la entrega 2b le añadió los tramos de traspaso— | Cada tramo de un traspaso aparecerá en el extracto de su banco. `RN-07` |
+| El egreso | ~~Ya elige la cuenta de la que sale~~ **No la elegía**: `bankAccountId` existía en el documento y en el formulario, pero ningún control lo pedía. Lo corrigió la entrega 3 con «Sale de» (ver «Lo que la medición cambió antes de escribir») | Los gastos de la caja chica son **egresos normales** que salen de la caja |
 
 ### Métrica de éxito
 
@@ -265,7 +265,7 @@ lee desde esta ficha como **«cuenta de tesorería»**; los ids son globales y n
 |---|---|---|
 | Traspaso y caja chica | **Escritura directa** | No mueven dinero de nadie ni tocan el libro; sus invariantes —conjunto, cuentas distintas, importe positivo, anular en vez de borrar— los sostienen las reglas, que pueden leer las dos cuentas con `get()` |
 | El saldo por cuenta | **Cálculo en el cliente**, función pura | Lee lo que el administrador ya puede leer |
-| **`RN-10`** (la caja no recibe cuotas) | **En la callable del pago** | El pago ya es callable (`aplicarPago`, `payments.ts:789` lee la cuenta de destino). **Una regla de Firestore no protege lo que escribe una callable**: la guarda va en el servidor |
+| **`RN-10`** (la caja no recibe cuotas) | ~~En la callable del pago~~ **Por construcción** | El plan era una guarda en `aplicarPago`. **Al construir no hizo falta**: `aplicarPago` ya rechaza cualquier cuenta que no esté en `bankAccounts`, y la caja vive en `pettyCashFunds` (ver la entrega 3). Sigue siendo cierto que una regla de Firestore no protege lo que escribe una callable |
 
 ### Piezas y el gemelo que ya lo hace bien
 
@@ -276,9 +276,9 @@ lee desde esta ficha como **«cuenta de tesorería»**; los ids son globales y n
 | `treasuryTransfers` · `pettyCashFunds` | Colecciones nuevas, reglas, y su banco en **las dos listas** de vitest |
 | La conciliación | Ofrece los tramos de traspaso como candidatos (`RN-07`) — en los **dos** espejos, `functions/src/conciliacion*.ts` y `src/features/finanzas/conciliacion-reglas.ts` |
 | El egreso | Su selector de cuenta incluye las cajas abiertas |
-| `payments.ts` | Rechaza una caja como destino (`RN-10`) |
+| `payments.ts` | ~~Rechaza una caja como destino (`RN-10`)~~ Sin cambios: ya rechazaba toda cuenta que no esté en `bankAccounts`, así que `RN-10` se cumple por construcción |
 | `vocabulario-pais.ts` | «caja menor» / «caja chica» (`RN-12`) |
-| Bandera | `producto-tesoreria`, en **los CINCO sitios**, apagada |
+| Bandera | `producto-tesoreria`, en **los CINCO sitios**. Nació apagada; hoy está encendida solo en Las Playas de producción, la demo |
 | Guardián | El núcleo, el informe y el presupuesto **no leen** `treasuryTransfers` — midiendo el código **sin comentarios** |
 
 ### `TBD`
@@ -307,7 +307,9 @@ lee desde esta ficha como **«cuenta de tesorería»**; los ids son globales y n
 ### Orden
 
 **Reglas → functions → front.** Las reglas solo abren colecciones nuevas. **`functions` sí va
-esta vez**: la guarda de `RN-10` está en `aplicarPago`.
+esta vez**: la guarda de `RN-10` está en `aplicarPago`. *(Así se planeó. Al construir, `RN-10` se
+cumplió sin servidor y la entrega 3 no desplegó functions; sí las desplegaron la 2b y la entrega del
+11 sep.)*
 
 ### Rollback
 

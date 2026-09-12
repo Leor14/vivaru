@@ -235,6 +235,8 @@ Installment = {
 > **`paidAmount` lo escribe el SERVIDOR y no se deriva en el cliente.** Es lo que sostiene la deuda
 > del conjunto, y **un campo escribible desde el cliente no puede sostener un invariante** — la
 > lección que este repositorio ya pagó en `CF8` y volvió a aplicar en `FLOW-007`.
+> *(Así se escribió. La entrega 1 lo corrigió: la deuda la sostienen las **cuotas vivas**, no
+> `paidAmount` —ver `RN-09`—. Que `paidAmount` lo escriba solo el servidor sigue siendo cierto.)*
 
 ### Invariantes de Vivaru que se respetan y se declaran
 
@@ -351,6 +353,8 @@ que `FLOW-007` la unificó.
 
 **La corrección: la deuda de un egreso es `amount − paidAmount`**, y para uno sin plan `paidAmount`
 vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
+*(Corregido al construir: con plan, la deuda son las **cuotas vivas**, porque `amount − paidAmount`
+cuenta de más en cuanto se anula una cuota; sin plan, sigue siendo `amount`. Ver `RN-09`.)*
 
 > ⚠️ **Y hay que tocar el NÚCLEO, que tiene una regla propia:**
 > `src/lib/finanzas/nucleo-estado-financiero.ts` **no importa NADA** y tiene copia **byte a byte**
@@ -364,7 +368,7 @@ vale 0, así que **el comportamiento de hoy queda intacto** (`CA10`, `CA11`).
 | Operación | Cómo | Por qué |
 |---|---|---|
 | **Declarar y editar el plan** | ~~Directa desde el cliente~~ → **CALLABLE** (`R8`, 4 sep 2026) | Ver el recuadro de abajo: **cambió durante la construcción** |
-| **Pagar una cuota** · **anular una cuota** · **anular el egreso** | **CALLABLE** | Escribe en **dos sitios** —la cuota y el libro—, mueve dinero, y **sella `paidAmount`, que sostiene la deuda del conjunto**. Si el cliente lo escribiera, bajar la deuda sería editar un número |
+| **Pagar una cuota** · **anular una cuota** · **anular el egreso** | **CALLABLE** | Escribe en **dos sitios** —la cuota y el libro—, mueve dinero, y **sella `paidAmount`** —el acumulado de lo pagado; la deuda la sostienen las cuotas vivas (`RN-09`)—. Si el cliente lo escribiera, bajar la deuda sería editar un número |
 
 > ### 🔴 ESTA DECISIÓN CAMBIÓ AL CONSTRUIR, Y LA CORRIGIÓ DAVID (`R8`, 4 sep 2026)
 >
@@ -620,8 +624,9 @@ apagarla no puede dejar cuotas vivas sin forma de retirarlas.
 > donde no había ninguno—, así que la protección era **cero** en su propio escenario.
 >
 > ⚠️ **Y el mismo patrón está en OTROS CUATRO SITIOS del fichero**, todos preexistentes y de
-> otras fichas: `firestore.rules:463` (`visitorInvitations`), **`:490` (`visitorPasses`, con
-> `hasOnly` — ahí una clave añadida se colaría entera)**, `:561` y `:1239`. **No se tocaron**:
+> otras fichas: el `update` de `visitorInvitations`, **el de `visitorPasses` (con `hasOnly` — ahí una
+> clave añadida se colaría entera)**, el de `visitorAuthorizations` y el de `reservations` —citados
+> aquí antes por línea: 463, 490, 561 y 1239 del fichero del 4 sep—. **No se tocaron**:
 > son de otro alcance y cada uno necesita su propia falsación. Hay chip abierto.
 
 ### Lo que la entrega 3 enseñó
@@ -679,7 +684,7 @@ toda la ventana.
 | Las cuatro callables | Existen y **responden en producción con el mensaje del código nuevo** |
 | **Reglas** | Ruleset **vivo** por la API de Rules: **cero líneas de diff** contra el repositorio. Antes de subir, el único delta eran **60 líneas, todas añadidas** — sin deriva |
 | **Front** | Rollout esperado por nombre hasta ver `traffic.current` en `3f0de0a` |
-| **Bandera** | **0 de 9**, resuelta con la precedencia del servidor |
+| **Bandera** | **0 de 9** al desplegar, resuelta con la precedencia del servidor. *(David la encendió en global ese mismo 4 sep; hoy, 10 de 10 por el valor global.)* |
 
 **El código está en producción y es INERTE**: sin bandera no hay casilla de cuotas, no se puede
 declarar un plan, y `paidAmount` es cero en los 52 egresos, así que la deuda a proveedores es

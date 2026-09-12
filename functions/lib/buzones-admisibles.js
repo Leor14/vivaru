@@ -39,7 +39,7 @@ const feature_flags_1 = require("./feature-flags");
  *
  * **Esta es la copia canónica.** Existen otras dos, en `functions/scripts/`
  * (`informe-correos-en-conjuntos-de-ejemplo.mjs` y `sanear-correos-de-prueba.mjs`), porque los
- * scripts corren con Node suelto y no importan de `src`. `tests/catalogo-de-dominios-inertes.test.ts`
+ * scripts corren con Node suelto y no importan de `src`. `functions/tests/catalogo-de-dominios-inertes.test.ts`
  * vigila que no diverjan: cinco copias del mismo mapa fue la trampa de `UX-004`.
  */
 exports.DOMINIOS_INERTES = [

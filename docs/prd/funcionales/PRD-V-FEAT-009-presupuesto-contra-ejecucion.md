@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS** (10 sep 2026) · en producción, encendida **solo en Las Playas**, con un presupuesto 2026 de demo; apagada en los otros ocho |
+| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS EN STAGING** (10 sep 2026). `CA2`, que la ficha reservaba a producción, se miró sobre Las Playas **de staging** · en producción, encendida **solo en Las Playas**, con un presupuesto 2026 de demo; apagada en los otros nueve. En staging, en Las Playas y Palmas. *(Medido el 12 sep 2026. Esta celda decía «los otros ocho» y «todos los criterios vistos», sin decir dónde.)* |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -111,7 +111,7 @@ su conjunto.
 | Presupuesto por mes | `TBD-C`. El de la asamblea es anual; la referencia del año transcurrido cubre el «¿vamos bien?» |
 | Presupuesto reformado | `TBD-A`. Pasa, pero no el primer año |
 | El consejo en la app | `TBD-B`. El consejo no lee el libro, así que no es una pantalla más: es una instantánea |
-| Una línea en el informe mensual | `TBD-D`. La bandera del informe está apagada en los nueve |
+| Una línea en el informe mensual | `TBD-D`. ~~La bandera del informe está apagada en los nueve~~ *(falso al escribirlo: estaba encendida en los nueve desde el 4 sep; se copió de la cabecera de `FLOW-007`, que se había quedado atrás)* |
 | Copiar el presupuesto del año anterior | Fase 2. Con 21 cuentas, teclearlo una vez al año no es el cuello de botella |
 | Devengado | Lo ejecutado es **lo que dice el libro**, igual que el informe. La deuda a proveedores se muestra aparte (`RN-09`) |
 
@@ -122,8 +122,9 @@ obligaba a rehacer parte. **Medido, lo que no hay que rehacer es el cálculo, no
 pantalla**, y hay tres razones para que la pantalla vaya aparte:
 
 1. **El informe es mensual y el presupuesto es anual.** La asamblea compara el año entero.
-2. **El informe es una instantánea congelada**, y su bandera está apagada en los nueve
-   conjuntos. Colgar §3.8 de ahí lo dejaría apagado por una decisión que no es suya.
+2. **El informe es una instantánea congelada**, y el presupuesto compara contra lo que el libro dice
+   hoy. *(Este punto añadía que la bandera del informe estaba apagada en los nueve conjuntos: era falso
+   —encendida desde el 4 sep—, copiado de una cabecera de `FLOW-007` que se había quedado atrás.)*
 3. **El consejo, que es quien lee el informe, no puede leer el libro.** Meterlo en el
    informe no le da la comparación a nadie que hoy no la tenga.
 
@@ -248,7 +249,7 @@ al año. Un aviso de «sobre-ejecución» mensual sería otra ficha, y nadie lo 
 | `CA7` | Aprobado con fecha de acta, la pantalla pasa a solo lectura y dice la fecha |
 | `CA8` | La vista impresa lleva conjunto, año, estado, fecha de corte, tabla, totales y la nota de proveedores, **sin menú ni botones** — mirada en la vista previa de impresión, no deducida del código |
 | `CA9` | Todas las cifras en la moneda del conjunto |
-| `CA10` | Con la bandera apagada no hay entrada en el menú y la ruta dice que no está disponible || `CA10` | Con la bandera apagada la página dice que la función no está activa. **La entrada del menú se pinta igual**: es la convención de Medidores y Conciliación, y se corrigió al construir |
+| `CA10` | Con la bandera apagada la página dice que la función no está activa. **La entrada del menú se pinta igual**: es la convención de Medidores y Conciliación, y se corrigió al construir *(decía «no hay entrada en el menú y la ruta dice que no está disponible»)* |
 | `CA11` | Una cuenta con `0` tecleado y gasto dice «Presupuestado en cero», **distinto** de «Sin presupuestar» (`RN-03`) |
 
 ### **Deben fallar**
@@ -581,7 +582,8 @@ pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó ante
 ### Pendiente
 
 - ~~La vista previa real de impresión~~ — ✅ vista por David con `⌘P`: `CA8` cerrado.
-- Encenderla en un conjunto de producción cuando haya quien cargue el presupuesto de 2026.
+- Encenderla en un conjunto REAL de producción cuando haya quien cargue el presupuesto de 2026 (hoy
+  está encendida solo en la demo de Las Playas).
 - Fase 2: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D` (línea en el informe).
 
 ## Puertas
@@ -596,6 +598,7 @@ pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó ante
 | **`G5` Operación** | ✅ **El dueño ya existe y ya tiene el dato**: el administrador lleva el presupuesto a la asamblea, y el de 2026 **ya está aprobado en papel**. Cargarlo son 21 cifras al año |
 | **`G6` Escala** | ✅ 21 cuentas × 2 años por conjunto. Sin problema de volumen ni de coste |
 
-> **`G0`–`G6` superadas: LISTA PARA DESARROLLO.** Ningún `TBD` bloquea el MVP. Lo único
+> **`G0`–`G6` superadas: LISTA PARA DESARROLLO** *(veredicto del 10 sep, al escribirla; hoy las
+> entregas 1 y 2 están en producción: ver la cabecera)*. Ningún `TBD` bloquea el MVP. Lo único
 > que hay que decir en voz alta antes de construir es el calendario: **el año cerrado no
 > tendrá datos hasta enero de 2027**, así que la entrega 1 se valida sobre el año en curso.

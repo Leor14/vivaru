@@ -208,7 +208,8 @@ flowchart TD
 > **primer** acceso desde un dispositivo nuevo, el espejo está vacío y Firestore aún no ha
 > contestado. La página **tiene que** pintarse en claro y corregirse después. **Un criterio que
 > pidiera «nunca hay destello» sería imposible por construcción** — es la trampa de `CA9` de
-> `PLAT-006`. El criterio correcto está en `CA5` y `CA6`, y separa las dos cargas.
+> `FEAT-006` *(decía `PLAT-006`: el `CA9` que pedía una medida imposible era el de `FEAT-006`)*. El
+> criterio correcto está en `CA5` y `CA6`, y separa las dos cargas.
 
 ### Errores y casos límite
 

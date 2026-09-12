@@ -18,7 +18,7 @@ dependencias y criterio de salida.
 |---|---|
 | **Versión** | 0.9.74 |
 | **Fecha** | 12 de septiembre de 2026, tarde |
-| **Estado** | **Lo construible, cubierto.** En producción desde la tarde del 12: **`CF9` en las dos direcciones** —18 bloques de reglas decidían el `update` con el `tenantId` nuevo y 7 no impedían mudarlo, y las dos formas estaban al alcance de una cuenta de prueba— y **el detalle por unidad fuera del informe que lee el consejo** (`K2`), con los tres informes que había migrados. **`PRD-V-FEAT-007` pasa a Productiva**: el destello y la impresión, mirados en staging; los PDF y el QR, por construcción. **La wiki**, al día del 1 al 10 sep, con las banderas medidas. Antes, el mismo 12, `FIX-005` (salvo App Check) y `FIX-001` entera, con lo que el lote de Habitanto quedó completo. **Lo que queda espera a David o a terceros:** App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» en UTC; `UX-005`; el abogado ecuatoriano; Albert; el primer conjunto REAL. Lo construible que resta es menor: las fichas que se contradicen por dentro. El «HOGARU» que no llegó a `develop` y el tipo de `distributionBasis` se cerraron esa noche. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
+| **Estado** | **Lo construible, cubierto.** En producción desde la tarde del 12: **`CF9` en las dos direcciones** —18 bloques de reglas decidían el `update` con el `tenantId` nuevo y 7 no impedían mudarlo, y las dos formas estaban al alcance de una cuenta de prueba— y **el detalle por unidad fuera del informe que lee el consejo** (`K2`), con los tres informes que había migrados. **`PRD-V-FEAT-007` pasa a Productiva**: el destello y la impresión, mirados en staging; los PDF y el QR, por construcción. **La wiki**, al día del 1 al 10 sep, con las banderas medidas. Antes, el mismo 12, `FIX-005` (salvo App Check) y `FIX-001` entera, con lo que el lote de Habitanto quedó completo. **Lo que queda espera a David o a terceros:** App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» en UTC; `UX-005`; el abogado ecuatoriano; Albert; el primer conjunto REAL. No queda nada construible sin una decisión: el «HOGARU», el tipo de `distributionBasis` y las fichas que se contradecían por dentro se cerraron esa noche. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
 | **Verificado contra** | **Los servicios, al cerrar (21:11 UTC).** Producción sirve `build-2026-09-12-008` (`9c37c9c`, desde las 22:44 UTC; antes, `-007` desde `a7ab743`, a las 22:18) y staging `build-2026-09-12-021` (`73287d5`, la punta de `develop` a las 21:11); rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. Las cuatro functions del informe, por `updateTime` (19:28 UTC en staging, 19:31 en producción). Las banderas, resolviendo conjunto por conjunto con `functions/lib/feature-flags.js`. La migración, releyendo los dos documentos de cada informe. Bancos **contados en `ba98abe`**: `npm test` **2071** —**2075** por la noche, con los dos guardianes nuevos— · functions **1015** · reglas **591** · emulador de functions **379 de 381** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -1281,6 +1281,14 @@ fecha de revisión.
   falsado: la marca vieja, fuera del código de producto; y todo valor de `distributionBasis` que escribe
   `functions/src`, declarado en el tipo. `npm test` **2075**. En producción desde las 22:44 UTC
   (`build-2026-09-12-008`), después de verlo servido en staging.
+- **Las fichas que se contradecían por dentro**, corregidas en ocho PRD y el README. Lo que describe el
+  presente, con lo medido: estados y banderas (la tesorería con su entrega del 11, «1 de 9» → 10 de 10 en el
+  informe), `G6` de los buzones, la portería fuera de `FEAT-008`, el PDF que el consejo no recibe, una fila
+  de `CA10` partida por un `||`. Lo planeado que se construyó distinto y las fotos fechadas, anotado sin
+  reescribir: la guarda de `RN-10` que no hizo falta, la deuda de las cuotas vivas y el «0 de 9» del 4 sep.
+  Las citas de línea corridas pasaron a citar el símbolo. Y dos errores de verdad: la entrega 2 de
+  `FLOW-007` se citaba con un commit de script y otro de documentación, y el código es `db273d4`; y
+  `FEAT-007` atribuía a `PLAT-006` el `CA9` de `FEAT-006`.
 - **Método.** El modo automático bloqueó el commit y el push hasta que David los pidió en el chat. Y un
   agente que escribía él solo la wiki entera se atascó sin dejar nada; funcionó repartir la lectura entre
   cuatro agentes y escribir las páginas en la sesión principal.

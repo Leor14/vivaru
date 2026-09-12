@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | `PRD-V-FEAT-008` |
 | **Tipo** | `FEAT` — capacidad nueva. El cobro es su **consumidor**, no su sujeto |
-| **Portales** | `ADMIN` (alcance) · `RESIDENTE` (entrega 3) · `PORTERIA` (ver `TBD-B`) |
+| **Portales** | `ADMIN` (alcance) · `RESIDENTE` (entrega 3). **La portería no**: `TBD-B` se cerró el 9 sep, y solo la administración toma lecturas |
 | **Módulo** | Cartera y cobro · Finanzas |
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
@@ -83,7 +83,7 @@ nombre invita a confundirlas. La medición de servicios es un módulo distinto.
 |---|---|---|---|
 | **`tenant_admin`** | Catálogo de servicios medidos, lecturas de todas las unidades, consumos e importes | Crear y editar el catálogo · registrar y corregir lecturas · adjuntar la foto · generar la corrida de cobro | Editar una lectura **de un período ya cobrado** (`RN-05`) · borrar una foto que respalda un cargo emitido |
 | **`resident`** | **Solo las lecturas de SU unidad**, con su consumo y su foto | Consultar su historial | Ver lecturas de otra unidad · registrar o corregir ninguna |
-| **`security_guard`** | Nada, salvo que se resuelva `TBD-B` | Nada en la entrega 1 | Registrar lecturas mientras `TBD-B` esté abierta |
+| **`security_guard`** | Nada (`TBD-B`, cerrada el 9 sep: solo la administración) | Nada | Registrar lecturas |
 | **`committee`** | El total de servicios medidos **dentro del informe mensual**, sin detalle por unidad | Leer | Ver el consumo de una unidad ajena — es dato de un tercero |
 | **`superadmin`** | Todo, como siempre | Soporte | — |
 
@@ -282,7 +282,7 @@ veces del mismo hecho —la lectura y su cargo—, y el residente solo actúa so
 
 | Pieza | Cambio |
 |---|---|
-| `functions/src/consumption-billing.ts` | **Nuevo, calcado de `coefficient-billing.ts`** — que ya reparte importes distintos por unidad en una sola corrida |
+| `functions/src/medicion-de-consumos.ts` | **Nuevo**: lecturas, cierre y cobro del período. El cobro está calcado de `coefficient-billing.ts`, que ya reparte importes distintos por unidad en una sola corrida. *(Esta fila anunciaba `consumption-billing.ts`, que nunca existió: todo quedó en un módulo.)* |
 | `BillingCampaign.distributionBasis` | Añadir `"consumption"`. ⚠️ `expense-distribution.ts:31` avisa: **ese campo se escribe fijo, y mentir en él deja cargos que nadie puede explicar** |
 | `SEMILLA_PLAN_DE_CUENTAS` | **Cuenta de ingreso nueva** — no hay ninguna para servicios medidos entre las once |
 | `firestore.rules` | Dos colecciones nuevas; `consumption` cerrado al cliente; el residente solo su unidad |
@@ -334,7 +334,8 @@ solo *abren* colecciones que no existen, no restringen nada vigente.
 
 ### Qué se valida dónde
 
-- **En staging:** los quince criterios, los de reglas contra el emulador (**sí hay Java**).
+- **En staging:** todos los criterios —dieciocho: `CA1`–`CA17` y `CA9b`; este plan decía «quince»—, los
+  de reglas contra el emulador (**sí hay Java**).
 - **Solo en producción, y con ojos:** que la foto se vea en el estado de cuenta del
   residente desde un teléfono — que es como se toma y como se mira.
 
@@ -466,3 +467,5 @@ consejero SIGA entrando a su portal de residente.
 
 > **`G0`–`G6` superadas: LISTA PARA DESARROLLO**, con tres `TBD` de los que **solo `TBD-A`
 > cambia el uso diario** y conviene resolver antes de la entrega 1.
+> *(Veredicto del 9 sep, al escribirla. `TBD-A` y `TBD-B` se cerraron ese mismo día —ver la tabla de
+> `TBD`— y las tres entregas están en producción.)*

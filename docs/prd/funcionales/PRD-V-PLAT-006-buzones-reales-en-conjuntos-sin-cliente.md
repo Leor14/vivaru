@@ -242,7 +242,7 @@ Casos que **deben fallar**: `CA1`, la mitad de `CA3`, `CA5`, y la escritura de `
   > guardián puede pasar en verde vigilando un conjunto vacío.
 
 - **El gemelo que ya existía, y la ficha no lo nombraba.** `assertCanInviteRealPeople`
-  (`functions/src/trial-modules.ts:61`) ya bloquea invitar residentes reales, con la misma forma
+  (en `functions/src/trial-modules.ts`) ya bloquea invitar residentes reales, con la misma forma
   (`assert…(tenantId)` → `failed-precondition` legible). **Pero su criterio es `status ∈ {trial,
   expired}`, no la marca, y se aplica en UN solo punto de los cuatro.** Las dos puertas conviven:
   aquella protege el ambiente que expira, esta el conjunto sin cliente.
@@ -309,7 +309,7 @@ servidor. **Todo construido al 3 de septiembre de 2026.**
 | `G3 Riesgo` | **Superada (3 sep).** D3 = las dos, la salida primero. El trial cubierto por `CA7`, que falla si alguien deriva la marca de `isExample` |
 | `G4 Construcción` | **Superada, entrada incluida.** 57 pruebas nuevas —20 de salida, 25 de reglas contra el emulador, 12 del servidor— y **doce falsaciones**, dos de ellas rehechas porque pasaron en verde siendo malas |
 | `G5 Despliegue` | **Superada en los DOS ambientes (3 sep).** 90 functions `ACTIVE` en cada uno, **cero sin mover** medido por `updateTime` contra la línea base. **Canario encendido en staging** (`tenant-santa-maria` marcado + override de la bandera), y validado con el flujo real: ver abajo |
-| `G6 Valor` | **Abierta en producción**: falta marcar los siete, sanear las diez y encender |
+| `G6 Valor` | **Abierta en producción**: los siete conjuntos se marcaron y las diez direcciones se sanearon el 3 sep; **falta encender**, que espera identificar una cuenta de portería de Privada Las Playas |
 
 ### Los datos de producción, puestos el 3 de septiembre
 

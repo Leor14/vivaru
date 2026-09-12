@@ -41,7 +41,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ## LO QUE SIGUE — el menú
 >
-> **A · Construible ya** (lo que queda es menor)
+> **A · Construible ya** — **nada**: los tres puntos se cerraron el 12 por la noche
 > 1. ~~El «HOGARU» que no llegó a `develop`~~ — **HECHO el 12 sep por la noche**: «Superadmin Vivaru» en
 >    `ROLE_LABEL` —que no importa nadie, así que no se veía— y «Usuario» a secas como relleno del nombre en
 >    la sesión, como decidió `2e0be85`. Lo vigila `tests/marca-vieja-fuera-del-producto.test.ts`. La rama
@@ -51,10 +51,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 2. ~~`distributionBasis` sin `"consumption"`~~ — **HECHO**: el tipo lo declara, y
 >    `tests/base-de-reparto-espejo.test.ts` saca de `functions/src` los valores que escribe el servidor y
 >    exige que estén en el tipo.
-> 3. **Las fichas que se contradicen por dentro** (lo encontraron los agentes de la wiki): la fila
->    «Bandera» de `FEAT-010` dice apagada; `G6` de `PLAT-006` sigue en «falta marcar»; `FEAT-008` cita
->    `consumption-billing.ts`, que no existe; el cuerpo de `FEAT-009` dice «LISTA PARA DESARROLLO»; §11 de
->    `FLOW-008` habla de `amount − paidAmount`; y una docena de citas de línea corridas.
+> 3. ~~Las fichas que se contradicen por dentro~~ — **HECHO el 12 sep por la noche**, en ocho fichas y el
+>    README. Lo que describe el presente se corrigió con lo medido; lo planeado que se construyó distinto y
+>    las fotos fechadas se anotaron sin reescribirlas; las citas de línea corridas pasaron a citar el
+>    símbolo. De paso salieron dos errores de verdad: el commit de la entrega 2 de `FLOW-007` estaba mal
+>    citado en los dos sitios (es `db273d4`), y `FEAT-007` atribuía a `PLAT-006` el `CA9` de `FEAT-006`.
 >
 > **B · Espera una decisión de David**
 > 4. **App Check** (`D-CONSOLA`): lo único que le falta a `FIX-005`.

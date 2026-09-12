@@ -9,7 +9,7 @@
 | **Módulo** | Finanzas y Reportes |
 | **Usuario principal** | `tenant_admin` · **secundarios** el consejo (ve y firma), `resident` (ve lo publicado) |
 | **Responsable** | David |
-| **Estado** | 🟢 **ENTREGAS 1 Y 2 EN PRODUCCIÓN** (4 sep 2026), con la bandera encendida en **1 de 9** —`tenant-santa-maria`, el canario— y **el primer informe real emitido**. **La entrega 3 sigue en Discovery y bloqueada por el abogado.** *La cabecera decía «Discovery» hasta el 4 de septiembre: se quedó vieja al construir, que es justo lo que este campo no puede hacer.* **Tres cosas cambiaron el 11 de septiembre con `PLAT-004` entrega 2:** (1) **el PDF se rehace con cada firma** —se archivaba una vez, al emitir, con el bloque de firmas vacío, y ninguna firma lo tocaba—; (2) **el consejo no recibe el PDF mientras `K2` esté cerrado**, porque lista la cartera por unidad: lo abre la administración; (3) ✅ **`receivables.byUnit` viajaba en el documento del informe y la regla se lo entregaba entero al consejo** —una regla no oculta campos—; **se sacó el 12 de septiembre** (`ba98abe`), sin esperar a la entrega 3: el detalle por unidad vive en `monthlyReportReceivables`, con el mismo id y solo-administración, y los tres informes que existían están migrados en los dos ambientes. Detalle en `PRD-V-PLAT-004` §15 |
+| **Estado** | 🟢 **ENTREGAS 1 Y 2 EN PRODUCCIÓN** (4 sep 2026), con la bandera **encendida en global desde el 4 sep** —hoy **10 de 10** por el valor global: el override del canario, Santa María, se retiró el 12 sep— y **el primer informe real emitido**. *(Esta celda decía «1 de 9», y se había quedado en el canario.)* **La entrega 3 sigue en Discovery y bloqueada por el abogado.** *La cabecera decía «Discovery» hasta el 4 de septiembre: se quedó vieja al construir, que es justo lo que este campo no puede hacer.* **Tres cosas cambiaron el 11 de septiembre con `PLAT-004` entrega 2:** (1) **el PDF se rehace con cada firma** —se archivaba una vez, al emitir, con el bloque de firmas vacío, y ninguna firma lo tocaba—; (2) **el consejo no recibe el PDF mientras `K2` esté cerrado**, porque lista la cartera por unidad: lo abre la administración; (3) ✅ **`receivables.byUnit` viajaba en el documento del informe y la regla se lo entregaba entero al consejo** —una regla no oculta campos—; **se sacó el 12 de septiembre** (`ba98abe`), sin esperar a la entrega 3: el detalle por unidad vive en `monthlyReportReceivables`, con el mismo id y solo-administración, y los tres informes que existían están migrados en los dos ambientes. Detalle en `PRD-V-PLAT-004` §15 |
 | **Dependencias** | `PLAT-003` (plan de cuentas, **sembrado**: 189 cuentas) · `FLOW-004` (cuentas bancarias y saldo inicial, **en producción**) · `FEAT-003` (proveedores, **en producción, 0 filas**) · **NO depende de `FLOW-006`** y no toca `aplicarPago` |
 | **Riesgo** | 🟠 **MEDIO-ALTO.** No toca el camino del dinero, pero **modifica una función programada que ya corre en producción** y **abre al residente una categoría de documento que hoy una regla desplegada le niega** |
 | **Reversibilidad** | Bandera `producto-informe-mensual`. **Lo que no se revierte solo** es un informe ya publicado: se despublica, y queda el rastro. Ver §13 |
@@ -44,8 +44,8 @@ lo es: **cuatro de las seis partes de la columna vertebral ya están calculadas*
 
 | Pieza | Dónde | Estado |
 |---|---|---|
-| Informe mensual automático | `monthlyFinancialArchive`, `functions/src/index.ts:3802` | **`ACTIVE` en producción**, `0 6 1 * *`. Archiva 3 ficheros por conjunto |
-| Estado financiero con jerarquía de cuentas | `buildFinancialStatement`, `src/features/finanzas/financial-statement.ts:199` | **Existe y ordena por el código del plan** (1.1, 1.2, 1.3…), no por monto |
+| Informe mensual automático | `monthlyFinancialArchive`, en `functions/src/index.ts` | **`ACTIVE` en producción**, `0 6 1 * *`. Archiva 3 ficheros por conjunto |
+| Estado financiero con jerarquía de cuentas | `buildFinancialStatement`, en `src/features/finanzas/financial-statement.ts` | **Existe y ordena por el código del plan** (1.1, 1.2, 1.3…), no por monto |
 | Saldo inicial del banco | `bankAccountBalances.openingBalance` | **Colección propia** desde `FLOW-002` (24 ago), editable en `/admin/finanzas/conciliacion` |
 | Saldo final | `fundBalance = openingBalance + netResult` | **Ya se calcula.** No se llama `closingBalance` — por eso buscarlo da `0` |
 | Cartera vencida por unidad | `CommitteeReport.billing.overdueUnits` y hoja «Morosos» del archivo | **Existe**: unidad, deuda y número de períodos |
@@ -100,7 +100,8 @@ construida**.
 
 **5 · El consejo no llega al informe.** `canAccessPath` deja al rol `committee` **solo en
 `/admin/documents`** (`src/lib/auth/routing.ts:29`). Ve el fichero archivado si alguien lo sube ahí;
-no ve el informe. `K1` y `K2` pertenecen a **`PRD-V-PLAT-004`, que nunca se escribió** — esta ficha
+no ve el informe. `K1` y `K2` pertenecen a **`PRD-V-PLAT-004`**, que cuando se escribió esto aún no existía —hoy tiene
+las entregas 1 y 2 en producción— y esta ficha
 **no lo escribe**: se lleva de él **solo el interruptor de `K2`** y lo declara en §4.
 
 ### Baseline
@@ -144,7 +145,7 @@ Igual que en `FEAT-006`, `FEAT-007` y `FLOW-006`. La métrica que sí se mide de
 | Rol | Ve | Puede | **NO puede** |
 |---|---|---|---|
 | `tenant_admin` | El informe de cualquier mes, en borrador y emitido | Generar, corregir el borrador, **emitir**, firmar, publicar y despublicar | **Editar un informe ya emitido.** Para cambiarlo hay que anularlo con motivo y emitir otro |
-| `committee` | Los informes **emitidos** de su conjunto | Firmar como consejo. Descargar el PDF | Editar cifras, emitir, publicar ni anular. **No ve el detalle por unidad** salvo que `K2` lo abra |
+| `committee` | Los informes **emitidos** de su conjunto | Firmar como consejo. **Sin PDF mientras `K2` esté cerrado**, porque lista la cartera por unidad (decisión de David, 11 sep) | Editar cifras, emitir, publicar ni anular. **No ve el detalle por unidad** salvo que `K2` lo abra |
 | `resident` | Los informes **publicados**, según `K2` | Descargar el PDF publicado | Ver borradores, ver informes no publicados, ver el detalle por unidad si `K2` lo tiene cerrado, y **ver nada de otro conjunto** |
 | `security_guard` | Nada | Nada | Todo lo de esta ficha |
 | `superadmin` | Nada nuevo | Nada nuevo | **No firma ni emite en nombre del conjunto.** La firma es del administrador y del consejo |
@@ -355,7 +356,7 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 
 ### Estado tras la entrega 2 — 3–4 de septiembre de 2026
 
-> ## LA ENTREGA 2 ESTÁ EN PRODUCCIÓN (`66042e5`), Y APAGADA
+> ## LA ENTREGA 2 ESTÁ EN PRODUCCIÓN (código en `db273d4`; el árbol desplegado, `66042e5`), Y APAGADA
 >
 > Orden seguido, el normal, porque la regla **amplía**: **reglas → índices → functions → front**.
 >
@@ -544,7 +545,7 @@ una colección), así que el orden normal aplica. *(Si en alguna entrega una reg
 | # | Qué | Reversible |
 |---|---|---|
 | **1** | ✅ **CONSTRUIDA (3 sep 2026).** Cálculo compartido, saldo inicial real, cuentas pendientes de cobro y deuda a proveedores, y el aviso de fondo insuficiente corregido. **Sin cambiar el modelo de datos ni tocar reglas** | Sí, bandera `producto-informe-mensual` |
-| **2** | ✅ **EN PRODUCCIÓN (3–4 sep 2026, `66042e5`).** `monthlyReports` con sus cuatro estados, las cuatro callables (regenerar, emitir, firmar, anular), PDF con logo y bloque de firmas, archivado en categoría propia, reglas e índices. **Bandera APAGADA en los nueve**, así que es inerte hasta que alguien la encienda por conjunto | Sí, bandera |
+| **2** | ✅ **EN PRODUCCIÓN (3–4 sep 2026; código en `db273d4`).** `monthlyReports` con sus cuatro estados, las cuatro callables (regenerar, emitir, firmar, anular), PDF con logo y bloque de firmas, archivado en categoría propia, reglas e índices. **La bandera nació APAGADA en los nueve; David la encendió en global el 4 sep**, y hoy está en los diez | Sí, bandera |
 | **3** | **Publicación.** Categoría nueva, regla del residente, `K2` por conjunto, y la ruta del consejo | Sí, **y además el interruptor `K2`** |
 
 ### Rollback

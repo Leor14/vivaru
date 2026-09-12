@@ -41,11 +41,11 @@ condición de residente**.
 |---|---|---|
 | Personas con rol `committee` | **0** | `tenantUsers`, barrido completo |
 | Personas totales | 41 (21 `resident`, 11 `security_guard`, 9 `tenant_admin`) | `tenantUsers` |
-| Entradas de navegación del rol | **1** (`/admin/documents`, «Asambleas») | `src/lib/constants/navigation.ts:125` |
+| Entradas de navegación del rol | **1** (`/admin/documents`, «Asambleas») | `src/lib/constants/navigation.ts`, al medir. Con la entrega 2 la entrada pasó al portal del residente |
 | Colecciones que el rol ya puede leer | **3** | `firestore.rules` |
-| Roles ofrecidos por la pantalla de Usuarios | **2** (`tenant_admin`, `security_guard`) | `src/app/(admin)/admin/users/page.tsx:314-315` |
-| Roles aceptados por el servidor | **2**, mismo par | `assertOperationalRole`, `functions/src/index.ts:781` |
-| Rutas que el rol puede abrir | **1** (`/admin/documents`) | `canAccessPath`, `src/lib/auth/routing.ts:28-30` |
+| Roles ofrecidos por la pantalla de Usuarios | **2** (`tenant_admin`, `security_guard`) | `src/app/(admin)/admin/users/page.tsx` |
+| Roles aceptados por el servidor | **2**, mismo par | `assertOperationalRole`, en `functions/src/index.ts` |
+| Rutas que el rol puede abrir | **1** (`/admin/documents`) | `canAccessPath`, en `src/lib/auth/routing.ts` |
 
 ### Los tres hallazgos que ordenan el alcance
 
@@ -60,7 +60,7 @@ condición de residente**.
    lo que parecía la ficha: no hay que abrir accesos, hay que llegar a los ya abiertos.
 
 3. **Hay capacidad muerta en producción.** `identidadParaFirmar`
-   (`functions/src/index.ts:4898`) admite explícitamente `committee` para firmar el informe
+   (en `functions/src/index.ts`) admite explícitamente `committee` para firmar el informe
    mensual, con la comprobación añadida de membresía activa que el camino del administrador no
    necesitaba. Está desplegado, verificado y **es inejecutable**.
 
@@ -326,7 +326,7 @@ la llame. Es el mismo orden que `FLOW-008`.
 | Entrega | Qué | Por qué en este orden |
 |---|---|---|
 | **1** ✅ | Conceder y retirar la marca: callable, reglas, control en el padrón, auditoría | **Sin esto todo lo demás es código muerto**, y ya hay una capacidad muerta en producción por saltarse este paso |
-| **2** | Las pantallas de lo que ya tiene permiso: informes emitidos y documentos. Resuelve `TBD-B` | El permiso ya existe; solo falta llegar |
+| **2** ✅ | Las pantallas de lo que ya tiene permiso: informes emitidos y documentos. Resuelve `TBD-B`. En producción el 11 sep (§15) | El permiso ya existe; solo falta llegar |
 | **3** | Paz y salvo, sujeto a `TBD-C` y al abogado | Dato de terceros |
 
 ### Qué se valida dónde
@@ -365,7 +365,10 @@ código, y hay que medirlo antes de prometer la métrica primaria: *cuántos
 residentes de cada conjunto tienen `authUid`*. **Sin ADC no se pudo medir el 9 de
 septiembre.**
 
-### 3 · Los sitios que leen `role === "committee"` son ONCE, no cuatro
+### 3 · Los sitios que leen `role === "committee"` son DIEZ, no cuatro
+
+*(El título decía «ONCE». La tabla siempre sumó diez —3 + 2 + 5—, y el once solo sale contando la
+constante `APP_ROLES.COMMITTEE`, que no lee nada. Corregido el 12 sep.)*
 
 §11 contaba «tres en `firestore.rules` más `identidadParaFirmar`». Medido:
 
