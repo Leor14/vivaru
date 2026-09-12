@@ -55,8 +55,12 @@ describe("el cableado que sostiene la cadena", () => {
     expect(authContext).not.toContain("throw new Error(message)");
   });
 
-  it("normalizeLoginError escribe la contraseña con eñe", () => {
-    expect(authContext).toContain('"Correo o contraseña incorrectos."');
+  // Desde `PRD-V-FIX-005` los textos del login viven en un solo módulo, que usa
+  // `normalizeLoginError`: la eñe se mira donde vive el texto.
+  it("el mensaje de credenciales escribe la contraseña con eñe", () => {
+    const mensajes = fs.readFileSync(path.join(ROOT, "src/lib/auth/mensajes-de-login.ts"), "utf8");
+    expect(mensajes).toContain('"Correo o contraseña incorrectos."');
+    expect(mensajes).not.toContain("contrasena incorrectos");
     expect(authContext).not.toContain("contrasena incorrectos");
   });
 

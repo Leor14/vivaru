@@ -62,10 +62,13 @@ export function normalizeFirebaseError(error: unknown): string {
     "invalid-credential":        "Correo o contraseña incorrectos.",
     "invalid-login-credentials": "Correo o contraseña incorrectos.",
     "wrong-password":            "Correo o contraseña incorrectos.",
-    "user-not-found":            "No existe una cuenta con ese correo.",
+    // `PRD-V-FIX-005` · R5: la cuenta inexistente dice lo mismo que la contraseña
+    // incorrecta, o el login delataría quién tiene cuenta. Mismos textos que
+    // `src/lib/auth/mensajes-de-login.ts`: una prueba compara los dos mapas código a código.
+    "user-not-found":            "Correo o contraseña incorrectos.",
     "invalid-email":             "El correo no tiene un formato válido.",
-    "user-disabled":             "Esta cuenta está desactivada. Contacta a la administración.",
-    "too-many-requests":         "Demasiados intentos. Espera unos minutos e intenta de nuevo.",
+    "user-disabled":             "Tu cuenta está desactivada. Contacta a la administración de tu conjunto.",
+    "too-many-requests":         "Demasiados intentos. Espera unos minutos.",
     "network-request-failed":    "Sin conexión con el servidor. Revisa tu internet e intenta de nuevo.",
     "permission-denied":   "No tienes permiso para realizar esta acción.",
     "unauthenticated":     "Tu sesión ha expirado. Vuelve a iniciar sesión.",

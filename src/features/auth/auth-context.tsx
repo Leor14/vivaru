@@ -24,6 +24,7 @@ import { collection, doc, getDoc, getDocFromServer, getDocs, limit, query, updat
 import { auth, db } from "@/lib/firebase/client";
 import { CallableError } from "@/lib/utils/error-handler";
 import { clearSession, loadSession, saveSession } from "@/lib/auth/session";
+import { MENSAJE_LOGIN_GENERICO, mensajeDeLogin } from "@/lib/auth/mensajes-de-login";
 import type { AppRole } from "@/lib/constants/roles";
 import { isFirebaseConfigured, missingFirebaseEnvKeys } from "@/lib/firebase/config";
 import { completeResidentPasswordChangeCallable, switchActiveTenantCallable } from "@/lib/firebase/callables";
@@ -138,21 +139,22 @@ function toSessionUser(profile: SessionProfile): SessionUser {
   };
 }
 
+/**
+ * `PRD-V-FIX-005` · R5 — los textos de un login fallido salen de `mensajes-de-login.ts`, que da
+ * el mismo a la cuenta inexistente y a la contraseña incorrecta, y **nunca el mensaje crudo de
+ * Firebase**, que sale en inglés. Los `Error` propios —«Perfil no encontrado…»— ya están
+ * escritos para leerse.
+ */
 function normalizeLoginError(error: unknown) {
   if (error instanceof FirebaseError) {
-    if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
-      return "Correo o contraseña incorrectos.";
-    }
-    if (error.code === "auth/user-not-found") {
-      return "No existe una cuenta con ese correo.";
-    }
+    if (error.code.startsWith("auth/")) return mensajeDeLogin(error.code);
     if (error.code === "permission-denied") {
       return "No tienes permisos para leer el perfil de usuario en Firestore.";
     }
-    return error.message;
+    return MENSAJE_LOGIN_GENERICO;
   }
 
-  return error instanceof Error ? error.message : "No fue posible iniciar sesión.";
+  return error instanceof Error ? error.message : MENSAJE_LOGIN_GENERICO;
 }
 
 function debugAuth(message: string, payload?: Record<string, unknown>) {
