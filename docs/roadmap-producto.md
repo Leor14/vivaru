@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.72 |
-| **Fecha** | 11 de septiembre de 2026, por la noche (12 en UTC) |
-| **Estado** | **Las dos ventanas de producción del 11, hechas y verificadas.** La primera subió lo del día —la lista de hoy de la portería en el calendario local, **`PLAT-004` entrega 2** (el consejero entra por `/resident`, el PDF del informe se rehace con cada firma, la regla de `documents`), la cuenta en el pago de una cuota de `FEAT-010` y el «mes pasado» del Panel de Control—; la segunda, **`PRD-V-FIX-004`** —las acciones de residente solo tocan cuentas de residente— y **`PRD-V-PLAT-002` entrega 2** —el superadmin da varios conjuntos a una persona, con aviso si es residente—. **Y `PRD-V-FIX-005` en producción el 12 (UTC), salvo App Check**: las puertas públicas ya no delatan cuentas, una membresía desactivada deja de abrir las reglas al instante, y el conjunto ya no ve el uid ni el correo de nadie del equipo de Vivaru. **Y la entrega 1.1 de `PRD-V-FIX-001`, también el 12**: la hora de una reserva se lee en la del conjunto, la mudanza del residente vuelve a funcionar y las reservas del administrador ocupan aforo. **Y la entrega 2, también el 12**: la política de reserva baja al área —mora, anticipación y aprobación al instante—, **con lo que el lote de Habitanto queda completo**. **Lo anterior, vigente:** decidir si el servidor —que marca vencido desde las 18:00 de México— deriva la zona del país del conjunto; el abogado ecuatoriano sin contestar (`FLOW-006`, `FLOW-007` entrega 3, `PLAT-004` entrega 3); el asiento de producción con `accountCode: null` que solo puede corregir David; el tope de gasto de la IA sin mirarse; Albert espera el contrato de `vivaruWonSignals`; el primer conjunto REAL; y quedan **33 P1, 41 P2 y 12 P3** de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, pieza por pieza.** Functions por `updateTime` —`signMonthlyReport` y `payExpenseInstallment` a las 00:17 UTC; las ocho de la segunda ventana entre las 00:48 y las 00:50, con `setTenantAdminAccess` **creada** y `run.invoker = allUsers`—; reglas con el ruleset vivo diferenciado contra el repo antes y después de cada despliegue (`9a2ffde1` y luego `8b7821ab`, «idéntico al repo: SÍ»); el front por su rollout, **por nombre**. **El primer push no creó rollout**: App Hosting compiló `025d5d5` y no lo desplegó —en los pushes buenos el build y el rollout nacen en el mismo instante—; con permiso de David se creó a mano (`build-2026-09-12-002`), y el segundo push nació normal (`build-2026-09-12-003`, `fde9931`). **En pantalla**, la portería de Las Playas en `www`: el build viejo listaba el testigo de MAÑANA (10:00) y el nuevo el de HOY (20:00); los dos testigos, cancelados sin borrar, y la lista quedó en 0. Bancos **contados sobre `develop` fusionado**: `npm test` **2014** · functions **941**; reglas **475**, medidas en la rama |
+| **Versión** | 0.9.73 |
+| **Fecha** | 12 de septiembre de 2026, cierre |
+| **Estado** | **Nada a medias, y las bases de información al día.** En producción, lo del 11 —la lista de hoy de la portería, **`PLAT-004` entrega 2**, la cuenta en el pago de una cuota, el «mes pasado» del Panel de Control, **`PRD-V-FIX-004`** y **`PRD-V-PLAT-002` entrega 2**— y lo del 12: **`PRD-V-FIX-005`, salvo App Check**, con el TTL de `limitesDeIntentos` activo en los dos, y **`PRD-V-FIX-001` entera** —la 1.1 (la hora de una reserva en la del conjunto, la mudanza que vuelve, las reservas del administrador con aforo y mover una reserva) y la 2 (la política de reserva por área)—, **con lo que el lote de Habitanto queda completo**. El décimo conjunto de producción, *Lomas de Sayilbedra*, nació sin la marca de ejemplo: es demo y quedó marcado. **Lo que queda espera a David o a terceros:** App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» del servidor en UTC; el abogado ecuatoriano (`FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`); el asiento con `accountCode: null`; el tope de gasto de la IA; Albert y `vivaruWonSignals`; el primer conjunto REAL. Construible sin decisión: los 19 bloques de reglas con la forma de `CF9`. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
+| **Verificado contra** | **Los servicios, al cerrar el 12.** Producción sirve `build-2026-09-12-006` (`2f035a3`) y staging la punta de `develop`; rulesets `6f42ef47` y `047a0164`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. Las functions de la entrega 2 de `FIX-001`, por `updateTime` (14:10 UTC). El décimo conjunto, leído por REST después de marcarlo (`isExample: true`, 16:03 UTC), con el script en seco respondiendo «No hay nada que marcar». Bancos **contados sobre el `develop` final**: `npm test` **2066** · functions **1011**; reglas **494**, medidas en `2f035a3` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,23 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.73 — 12 de septiembre de 2026 — las bases de información, al día; el décimo conjunto, marcado como ejemplo
+
+- **Las cinco bases, al día.** La wiki no se tocaba desde el 31 de agosto: se reescribió `reservaciones`, y
+  entraron `FIX-004`, `FIX-005` y tres trampas de reglas (el helper que falla siempre, `CF9` y el servidor en
+  UTC); lo del 1 al 10 de septiembre sigue fuera. `docs/prd/README.md`, recontado: 29 funcionales y 24 en
+  producción —decía «trece»—, con tres celdas atrasadas corregidas. En Notion: el tablero reescrito,
+  `FIX-004` y `FIX-005` con fila en el inventario (eran fichas sin fila), el backlog con `FIX-001` entrega 2
+  completada y la bitácora con el TTL.
+- **Producción tiene diez conjuntos, no nueve.** *Lomas de Sayilbedra* nació el 11 desde la consola de
+  superadmin, en `trial`, vacío y **sin `isExample`**, y ningún documento lo nombraba salvo la baseline de
+  `PLAT-002` §16. Se preguntó en vez de suponerlo: David confirmó que es demo, entró en la lista de
+  `marcar-conjuntos-de-ejemplo.mjs` con su nombre y fecha, y se marcó (16:03 UTC). No lleva
+  `sinClienteDetras`, que es otra decisión.
+- **Visto y sin resolver:** lo que queda de los 108 candidatos de Habitanto se cita con tres cifras distintas
+  en tres sitios; recontar sobre las filas antes de citarlo.
+- Bancos, sobre el `develop` final: `npm test` **2066** · functions **1011**.
 
 ### 0.9.72 — 12 de septiembre de 2026 — `PRD-V-FIX-001` entrega 2 en producción: el lote de Habitanto, completo
 

@@ -4,7 +4,94 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 11 de septiembre de 2026, por la noche (12 en UTC)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 12 de septiembre de 2026
+
+> # NADA A MEDIAS: `FIX-005` (SALVO APP CHECK) Y `FIX-001` ENTERA, EN PRODUCCIÓN. LAS BASES DE INFORMACIÓN, AL DÍA.
+>
+> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por qué
+> lo frena, está en «LO QUE SIGUE», justo debajo.
+>
+> **Lo del 12, en una línea:** `FIX-005` a producción (02:52 UTC, salvo App Check) con el TTL de
+> `limitesDeIntentos` activo en los dos; el índice huérfano de `documents`, borrado en los dos; `FIX-001`
+> entrega 1.1 (05:33) y entrega 2 (14:10) a producción —el lote de Habitanto, 11 de 11—; las bases de
+> información al día (la wiki, el recuento de `docs/prd/README.md`, y el tablero, el inventario, el backlog y
+> la bitácora de Notion); y el décimo conjunto de producción, *Lomas de Sayilbedra*, marcado como ejemplo
+> con permiso de David. El detalle de cada entrega, en la bitácora y en §16–§17 de `PRD-V-FIX-001`.
+>
+> **Lo que sirve cada ambiente al cerrar (medido):** producción `build-2026-09-12-006` desde `2f035a3`;
+> staging, la punta de `develop`, que solo lleva por delante documentación y la lista del script de
+> ejemplos. Reglas `6f42ef47` en producción y `047a0164` en staging, **las dos idénticas al repo**.
+> Functions: las últimas, las de `FIX-001` entrega 2, a las 14:10 UTC en producción.
+>
+> ```bash
+> git ls-remote origin refs/heads/master refs/heads/develop
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
+> node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
+> ```
+>
+> **Bancos CONTADOS al cerrar, sobre el `develop` final:** `npm test` **2066** · functions **1011**.
+> Piden emulador y se midieron en `2f035a3`: reglas **494** y emulador de functions **373 de 375** (los
+> dos rojos, `CA12` y `D-B` de `payments.emulator.test.ts`, preexistentes).
+>
+> ## LO QUE SIGUE — el menú
+>
+> **A · Construible ya**
+> 1. **Los 19 bloques de reglas con la forma de `CF9`** —un `update` que mira solo el `tenantId`
+>    nuevo—. Cerrado en `amenities` el 12; el resto quedó propuesto como tarea aparte. La trampa, en
+>    `wiki/decisiones/trampas-conocidas.md`.
+> 2. **Sacar `byUnit` del documento del informe** a uno solo-administración: hoy viaja entero al
+>    navegador del consejero (`FLOW-007` entrega 3, `K2`).
+> 3. **`UX-006`**: sus cuatro criterios pendientes se pueden correr (hay Java). `UX-005`, en exploración.
+> 4. **La wiki, del 1 al 10 sep**: `FLOW-007`, `FLOW-008`, `FEAT-007` a `FEAT-010`, `PLAT-004` y
+>    `PLAT-006` no han entrado (`wiki/log.md`, entrada del 12).
+>
+> **B · Espera una decisión de David**
+> 5. **App Check** (`D-CONSOLA`): la clave de reCAPTCHA Enterprise y registrar la app. Es lo único que
+>    le falta a `FIX-005`.
+> 6. **El `country` de cuatro conjuntos de producción** —Santa María, Bromelias, Privada Las Playas y
+>    Tenant E2E—: sin él, sus reservas se leen en hora de México. Es dato de producción: permiso uno a uno.
+> 7. **Las fechas de las reglas de visitas**: `pad2`, `timestampDateKey` y `timestampTimeKey` fallan
+>    siempre (`'' + int`) y `visitorAuthorizations` los usa. Arreglarlo cambia qué acepta producción.
+> 8. **El «vencido» del servidor en UTC** (`calcularSaldo`, `hoyDe`, su espejo y el aviso de visitas de
+>    hoy): esperar a un cliente real o derivar la zona del `country`, como ya hacen las reservas.
+> 9. **`sinClienteDetras` en *Lomas de Sayilbedra*** —la marca de la puerta de buzones—: se le puso solo
+>    `isExample`, que es lo que pidió David.
+> 10. **Ver `CA1` de `PLAT-002`** (qué cuenta simular, paso 6) y **`CA3`/`CA5` de `PLAT-004`** (basta
+>     autorizar una firma y tocar la marca en staging).
+> 11. **El TXT `fah-claim`** en Squarespace Domains, para que sirva el dominio sin `www`.
+> 12. **La reserva de prueba de staging `4Mk1AvAePP9bqGZafbH2`** (Las Playas, del 12 a las 00:30) sigue
+>     `pending`: cancelarla sin borrar, con permiso.
+> 13. **Encender presupuesto, medidor o tesorería en un conjunto REAL** —no hay ninguno—; **el asiento
+>     `ledgerEntries/tWgE2rhBeztUbCTWKokt`** (`accountCode: null` → `2.3`); **las dos categorías de egreso
+>     fuera del tipo** (medir antes de citar); y **el tope de gasto de la IA**, en la consola.
+>
+> **C · Espera a un tercero o a un dato**
+> 14. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
+> 15. **Albert** — el contrato de `vivaruWonSignals`.
+> 16. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos a la vez).
+> 17. **Habitanto**: lo que queda de los 108 candidatos vive en la fila 30 del backlog largo de Notion.
+>     ⚠️ Tres cifras distintas —el tablero dice «33 P1, 39 P2», la fila 30 «37 P1, 42 P2» y esta cabecera
+>     decía «33 P1, 41 P2»—: **recontar sobre las filas** antes de citarla.
+>
+> ## NO REABRIR
+>
+> - **Las de David del 12:** `FIX-001` 1.1 primero y sola, antes de la 2; la zona sale del país del
+>   conjunto, **solo en reservas**; *Lomas de Sayilbedra* es una demo.
+> - **Las del 11:** `TBD-B` de `PLAT-004` (el consejero entra por `/resident`); `CA3` (el PDF se rehace
+>   con cada firma, en el servidor); la regla de `documents` (el consejo lee lo que un residente); `K2`
+>   (sin PDF para el consejo mientras esté cerrado); `R2` y `H3c` de `FIX-005` (opción A); y las de
+>   admins (`E2-D1…D5`, `PLAT-002` §16), con `FIX-004` primero y aparte.
+> - **Y las de antes:** las cuatro de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los dos `TBD` de
+>   `FLOW-008`; los dos huecos falsos; `RN-01` de `PLAT-004`; `TBD-A`/`TBD-B` de `FEAT-008`; las de
+>   `FEAT-009` y `FEAT-010`; `G5`.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## EL CIERRE DEL 11 DE SEPTIEMBRE (noche; 12 en UTC) — histórico
 
 > # `FIX-005` —SALVO APP CHECK— Y `FIX-001` ENTERA (1.1 Y 2), EN PRODUCCIÓN EL 12. EL LOTE DE HABITANTO, COMPLETO.
 >
@@ -81,7 +168,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 18:54 UTC, en `trial` y vacío —0 cuentas, 0 unidades—, y nació **sin `isExample`**. David confirmó el 12 que
 > es una demo: marcado ese día (16:03 UTC) con `marcar-conjuntos-de-ejemplo.mjs`, que ya lo lleva en su lista.
 >
-> ## LO QUE SIGUE — el menú
+> ## LO QUE SEGUÍA — el menú de ese cierre (superado: el vigente está arriba)
 >
 > **0 · `PRD-V-FIX-005` EN PRODUCCIÓN** desde el 12 sep (02:52–03:00 UTC, `b852082`), después de que David lo
 > revisara en staging: las 5 functions con su `updateTime`, el front por su rollout automático, las reglas
