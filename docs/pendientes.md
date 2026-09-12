@@ -20,9 +20,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > mirados en staging; los PDF y el QR, por construcción. **La wiki**, del 1 al 10 sep: ocho páginas
 > nuevas, con las banderas medidas. Detalle en el roadmap (0.9.74) y en la bitácora.
 >
-> **Lo que sirve cada ambiente al cerrar (medido):** producción, el front `build-2026-09-12-008` desde
-> `9c37c9c` —`develop` llevado a `master` a las 22:11 UTC y otra vez a las 22:36, y sirviendo desde las
-> 22:44—; staging, la punta de `develop`. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
+> **Lo que sirve cada ambiente al cerrar (medido):** producción, el front `build-2026-09-12-009` desde
+> `dfc7b80` —`develop` llevado a `master` tres veces el 12, a las 22:11, 22:36 y 23:18 UTC (la última,
+> solo documentos y un comentario), y sirviendo a las 23:24—; staging, la punta de `develop`, que va por
+> delante solo con la nota que anota esto. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
 > **las dos idénticas al repo**. Functions: `regenerateMonthlyReport`, `issueMonthlyReport`,
 > `signMonthlyReport` y `monthlyFinancialArchive`, a las 19:28 UTC en staging y a las 19:31 en producción.
 >
