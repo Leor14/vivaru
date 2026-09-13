@@ -1233,7 +1233,12 @@ export interface PaymentVoucher {
   pdfStoragePath?: string;
   /** Fecha en que se anonimizaron los datos sensibles (retención, F2/G4). */
   anonymizedAt?: string;
-  createdAt?: string;
+  /**
+   * **`Timestamp` de Firestore, no texto**: la suscripción entrega el documento tal cual. Se lee con
+   * `toLocalDate`. Tipado como `string`, un `localeCompare` compilaba y tumbaba «Recibos emitidos»
+   * (H.31 del ensayo de Lomas, 13 sep 2026).
+   */
+  createdAt?: unknown;
   updatedAt?: string;
   createdBy?: string;
 }

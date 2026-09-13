@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase/client";
 import { applyPaymentCallable } from "@/lib/firebase/callables";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BillingStatement, PaymentVoucher } from "@/types/domain";
+import { toLocalDate } from "@/utils/date";
 
 /**
  * Calcula el saldo y estado de una cuota tras aplicar un pago acumulado.
@@ -54,6 +55,11 @@ export function computeBalanceStatus(
  * ser un documento fiscal, el recibo dejó de llevar número correlativo. La fecha
  * es además lo que espera quien mira la lista — un residente busca «el recibo de
  * agosto», no el número 47.
+ *
+ * **El desempate entre dos recibos del mismo día va por `createdAt`, que llega como `Timestamp`**:
+ * la suscripción entrega el documento tal cual, sin pasarlo a texto. Compararlo con `localeCompare`
+ * tumbaba la lista entera —la del residente y la del administrador— en cuanto dos recibos
+ * compartían `issueDate`, que es cuando corre el desempate (H.31 del ensayo de Lomas, 13 sep 2026).
  */
 export function watchPaymentVouchers(
   tenantId: string,
@@ -70,13 +76,18 @@ export function watchPaymentVouchers(
           [...items].sort(
             (a, b) =>
               (b.issueDate ?? "").localeCompare(a.issueDate ?? "") ||
-              (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+              instanteDe(b.createdAt) - instanteDe(a.createdAt),
           ),
         ),
       onError,
       { equals: unitId ? [{ field: "payerUnitId", value: unitId }] : undefined },
     ) ?? (() => {})
   );
+}
+
+/** `createdAt` como instante comparable, llegue como `Timestamp`, como texto o sin él. */
+function instanteDe(valor: unknown) {
+  return toLocalDate(valor)?.getTime() ?? 0;
 }
 
 /**
