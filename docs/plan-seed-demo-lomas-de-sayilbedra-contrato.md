@@ -761,4 +761,44 @@ sesión de administración y leyendo después el código que las pinta:
     que paga cuota y consumo el mismo día ya tiene dos. Lo cazó el recorrido del ensayo, en Libro y
     fondos. **En producción está latente:** son 4 recibos en 3 conjuntos, sin ningún día con dos
     (medido el 13 sep). Con la historia de Lomas saltaría en el Libro del administrador y en los
-    recibos del residente.
+    recibos del residente, **y saltó**: el estado de cuenta del consejero demo dejó dos `TypeError`
+    en la consola.
+
+**Del recorrido con la cuenta del consejero** (13 sep, T2.3):
+
+32. **«Próxima reserva», en el inicio del residente, sale un día antes.** `formatShortDate`
+    (`src/app/(resident)/resident/page.tsx`) hace `new Date("2026-09-15")`, que se lee como medianoche
+    UTC, y en México ya es el 14. La pantalla de reservas, que no lo convierte así, dice bien «martes,
+    15 de septiembre».
+33. **«9 meses al día» cuenta cargos pagados, no meses.** `paidMonths` (`BillingHeroCard.tsx`) es
+    `vivos.filter((s) => s.status === "paid").length`. Una casa con cuota, consumo y extraordinaria
+    tiene tres cargos al mes: el consejero lleva 4 meses facturados y la tarjeta dice 9.
+34. **El residente ve el cargo de consumo como `consumo_medido`.** `billingConceptLabel` enseña tal cual
+    el concepto que no conoce —a propósito, para que se note— y `BILLING_CONCEPTS` del front no tiene el
+    de consumo medido. Es el gemelo de la H.16, que es el mismo hueco en el aviso del servidor.
+
+**Del recorrido con el residente al corriente** (Encinos 03, la casa del anticipo):
+
+35. **«Total pagado» no cuenta el anticipo aplicado.** La tarjeta dice «Al día» y a la vez «Total
+    pagado $5,131.39 de $10,527.40 cobrado»: la diferencia, $5,396.01, es justo lo que se aplicó del
+    saldo a favor. Las cuotas pagadas con anticipo ni siquiera enseñan la línea «Total pagado». Un
+    residente al corriente lee que pagó la mitad.
+
+**Del recorrido con el residente moroso** (Fresnos 11):
+
+36. **«Próxima reserva» enseña una reserva que ya pasó.** Es `reservations[0]`, la primera de la lista,
+    sin mirar si ya pasó. Al moroso, que no ha reservado nada desde agosto, le enseña «Gimnasio · 26 de
+    ago»: una reserva del 27 de agosto, ya pasada, y además con el día de menos de la H.32.
+
+**Del recorrido con la portería:**
+
+37. **La portería ve «Expirado» en las invitaciones de QR del día, antes de su hora.**
+    `resolverEstadoOperativo` (`src/features/visitors/estado-operativo.ts`) combina `date` con
+    `scheduledTime` mediante `combineLocalDateTime`, que solo entiende «HH:mm». La invitación del
+    residente (`createResidentInvitation`) guarda `scheduledTime` como fecha ISO completa, así que la
+    regla se queda con la medianoche del día y la visita sale caducada desde las 00:00. En el ensayo,
+    una visita de las 17:30 salía «Expirado» a las 16:00. El pase puntual que crea la administración
+    (`YYYY-MM-DDTHH:mm:00`, en `src/features/admin/services.ts`) caería en lo mismo: leído en el
+    código, no visto.
+38. **El «Listado operativo» de reservas de la portería empieza el 2 de junio**, en orden ascendente:
+    para ver lo de hoy hay que bajar tres meses de historial.

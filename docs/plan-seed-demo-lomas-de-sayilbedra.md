@@ -390,7 +390,7 @@ functions en 0, con `npm --prefix functions run typecheck`. **Cumplido el 13 sep
 |---|---|---|
 | **T2.1** Conjunto de ensayo | «Lomas de Sayilbedra (ensayo)» en `vivaru-staging-02`, `isExample`, activo, con las mismas banderas (D9) | Existe y resuelve las banderas como Lomas en producción. **Hecho el 13 sep: `fnBFuQe2p8h5fwy3jpeB`** (§12.8) |
 | **T2.2** Corrida con disparadores reales | `--escribir` en staging, con las functions desplegadas | Los únicos avisos nacidos son los de tickets y reservas previstos en §6, y la captura D6 llega a los esperados (§13.4); **cero** correos; cero llamadas a IA (`aiUsage` sin cambio) y una fila `omitida · sembrado` por PQRS en `aiAssistance`. **Hecho el 13 sep (§14.1)** |
-| **T2.3** Recorrido | Las tres tablas de §5, con la sesión de admin, dos de residente, la de consejero y la de portería (tú abres cada sesión, yo recorro) | Ninguna pantalla vacía; los números cuadran entre Cartera, Libro, Conciliación, Informe y Panel |
+| **T2.3** Recorrido | Las tres tablas de §5, con la sesión de admin, dos de residente, la de consejero y la de portería (tú abres cada sesión, yo recorro) | Ninguna pantalla vacía; los números cuadran entre Cartera, Libro, Conciliación, Informe y Panel. **Hecho el 13 sep (§14.3, §14.5 y §14.6)** |
 | **T2.4** Limpieza y resiembra | `--limpiar` y otra corrida | Queda como estaba antes, y la segunda corrida da lo mismo que la primera: los mismos conteos y los mismos totales. El reparto de un pago parcial entre cargos que vencen el mismo día puede cambiar (contrato, H.17). **Hecho el 13 sep (§14.4)** |
 
 **Checkpoint 2:** revisión contigo de lo visto en staging antes de tocar producción.
@@ -855,12 +855,54 @@ confirmaba que el conjunto había quedado como estaba:
    cargos, $572,656.00 cobrados, $522,756.60 recaudados, $44,503.39 pendientes, 154 reservas, 272
    pases, 170 paquetes, 34 PQRS, 87 respuestas y 90 firmas. Dos ambientes, el mismo resultado.
 
-### 14.5 Lo que falta de la fase 2
+### 14.5 T2.3 con el consejero y los dos residentes (13 sep, tarde)
 
-1. **T2.3 con el consejero, los dos residentes y la portería.** Las cuentas son nuevas: tú les pones
-   contraseña y abres cada sesión.
-2. **Dos decisiones antes de producción**, las dos sobre el producto:
+Con las cuentas nuevas. Les pusiste contraseña con enlaces de restablecer que generé con la consola de
+administración de Firebase, sin enviar correo. **Ninguna pantalla vacía**, y cada una enseñó lo que el
+guion le da:
+
+| Cuenta | Lo que se vio |
+|---|---|
+| Consejero (Jacarandas 05) | Al día. El acuerdo de las cámaras, por firmar; el reglamento, firmado; **el informe de agosto, esperando su firma**. La noche mexicana del 15, aprobada, y la casa club del 19, pendiente. La encuesta abierta, por responder. Su PQRS, en proceso |
+| Al corriente (Encinos 03) | **$1,798.67 a favor** por el anticipo, y la constancia de no adeudo. Un paquete de hoy por recoger. Una visita dentro y otra a las 17:30. Dos PQRS resueltos |
+| Moroso (Fresnos 11) | **$5,000.16 vencidos desde el 10 de agosto**, con el comprobante de agosto en revisión. El reglamento y tres acuerdos, por firmar. El aviso de saldo vencido en Reservas; el gimnasio, que no bloquea por adeudo, sí le deja reservar |
+
+Salieron seis rarezas más del producto (contrato, H.31–H.36). **H.31 saltó con las tres cuentas**: el
+estado de cuenta de cada una dejó un `TypeError` y un `errorLogs`. **No hubo ningún otro error del
+navegador en todo el recorrido.**
+
+### 14.6 T2.3 con la portería (13 sep, tarde)
+
+Después de un `--refrescar`, que sembró el paquete de las 13:05. Cuadra con los datos nombre por
+nombre:
+
+- **Inicio:** 3 visitantes esperados, 3 reservas activas y 3 paquetes pendientes. Tomás Del Río y
+  Andrea Villa, dentro; Camila Quiroz, a las 17:30. Dos turnos de alberca de 11 a 13 y la palapa de
+  12 a 17.
+- **Paquetes:** los 3 de hoy (09:15, 11:40 y 13:05), cada uno con «Confirmar entrega» y los residentes
+  de su casa para elegir, y el historial con quién los recibió en la caseta y cuándo se entregaron.
+- **Visitas:** la de la mañana (Óscar Quiroz), finalizada; las dos de dentro; y las de ayer que no
+  llegaron, como «Expirado».
+
+**Una que no cuadra, y es del producto (H.37).** Camila Quiroz sale «Expirado» a las 16:00, y su
+visita es a las 17:30. La regla de la píldora combina el día con `scheduledTime` esperando «HH:mm», y
+la invitación del residente lo guarda como fecha ISO completa, así que la regla se queda con la
+medianoche: toda invitación de QR del día sale caducada desde las 00:00.
+
+**La portería no dejó ningún `errorLogs`.** Los tres que tiene el ensayo son la H.31 de los
+residentes, todos anteriores a esta sesión.
+
+Con eso **T2.3 está hecha**: las cinco sesiones, ninguna pantalla vacía, y los números cuadran entre
+Cartera, Libro, Tesorería, Conciliación, Presupuesto, Informe y Panel. El recorrido sacó 18 rarezas
+del producto (contrato, H.21–H.38).
+
+### 14.7 Lo que queda antes de producción
+
+1. **Decidir qué hacer con tres fallos del producto que se verían en la demo:**
    - **H.31: «Recibos emitidos» se cae.** El ensayo tiene 40 días con más de un recibo, y las tres
-     casas demo tienen dos el mismo día: la lista de recibos del residente y el Libro del
-     administrador saldrían vacíos en la demo.
-   - **H.28: «Enviar acceso a 95»**, a un clic.
+     casas demo tienen dos el mismo día: los recibos del residente y el Libro del administrador salen
+     vacíos.
+   - **H.37: la portería ve «Expirado»** en las visitas de QR del día, antes de su hora.
+   - **H.28: «Enviar acceso a 95»**, a un clic, hacia buzones que no existen.
+2. **La fase 3, con tu permiso en cada paso:** las banderas de D4, la puerta de D5, la corrida, la
+   captura de avisos y las contraseñas de las cuatro cuentas (con enlaces de restablecer, como aquí).
