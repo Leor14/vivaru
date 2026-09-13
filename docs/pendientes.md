@@ -4,28 +4,32 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 12 de septiembre de 2026 (tarde)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 12 de septiembre de 2026 (noche; 00:30 UTC del 13)
 
-> # LO CONSTRUIBLE, CUBIERTO: `CF9` EN LAS DOS DIRECCIONES Y `byUnit` FUERA DEL INFORME, EN PRODUCCIÓN. `FEAT-007`, PRODUCTIVA. LA WIKI, AL DÍA.
+> # NADA A MEDIAS. LO CONSTRUIBLE, EN PRODUCCIÓN; LAS FICHAS, CORREGIDAS; MEMORIA, WIKI Y NOTION, AL DÍA.
 >
 > **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por qué
 > lo frena, está en «LO QUE SIGUE», justo debajo.
 >
-> **Lo de esta pasada, en una línea:** **`CF9` cerrado en 18 bloques** —la ficha decía 19, contados a
-> ojo— **y en su variante al revés, 7 más** (un `update` que mira el conjunto de antes sin impedir que
+> **Lo del 12, por tramos.** *Por la tarde:* **`CF9` cerrado en 18 bloques** —la ficha decía 19, contados
+> a ojo— **y en su variante al revés, 7 más** (un `update` que mira el conjunto de antes sin impedir que
 > cambie), con un banco de 93 pruebas contra el emulador y un guardián estático,
 > `tests/el-tenantid-no-se-muda.test.ts`: las dos formas estaban al alcance de una cuenta de prueba, que
 > nace `tenant_admin`. **`byUnit` fuera del informe** que lee el consejo, a `monthlyReportReceivables`,
 > con los tres informes que había migrados. **`FEAT-007` Productiva**: el destello y la impresión,
-> mirados en staging; los PDF y el QR, por construcción. **La wiki**, del 1 al 10 sep: ocho páginas
-> nuevas, con las banderas medidas. Detalle en el roadmap (0.9.74) y en la bitácora.
+> mirados en staging; los PDF y el QR, por construcción. **La wiki**, del 1 al 10 sep, con las banderas
+> medidas. *Por la noche:* tres overrides que repetían el valor global, **retirados** (`a7ab743`); **el
+> «HOGARU» y el tipo de `distributionBasis`** (`9c37c9c`); y **ocho fichas que se contradecían por dentro,
+> corregidas** (`dfc7b80`). *Al cerrar:* **las bases de información, al día** —la tabla ejecutiva del
+> roadmap, el log de la wiki, y el tablero, la bitácora (+2 filas) y el inventario (8 filas) de Notion—.
+> Buscar las copias de lo que corrigieron las fichas encontró **seis en la memoria del agente y ninguna en
+> la wiki**. Detalle en el roadmap (0.9.74) y en la bitácora.
 >
-> **Lo que sirve cada ambiente al cerrar (medido):** producción, el front `build-2026-09-12-009` desde
-> `dfc7b80` —`develop` llevado a `master` tres veces el 12, a las 22:11, 22:36 y 23:18 UTC (la última,
-> solo documentos y un comentario), y sirviendo a las 23:24—; staging, el mismo commit
-> (`build-2026-09-12-027`). Detrás solo vinieron las notas que anotan esto, sin código, llevadas a las dos
-> ramas: `master` = `develop`. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging,
-> **las dos idénticas al repo**. Functions: `regenerateMonthlyReport`, `issueMonthlyReport`,
+> **Lo que sirve cada ambiente al cerrar (medido):** producción y staging, **la punta de `master` =
+> `develop`** —medido: `build-2026-09-13-001` desde `3dac37c`, a las 00:26 y a las 00:25 UTC—. El código es
+> el de `dfc7b80`; detrás solo vinieron notas, sin código, llevadas a las dos ramas —también la que anota
+> este cierre—. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en staging, **las dos idénticas al repo**
+> (medido otra vez al cerrar). Functions: `regenerateMonthlyReport`, `issueMonthlyReport`,
 > `signMonthlyReport` y `monthlyFinancialArchive`, a las 19:28 UTC en staging y a las 19:31 en producción.
 >
 > ```bash
@@ -36,14 +40,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
 > ```
 >
-> **Bancos CONTADOS en `ba98abe`:** `npm test` **2071** (**2075** por la noche, con los dos guardianes
-> nuevos) · functions **1015** · reglas **591** (sin
-> Storage) · emulador de functions **379 de 381** (los dos rojos, `CA12` y `D-B` de
+> **Bancos:** `npm test` **2075** (contado en `dfc7b80`) · functions **1015** · reglas **591** (sin
+> Storage) · emulador de functions **379 de 381** (contados en `ba98abe`; los dos rojos, `CA12` y `D-B` de
 > `payments.emulator.test.ts`, preexistentes y confirmados por nombre).
 >
 > ## LO QUE SIGUE — el menú
 >
-> **A · Construible ya** — **nada**: los tres puntos se cerraron el 12 por la noche
+> **A · Construible ya** — **nada de producto**: los tres puntos se cerraron el 12 por la noche. Queda un
+> cabo de casa: la rama `claude/nifty-bell-c733cd` y su worktree (ver el punto 1)
 > 1. ~~El «HOGARU» que no llegó a `develop`~~ — **HECHO el 12 sep por la noche**: «Superadmin Vivaru» en
 >    `ROLE_LABEL` —que no importa nadie, así que no se veía— y «Usuario» a secas como relleno del nombre en
 >    la sesión, como decidió `2e0be85`. Lo vigila `tests/marca-vieja-fuera-del-producto.test.ts`. La rama
