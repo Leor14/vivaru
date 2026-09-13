@@ -389,7 +389,7 @@ functions en 0, con `npm --prefix functions run typecheck`. **Cumplido el 13 sep
 | Tarea | Qué | Criterio de salida |
 |---|---|---|
 | **T2.1** Conjunto de ensayo | «Lomas de Sayilbedra (ensayo)» en `vivaru-staging-02`, `isExample`, activo, con las mismas banderas (D9) | Existe y resuelve las banderas como Lomas en producción. **Hecho el 13 sep: `fnBFuQe2p8h5fwy3jpeB`** (§12.8) |
-| **T2.2** Corrida con disparadores reales | `--escribir` en staging, con las functions desplegadas | Los únicos avisos nacidos son los de tickets y reservas previstos en §6, y la captura D6 llega a los esperados (§13.4); **cero** correos; cero llamadas a IA (`aiUsage` sin cambio) y una fila `omitida · sembrado` por PQRS en `aiAssistance` |
+| **T2.2** Corrida con disparadores reales | `--escribir` en staging, con las functions desplegadas | Los únicos avisos nacidos son los de tickets y reservas previstos en §6, y la captura D6 llega a los esperados (§13.4); **cero** correos; cero llamadas a IA (`aiUsage` sin cambio) y una fila `omitida · sembrado` por PQRS en `aiAssistance`. **Hecho el 13 sep (§14.1)** |
 | **T2.3** Recorrido | Las tres tablas de §5, con la sesión de admin, dos de residente, la de consejero y la de portería (tú abres cada sesión, yo recorro) | Ninguna pantalla vacía; los números cuadran entre Cartera, Libro, Conciliación, Informe y Panel |
 | **T2.4** Limpieza y resiembra | `--limpiar` y otra corrida | Queda como estaba antes, y la segunda corrida da lo mismo que la primera: los mismos conteos y los mismos totales. El reparto de un pago parcial entre cargos que vencen el mismo día puede cambiar (contrato, H.17) |
 
@@ -749,7 +749,54 @@ Están en el contrato, §H.12–H.20:
 
 ### 13.6 Lo siguiente
 
-- **El commit de la fase 1**, con tu sí.
-- **La fase 2, en staging**, sobre `fnBFuQe2p8h5fwy3jpeB`. Pide la ADC viva para
-  `vivaru-staging-02`, y comprobar qué functions hay desplegadas allí: los disparadores de §6 son lo
-  que se quiere ver.
+- **El commit de la fase 1**: hecho, `3034ea7`, en `develop` y empujado el 13 sep.
+- **La fase 2, en staging**, sobre `fnBFuQe2p8h5fwy3jpeB`: ver §14.
+
+---
+
+## 14. Fase 2 — el ensayo en staging (13 sep)
+
+### 14.1 T2.2, la corrida con los disparadores reales
+
+Sobre `fnBFuQe2p8h5fwy3jpeB`, con las 105 functions de staging en `ACTIVE`. Los disparadores que
+importan se desplegaron el 10 y el 12 sep, después de los dos commits que la captura da por hechos
+(la sombra omite lo sembrado desde `de1bfbe`; el aviso de la reserva que nace aprobada, desde
+`87947d2`). «Hoy» fue el 12 sep de Puebla, porque se corrió a las 23:00.
+
+| Criterio | Antes | Después |
+|---|---|---|
+| Correos (`emailDeliveries`) | 2 | 2 |
+| Llamadas a IA (`aiUsage`) | 41 | 41 |
+| Filas de la sombra del ensayo (`aiAssistance`) | 0 | 34, todas `omitida · sembrado`: una por PQRS |
+| Avisos del superadmin | 107 | 107 |
+| Avisos del admin (hotmail) | 36 | 37: el del PQRS de hoy, que se queda |
+| Avisos de la historia capturados (D6) | — | **504 de 504 esperados** |
+
+- **Los disparadores dejaron exactamente lo previsto:** 185 avisos al admin y 185 al superadmin
+  (33 PQRS más 152 reservas), y 134 a residentes por las reservas que nacen aprobadas.
+- **El verificador, 36 de 36.** El barrido apuntó lo que crearon el producto y los disparadores: 34
+  filas de la sombra, 5 asientos de la reversión, 11 avisos del lote de hoy y la guía.
+- **El «0» de `aiAssistance` en staging no era un disparador mudo:** no había tickets. Con PQRS, la
+  sombra escribe su fila. `CLAUDE.md` lo deja como la primera pregunta del runbook de IA; para staging
+  queda contestada, y hay que corregirlo en el cierre (fase 4).
+
+### 14.2 Dos tropiezos, y lo que cambió
+
+1. **La primera simulación no llegó a correr.** El proceso en segundo plano arrancó en `functions/` y
+   la ruta relativa se duplicó; el `echo` final devolvió 0 y parecía un éxito. Desde entonces, rutas
+   absolutas y el código de salida del propio script.
+2. **La primera corrida real se cayó en la captura.** La consulta `userId ==` con `createdAt >=`
+   pidió en staging un índice compuesto ascendente que no existe (hay el descendente).
+   - Ya estaban escritos la historia, las membresías y el buzón; faltaban la captura, el lote de hoy,
+     el recálculo de estados y el barrido.
+   - El verificador lo vio: 34 cargos `pending` ya vencidos, y 353 documentos fuera del manifiesto.
+   - **Arreglo, sin tocar índices:** los avisos se piden solo por `userId` y la fecha se filtra en
+     memoria (el patrón de `watchLedger`); si la captura de la historia no se hizo nunca, la ventana
+     empieza donde nació el manifiesto; y lo esperado se cuenta por el `createTime` real de PQRS y
+     reservas, no con contadores de la corrida.
+   - La corrida siguiente retomó la que se cayó y capturó los 504.
+
+### 14.3 Lo que falta de la fase 2
+
+- **T2.3, el recorrido**, con tus sesiones. Justo antes, `--refrescar`, para que haya «hoy».
+- **T2.4, limpiar y resembrar**, después del recorrido: `--limpiar` borra las cuentas.

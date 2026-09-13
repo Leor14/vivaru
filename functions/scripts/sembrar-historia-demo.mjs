@@ -225,18 +225,15 @@ const escritores = {
 };
 const historicos = historia.eventos.filter((e) => e.fecha < hoy);
 const deHoy = historia.eventos.filter((e) => e.fecha === hoy);
-const creados = (coleccion) => ctx.conteo.get(coleccion)?.creado ?? 0;
-
 async function capturar(fase) {
   if (!escribir) return;
   if (EMULADOR) return console.log(`  (emulador: sin disparadores, nada que capturar en la fase «${fase}»)`);
-  await capturarAvisos(ctx, {
-    desde: arranque,
-    fase,
-    creados: fase === "historia"
-      ? { tickets: creados("tickets"), reservas: creados("reservations"), avisanAlResidente: creados("reservas que avisan al residente") }
-      : null,
-  });
+  // La ventana empieza en esta corrida; pero si la captura de la historia nunca llegó a hacerse (una
+  // corrida que se cayó antes), en la primera: cuando nació el manifiesto.
+  const manifiesto = await ctx.manifiesto.ref.get();
+  const desde = manifiesto.data()?.capturaHistoriaHecha ? arranque : manifiesto.createTime.toDate();
+  await capturarAvisos(ctx, { desde, fase });
+  if (fase === "historia") await ctx.manifiesto.ref.set({ capturaHistoriaHecha: true }, { merge: true });
 }
 
 try {

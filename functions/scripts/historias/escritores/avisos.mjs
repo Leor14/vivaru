@@ -197,8 +197,12 @@ export async function sembrarAvisosHistoricos(ctx, historia) {
  * aprobadas, al residente). Fase «hoy»: todo lo del superadmin, que no es parte de la demo. Espera
  * a que dejen de llegar —los disparadores corren aparte, segundos después de cada escritura— hasta
  * el número esperado, o tres lecturas seguidas iguales, y los borra por id exacto.
+ *
+ * **Lo esperado sale de los datos, no de contadores de la corrida:** los PQRS y las reservas nacidos
+ * desde `desde`, por su `createTime` real (su `createdAt` es el histórico). Así una corrida que
+ * retoma a otra que se cayó antes de capturar recoge también lo de aquella.
  */
-export async function capturarAvisos(ctx, { desde, fase, creados = null }) {
+export async function capturarAvisos(ctx, { desde, fase }) {
   const db = ctx.db;
   const t = ctx.tenantId;
   const superadmins = new Set((await db.collection("users").where("role", "==", "superadmin").get()).docs.map((d) => d.data().uid ?? d.id));
@@ -207,15 +211,24 @@ export async function capturarAvisos(ctx, { desde, fase, creados = null }) {
     .filter((m) => (m.status ?? "active") === "active")
     .map((m) => m.uid);
   const destinatarios = fase === "historia" ? new Set([...admins, ...superadmins, ...ctx.uids.values()]) : superadmins;
-  const esperados = creados ? (creados.tickets + creados.reservas) * (admins.length + superadmins.size) + creados.avisanAlResidente : null;
+  let esperados = null;
+  if (fase === "historia") {
+    const nacidos = async (c) => (await db.collection(c).where("tenantId", "==", t).get()).docs.filter((d) => d.createTime.toMillis() >= desde.getTime());
+    const [tickets, reservas] = await Promise.all([nacidos("tickets"), nacidos("reservations")]);
+    const avisanAlResidente = reservas.filter((d) => d.data().status === "approved" && d.data().autoApproved === true).length;
+    esperados = (tickets.length + reservas.length) * (admins.length + superadmins.size) + avisanAlResidente;
+  }
 
   const buscar = async () => {
     const encontrados = new Map();
     for (const uid of destinatarios) {
       if (!uid || String(uid).startsWith("simulado:")) continue;
-      const snap = await db.collection("notifications").where("userId", "==", uid).where("createdAt", ">=", Timestamp.fromDate(desde)).get();
+      // Solo por `userId`, y la fecha en memoria: con `createdAt >=` en la consulta, staging pidió un
+      // índice compuesto ascendente que no tiene (se cayó así el 13 sep). Por destinatario son cientos.
+      const snap = await db.collection("notifications").where("userId", "==", uid).get();
       for (const d of snap.docs) {
         const n = d.data();
+        if (!((n.createdAt?.toMillis?.() ?? 0) >= desde.getTime())) continue;
         if (n.tenantId !== t && !String(n.description ?? "").includes(t)) continue;
         if (fase === "historia" && !["ticket", "reservation"].includes(n.type)) continue;
         encontrados.set(d.id, d.ref);
