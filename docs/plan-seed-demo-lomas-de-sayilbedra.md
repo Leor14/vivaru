@@ -917,7 +917,18 @@ del producto (contrato, H.21–H.38).
    cazó una prueba ciega:** la del recibo sin `createdAt` pasaba sobre el código roto, porque el
    orden viejo solo revienta cuando el `Timestamp` cae como `b` del comparador. Ahora prueba los dos
    órdenes. Banco de la app: 2080 de 2080; typecheck en 0.
-2. **Desplegarlos y verlos en el ensayo** (staging despliega solo al empujar `develop`): los recibos
-   de un residente demo y una visita de la tarde en la portería. Después, producción.
+2. **Desplegarlos y verlos en el ensayo.** Subieron a staging con `da5557c`
+   (`build-2026-09-13-008`, sirviendo desde las 16:32).
+   - **H.37, visto en la portería contra una predicción escrita antes:** Camila Quiroz (17:30) salía
+     «Expirado» a las 16:28 con el build anterior, y «Programado» con el nuevo. El orden de la
+     lista dentro de cada día se invirtió como se predijo: hoy 17:30 · 11:00 · 10:20 · 08:30, y ayer
+     15:10 · 13:10 · 12:50 · 12:10 · 12:00. Antes salían en el orden en que se crearon, porque
+     todas empataban a mediodía; la más tardía primero es lo que el código siempre pidió.
+   - **H.31, visto con el residente al corriente (Encinos 03):** «Comprobantes de pago» pinta sus 6
+     recibos en el orden que se predijo leyendo la base —los dos pares del mismo día, el más
+     reciente primero—, y el registro de errores del ensayo no creció: siguen los 3 del build
+     viejo, todos de esa misma pantalla.
+
+   Después, producción, con tu sí aparte.
 3. **La fase 3, con tu permiso en cada paso:** las banderas de D4, la puerta de D5, la corrida, la
    captura de avisos y las contraseñas de las cuatro cuentas (con enlaces de restablecer, como aquí).
