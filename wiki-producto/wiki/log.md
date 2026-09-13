@@ -10,6 +10,14 @@ fecha_actualizacion: 2026-09-12
 
 ---
 
+## [2026-09-12] update | La noche del 12: las overrides que repetían el global, el tipo de la base de reparto y las fichas
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 3 — [[cuentas-por-pagar]] e [[informe-mensual]] (sus banderas resuelven por el valor global en los diez: se retiraron los tres overrides de canario que repetían lo mismo, `a7ab743`), [[medicion-consumos]] (el tipo `distributionBasis` declara ya `consumption`, `9c37c9c`) y este log
+- **Comprobado sin cambio**: ocho PRD que se contradecían por dentro se corrigieron en el repositorio (`dfc7b80`). Se buscaron aquí sus datos viejos —el commit de la entrega 2 de `FLOW-007` (el del código es `db273d4`), los «once» sitios del [[rol-consejo]] (son diez), la guarda de `RN-10` en [[tesoreria]], «apagada en los nueve»— y **no aparece ninguno**: la pasada del mismo día midió las banderas en vez de copiarlas de las fichas. Las copias estaban en la memoria del agente, y se corrigieron allí.
+
+---
+
 ## [2026-09-12] update | Lo del 1 al 10 de septiembre: informe mensual, cuotas, tesorería, consumos, presupuesto, consejo, buzones y modo oscuro
 
 - **Páginas creadas**: 8 — [[informe-mensual]] (`FLOW-007`), [[cuentas-por-pagar]] (`FLOW-008`), [[tesoreria]] (`FEAT-010`), [[medicion-consumos]] (`FEAT-008`), [[presupuesto]] (`FEAT-009`), [[rol-consejo]] (`PLAT-004`), [[puerta-de-buzones]] (`PLAT-006`) y [[modo-oscuro]] (`FEAT-007`)
