@@ -796,7 +796,47 @@ importan se desplegaron el 10 y el 12 sep, después de los dos commits que la ca
      reservas, no con contadores de la corrida.
    - La corrida siguiente retomó la que se cayó y capturó los 504.
 
-### 14.3 Lo que falta de la fase 2
+### 14.3 T2.3, el recorrido de administración (13 sep, mañana)
 
-- **T2.3, el recorrido**, con tus sesiones. Justo antes, `--refrescar`, para que haya «hoy».
-- **T2.4, limpiar y resembrar**, después del recorrido: `--limpiar` borra las cuentas.
+Con tu sesión de hotmail, en el navegador de la app, las 22 rutas de la tabla de administración de
+§5. **Ninguna pantalla vacía**, y las cifras cuadran entre sí y con la huella del dinero:
+
+| Dónde | Cifra | Cuadra con |
+|---|---|---|
+| Panel y Cartera | Pendiente $44,503.39; cobrado $572,656.00; recaudado $522,756.60 (92.2 %) | la huella y el verificador |
+| Libro y Tesorería | Saldo de fondos $659,995.28, con los $598,400 iniciales | entre sí |
+| Libro y Presupuesto | Ingresos $535,061.28; egresos $473,466.00; resultado $61,595.28 | entre sí |
+| Egresos y Cartera | Por pagar $18,819.00; pagado $473,466.00 | entre sí y con el Libro |
+| Conciliación | 434 líneas: 368 conciliadas y 66 pendientes (la operativa, 428 = 362 + 66) | el verificador |
+| Medidores (agosto) | 48 de 48 con foto, 1,091 m³, $24,002.00, «Ya cobrado» | la corrida de consumo |
+| Reportes | Tres informes emitidos; el de agosto, con la firma del consejero demo pendiente | el plan |
+
+**Tres fallos de la semilla que ni el verificador ni el emulador veían**, corregidos y probados en el
+emulador:
+
+1. **Radicados y referencias en ceros.** Los de PQRS y paquetes salían de un minuto exacto, así que
+   terminaban en ceros y se repetían («PQRS-000000» dos veces). Ahora llevan segundos estables: 34
+   radicados distintos de 34.
+2. **Nombres que no casaban con el papel** en las autorizaciones («Tomás Ocampo (abuela de visita)»).
+   Ahora se eligen con el género del papel.
+3. **Aprobar un comprobante no lo archivaba en Documentos**, y Cartera lo archivó sola al abrirla: 17
+   documentos con la fecha de hoy y a tu nombre. Ahora la semilla archiva al aprobar, como
+   `archiveReceipt`, y el verificador lo vigila con O8, ya falsada. Son 37 comprobaciones.
+
+**Diez rarezas del producto** están en el contrato (H.21–H.30). Entre ellas:
+
+- dos «saldos de fondos» distintos con el mismo nombre;
+- el reverso fechado en UTC;
+- dos «resultados» de agosto: el informe dice −$26,428.58 y Reportes, +$3,503.05;
+- **«Enviar acceso a 95», a un clic** (H.28), que hay que decidir antes de producción.
+
+**Lo que no se vio:** el «hoy» del ensayo sigue en el 12, porque la ADC caducó (`invalid_rapt`), y
+por eso «Visitantes hoy» da 0.
+
+### 14.4 Lo que falta de la fase 2
+
+1. **El commit de los tres arreglos**, con tu sí.
+2. **T2.4 antes del resto del recorrido**, para recorrer con la semilla corregida: una corrida
+   idempotente (el barrido apunta lo que creó Cartera), `--limpiar` y otra siembra. Pide la ADC.
+3. **T2.3 con el consejero, los dos residentes y la portería**: tú pones las contraseñas a las
+   cuentas nuevas y abres cada sesión. Justo antes, `--refrescar`.

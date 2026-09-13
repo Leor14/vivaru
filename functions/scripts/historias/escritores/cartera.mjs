@@ -14,7 +14,7 @@ import { createRequire } from "node:module";
 import { imagenDeEjemplo, subir } from "../archivos.mjs";
 import { semilla } from "../azar.mjs";
 import { idDe } from "../lomas-de-sayilbedra.mjs";
-import { crearSiFalta, fechar as fecharEnManifiesto, firma, marcaDe } from "../motor.mjs";
+import { carpetaDeSistema, crearSiFalta, fechar as fecharEnManifiesto, firma, marcaDe } from "../motor.mjs";
 import { instante } from "../reloj.mjs";
 
 const require = createRequire(import.meta.url);
@@ -295,6 +295,16 @@ export function crearEscritoresDeCartera(ctx, historia) {
       );
       await anotarPago(operationKey, marca);
       await ref.update({ reviewedAt: marca });
+      // Aprobar archiva el comprobante en Documentos («Comprobantes de pago»), como `archiveReceipt`.
+      // Sin esto, Cartera lo archiva sola la primera vez que se abre, con la fecha de ese día y a
+      // nombre de quien la abrió (`backfillApprovedReceipts`): lo vio el recorrido del ensayo.
+      const carpetaId = await carpetaDeSistema(ctx, "payment_receipts", marca, { uid: ADMIN.uid, nombre: ctx.adminNombre });
+      await crearSiFalta(ctx, "documents", idDe(t, `doc-${id.replace(`${t}--`, "")}`), {
+        fileName: r.fileName || "Comprobante", description: "", fileUrl: r.fileUrl, storagePath: r.storagePath,
+        uploadedBy: ADMIN.uid, uploadedByName: ctx.adminNombre, category: "comprobante", folderId: carpetaId,
+        fileSize: 0, contentType: "", source: "payment_receipt", sourceId: id,
+        createdBy: ADMIN.uid, createdAt: marca, updatedAt: marca,
+      });
       ctx.cuenta("revisiones de comprobante", "creado");
     },
 

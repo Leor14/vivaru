@@ -119,6 +119,28 @@ export async function fechar(ctx, coleccion, ids, campos) {
   }
 }
 
+/** Las carpetas de sistema de `ensureSystemFolderImpl` (functions/src/index.ts), con sus nombres. */
+const CARPETAS_DE_SISTEMA = {
+  regulations: { name: "Reglamentos", description: "Reglamentos del conjunto. Carpeta del sistema." },
+  committee_agreements: { name: "Acuerdos de comité", description: "Actas y acuerdos de comité. Carpeta del sistema." },
+  payment_receipts: { name: "Comprobantes de pago", description: "Comprobantes de pago aprobados de los residentes. Carpeta del sistema." },
+};
+
+/**
+ * La carpeta de sistema, como `ensureSystemFolderImpl`: la que ya tenga el conjunto, o una nueva con
+ * id prefijado y la fecha histórica, pedida por `actor` (la administración, salvo que se diga).
+ */
+export async function carpetaDeSistema(ctx, systemKey, marca, actor = { uid: ctx.adminUid, nombre: ctx.adminNombre ?? "" }) {
+  const existente = await ctx.db.collection("documentFolders").where("tenantId", "==", ctx.tenantId).where("systemKey", "==", systemKey).limit(1).get();
+  if (!existente.empty) return existente.docs[0].id;
+  const id = `${ctx.tenantId}--carpeta-${systemKey}`;
+  await crearSiFalta(ctx, "documentFolders", id, {
+    ...CARPETAS_DE_SISTEMA[systemKey], parentId: null, path: id, depth: 0, color: "system", system: true, systemKey,
+    createdBy: actor.uid, createdByName: actor.nombre, createdAt: marca, updatedAt: marca,
+  });
+  return id;
+}
+
 /** La firma de alta que pone `createTenantDocument`: quién y cuándo, con la fecha histórica. */
 export function firma(ctx, marca, uid = ctx.adminUid) {
   return { createdBy: uid, updatedBy: uid, createdAt: marca, updatedAt: marca };

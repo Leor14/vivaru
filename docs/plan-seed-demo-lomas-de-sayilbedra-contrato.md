@@ -716,3 +716,36 @@ las 16–20, leídas en el código al replicar sus escritores. Tampoco se arregl
     «hoy» la víspera.
 20. **Visitas y paquetes sacan torre y unidad partiendo `unitLabel` por el guion** («Torre 1 - 301»). En
     una casa sin guion («Encinos 03») las dos quedan con la etiqueta entera.
+
+**Encontradas en el recorrido del ensayo en staging** (13 sep, T2.3), mirando las pantallas con la
+sesión de administración y leyendo después el código que las pinta:
+
+21. **La tarjeta de «Comprobantes por revisar» pinta el `unitId` crudo** (`PaymentReceiptsReviewPanel.tsx`).
+    La subida del residente no guarda la etiqueta de la casa, y el administrador lee
+    «fnBF…--u-encinos-13»; en un conjunto real, un id aleatorio.
+22. **Cartera llama «Saldo de fondos» a otra cifra.** Su tarjeta de liquidez da $61,595.28 —ingresos
+    menos egresos del libro— y Libro y Tesorería, $659,995.28, con los saldos iniciales de los bancos.
+    La «cobertura del fondo» sale en 0.5 meses cuando son unos 5.
+23. **`revertirPago` fecha el reverso con el día UTC** (`new Date().toISOString().slice(0, 10)`): uno
+    hecho después de las 18:00 de Puebla queda con la fecha del día siguiente.
+24. **Reportes llama «Fondo de reserva» al saldo de fondos entero** ($659,995.28); la cuenta del fondo
+    de reserva tiene $436,000 en Tesorería.
+25. **El informe mensual y Reportes dan resultados distintos para el mismo mes.** El informe toma el
+    recaudo como lo pagado a los cargos del período, hasta el día en que se emite
+    (`leerYConstruirInstantanea`); Reportes suma los asientos por fecha. Agosto en el ensayo:
+    −$26,428.58 contra +$3,503.05.
+26. **Toda mudanza sale en la lista de reservas del administrador con «—» como quien reserva**:
+    `construirMudanza` no guarda `reservedBy`.
+27. **Abrir Cartera escribe.** Cada visita archiva en Documentos los comprobantes aprobados que no
+    tengan documento (`backfillApprovedReceipts`), con la fecha de ese día y a nombre de quien abrió la
+    página. En el ensayo creó 17 documentos: el hueco era de la semilla, que ahora archiva al aprobar,
+    y el verificador lo vigila (O8). En la vida real pasa si el archivo falla al aprobar, porque
+    `archiveReceipt` es de mejor esfuerzo.
+28. **«Enviar acceso a N» está a un clic, en Residentes.** En un conjunto de demostración con correos
+    inertes son 95 invitaciones a buzones que no existen: la H.10, con un botón a la vista.
+29. **La tabla de firmas del reglamento nombra a una persona de la casa, no a quien firmó**: sale de
+    `peopleByUnitId` —una persona por casa, según el orden en que llegan—, no de `signedBy`. En una
+    casa habitada por su dueño suele salir un familiar.
+30. **El Panel y PQRS cuentan distinto la urgencia.** El Panel marca «urgente» lo que pasa de 15 días
+    naturales; la pantalla de PQRS mide 15 días hábiles. El PQRS «por vencer» del ensayo (18 días
+    naturales; le quedan 3 hábiles) sale urgente en uno y a tiempo en el otro.

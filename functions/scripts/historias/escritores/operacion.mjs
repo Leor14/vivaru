@@ -19,9 +19,9 @@ import { createRequire } from "node:module";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { documentoPdf, subir, tokenDe } from "../archivos.mjs";
-import { azar } from "../azar.mjs";
+import { azar, semilla } from "../azar.mjs";
 import { CASAS_DEMO, idDe } from "../lomas-de-sayilbedra.mjs";
-import { crearSiFalta, firma, marcaDe } from "../motor.mjs";
+import { carpetaDeSistema, crearSiFalta, firma, marcaDe } from "../motor.mjs";
 import { diaLocal, dias, instante, sumarDias } from "../reloj.mjs";
 
 const require = createRequire(import.meta.url);
@@ -33,12 +33,6 @@ const { deudaDelCargo } = require("../../../lib/payments.js");
 const ZONA = "America/Mexico_City";
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const fechaLarga = (dia) => `${Number(dia.slice(8, 10))} de ${MESES[Number(dia.slice(5, 7)) - 1]} de ${dia.slice(0, 4)}`;
-
-/** Las de `ensureSystemFolderImpl` (functions/src/index.ts), con sus nombres. */
-const CARPETAS_DE_SISTEMA = {
-  regulations: { name: "Reglamentos", description: "Reglamentos del conjunto. Carpeta del sistema." },
-  committee_agreements: { name: "Acuerdos de comité", description: "Actas y acuerdos de comité. Carpeta del sistema." },
-};
 
 const COMENTARIOS = [
   "Que las grabaciones solo se revisen con acta del consejo.",
@@ -145,17 +139,6 @@ export function crearEscritoresDeOperacion(ctx, historia) {
     if (snap.data()?.tenantId !== t) throw new Error(`${coleccion}/${id} ya existe y es del conjunto «${snap.data()?.tenantId}»: no se pisa.`);
     ctx.cuenta(coleccion, "existe");
     return true;
-  }
-
-  async function carpetaDeSistema(systemKey, marca) {
-    const existente = await db.collection("documentFolders").where("tenantId", "==", t).where("systemKey", "==", systemKey).limit(1).get();
-    if (!existente.empty) return existente.docs[0].id;
-    const id = idDe(t, `carpeta-${systemKey}`);
-    await crearSiFalta(ctx, "documentFolders", id, {
-      ...CARPETAS_DE_SISTEMA[systemKey], parentId: null, path: id, depth: 0, color: "system", system: true, systemKey,
-      createdBy: ctx.adminUid, createdByName: (await admin()).fullName ?? "", createdAt: marca, updatedAt: marca,
-    });
-    return id;
   }
 
   async function pdfSubido(ruta, contenido) {
@@ -319,7 +302,7 @@ export function crearEscritoresDeOperacion(ctx, historia) {
           ],
           pie: "Firman al calce los integrantes del consejo presentes en la sesión.",
         });
-        const carpetaId = await carpetaDeSistema("committee_agreements", ts(subida));
+        const carpetaId = await carpetaDeSistema(ctx, "committee_agreements", ts(subida));
         await crearSiFalta(ctx, "committee_agreements", id, {
           title: d.titulo, sessionDate: d.sesion, eventDate: d.sesion, description: null,
           signatureMode: d.modo, signerScope: "all", signerUnitIds: null, quorum: null,
@@ -357,7 +340,7 @@ export function crearEscritoresDeOperacion(ctx, historia) {
         const { url, tamano } = await pdfSubido(ruta, {
           titulo: d.titulo, subtitulo: "Aprobado en la asamblea ordinaria del 25 de enero de 2026", parrafos: d.parrafos,
         });
-        const carpetaId = await carpetaDeSistema("regulations", ts(subida));
+        const carpetaId = await carpetaDeSistema(ctx, "regulations", ts(subida));
         await crearSiFalta(ctx, "documents", id, {
           title: d.titulo, description: d.titulo, category: "reglamento", audience: "all",
           fileName: d.archivo, fileUrl: url, storagePath: ruta, folderId: carpetaId, fileSize: tamano, contentType: "application/pdf",
@@ -550,7 +533,7 @@ export function crearEscritoresDeOperacion(ctx, historia) {
         towerId: casa.tower, unitId: casa.id, unitLabel: casa.displayName,
         residentId: destinatario.id, residentName: destinatario.fullName, recipientName: destinatario.fullName,
         tower: casa.displayName, unit: casa.displayName, description: d.descripcion,
-        reference: `PK-${llegada.getTime()}`, status: "pending", arrivedAt: llegada.toISOString(),
+        reference: `PK-${llegada.getTime() + (semilla(ev.clave) % 60_000)}`, status: "pending", arrivedAt: llegada.toISOString(),
         registeredBy: guardia, registeredByName: porteria.fullName, receivedByGuardId: guardia, receivedByGuardName: porteria.fullName,
         ...firma(ctx, ts(llegada), guardia),
       };
@@ -576,7 +559,9 @@ export function crearEscritoresDeOperacion(ctx, historia) {
       const doc = {
         unitId: casa.id, unitLabel: casa.displayName, residentId: uid, residentName: cuenta.fullName, category: "pqrs",
         type: d.type, subject: d.subject, message: d.message, status: "open",
-        radicado: `PQRS-${String(radicacion.getTime()).slice(-6)}`, radicationDate: iso,
+        // El producto toma los 6 últimos dígitos de `Date.now()`. De un minuto exacto salían todos en
+        // ceros y repetidos («PQRS-000000» dos veces en el ensayo): se les suman segundos estables.
+        radicado: `PQRS-${String(radicacion.getTime() + (semilla(ev.clave) % 60_000)).slice(-6)}`, radicationDate: iso,
         // El día UTC, como `createTicket`; se radica antes de las 18:00 de Puebla, así que es el local.
         eventDate: iso.slice(0, 10),
         priority: d.prioridad, classifiedAt: mas(radicacion, 95).toISOString(), classifiedBy: ctx.adminUid,

@@ -10,7 +10,8 @@
 import { azar } from "./azar.mjs";
 import { dias, diaDeSemana, esHabil, sumarDias, sumarHabiles } from "./reloj.mjs";
 
-const NOMBRES = ["Andrea", "Luis", "Sofía", "Carlos", "Valentina", "Jorge", "Camila", "Pablo", "Renata", "Tomás", "Lorena", "Hugo", "Paula", "Rubén", "Natalia", "Óscar", "Julia", "Martín", "Elisa", "Gabriel"];
+const NOMBRES_F = ["Andrea", "Sofía", "Valentina", "Camila", "Renata", "Lorena", "Paula", "Natalia", "Julia", "Elisa"];
+const NOMBRES_M = ["Luis", "Carlos", "Jorge", "Pablo", "Tomás", "Hugo", "Rubén", "Óscar", "Martín", "Gabriel"];
 const APELLIDOS = ["Ibarra", "Lozano", "Pineda", "Quiroz", "Serrano", "Villa", "Zúñiga", "Aranda", "Beltrán", "Cortés", "Del Río", "Escobar", "Fuentes", "Galindo", "Ledesma", "Montes", "Nava", "Ocampo", "Pacheco", "Robles"];
 const MOTIVOS_DE_VISITA = ["Visita familiar", "Comida con amigos", "Técnico de internet", "Entrega de muebles", "Clase particular", "Reunión de trabajo", "Cumpleaños", "Servicio de limpieza"];
 const PAQUETES = ["Caja mediana", "Sobre", "Caja chica", "Paquete grande", "Bolsa de supermercado", "Caja de despensa", "Documentos certificados"];
@@ -155,7 +156,7 @@ export const PQRS = [
 
 const EN_CURSO = "Estamos coordinando con el proveedor; te avisamos en cuanto quede resuelto.";
 
-const nombreFicticio = (r) => `${r.elegir(NOMBRES)} ${r.elegir(APELLIDOS)}`;
+const nombreFicticio = (r, genero = r.probable(0.5) ? "f" : "m") => `${r.elegir(genero === "f" ? NOMBRES_F : NOMBRES_M)} ${r.elegir(APELLIDOS)}`;
 const conHora = (r, desde, hasta) => `${String(r.entero(desde, hasta)).padStart(2, "0")}:${r.elegir(["00", "10", "20", "30", "40", "50"])}`;
 
 /** El día hábil que queda `n` días hábiles antes de `desde`. */
@@ -339,12 +340,13 @@ export function eventosDeOperacion(tenantId, hoy, padron, { INICIO, CASAS_DEMO }
 
   // Autorizaciones de larga duración que da la administración, desde el día siguiente: el
   // producto no deja crear una visita que empieza antes de 15 minutos.
-  const AUTORIZACIONES = [["Empleada doméstica", "servicio"], ["Jardinero particular", "servicio"], ["Enfermera", "servicio"], ["Niñera", "servicio"], ["Maestro de piano", "otro"], ["Abuela de visita", "familiar"]];
-  AUTORIZACIONES.forEach(([rol, categoria], i) => {
+  // Con el género del papel: el ensayo sacó «Tomás Ocampo (abuela de visita)».
+  const AUTORIZACIONES = [["Empleada doméstica", "servicio", "f"], ["Jardinero particular", "servicio", "m"], ["Enfermera", "servicio", "f"], ["Niñera", "servicio", "f"], ["Maestro de piano", "otro", "m"], ["Abuela de visita", "familiar", "f"]];
+  AUTORIZACIONES.forEach(([rol, categoria, genero], i) => {
     const r = azar(`autorizacion:${i}`);
     const fecha = sumarDias("2026-06-03", i * 6);
     push(fecha, "10:00", "autorizacion", `autorizacion-${i + 1}`, {
-      cuenta: residentes[(i * 5 + 3) % residentes.length].clave, visitante: `${nombreFicticio(r)} (${rol.toLowerCase()})`, categoria,
+      cuenta: residentes[(i * 5 + 3) % residentes.length].clave, visitante: `${nombreFicticio(r, genero)} (${rol.toLowerCase()})`, categoria,
       desde: sumarDias(fecha, 1), hasta: "2026-12-31", inicio: "08:00", fin: "18:00",
     });
   });

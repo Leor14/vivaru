@@ -606,6 +606,18 @@ function sumarHabiles(dia, n) {
   comprobar(`los ${documentos.size} documentos están en carpetas que existen y los ${comunicados.size} comunicados tienen el estado de sus fechas`, f);
 }
 
+// O8 · Cada comprobante aprobado está archivado en Documentos. Si no, Cartera lo archiva sola al
+// abrirse (`backfillApprovedReceipts`), con la fecha de ese día y a nombre de quien la abrió.
+{
+  const comprobantes = await delConjunto("paymentReceipts");
+  const archivados = new Set([...documentos.values()].filter((d) => d.category === "comprobante").map((d) => d.storagePath));
+  const aprobados = [...comprobantes.entries()].filter(([, r]) => r.status === "approved");
+  const f = aprobados
+    .filter(([, r]) => r.storagePath && r.fileUrl && !archivados.has(r.storagePath))
+    .map(([id]) => `${id}: aprobado y sin su documento (abrir Cartera lo archivaría con la fecha de ese día)`);
+  comprobar(`los ${aprobados.length} comprobantes aprobados están archivados en Documentos`, f);
+}
+
 // ── Cuentas, guía, avisos y manifiesto (T1.9) ──────────────────────────────────────────────────
 
 const membresias = await delConjunto("tenantUsers");
