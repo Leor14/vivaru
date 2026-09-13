@@ -762,7 +762,7 @@ sesión de administración y leyendo después el código que las pinta:
     fondos. **En producción está latente:** son 4 recibos en 3 conjuntos, sin ningún día con dos
     (medido el 13 sep). Con la historia de Lomas saltaría en el Libro del administrador y en los
     recibos del residente, **y saltó**: el estado de cuenta del consejero demo dejó dos `TypeError`
-    en la consola.
+    en la consola. **Arreglo: plan §14.7.**
 
 **Del recorrido con la cuenta del consejero** (13 sep, T2.3):
 
@@ -796,9 +796,12 @@ sesión de administración y leyendo después el código que las pinta:
     `resolverEstadoOperativo` (`src/features/visitors/estado-operativo.ts`) combina `date` con
     `scheduledTime` mediante `combineLocalDateTime`, que solo entiende «HH:mm». La invitación del
     residente (`createResidentInvitation`) guarda `scheduledTime` como fecha ISO completa, así que la
-    regla se queda con la medianoche del día y la visita sale caducada desde las 00:00. En el ensayo,
-    una visita de las 17:30 salía «Expirado» a las 16:00. El pase puntual que crea la administración
-    (`YYYY-MM-DDTHH:mm:00`, en `src/features/admin/services.ts`) caería en lo mismo: leído en el
-    código, no visto.
+    regla se queda con el **mediodía** del día (`parseLocalDateString` fija las 12:00). Falla en las
+    dos direcciones: lo de la tarde sale caducado desde las 12:00, y lo de la mañana sigue
+    «Programado» hasta las 12:00. En el ensayo, una visita de las 17:30 salía «Expirado» a las 16:00;
+    la de la mañana no se vio, porque la única del día ya había entrado. El pase puntual que crea la
+    administración (`YYYY-MM-DDTHH:mm:00`, en `src/features/admin/services.ts`) cae en lo mismo.
+    *(Esta ficha decía «la medianoche» el mismo día: se corrigió al leer `parseLocalDateString` para
+    arreglarla.)* **Arreglo: plan §14.7.**
 38. **El «Listado operativo» de reservas de la portería empieza el 2 de junio**, en orden ascendente:
     para ver lo de hoy hay que bajar tres meses de historial.

@@ -886,8 +886,9 @@ nombre:
 
 **Una que no cuadra, y es del producto (H.37).** Camila Quiroz sale «Expirado» a las 16:00, y su
 visita es a las 17:30. La regla de la píldora combina el día con `scheduledTime` esperando «HH:mm», y
-la invitación del residente lo guarda como fecha ISO completa, así que la regla se queda con la
-medianoche: toda invitación de QR del día sale caducada desde las 00:00.
+la invitación del residente lo guarda como fecha ISO completa, así que la regla se queda con el
+mediodía: una invitación de QR de la tarde sale caducada desde las 12:00, y una de la mañana sigue
+viva hasta las 12:00.
 
 **La portería no dejó ningún `errorLogs`.** Los tres que tiene el ensayo son la H.31 de los
 residentes, todos anteriores a esta sesión.
@@ -898,11 +899,25 @@ del producto (contrato, H.21–H.38).
 
 ### 14.7 Lo que queda antes de producción
 
-1. **Decidir qué hacer con tres fallos del producto que se verían en la demo:**
-   - **H.31: «Recibos emitidos» se cae.** El ensayo tiene 40 días con más de un recibo, y las tres
-     casas demo tienen dos el mismo día: los recibos del residente y el Libro del administrador salen
-     vacíos.
-   - **H.37: la portería ve «Expirado»** en las visitas de QR del día, antes de su hora.
-   - **H.28: «Enviar acceso a 95»**, a un clic, hacia buzones que no existen.
-2. **La fase 3, con tu permiso en cada paso:** las banderas de D4, la puerta de D5, la corrida, la
+1. **Tres fallos del producto que se verían en la demo.** El 13 sep decidiste arreglar los dos
+   primeros antes de sembrar producción; el tercero espera, mientras nadie pulse el botón.
+   - **H.31: «Recibos emitidos» se cae** con dos recibos del mismo día (40 días así en el ensayo; las
+     tres casas demo los tienen). **Arreglado:** el desempate lee `createdAt` con `toLocalDate`, que
+     entiende el `Timestamp`, y `PaymentVoucher.createdAt` pasó de `string` a `unknown`: un
+     `localeCompare` sobre él ya no compila.
+   - **H.37: la portería ve «Expirado»** las visitas de QR de la tarde desde las 12:00, y
+     «Programado» las de la mañana hasta las 12:00. **Arreglado** en `combineLocalDateTime`: si
+     `scheduledTime` trae fecha y hora, ese instante es la hora de la visita. Cubre la píldora y
+     también el orden de la lista de la portería (`getVisitorSortTimestamp`), que usa la misma
+     función; ese orden, sin prueba propia.
+   - **H.28: «Enviar acceso a 95»**, a un clic, hacia buzones que no existen. Sin tocar.
+
+   Cinco pruebas nuevas, y cada una se falsó devolviendo su fichero a la versión anterior: se
+   pusieron en rojo exactamente las cinco, y el typecheck falla con el orden viejo. **La falsación
+   cazó una prueba ciega:** la del recibo sin `createdAt` pasaba sobre el código roto, porque el
+   orden viejo solo revienta cuando el `Timestamp` cae como `b` del comparador. Ahora prueba los dos
+   órdenes. Banco de la app: 2080 de 2080; typecheck en 0.
+2. **Desplegarlos y verlos en el ensayo** (staging despliega solo al empujar `develop`): los recibos
+   de un residente demo y una visita de la tarde en la portería. Después, producción.
+3. **La fase 3, con tu permiso en cada paso:** las banderas de D4, la puerta de D5, la corrida, la
    captura de avisos y las contraseñas de las cuatro cuentas (con enlaces de restablecer, como aquí).
