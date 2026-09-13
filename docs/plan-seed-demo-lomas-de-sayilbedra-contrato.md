@@ -749,3 +749,16 @@ sesión de administración y leyendo después el código que las pinta:
 30. **El Panel y PQRS cuentan distinto la urgencia.** El Panel marca «urgente» lo que pasa de 15 días
     naturales; la pantalla de PQRS mide 15 días hábiles. El PQRS «por vencer» del ensayo (18 días
     naturales; le quedan 3 hábiles) sale urgente en uno y a tiempo en el otro.
+31. **«Recibos emitidos» se cae en cuanto dos recibos comparten fecha de emisión.** Es la más grave de
+    la lista:
+    - `watchPaymentVouchers` (`src/features/finanzas/use-payments.ts`) desempata por `createdAt` con
+      `localeCompare`, como si fuera texto;
+    - `subscribeTenantCollection` entrega el documento tal cual, así que llega un `Timestamp`;
+    - el resultado es `TypeError: … localeCompare is not a function`: la lista se queda vacía y queda
+      un `errorLogs`.
+
+    El recibo lo escribe el producto con `serverTimestamp()`, así que pasa con datos reales: una casa
+    que paga cuota y consumo el mismo día ya tiene dos. Lo cazó el recorrido del ensayo, en Libro y
+    fondos. **En producción está latente:** son 4 recibos en 3 conjuntos, sin ningún día con dos
+    (medido el 13 sep). Con la historia de Lomas saltaría en el Libro del administrador y en los
+    recibos del residente.

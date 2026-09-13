@@ -48,7 +48,9 @@ async function ajustes(ctx, padron) {
   // Lo que había antes, para que `--limpiar` pueda devolverlo (solo la primera vez).
   const manifiesto = await ctx.manifiesto.ref.get();
   if (!manifiesto.data()?.ajustesPrevios) {
-    const previos = Object.fromEntries(claves.map((k) => [k, actuales[k] ?? null]));
+    // También quién y cuándo los tocó por última vez: la semilla los pisa y `--limpiar` los devuelve.
+    // Sin esto, el ensayo de staging se quedó con un `updatedBy` que antes no tenía (13 sep).
+    const previos = Object.fromEntries([...claves, "updatedBy", "updatedAt"].map((k) => [k, actuales[k] ?? null]));
     await ctx.manifiesto.ref.set({ ajustesPrevios: previos }, { merge: true });
   }
   const datos = { tenantId: ctx.tenantId, updatedBy: ctx.adminUid, updatedAt: FieldValue.serverTimestamp() };

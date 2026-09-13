@@ -391,7 +391,7 @@ functions en 0, con `npm --prefix functions run typecheck`. **Cumplido el 13 sep
 | **T2.1** Conjunto de ensayo | «Lomas de Sayilbedra (ensayo)» en `vivaru-staging-02`, `isExample`, activo, con las mismas banderas (D9) | Existe y resuelve las banderas como Lomas en producción. **Hecho el 13 sep: `fnBFuQe2p8h5fwy3jpeB`** (§12.8) |
 | **T2.2** Corrida con disparadores reales | `--escribir` en staging, con las functions desplegadas | Los únicos avisos nacidos son los de tickets y reservas previstos en §6, y la captura D6 llega a los esperados (§13.4); **cero** correos; cero llamadas a IA (`aiUsage` sin cambio) y una fila `omitida · sembrado` por PQRS en `aiAssistance`. **Hecho el 13 sep (§14.1)** |
 | **T2.3** Recorrido | Las tres tablas de §5, con la sesión de admin, dos de residente, la de consejero y la de portería (tú abres cada sesión, yo recorro) | Ninguna pantalla vacía; los números cuadran entre Cartera, Libro, Conciliación, Informe y Panel |
-| **T2.4** Limpieza y resiembra | `--limpiar` y otra corrida | Queda como estaba antes, y la segunda corrida da lo mismo que la primera: los mismos conteos y los mismos totales. El reparto de un pago parcial entre cargos que vencen el mismo día puede cambiar (contrato, H.17) |
+| **T2.4** Limpieza y resiembra | `--limpiar` y otra corrida | Queda como estaba antes, y la segunda corrida da lo mismo que la primera: los mismos conteos y los mismos totales. El reparto de un pago parcial entre cargos que vencen el mismo día puede cambiar (contrato, H.17). **Hecho el 13 sep (§14.4)** |
 
 **Checkpoint 2:** revisión contigo de lo visto en staging antes de tocar producción.
 
@@ -833,10 +833,34 @@ emulador:
 **Lo que no se vio:** el «hoy» del ensayo sigue en el 12, porque la ADC caducó (`invalid_rapt`), y
 por eso «Visitantes hoy» da 0.
 
-### 14.4 Lo que falta de la fase 2
+### 14.4 T2.4, limpiar y resembrar (13 sep, mediodía)
 
-1. **El commit de los tres arreglos**, con tu sí.
-2. **T2.4 antes del resto del recorrido**, para recorrer con la semilla corregida: una corrida
-   idempotente (el barrido apunta lo que creó Cartera), `--limpiar` y otra siembra. Pide la ADC.
-3. **T2.3 con el consejero, los dos residentes y la portería**: tú pones las contraseñas a las
-   cuentas nuevas y abres cada sesión. Justo antes, `--refrescar`.
+Con los tres arreglos ya en `64511e7`, en una sola cadena que solo resembraba si `--limpiar`
+confirmaba que el conjunto había quedado como estaba:
+
+1. **`--refrescar`** cerró el día 12, y su barrido apuntó lo que faltaba en el manifiesto: los 18
+   documentos que archivó Cartera y su carpeta, 2 registros de auditoría, 13 avisos del día y un
+   `errorLogs` (el de H.31).
+2. **`--limpiar`** borró 4.539 documentos, 40 cuentas y 227 archivos.
+   - El ensayo volvió a sus 25 documentos de alta, sin manifiesto.
+   - `aiUsage` quedó en 41, los correos en 2 y los buzones del superadmin (107) y del admin (36),
+     exactos.
+   - Solo sobró en `tenantSettings` un `updatedBy` que antes no estaba. La semilla ya guarda el de
+     antes para devolverlo (sin commit todavía).
+3. **La resiembra:**
+   - 510 de 510 avisos capturados (seis más que el 12, por un día más de historia);
+   - 34 filas `omitida · sembrado`, cero correos y cero llamadas a IA;
+   - el verificador, en 37 de 37.
+4. **La huella del dinero y de la operación es idéntica a la del emulador con el mismo «hoy»**: 435
+   cargos, $572,656.00 cobrados, $522,756.60 recaudados, $44,503.39 pendientes, 154 reservas, 272
+   pases, 170 paquetes, 34 PQRS, 87 respuestas y 90 firmas. Dos ambientes, el mismo resultado.
+
+### 14.5 Lo que falta de la fase 2
+
+1. **T2.3 con el consejero, los dos residentes y la portería.** Las cuentas son nuevas: tú les pones
+   contraseña y abres cada sesión.
+2. **Dos decisiones antes de producción**, las dos sobre el producto:
+   - **H.31: «Recibos emitidos» se cae.** El ensayo tiene 40 días con más de un recibo, y las tres
+     casas demo tienen dos el mismo día: la lista de recibos del residente y el Libro del
+     administrador saldrían vacíos en la demo.
+   - **H.28: «Enviar acceso a 95»**, a un clic.
