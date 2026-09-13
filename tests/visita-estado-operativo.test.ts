@@ -103,6 +103,33 @@ describe("el estado operativo de una visita", () => {
     });
   });
 
+  /**
+   * **H.37 (ensayo de Lomas, 13 sep 2026): la hora de un QR no siempre llega como «HH:mm».** La
+   * invitación del residente guarda el instante ISO y el pase de la administración
+   * `YYYY-MM-DDTHH:mm:00`. `combineLocalDateTime` los descartaba y se quedaba con el mediodía del
+   * día. **Las dos direcciones**, porque con una sola la regla del mediodía pasaría media prueba:
+   * lo de la tarde caducaba antes de tiempo y lo de la mañana seguía vivo hasta las 12:00.
+   */
+  describe("la hora del QR, en las tres formas en que se guarda (H.37)", () => {
+    const TARDE = new Date("2026-08-31T16:00:00").getTime();
+    // Lo que escribe `createResidentInvitation`: el instante, en UTC.
+    const invitacion = (hora: string) =>
+      pase({ scheduledTime: new Date(`2026-08-31T${hora}:00`).toISOString() });
+
+    it("una invitación del residente para las 17:30 NO está expirada a las 16:00", () => {
+      expect(resolverEstadoOperativo(invitacion("17:30"), TARDE)).toBe("scheduled");
+    });
+
+    it("y una para las 9:00 SÍ lo está a las 10:40, antes del mediodía", () => {
+      expect(resolverEstadoOperativo(invitacion("09:00"), AHORA)).toBe("expired");
+    });
+
+    it("el pase de la administración, `YYYY-MM-DDTHH:mm:00`, igual en las dos direcciones", () => {
+      expect(resolverEstadoOperativo(pase({ scheduledTime: "2026-08-31T17:30:00" }), TARDE)).toBe("scheduled");
+      expect(resolverEstadoOperativo(pase({ scheduledTime: "2026-08-31T09:00:00" }), AHORA)).toBe("expired");
+    });
+  });
+
   describe("lo que ya estaba dentro manda sobre todo lo demás", () => {
     it("dentro y completada se respetan", () => {
       expect(resolverEstadoOperativo(pase({ status: "inside" }), AHORA)).toBe("inside");

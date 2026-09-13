@@ -54,6 +54,16 @@ export function combineLocalDateTime(datePart: string, timePart?: string) {
   if (!timePart) return date;
 
   const normalizedTime = timePart.trim();
+
+  // `scheduledTime` también llega con fecha y hora: la invitación del residente guarda el instante
+  // ISO (`startAt.toISOString()`) y el pase de la administración `YYYY-MM-DDTHH:mm:00`. Descartarlo
+  // dejaba el mediodía del día, y la portería veía «Expirado» desde las 12:00 una visita de las 17:30
+  // y «Programado» hasta las 12:00 una de las 9:00 (H.37 del ensayo de Lomas, 13 sep 2026).
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(normalizedTime)) {
+    const instant = new Date(normalizedTime);
+    return isValidDate(instant) ? instant : date;
+  }
+
   if (!/^\d{2}:\d{2}/.test(normalizedTime)) return date;
 
   const [hoursRaw, minutesRaw] = normalizedTime.slice(0, 5).split(":");
