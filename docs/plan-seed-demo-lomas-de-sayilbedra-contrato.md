@@ -805,3 +805,12 @@ sesión de administración y leyendo después el código que las pinta:
     arreglarla.)* **Arreglo: plan §14.7.**
 38. **El «Listado operativo» de reservas de la portería empieza el 2 de junio**, en orden ascendente:
     para ver lo de hoy hay que bajar tres meses de historial.
+
+**De la prueba de la puerta de buzones en producción** (14 sep, T3.5):
+
+39. **Una persona sin teléfono no se puede editar desde Residentes, y el formulario no dice por qué.**
+    `personSchema` exige `phone` con 7 caracteres como mínimo (`src/features/admin/schemas.ts`); al
+    pulsar «Guardar» la validación para el envío y lleva el cursor al teléfono, sin ningún mensaje.
+    Las personas de la historia no tienen teléfono (D12), así que en la demo no se edita ninguna sin
+    inventarle uno; lo mismo le pasaría a un padrón real importado sin teléfonos. Por eso la prueba de
+    la puerta no llegó a Firestore: no se guardó nada (comprobado en la base tres veces).
