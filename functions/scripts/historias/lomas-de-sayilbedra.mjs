@@ -615,7 +615,7 @@ const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio"
 const nombreMes = (M) => `${MESES_ES[Number(M.slice(5, 7)) - 1]} ${M.slice(0, 4)}`;
 
 /** Lo que se paga todos los meses. `emite` y `paga` son días del mes (se corren al hábil). */
-const EGRESOS_RECURRENTES = [
+export const EGRESOS_RECURRENTES = [
   { clave: "administracion", proveedor: "administracion", categoria: "administracion", descripcion: "Honorarios de administración", monto: 12_000, emite: 1, paga: 3 },
   { clave: "vigilancia", proveedor: "vigilancia", categoria: "vigilancia", descripcion: "Servicio de vigilancia 24 h, caseta y rondines", monto: 42_000, emite: 1, paga: 5 },
   { clave: "jardineria", proveedor: "jardineria", categoria: "mantenimiento", descripcion: "Mantenimiento de jardines y camellones", monto: 9_500, emite: 2, paga: 6 },

@@ -10,7 +10,7 @@
 //   · Se niega si el conjunto no es de ejemplo; para sembrar o refrescar, también si no está
 //     activo, si no es de México, o si alguna bandera no resuelve como la historia necesita (D4, D5).
 //
-// Tres modos:
+// Cuatro modos:
 //   · sembrar (por defecto): la historia hasta ayer; las membresías, la guía y el buzón de las
 //     cuentas demo; la captura de los avisos que eso dispara (D6); y el lote de hoy, solo lo que ya
 //     pasó a la hora de correr. Idempotente: la segunda corrida no crea nada.
@@ -18,10 +18,13 @@
 //     portería y siembra el día (visitas y paquetes). No toca el dinero ni la historia.
 //   · --limpiar: borra lo del manifiesto por id exacto, las cuentas y los archivos, devuelve los
 //     ajustes a como estaban y comprueba que no queda nada fuera de la línea base.
+//   · --documentos: sobre un conjunto ya sembrado, reemplaza los archivos delgados de la historia
+//     (el reglamento, las actas…) en su ruta y con su token, y adjunta lo que falta. No crea nada
+//     que dispare un aviso. Plan: docs/plan-documentos-demo-lomas.md.
 //
 // Uso:
 //   node functions/scripts/sembrar-historia-demo.mjs <proyecto> <tenantId>
-//        [--escribir] [--refrescar | --limpiar] [--si-produccion] [--admin=<uid>] [--hoy=YYYY-MM-DD (solo emulador)]
+//        [--escribir] [--refrescar | --limpiar | --documentos] [--si-produccion] [--admin=<uid>] [--hoy=YYYY-MM-DD (solo emulador)]
 
 import { createRequire } from "node:module";
 import { initializeApp, applicationDefault } from "firebase-admin/app";
@@ -36,6 +39,7 @@ import { crearEscritoresDeCartera } from "./historias/escritores/cartera.mjs";
 import { cargarUids, escribirMembresias, marcarOnboarding } from "./historias/escritores/cuentas.mjs";
 import { crearEscritoresDeEgresos } from "./historias/escritores/egresos.mjs";
 import { crearEscritoresDeInformes } from "./historias/escritores/informes.mjs";
+import { crearEscritoresDeDocumentos } from "./historias/escritores/documentos.mjs";
 import { crearEscritoresDelMedidor } from "./historias/escritores/medidor.mjs";
 import { cerrarDiasAnteriores, crearEscritoresDeOperacion } from "./historias/escritores/operacion.mjs";
 import { escribirPadron } from "./historias/escritores/padron.mjs";
@@ -57,7 +61,7 @@ const [proyecto, tenantId] = args.filter((a) => !a.startsWith("--"));
 const tiene = (nombre) => args.includes(`--${nombre}`);
 const opcion = (nombre) => args.find((a) => a.startsWith(`--${nombre}=`))?.slice(nombre.length + 3);
 const escribir = tiene("escribir");
-const modo = tiene("limpiar") ? "limpiar" : tiene("refrescar") ? "refrescar" : "sembrar";
+const modo = tiene("limpiar") ? "limpiar" : tiene("refrescar") ? "refrescar" : tiene("documentos") ? "documentos" : "sembrar";
 
 function fallar(mensaje) {
   console.error(`\n✗ ${mensaje}\n`);
@@ -65,9 +69,9 @@ function fallar(mensaje) {
 }
 
 if (!proyecto || !tenantId) {
-  fallar("Uso: sembrar-historia-demo.mjs <proyecto> <tenantId> [--escribir] [--refrescar | --limpiar] [--si-produccion] [--admin=<uid>] [--hoy=YYYY-MM-DD]");
+  fallar("Uso: sembrar-historia-demo.mjs <proyecto> <tenantId> [--escribir] [--refrescar | --limpiar | --documentos] [--si-produccion] [--admin=<uid>] [--hoy=YYYY-MM-DD]");
 }
-if (tiene("limpiar") && tiene("refrescar")) fallar("--limpiar y --refrescar no van juntos.");
+if (["limpiar", "refrescar", "documentos"].filter((m) => tiene(m)).length > 1) fallar("--limpiar, --refrescar y --documentos no van juntos.");
 if (EMULADOR) {
   if (!proyecto.startsWith("demo-")) fallar(`Con el emulador el proyecto tiene que ser demo-*; «${proyecto}» parece real.`);
 } else {
@@ -198,6 +202,39 @@ if (modo === "refrescar") {
     await cerrarDiasAnteriores(ctx, historia);
     console.log(`· El día ${hoy}, lo que ya pasó`);
     await ejecutar(eventosDelDia(hoy, padron, { CASAS_DEMO }), escritores, { soloLoQueYaPaso: true });
+    if (escribir) await completarManifiesto(ctx, base);
+  } finally {
+    if (escribir) await ctx.manifiesto.guardar();
+  }
+  terminar();
+}
+
+// ── --documentos ───────────────────────────────────────────────────────────────────────────────
+// Enriquece los archivos de un conjunto YA sembrado (docs/plan-documentos-demo-lomas.md). No crea
+// nada que dispare un aviso: reemplaza archivos en su ruta y adjunta a lo que ya existe.
+
+if (modo === "documentos") {
+  const base = await lineaBaseGuardada(ctx);
+  if (!base) fallar("Este conjunto no tiene historia sembrada (no hay manifiesto): primero hay que sembrarla.");
+  const documentos = crearEscritoresDeDocumentos(ctx, historia);
+  try {
+    console.log("\n· Documentos de gobierno");
+    await documentos.reglamentoCompleto();
+    await documentos.actasDelConsejo();
+    await documentos.asamblea();
+    await documentos.planoYMemoria();
+    console.log("\n· Adjuntos de los comunicados");
+    await documentos.adjuntosDeComunicados();
+    console.log("\n· Áreas comunes y servicios");
+    await documentos.fotosDeAreas();
+    await documentos.serviciosIlustrados();
+    console.log("\n· Dinero");
+    await documentos.contratosYPoliza();
+    await documentos.comprobantes();
+    await documentos.relacionesBancarias();
+    await documentos.archivoMensual();
+    console.log("\n· Marca");
+    await documentos.logo();
     if (escribir) await completarManifiesto(ctx, base);
   } finally {
     if (escribir) await ctx.manifiesto.guardar();

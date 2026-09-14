@@ -108,7 +108,7 @@ Visibilidad: **R** = residente y consejo (categorías `asamblea`, `comunicado`, 
 
 | # | Qué | Cómo entra | Vis. | Sale de |
 |---|---|---|---|---|
-| C1 | **Estados de cuenta bancarios** de junio, julio y agosto, de las 2 cuentas | **Crea** documentos `financiero` con su PDF | A | Las 434 líneas de banco sembradas y el saldo de apertura: tienen que sumar lo mismo que la conciliación |
+| C1 | **Relación mensual de movimientos bancarios** de junio, julio y agosto, de las 2 cuentas, **elaborada por la administración** a partir del extracto importado. No imita el estado de cuenta de un banco: sin su nombre ni su imagen, aunque las cuentas sembradas digan «BBVA México» | **Crea** documentos `financiero` con su PDF | A | Las 434 líneas de banco sembradas y el saldo de apertura: tienen que sumar lo mismo que la conciliación |
 | C2 | **El archivo mensual de junio a agosto** que el cron no rellena hacia atrás: histórico de cartera (XLSX) y reporte de comité (PDF) | Crea los documentos de sistema **con los generadores del producto** (`archiveXlsx`, `buildSummaryPdf`) | A | La cartera de cada cierre |
 | C3 | **Contratos y pólizas de los proveedores** que tienen egresos recurrentes (vigilancia, limpieza, jardinería, alberca) | Reemplaza el contrato y la póliza; crea los que falten (`contrato`/`legal`) | A | Los 12 proveedores y los montos de sus egresos |
 | C4 | **Comprobantes de transferencia** rehechos, con el diseño de una transferencia y sin cortes | Reemplaza las 21 imágenes en su ruta (el espejo comparte la ruta) | A y la casa | Los importes, las fechas y las referencias sembradas |
@@ -151,36 +151,118 @@ Visibilidad: **R** = residente y consejo (categorías `asamblea`, `comunicado`, 
 
 ### Fase 0 — Contrato de archivos (solo lectura)
 
-- [ ] **T0.1 El catálogo, cerrado con tus decisiones** (§6). Criterio: cada archivo tiene su
+- [x] **T0.1 El catálogo, cerrado con tus decisiones** (§6). Criterio: cada archivo tiene su
   colección, campo, ruta, categoría, pantalla donde se ve y dato del que sale; ninguno apunta a un
-  campo sin pantalla.
-- [ ] **T0.2 La forma exacta que deja el producto** en cada campo que se toca (`photos[]`,
+  campo sin pantalla. **Hecho el 14 sep.**
+- [x] **T0.2 La forma exacta que deja el producto** en cada campo que se toca (`photos[]`,
   `attachments[]`, espejos de Documentos, carpetas de sistema), leída del código que la escribe.
-  Criterio: una tabla campo a campo, como la del contrato de la semilla.
+  Criterio: una tabla campo a campo, como la del contrato de la semilla. **Hecho: §8.**
 
 ### Fase 1 — Generadores y escritores (código, contra el emulador)
 
-- [ ] **T1.1 Maquetador de PDF** (`archivos.mjs`): portada opcional, títulos, artículos, tablas,
+- [x] **T1.1 Maquetador de PDF** (`archivos.mjs`): portada opcional, títulos, artículos, tablas,
   bloques de firma, número de página y la marca en cada página; solo caracteres WinAnsi.
   Criterio: prueba que extrae el texto de un PDF generado y encuentra la marca en todas las páginas,
-  y ningún carácter fuera de WinAnsi. **(S)**
-- [ ] **T1.2 Ilustraciones** en SVG → JPEG: las 5 áreas en 3–5 vistas, logo, esfera de medidor y
-  transferencia. Criterio: se miran una por una; ninguna pesa más de 5 MB. **(M)**
-- [ ] **T1.3 Gobierno** (A1–A5). Criterio: reemplazos en la misma ruta y con el mismo token; los
+  y ningún carácter fuera de WinAnsi. **(S)** **Hecho el 14 sep, con un cambio de criterio:** no hay
+  en el repositorio con qué leer el texto de un PDF, así que el maquetador devuelve páginas y marcas y
+  la prueba compara las dos; falsada rompiendo el pie (se pusieron rojas justo las dos pruebas de
+  varias páginas). `documentoEstructurado`, `aWinAnsi` y `subirSiCambia` (sube solo si cambia la
+  huella, conservando el token).
+- [x] **T1.2 Ilustraciones** en SVG → JPEG: las 5 áreas en 3–5 vistas, logo, esfera de medidor y
+  transferencia. Criterio: se miran una por una; ninguna pesa más de 5 MB. **(M)** **Hecho el 14 sep**
+  (`ilustraciones.mjs`): 3 vistas por área a 800×500, como las deja el producto; la más pesada, 29 KB.
+  Mirarlas cazó dos cosas: la décima del medidor iba en las unidades, y la hoja de contacto se
+  recortaba (`sharp` redimensiona antes de pegar).
+- [x] **T1.3 Gobierno** (A1–A5). Criterio: reemplazos en la misma ruta y con el mismo token; los
   firmantes de cada acta tienen la marca de consejo; el reglamento cita las políticas reales. **(M)**
-- [ ] **T1.4 Áreas y servicios** (B1–B2). Criterio: `photos[]` con la forma del producto, portada
-  en `order: 0`, como mucho 8 por área. **(S)**
-- [ ] **T1.5 Dinero** (C1–C4). Criterio: el saldo final de cada estado bancario cuadra con la
+  **A1 y A2 hechos el 14 sep, en el emulador:** el reglamento (52 artículos, 4 páginas) y las cuatro
+  actas del consejo (una por sesión; los dos acuerdos del 18 de junio comparten la suya), reemplazados
+  en su ruta y con su token; la segunda corrida da «ya estaban» y el verificador, 38 de 38. Por el
+  camino salieron dos cosas: el id de un acuerdo sale de la clave del EVENTO (`acuerdo-<clave>`), y la
+  historia paga y prorratea el anticipo de la impermeabilización (6 y 7 de julio) antes de la sesión
+  que la aprueba (16): el acta lo cuenta como una autorización urgente del presidente que el consejo
+  ratifica. **A3 hecho el mismo día:** el acta de la asamblea (4 páginas: lista de asistencia de las
+  48 casas por indiviso, quórum del 75.93 %, el presupuesto con los nombres del plan de cuentas del
+  producto, seis acuerdos votados) y la convocatoria, NUEVA (`asamblea`, no dispara), anotada en el
+  manifiesto con su archivo. El presupuesto sembrado ya traía los $96,000 de cuota extraordinaria, así
+  que el acta la deja prevista «para cuando el consejo contrate la obra». **A4 hecho también:** ocho
+  adjuntos (cinco circulares en PDF y tres carteles), cada uno en `attachments[]` de su comunicado y
+  con su espejo en Documentos en la carpeta de sistema «Comunicados», que el motor ya sabe crear. Se
+  confirmó en el código que solo `onCommunicationCreated` escucha la colección: actualizar no avisa.
+  **A5 hecho, y con él T1.3:** el plano (ilustración del fraccionamiento y la tabla de secciones, que
+  suma las 48 casas y el 100 % del indiviso) y la memoria de obra (importes y fechas sacados de los
+  egresos de la historia, fotos del antes y el después). El maquetador ganó el bloque `imagen`, y la
+  huella describe cada imagen por su `clave`, no por sus bytes. **Mirar los PDF cazó tres defectos
+  del maquetador que ninguna prueba veía:** un nombre de firma en dos líneas se encimaba con el cargo,
+  un título se quedaba solo al pie de página con su imagen en la siguiente, y un «C.V..» con doble
+  punto. Corregidos; `VERSION_DOCUMENTOS` va en 3.
+- [x] **T1.4 Áreas y servicios** (B1–B2). Criterio: `photos[]` con la forma del producto, portada
+  en `order: 0`, como mucho 8 por área. **(S)** **Hecho el 14 sep, en el emulador:** tres fotos por
+  área (`photos[]` = `{ id, url, storagePath, order }`, subidas 5 s después de crear el área, con su
+  `updatedAt`), y portada más hoja de tarifas en los seis servicios, en la carpeta `new-{ts}` que usa
+  la pantalla al crear. Un área o un servicio con archivos propios no se toca. Mirar las hojas cazó
+  notas que repetían la descripción de arriba; la versión va en 4.
+- [x] **T1.5 Dinero** (C1–C4). Criterio: el saldo final de cada estado bancario cuadra con la
   conciliación; C2 sale de los generadores del producto. **(M)**
-- [ ] **T1.6 Opcionales** (D1–D3), si los eliges. **(S)**
-- [ ] **T1.7 Verificador**: cada archivo referenciado existe en Storage con su tipo; cada espejo
+
+  > **Retomado y cerrado el 14 sep** (corte a pedido de David y vuelta el mismo día). Orden: C3 → C4 → C1 → D1 → C2
+  > (C2 al final por riesgo). Nada está commiteado desde `223d759`; el emulador de la fase 1 sigue
+  > arriba (`scratchpad/emulador/firebase.json`, `demo-lomas`/`lomas-emulador`) con A1–A5 y B1–B2
+  > aplicados en `VERSION_DOCUMENTOS = 4`.
+  >
+  > - **C3 · HECHO el 14 sep:** los cuatro contratos de cuota fija (precio, día del recibo y día del
+  >   pago de `EGRESOS_RECURRENTES`; vigencia de febrero de 2026 a enero de 2027, que cubre los egresos
+  >   de mayo) y la póliza (prima y fecha del egreso sembrado). Corrida doble y los cinco PDF mirados.
+  > - **C4 · HECHO el 14 sep:** los 18 aprobados casan rastreo y ordenante con su línea del
+  >   extracto; el rechazado va recortado en y=252 (en 244 el importe aún se leía: lo cazó mirarlo).
+  >   **Límite de la historia, no del documento:** la línea del banco de un cobro por comprobante lleva
+  >   la fecha de la APROBACIÓN, no la de la transferencia (el comprobante dice el 5 y el extracto el 8).
+  >   **Diseño:** repintar los 21 comprobantes con `comprobanteDeTransferencia` en su misma ruta
+  >   (el documento no cambia; el espejo guarda `fileSize: 0`, como el producto). Una transferencia
+  >   por casa y periodo: fecha y hora de la subida `n=1`; referencia `semilla(id de n=1)` (la fórmula
+  >   de `cartera.mjs`); rastreo `rastreo("receipt:" + id aprobado)`, la de `banco.mjs`, para que case
+  >   con su línea «SPEI RECIBIDO». El rechazado («no deja ver el importe completo») va recortado por el
+  >   importe. Ordenante: `titularDe(casa)`; cuenta destino: `****` + las 4 últimas de la operativa.
+  > - **C1 · HECHO el 14 sep:** seis relaciones. El banco contra los libros cuadra: diferencia 0
+  >   en junio y julio y 2,150 en agosto, el depósito sin identificar. En la reserva la diferencia son
+  >   los intereses, cuyo asiento manual no lleva cuenta (lo comenta `banco.mjs`) y que la conciliación
+  >   sí casa. **Diseño:** 6 PDF (2 cuentas × junio, julio y agosto) desde `bankStatementLines` y el
+  >   `openingBalance` al 31 de mayo: saldo inicial, abonos, cargos, saldo final, continuidad entre
+  >   meses. Sin nombre de banco: «Cuenta operativa ····NNNN». Carpeta de usuario nueva «Bancos»,
+  >   categoría `financiero`, subidos el día 3 del mes siguiente. El depósito sin identificar del 21 de
+  >   agosto (`SIN_IDENTIFICAR`, `banco.mjs`) va como nota.
+  > - **D1 · HECHO el 14 sep:** el logo en `branding/logo.png`; no había otro, así que `ajustesPrevios`
+  >   guarda `logoUrl` y `logoPath` en `null` y `--limpiar` borra los dos campos. **Lo leído:** `uploadTenantLogo` sube a `tenants/{t}/branding/logo.{ext}` y guarda
+  >   `tenantSettings.logoUrl`/`logoPath`; lo previo va a `ajustesPrevios` del manifiesto (patrón de
+  >   `activeRegulationId` en `operacion.mjs`; `barrido.mjs` lo restaura al limpiar).
+  > - **C2 · HECHO el 14 sep:** nueve archivos del sistema (tres cortes: histórico de cartera y
+  >   reporte de comité en XLSX y en PDF). Antes de escribir, la cartera reconstruida al final de los
+  >   tiempos reproduce el pagado y el saldo de los 435 cargos y el estado de todos los egresos; si no,
+  >   no se archiva nada. **Lo leído:** replicar `monthlyFinancialArchive` (`functions/src/index.ts`) para los días 1
+  >   de julio, agosto y septiembre: `Historico-cartera-{fecha}.xlsx` y `Reporte-Comite-{mes}.xlsx/.pdf`
+  >   con `buildSummaryPdf`, `montoFacturadoDelCargo`/`montoLiquidadoDelCargo`, `construirEstadoFinanciero`,
+  >   `sumarCuentasPorCobrar`, `sumarDeudaAProveedores` y `sumarSaldoDeApertura` de `functions/lib`;
+  >   rutas de `ARCHIVE_PATH` (`cartera-history`, `committee-reports`). **El riesgo:** el cron calcula
+  >   con el estado de HOY de cada cargo; para rellenar hacia atrás hay que reconstruirlo a cada fecha.
+- [x] **T1.6 Opcionales** (D1–D3), si los eliges. **(S)** D1 hecho el 14 sep; D2 y D3 quedan fuera,
+  como dejó DD1 («solo si sobra tiempo»).
+- [x] **T1.7 Verificador**: cada archivo referenciado existe en Storage con su tipo; cada espejo
   comparte ruta con su origen; las categorías caen donde deben; todo está en el manifiesto; nada
   nuevo en las categorías que disparan. Falsado rompiendo cada comprobación a propósito. **(M)**
-- [ ] **T1.8 Corrida en el emulador y mirar cada artefacto**: los PDF página por página y las imágenes
-  una por una (la memoria «Mirar el artefacto generado»). **(S)**
+  **Hecho el 14 sep:** la del tamaño de cada documento y cinco nuevas (archivos de los campos con su
+  tipo y su token, espejos, categoría y carpeta de sistema por origen, un solo reglamento, archivos con
+  huella en el manifiesto). El verificador pasa de 38 a 43, y cada nueva se falsó rompiendo su dato:
+  5 de 5 enrojecen solas y exactas, y restauradas vuelve a 43 de 43 (`scratchpad/falsar-t17.mjs`).
+- [x] **T1.8 Corrida en el emulador y mirar cada artefacto**: los PDF página por página y las imágenes
+  una por una (la memoria «Mirar el artefacto generado»). **(S)** **Hecho el 14 sep:** cada pieza se
+  miró al construirla, y la vuelta completa —`--limpiar` (0 documentos, 0 carpetas, 0 archivos, sin
+  logo ni manifiesto) → resiembra desde cero → documentos dos veces— deja exactamente lo mismo que
+  antes (59 documentos, 11 carpetas, 282 archivos) y el verificador en 43 de 43.
 
 **Punto de control A:** los bancos en verde (`npm test`, `npm --prefix functions test`), el
-verificador en verde en el emulador, y los artefactos revisados contigo.
+verificador en verde en el emulador, y los artefactos revisados contigo. **Al 14 sep:** bancos en verde
+(app 2080, functions 1079, typecheck en 0) y verificador 43 de 43; **falta la revisión de David**, con
+el PDF de revisión que junta las versiones finales.
 
 ### Fase 2 — Ensayo en staging
 
@@ -247,8 +329,37 @@ Para el contrato de la semilla, junto a H.39 (el formulario de personas exige te
    `null`), los adjuntos de PQRS, `reservations.mudanza.receiptUrl` y `paymentVouchers.pdfUrl`.
 3. **Los espejos de Documentos comparten el archivo con su origen:** borrar la fila desde
    `/admin/documents` borra el archivo del comprobante, el acta o el comunicado; y borrar un
-   comunicado o un servicio deja su archivo huérfano.
+   comunicado o un servicio deja su archivo huérfano (`deleteService` solo borra el documento). Y
+   los archivos de un servicio NUEVO se suben a `services/new-{ts}/` antes de que el servicio exista,
+   así que su carpeta nunca es la del servicio (visto al sembrar B2).
 4. **La carpeta `monthly-reports` no está en `storage.rules`:** el informe solo se abre con el token de
    su `fileUrl` o con la URL firmada.
 5. **La foto del medidor la ve el residente y no la administración:** su pantalla solo tiene el botón
    para subirla.
+6. **El dinero de dos PDF del servidor sale en formato colombiano** (candidato a H.40): el informe
+   mensual y el reporte de comité automático (`formatMoney` de `functions/src/index.ts`, `es-CO`)
+   pintan «$598.400» y «$-40.561» en un conjunto mexicano, donde la pantalla dice «$598,400.00».
+   Visto al replicar C2 con el generador del producto.
+7. **El saldo inicial del informe no encadena de un mes a otro** (visto el 14 sep al construir C2;
+   la ficha de `FLOW-007` no lo menciona). El informe emitido y el reporte de comité parten TODOS los
+   meses del saldo de apertura registrado: en Lomas, junio, julio y agosto arrancan en 598,400, y
+   julio no parte de los 609,897.37 con que cerró junio. Desde el segundo mes, «saldo final del
+   fondo» no es el del banco (agosto: 557,838.85 contra 614,668.08 en las dos cuentas).
+
+---
+
+## 8. La forma que deja el producto (T0.2, leída del código el 14 sep)
+
+Lo que la semilla tiene que escribir igual, campo a campo. Los ids aleatorios del producto
+(`genId`, `Date.now()`) se sustituyen por ids y rutas estables, para que la corrida sea idempotente.
+
+| Qué | Lo escribe | Forma |
+|---|---|---|
+| Foto de un área | `uploadAmenityPhoto` + `reorderAmenityPhotos` (`src/features/admin/services.ts`) | `amenities.photos[]` = `{ id, url, storagePath, order }`, JPEG en `tenants/{t}/amenity-photos/{areaId}/{ts}-{nombre}`; `order` desde 0; al guardar, `updatedAt` |
+| Adjunto de comunicado | `uploadCommunicationAttachment` + `handleSave` (`admin/communications/page.tsx`) | `attachments[]` = `{ url, name, path, contentType, size }`, en `tenants/{t}/communications/{ts}-{nombre}`; `attachmentUrl` y `attachmentName` quedan en `""` |
+| Su espejo en Documentos | `createDocumentRecord` | `category: "comunicado"`, `description: "Comunicado: {título}"`, `source: "communication"`, `sourceId`: el id del comunicado, `folderId`: la carpeta de sistema `communications`; más `fileName`, `fileUrl`, `storagePath`, `contentType`, `fileSize`, `uploadedBy`, `uploadedByName`, `createdBy`, `createdAt`, `updatedAt` |
+| Imagen y adjunto de un servicio | `uploadServiceImage` / `uploadServiceAttachment` | `imageUrl`, `imagePath` en `services/{id}/cover-{nombre}`; `attachmentUrl`, `attachmentName`, `attachmentPath` en `services/{id}/attachment-{nombre}` |
+| Logo | `uploadTenantLogo` + `saveTenantSettings` | `tenantSettings.logoUrl`, `logoPath` = `tenants/{t}/branding/logo.{ext}`, con `updatedBy` y `updatedAt`. **`--limpiar` tiene que devolverlos**: van a una clave propia del manifiesto, porque `ajustesPrevios` ya se guardó en la primera corrida |
+| Documento nuevo | `createDocumentRecord` | Los 16 campos de arriba, con la categoría del catálogo y `source`/`sourceId` en `null` salvo en los espejos |
+| Archivo mensual | `monthlyFinancialArchive` + `archiveBuffer`/`archiveXlsx` (`functions/src/index.ts`) | Histórico de cartera: `Historico-cartera-{fecha}.xlsx`, `financiero`, `source: "cartera_history"`, `sourceId`: la fecha, carpeta `cartera_history`. Reporte de comité: `Reporte-Comite-{mes}.xlsx` y `.pdf` (`buildSummaryPdf`), `reporte`, `source: "committee_report"`, `sourceId`: el mes, carpeta `committee_reports`. Los tres con `uploadedBy: "system"` y `uploadedByName: "Automático"` |
+| Carpetas de sistema | `SYSTEM_FOLDERS` (`functions/src/index.ts`) | Las que entran aquí: `communications` («Comunicados»), `cartera_history` («Histórico de cartera»), `committee_reports` («Reportes de comité»). El motor de la semilla conoce hoy tres; se le añaden estas |

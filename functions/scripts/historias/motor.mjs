@@ -121,9 +121,12 @@ export async function fechar(ctx, coleccion, ids, campos) {
 
 /** Las carpetas de sistema de `ensureSystemFolderImpl` (functions/src/index.ts), con sus nombres. */
 const CARPETAS_DE_SISTEMA = {
+  communications: { name: "Comunicados", description: "Adjuntos de los comunicados publicados. Carpeta del sistema." },
   regulations: { name: "Reglamentos", description: "Reglamentos del conjunto. Carpeta del sistema." },
   committee_agreements: { name: "Acuerdos de comité", description: "Actas y acuerdos de comité. Carpeta del sistema." },
   payment_receipts: { name: "Comprobantes de pago", description: "Comprobantes de pago aprobados de los residentes. Carpeta del sistema." },
+  cartera_history: { name: "Histórico de cartera", description: "Histórico de recaudo (esperado vs cobrado) y morosos. Carpeta del sistema." },
+  committee_reports: { name: "Reportes de comité", description: "Reportes de comité generados por período. Carpeta del sistema." },
 };
 
 /**

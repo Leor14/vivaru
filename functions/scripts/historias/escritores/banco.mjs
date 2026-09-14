@@ -36,10 +36,10 @@ const mayusculas = (t) =>
  * clave natural, y la segunda línea se fundía con la primera: 11 en la primera corrida. La
  * importación del producto deduplica igual; un extracto real no choca porque cada SPEI trae su clave.
  */
-const rastreo = (texto) => String(semilla(texto) % 10_000_000).padStart(7, "0");
+export const rastreo = (texto) => String(semilla(texto) % 10_000_000).padStart(7, "0");
 
 /** Un depósito que nadie ha identificado todavía: la partida que la administración tiene que investigar. */
-const SIN_IDENTIFICAR = { fecha: "2026-08-21", monto: 2150, descripcion: "DEPOSITO EN EFECTIVO SUC 0917" };
+export const SIN_IDENTIFICAR = { fecha: "2026-08-21", monto: 2150, descripcion: "DEPOSITO EN EFECTIVO SUC 0917" };
 
 export function crearEscritoresDeBanco(ctx, historia) {
   const t = ctx.tenantId;

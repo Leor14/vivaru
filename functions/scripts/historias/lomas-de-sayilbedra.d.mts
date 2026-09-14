@@ -120,6 +120,18 @@ export interface Padron {
   };
 }
 
+export declare const CUOTA_MENSUAL_TOTAL: number;
+export declare const EGRESOS_RECURRENTES: Array<{
+  clave: string;
+  proveedor: string;
+  categoria: string;
+  descripcion: string;
+  monto: number | number[];
+  emite: number;
+  paga: number;
+}>;
+export declare const PRESUPUESTO_2026: Array<{ accountCode: string; amount: number }>;
+
 export declare const AREAS: Omit<Area, "id">[];
 export declare const PROVEEDORES: Omit<Proveedor, "id">[];
 export declare const CUENTAS_BANCARIAS: Omit<CuentaBancaria, "id">[];

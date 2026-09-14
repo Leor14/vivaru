@@ -11,6 +11,7 @@ import { createRequire } from "node:module";
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 import { barrer } from "./historias/barrido.mjs";
 import { DOMINIO_INERTE, construirPadron, digitoDeControlClabe, slugDeUnidad } from "./historias/lomas-de-sayilbedra.mjs";
@@ -39,7 +40,12 @@ if (EMULADOR ? !proyecto.startsWith("demo-") : !["vivaru-staging-02", "hogaru-1"
   process.exit(1);
 }
 
-initializeApp(EMULADOR ? { projectId: proyecto } : { credential: applicationDefault(), projectId: proyecto });
+const BUCKETS = { "hogaru-1": "hogaru-1.firebasestorage.app", "vivaru-staging-02": "vivaru-staging-02.firebasestorage.app" };
+initializeApp(
+  EMULADOR
+    ? { projectId: proyecto, storageBucket: `${proyecto}.appspot.com` }
+    : { credential: applicationDefault(), projectId: proyecto, storageBucket: BUCKETS[proyecto] },
+);
 const db = getFirestore();
 const auth = getAuth();
 const padron = construirPadron(tenantId);
@@ -684,6 +690,155 @@ const uidPorCorreo = new Map([...usuarios.values()].map((u) => [u.email, u.uid])
     }
   }
   comprobar("todo lo del conjunto está en la línea base o en el manifiesto: --limpiar lo alcanza", f);
+}
+
+// ── Archivos (plan de documentos, T1.7) ─────────────────────────────────────────────────────────
+// Cada fila de Documentos, con su archivo en Storage y del tamaño que dice. Vale para la historia y
+// para lo que reemplace la fase de documentos: un reemplazo que no actualizara `fileSize`, o un espejo
+// que apuntara a una ruta sin archivo, sale aquí.
+{
+  const bucket = getStorage().bucket();
+  const documentos = await delConjunto("documents");
+  const f = [];
+  let enriquecidos = 0;
+  for (const [id, d] of documentos) {
+    if (!d.storagePath) {
+      f.push(`${id}: sin storagePath`);
+      continue;
+    }
+    const archivo = bucket.file(d.storagePath);
+    const [existe] = await archivo.exists();
+    if (!existe) {
+      f.push(`${id}: su archivo no está en Storage (${d.storagePath})`);
+      continue;
+    }
+    const [meta] = await archivo.getMetadata();
+    if (meta.metadata?.huellaSemilla) enriquecidos += 1;
+    // Un tamaño en 0 o ausente lo deja el archivado del producto (`createDocumentRecord`): no se compara.
+    if (d.fileSize && Number(meta.size) !== Number(d.fileSize)) f.push(`${id}: dice ${d.fileSize} bytes y el archivo pesa ${meta.size}`);
+  }
+  comprobar(`los ${documentos.size} documentos tienen su archivo en Storage, del tamaño que dicen`, f);
+  console.log(`    (${enriquecidos} reemplazados o creados por la fase de documentos)`);
+}
+
+// Cada archivo al que apunta un campo existe en Storage, con su tipo y con el token de su enlace:
+// adjuntos de comunicados, fotos de áreas (en orden y como mucho 8, lo que admite la pantalla),
+// portada y adjunto de servicios, logo y comprobantes; y cada documento, del tipo que dice.
+{
+  const bucket = getStorage().bucket();
+  const f = [];
+  let n = 0;
+  const revisar = async (donde, ruta, tipo, url) => {
+    n += 1;
+    if (!ruta) return f.push(`${donde}: sin ruta`);
+    const archivo = bucket.file(ruta);
+    const [existe] = await archivo.exists();
+    if (!existe) return f.push(`${donde}: su archivo no está en Storage (${ruta})`);
+    const [meta] = await archivo.getMetadata();
+    const esDelTipo = tipo instanceof RegExp ? tipo.test(meta.contentType ?? "") : !tipo || meta.contentType === tipo;
+    if (!esDelTipo) f.push(`${donde}: es ${meta.contentType} y se esperaba ${tipo}`);
+    if (url && !url.includes(meta.metadata?.firebaseStorageDownloadTokens ?? "∅")) f.push(`${donde}: su enlace no lleva el token del archivo`);
+  };
+  for (const [id, c] of await delConjunto("communications")) {
+    for (const a of c.attachments ?? []) await revisar(`${id} · ${a.name}`, a.path, a.contentType, a.url);
+  }
+  for (const [id, a] of await delConjunto("amenities")) {
+    const fotos = [...(a.photos ?? [])].sort((x, y) => x.order - y.order);
+    if (fotos.length > 8) f.push(`${id}: ${fotos.length} fotos, y la pantalla admite 8`);
+    fotos.forEach((p, i) => p.order !== i && f.push(`${id}: la foto ${p.id} va en el orden ${p.order} y le toca el ${i}`));
+    for (const p of fotos) await revisar(`${id} · ${p.id}`, p.storagePath, /^image\//, p.url);
+  }
+  for (const [id, s] of await delConjunto("services")) {
+    if (s.imagePath) await revisar(`${id} · portada`, s.imagePath, /^image\//, s.imageUrl);
+    if (s.attachmentPath) await revisar(`${id} · adjunto`, s.attachmentPath, s.attachmentName?.endsWith(".pdf") ? "application/pdf" : null, s.attachmentUrl);
+  }
+  const ajustes = (await db.collection("tenantSettings").doc(tenantId).get()).data() ?? {};
+  if (ajustes.logoPath) await revisar("logo", ajustes.logoPath, /^image\//, ajustes.logoUrl);
+  for (const [id, r] of await delConjunto("paymentReceipts")) await revisar(id, r.storagePath, /^image\//, r.fileUrl);
+  for (const [id, d] of await delConjunto("documents")) {
+    if (!d.contentType || !d.storagePath || !(await bucket.file(d.storagePath).exists())[0]) continue;
+    const [meta] = await bucket.file(d.storagePath).getMetadata();
+    if (meta.contentType !== d.contentType) f.push(`${id}: dice ${d.contentType} y el archivo es ${meta.contentType}`);
+  }
+  comprobar(`los ${n} archivos de adjuntos, fotos, servicios, logo y comprobantes están en Storage, con su tipo y su token`, f);
+}
+
+// Cada espejo de Documentos comparte ruta y enlace con su origen —el acta con su acuerdo, el adjunto
+// con su comunicado, el comprobante archivado con el suyo—: reemplazar uno sin el otro los separaría.
+{
+  const docs = [...(await delConjunto("documents")).values()];
+  const espejoDe = (source, sourceId, ruta) => docs.find((d) => d.source === source && d.sourceId === sourceId && (!ruta || d.storagePath === ruta));
+  const f = [];
+  let n = 0;
+  for (const [id, a] of await delConjunto("committee_agreements")) {
+    n += 1;
+    const e = espejoDe("committee_agreement", id);
+    if (!e) f.push(`${id}: sin su acta en Documentos`);
+    else if (e.storagePath !== a.storagePath || e.fileUrl !== a.fileUrl) f.push(`${id}: su acta en Documentos apunta a otro archivo`);
+  }
+  for (const [id, c] of await delConjunto("communications")) {
+    for (const at of c.attachments ?? []) {
+      n += 1;
+      const e = espejoDe("communication", id, at.path);
+      if (!e) f.push(`${id} · ${at.name}: sin su espejo en Documentos`);
+      else if (e.fileUrl !== at.url) f.push(`${id} · ${at.name}: su espejo lleva otro enlace`);
+    }
+  }
+  for (const [id, r] of await delConjunto("paymentReceipts")) {
+    if (r.status !== "approved") continue;
+    n += 1;
+    const e = espejoDe("payment_receipt", id);
+    if (!e) f.push(`${id}: sin su espejo en Documentos`);
+    else if (e.storagePath !== r.storagePath || e.fileUrl !== r.fileUrl) f.push(`${id}: su espejo apunta a otro archivo`);
+  }
+  comprobar(`los ${n} espejos de Documentos comparten ruta y enlace con su origen`, f);
+}
+
+// Las categorías caen donde deben: cada documento con origen, con la categoría y en la carpeta de
+// sistema de ese origen (las de `SYSTEM_FOLDERS`, `functions/src/index.ts`).
+{
+  const ORIGEN = {
+    committee_agreement: ["acuerdo", "committee_agreements"],
+    communication: ["comunicado", "communications"],
+    payment_receipt: ["comprobante", "payment_receipts"],
+    cartera_history: ["financiero", "cartera_history"],
+    committee_report: ["reporte", "committee_reports"],
+  };
+  const folders = await delConjunto("documentFolders");
+  const f = [];
+  let n = 0;
+  for (const [id, d] of await delConjunto("documents")) {
+    const [categoria, sistema] = ORIGEN[d.source] ?? [];
+    if (!categoria) continue;
+    n += 1;
+    if (d.category !== categoria) f.push(`${id}: de ${d.source} con categoría «${d.category}», y le toca «${categoria}»`);
+    if (folders.get(d.folderId)?.systemKey !== sistema) f.push(`${id}: fuera de la carpeta de sistema «${sistema}»`);
+  }
+  comprobar(`los ${n} documentos con origen tienen la categoría y la carpeta de sistema de su origen`, f);
+}
+
+// Nada nuevo en las categorías que disparan: crear un documento de reglamento avisa a los residentes
+// (`onRegulationDocumentCreated`), así que tiene que haber uno solo, el vigente.
+{
+  const vigente = (await db.collection("tenantSettings").doc(tenantId).get()).data()?.activeRegulationId;
+  const reglamentos = [...(await delConjunto("documents")).entries()].filter(([, d]) => d.category === "reglamento").map(([id]) => id);
+  const f = reglamentos.length === 1 && reglamentos[0] === vigente ? [] : [`hay ${reglamentos.length} (${reglamentos.join(", ")}) y el vigente es ${vigente}`];
+  comprobar("hay un solo reglamento en Documentos, el vigente: ninguno nuevo avisó a los residentes", f);
+}
+
+// Todo archivo con la huella de la semilla está en el manifiesto: `--limpiar` lo alcanza.
+{
+  const apuntados = new Set((await db.collection("semillas").doc(tenantId).get()).data()?.archivos ?? []);
+  const [archivos] = await getStorage().bucket().getFiles({ prefix: `tenants/${tenantId}/` });
+  const f = [];
+  let conHuella = 0;
+  for (const a of archivos) {
+    const meta = a.metadata?.metadata ?? (await a.getMetadata())[0].metadata;
+    if (!meta?.huellaSemilla) continue;
+    conHuella += 1;
+    if (!apuntados.has(a.name)) f.push(`${a.name}: fuera del manifiesto`);
+  }
+  comprobar(`los ${conHuella} archivos con la huella de la semilla están en el manifiesto: --limpiar los alcanza`, f);
 }
 
 // Hoy (no es una comprobación: depende de la hora a la que se sembró).
