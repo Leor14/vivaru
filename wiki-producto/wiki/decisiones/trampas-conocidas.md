@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-09-12
+fecha_actualizacion: 2026-09-13
 ---
 
 # Trampas Conocidas
@@ -161,6 +161,12 @@ App Hosting hace `npm ci` solo en la raíz (sin `functions/node_modules`), así 
 ## subscribeTenantCollection no serializa Timestamps
 
 El helper hace `{ id, ...doc.data() }` crudo: los campos `serverTimestamp` (p. ej. `BillingCampaign.sentAt`) llegan como **Firestore Timestamp**, no como string. Renderizarlos directo en JSX lanza "Objects are not valid as a React child", y pasarlos a un formateador que hace `.split("-")` también revienta. Usar un formateador defensivo que detecte `.toDate` (`formatSentAt` en [[cartera-campanas|Cartera]]). Ver [[firebase-firestore]].
+
+**Y ordenar también revienta** (13 sep 2026, H.31 del ensayo de la semilla de Lomas). `watchPaymentVouchers` desempataba dos recibos del mismo día con `(b.createdAt ?? "").localeCompare(...)`: `TypeError`, y la lista de recibos del [[portal-residente]] y la del administrador se quedaban vacías. El desempate solo corre cuando dos recibos comparten `issueDate`, así que en producción, con cuatro recibos, estaba latente. Se arregló leyendo el campo con `toLocalDate` y **tipando `PaymentVoucher.createdAt` como `unknown`**: con `string`, el `localeCompare` compilaba; ahora no. Ver [[billing]], y [[falsacion-de-pruebas]]: la prueba del comparador pasó en verde sobre el código roto hasta probar los dos órdenes de llegada.
+
+## `scheduledTime` de una visita tiene tres formas, y la hora «por defecto» es el mediodía
+
+`combineLocalDateTime` (`src/utils/date.ts`) solo entendía `HH:mm`, pero `visitorPasses.scheduledTime` llega también como instante ISO (la invitación del residente, `startAt.toISOString()`) y como `YYYY-MM-DDTHH:mm:00` (el pase de la administración). Lo que no entendía lo **descartaba en silencio** y devolvía la fecha como la construye `parseLocalDateString`: **a las 12:00**. La píldora de [[visitantes]] en el [[portal-guardia]] marcaba «Expirado» desde el mediodía una visita de las 17:30 y «Programado» hasta el mediodía una de las 9:00, y la lista de la portería salía en el orden de creación porque todas empataban. Lo cazó el recorrido del ensayo de Lomas (H.37, 13 sep 2026): ninguna prueba usaba una hora con fecha. Arreglado en la función (`e3462d7`): si la hora trae fecha, ese instante es la hora de la visita. **Antes de afirmar a qué hora cae un valor por defecto, leer la función que lo fija**: la primera ficha de H.37 decía «medianoche». Ver [[firebase-firestore]].
 
 ## Cartera: el flag `archived` se filtra SOLO en las tablas vivas
 

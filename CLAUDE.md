@@ -89,8 +89,8 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **2075** (12 sep 2026, noche) |
-  | Functions | `npm --prefix functions test` | **1015** |
+  | App | `npm test` | **2080** (13 sep 2026) |
+  | Functions | `npm --prefix functions test` | **1030** (13 sep 2026) |
   | Reglas | `npm run test:rules:all` | **591** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
   | Emulador de functions | `npm --prefix functions run test:emulator` | **379 de 381** *(pide emulador)* |
 
@@ -473,10 +473,11 @@ estaba desplegado.
 > **Lo que hay que saber antes de tocar nada de IA:** (1) **el tope de gasto no lo ha mirado nadie
 > en trece días** — se mira en la consola, no de memoria, que ya nos engañó por un factor de mil;
 > (2) **no hay tráfico**: el último ticket de producción es del **7 de agosto**, diez días *antes*
-> de encender la sombra, y `aiUsage` y `aiAssistance` siguen en **0**; (3) **`aiAssistance` está en
-> 0 en LOS DOS ambientes** aunque la sombra lleva encendida en ambos y staging registró 41 usos —
-> **si el disparador no escribe, encender la sombra no acumula nada**, y esa es la primera pregunta
-> del runbook; (4) **`ai-onboarding-column-mapping` no tiene un solo consumidor en el código**:
+> de encender la sombra, y `aiUsage` y `aiAssistance` siguen en **0**; (3) **el `0` de
+> `aiAssistance` era falta de tickets, no un disparador mudo** —esta línea lo dejaba como la primera
+> pregunta del runbook—: el 13 de septiembre, en staging, los 34 PQRS del ensayo de Lomas dejaron 34
+> filas `omitida · sembrado`, porque la sombra omite los conjuntos de ejemplo sin llamar al modelo. En
+> producción no se ha vuelto a medir; (4) **`ai-onboarding-column-mapping` no tiene un solo consumidor en el código**:
 > encenderla es inerte. Runbook completo: `docs/encender-la-ia.md`.
 
 **`UX-004` (`PRD-V-FIX-003`) ESTÁ EN PRODUCCIÓN Y VALIDADA CON OJOS** (30 ago 2026, `d1beb9c`,

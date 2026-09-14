@@ -1,0 +1,64 @@
+# Runbook — la demo de Lomas de Sayilbedra, el día de la demo
+
+> **Para qué.** Dejar el conjunto demo con «hoy» antes de enseñarlo. La historia de tres meses no
+> cambia; la portería, en cambio, necesita las visitas y los paquetes del día. Plan y detalle:
+> `docs/plan-seed-demo-lomas-de-sayilbedra.md` (§14, el ensayo; §14.7, lo que queda).
+>
+> **Estado al 13 sep 2026:** sembrado **solo en el ensayo de staging** (`fnBFuQe2p8h5fwy3jpeB`,
+> «Lomas de Sayilbedra (ensayo)»). Producción (`PoyiASYEYoPSMulCWPJa`) espera la fase 3 del plan: hasta
+> entonces, allí no hay nada que refrescar.
+
+## 1. Antes: la credencial
+
+Los scripts leen y escriben con la ADC. Si fallan con `invalid_rapt` o `invalid_grant`, la renueva
+David (`gcloud auth application-default login`): no es un error del script.
+
+## 2. Simular, y después escribir
+
+```bash
+node functions/scripts/sembrar-historia-demo.mjs vivaru-staging-02 fnBFuQe2p8h5fwy3jpeB --refrescar
+```
+
+```bash
+node functions/scripts/sembrar-historia-demo.mjs vivaru-staging-02 fnBFuQe2p8h5fwy3jpeB --refrescar --escribir
+```
+
+En **producción** es el mismo comando con `hogaru-1 PoyiASYEYoPSMulCWPJa`, y además `--si-produccion`,
+que el script exige. **Cada corrida en producción escribe datos de prueba y lleva el sí de David en ese
+momento.**
+
+Qué hace `--refrescar`:
+
+- **Cierra lo que los días anteriores dejaron abierto en la portería.**
+- **Siembra el día, pero solo lo que ya pasó a la hora de correrlo:** cuatro visitas (una ya terminada,
+  dos dentro y una programada para las 17:30) y tres paquetes (09:15, 11:40 y 13:05).
+- **No toca el dinero ni la historia.** Es idempotente: una segunda corrida el mismo día solo añade lo
+  que haya llegado a su hora entre tanto.
+
+**La hora importa.** Corrido antes de las 13:05, falta el tercer paquete; pasadas las 17:30, la visita
+de la tarde sale «Expirado», que es lo correcto a esa hora. El mejor momento es entre las 13:05 y la
+demo.
+
+## 3. Verificar
+
+```bash
+node functions/scripts/verificar-historia-demo.mjs vivaru-staging-02 fnBFuQe2p8h5fwy3jpeB
+```
+
+Tiene que salir en verde (37 comprobaciones al 13 sep). Si algo sale en rojo, no enseñar esa pantalla
+y avisar.
+
+## 4. Durante la demo: lo que no hay que tocar
+
+- **«Enviar acceso a 95»**: está a un clic y manda correo a buzones que no existen (contrato, H.28).
+- **Lo que se confirma en pantalla se escribe de verdad:** la entrega de un paquete, el ingreso de una
+  visita, una reserva. En el ensayo da igual; en producción cambia la demo hasta el siguiente
+  `--refrescar`.
+- **Rarezas del producto que se ven y no son de la semilla** (contrato, §H): la «Próxima reserva» del
+  residente sale un día antes y a veces ya pasada (H.32, H.36), y el listado de reservas de la portería
+  empieza en junio (H.38).
+
+## 5. Limpiar
+
+`--limpiar` borra por id exacto todo lo sembrado, las cuentas y los archivos, y devuelve los ajustes a
+como estaban. **No se usa sin David.**

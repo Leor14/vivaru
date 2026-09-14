@@ -3,10 +3,19 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-09-12
+fecha_actualizacion: 2026-09-13
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-09-13] update | Dos trampas del ensayo de la semilla de Lomas: el Timestamp que se ordena y la hora de las visitas
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 2 — [[trampas-conocidas]] (la entrada de `subscribeTenantCollection` gana el caso de ordenar, H.31; entrada nueva sobre las tres formas de `scheduledTime` y el mediodía por defecto, H.37) y este log
+- **Entidades extraídas**: `watchPaymentVouchers`, `PaymentVoucher.createdAt` (`unknown`), `combineLocalDateTime`, `scheduledTime`, `getVisitorSortTimestamp`
+- **Nota**: los dos fallos salieron de recorrer con cinco sesiones el ensayo de staging sembrado con tres meses de historia (`docs/plan-seed-demo-lomas-de-sayilbedra.md`, §14), y están en producción desde el 13 sep (`build-2026-09-13-003`). Las otras 16 rarezas de ese recorrido (contrato de la semilla, §H) no se han arreglado, y no entran aquí hasta que se decida qué hacer con ellas.
 
 ---
 

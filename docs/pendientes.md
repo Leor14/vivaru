@@ -4,7 +4,106 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 12 de septiembre de 2026 (noche; 00:30 UTC del 13)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 13 de septiembre de 2026 (noche; 04:30 UTC del 14)
+
+> # LA SEMILLA DE LOMAS, ENSAYADA EN STAGING; H.31 Y H.37, EN PRODUCCIÓN. FALTA SEMBRAR PRODUCCIÓN.
+>
+> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por qué
+> lo frena, está en «LO QUE SIGUE», justo debajo.
+>
+> **Lo del 13, por tramos.** *Madrugada y mañana:* fases 0 y 1 del plan de la semilla
+> (`docs/plan-seed-demo-lomas-de-sayilbedra.md`): el script, el guion de tres meses y el verificador,
+> probados contra el emulador (`3034ea7`). *Mediodía:* la fase 2 en el ensayo de staging
+> (`fnBFuQe2p8h5fwy3jpeB`): 504 de 504 avisos capturados, cero correos y cero llamadas a IA; limpiar y
+> resembrar dio la misma huella del dinero que el emulador. *Tarde:* el recorrido con cinco sesiones
+> —ninguna pantalla vacía— y **18 rarezas del producto** (contrato de la semilla, H.21–H.38). *Noche:*
+> **H.31 y H.37, arreglados y en producción** (`477112a`, `e3462d7`), vistos antes en staging contra una
+> predicción escrita; y la fase 4, el cierre: este traspaso, el roadmap (0.9.75), la bitácora (+3 filas),
+> la wiki, `CLAUDE.md` y un runbook del día de la demo (`docs/runbook-demo-lomas-de-sayilbedra.md`).
+>
+> **Lo que sirve cada ambiente al cerrar (medido a las 04:30 UTC del 14):** producción,
+> `build-2026-09-13-003` desde `44953b5`, la punta de `master`; staging, `build-2026-09-13-009` desde el
+> mismo commit, y detrás de él solo notas sin código. Reglas `dbc6cdf1` en producción y `b3fb7c8a` en
+> staging, **las dos idénticas al repo**. Functions: sin despliegues desde el 12.
+>
+> ```bash
+> git ls-remote origin refs/heads/master refs/heads/develop
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
+> node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
+> ```
+>
+> **Bancos:** `npm test` **2080** · functions **1030** (contados el 13) · reglas **591** (sin Storage) ·
+> emulador de functions **379 de 381** (contados en `ba98abe`, sin cambios en reglas ni en `functions/src`
+> desde entonces; los dos rojos, `CA12` y `D-B` de `payments.emulator.test.ts`, preexistentes).
+>
+> ## LO QUE SIGUE — el menú
+>
+> **A · Construible ya** — nada que no pida antes una decisión. Queda un cabo de casa: la rama
+> `claude/nifty-bell-c733cd` y su worktree (`.claude/worktrees/great-bohr-ec49d3`) siguen ahí; mirar
+> `c92ef13` (documentación) antes de retirarlos.
+>
+> **B · Espera una decisión de David**
+> 1. **La fase 3 de la semilla: sembrar producción** (plan §8, T3.1–T3.5), un permiso por paso: las
+>    overrides de Lomas (D4), la puerta de buzones solo en Lomas (D5), la simulación, la corrida con
+>    `--si-produccion`, el recorrido y la limpieza de los avisos (D6), y las contraseñas de las cuatro
+>    cuentas demo, con enlaces de restablecer como en staging.
+> 2. **Las 16 rarezas del producto que quedan del recorrido** (contrato de la semilla, §H: H.21–H.38 salvo
+>    H.31 y H.37). Ninguna se ha tocado. Las que más se verían en una demo: **H.28** («Enviar acceso a 95»,
+>    a un clic), **H.32** y **H.36** («Próxima reserva» un día antes, y a veces ya pasada) y **H.38** (el
+>    listado de reservas de la portería empieza en junio).
+> 3. **App Check** (`D-CONSOLA`): lo único que le falta a `FIX-005`.
+> 4. **El `country` de cuatro conjuntos de producción** —Santa María, Bromelias, Privada Las Playas y
+>    Tenant E2E—: sin él, sus reservas se leen en hora de México. Dato de producción: permiso uno a uno.
+> 5. **Las fechas de las reglas de visitas** (`pad2` y compañía fallan siempre por `'' + int`): arreglarlo
+>    cambia qué acepta producción.
+> 6. **El «vencido» del servidor en UTC**: esperar a un cliente real o derivar la zona del `country`.
+> 7. **La puerta de buzones en Privada Las Playas**: identificar su cuenta de portería para encenderla.
+>    La de Lomas va en la fase 3 (punto 1).
+> 8. **Ver `CA1` de `PLAT-002`** (qué cuenta simular, paso 6) y **`CA3`/`CA5` de `PLAT-004`** (firmar y
+>    tocar la marca en staging).
+> 9. **El TXT `fah-claim`** en Squarespace Domains, para que sirva el dominio sin `www`.
+> 10. **La reserva de prueba de staging `4Mk1AvAePP9bqGZafbH2`** sigue `pending`: cancelarla sin borrar.
+> 11. **`UX-005`** (tableros configurables): no se escribe por prioridad, y le falta decidir si la
+>     preferencia es por usuario o por conjunto (`docs/prd/README.md:170`).
+> 12. **Encender presupuesto, medidor o tesorería en un conjunto REAL** —no hay ninguno—; **el asiento
+>     `ledgerEntries/tWgE2rhBeztUbCTWKokt`** (`accountCode: null` → `2.3`); **las dos categorías de
+>     egreso fuera del tipo** (medir antes de citar); y **el tope de gasto de la IA**, en la consola.
+>
+> **C · Espera a un tercero o a un dato**
+> 13. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
+> 14. **Albert** — el contrato de `vivaruWonSignals`.
+> 15. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos a la vez).
+> 16. **Habitanto**: lo que queda de los 108 candidatos vive en la fila 30 del backlog largo de Notion.
+>     Hay tres cifras distintas: **recontar sobre las filas** antes de citarla.
+>
+> ## NO REABRIR
+>
+> - **Las de David del 13:** D11 (sin asientos de enero a mayo), D13 (sí a unas 36 cuentas de residente
+>   sin acceso) y D9 (el conjunto de ensayo de staging lo creo yo); H.31 y H.37 se arreglaban antes de
+>   sembrar producción, y H.28 espera; y la fase 4 de la semilla, antes que la 3.
+> - **Las del 12 por la tarde:** la variante al revés de `CF9` va con él, en el mismo despliegue; `byUnit`
+>   sale del informe sin esperar a `K2`, con los tres informes migrados; los dos `tema` de producción son
+>   cuentas de prueba de David.
+> - **Las del 12 por la mañana:** `FIX-001` 1.1 primero y sola, antes de la 2; la zona sale del país del
+>   conjunto, **solo en reservas**; *Lomas de Sayilbedra* es una demo.
+> - **Las del 11:** `TBD-B` de `PLAT-004` (el consejero entra por `/resident`); `CA3` (el PDF se rehace con
+>   cada firma, en el servidor); la regla de `documents` (el consejo lee lo que un residente); `K2` (sin
+>   PDF para el consejo mientras esté cerrado); `R2` y `H3c` de `FIX-005` (opción A); y las de admins
+>   (`E2-D1…D5`, `PLAT-002` §16), con `FIX-004` primero y aparte.
+> - **Y las de antes:** las cuatro de `FEAT-007`; `RN-13`/`RN-14` de `FLOW-006`; los dos `TBD` de
+>   `FLOW-008`; los dos huecos falsos; `RN-01` de `PLAT-004`; `TBD-A`/`TBD-B` de `FEAT-008`; las de
+>   `FEAT-009` y `FEAT-010`; `G5`.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.** Y tres avisos de esta pasada: **el modo
+> automático bloquea el commit y el push** si David no los pide en el chat; **el ensayo de staging queda
+> sembrado**, y sus cuatro cuentas demo tienen contraseña (la puso David con enlaces de restablecer); y
+> **el emulador de Firestore sigue levantado** (Java en `:8080`).
+
+---
+
+## EL CIERRE DEL 12 DE SEPTIEMBRE (noche; 00:30 UTC del 13) — histórico
 
 > # NADA A MEDIAS. LO CONSTRUIBLE, EN PRODUCCIÓN; LAS FICHAS, CORREGIDAS; MEMORIA, WIKI Y NOTION, AL DÍA.
 >

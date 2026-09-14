@@ -4,7 +4,9 @@
 > agosto de 2026, más septiembre en curso y dos semanas por delante— en *Lomas de Sayilbedra*, de
 > modo que **ninguna pantalla de los tres portales quede vacía** en una demo.
 >
-> **Estado: planeación, con la fase 0 cerrada (§12). No se ha escrito nada en ningún ambiente.**
+> **Estado al 13 sep 2026 (noche): fases 0, 1, 2 y 4 cerradas** (§12–§14; la 4, el cierre, antes
+> que la 3 por decisión de David). **Falta la fase 3, sembrar producción: allí no se ha escrito ningún
+> dato.** Por el camino se arreglaron H.31 y H.37, dos fallos del producto, ya en producción (§14.7).
 > Cada paso que escribe datos o mueve una bandera en producción lleva su permiso aparte (§10).
 >
 > **Medido contra `hogaru-1` el 12 de septiembre de 2026 por la noche** (13 sep en UTC).
@@ -407,12 +409,14 @@ Cada paso lleva su permiso.
 | **T3.4** Corrida | `--escribir --si-produccion` | Manifiesto completo; verificador en verde |
 | **T3.5** Recorrido y limpieza de avisos | §5 con las sesiones reales; limpieza de avisos (D6) | Nada vacío; buzones de admin y superadmin sin el ruido de la historia |
 
-### Fase 4 — Cierre
+### Fase 4 — Cierre (hecha el 13 sep, antes que la 3)
 
 - **T4.1** Commit del script, el guion, el verificador y este plan, **con tu sí en el chat**.
-  No hay despliegue: el script no se despliega.
-- **T4.2** Runbook corto de `--refrescar` antes de una demo.
-- **T4.3** `docs/pendientes.md`, roadmap, bitácora de Notion, wiki y memoria.
+  No hay despliegue: el script no se despliega. **Hecho** (`3034ea7` y los que siguen).
+- **T4.2** Runbook corto de `--refrescar` antes de una demo. **Hecho:**
+  `docs/runbook-demo-lomas-de-sayilbedra.md`.
+- **T4.3** `docs/pendientes.md`, roadmap, bitácora de Notion, wiki y memoria. **Hecho el 13 sep.**
+  Cuando se siembre producción (fase 3), se repite con lo que salga de allí.
 
 ---
 

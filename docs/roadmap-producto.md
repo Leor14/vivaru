@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.74 |
-| **Fecha** | 12 de septiembre de 2026, tarde |
-| **Estado** | **Lo construible, cubierto.** En producción desde la tarde del 12: **`CF9` en las dos direcciones** —18 bloques de reglas decidían el `update` con el `tenantId` nuevo y 7 no impedían mudarlo, y las dos formas estaban al alcance de una cuenta de prueba— y **el detalle por unidad fuera del informe que lee el consejo** (`K2`), con los tres informes que había migrados. **`PRD-V-FEAT-007` pasa a Productiva**: el destello y la impresión, mirados en staging; los PDF y el QR, por construcción. **La wiki**, al día del 1 al 10 sep, con las banderas medidas. Antes, el mismo 12, `FIX-005` (salvo App Check) y `FIX-001` entera, con lo que el lote de Habitanto quedó completo. **Lo que queda espera a David o a terceros:** App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» en UTC; `UX-005`; el abogado ecuatoriano; Albert; el primer conjunto REAL. No queda nada construible sin una decisión: el «HOGARU», el tipo de `distributionBasis` y las fichas que se contradecían por dentro se cerraron esa noche. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
-| **Verificado contra** | **Los servicios, al cerrar (21:11 UTC; el front, otra vez a las 23:25).** Producción sirve `build-2026-09-12-009` (`dfc7b80`, desde las 23:24 UTC; antes, `-008` desde `9c37c9c`, a las 22:44, y `-007` desde `a7ab743`, a las 22:18) y staging `build-2026-09-12-027` (`dfc7b80` a las 23:25; detrás solo vinieron las notas que anotan esto, sin código, llevadas a las dos ramas); rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. Las cuatro functions del informe, por `updateTime` (19:28 UTC en staging, 19:31 en producción). Las banderas, resolviendo conjunto por conjunto con `functions/lib/feature-flags.js`. La migración, releyendo los dos documentos de cada informe. Bancos **contados en `ba98abe`**: `npm test` **2071** —**2075** por la noche, con los dos guardianes nuevos— · functions **1015** · reglas **591** · emulador de functions **379 de 381** |
+| **Versión** | 0.9.75 |
+| **Fecha** | 13 de septiembre de 2026, noche |
+| **Estado** | **La semilla de la demo de Lomas, ensayada en staging; H.31 y H.37, en producción.** Fases 0, 1, 2 y 4 del plan de la semilla (`docs/plan-seed-demo-lomas-de-sayilbedra.md`): un script que siembra tres meses de vida de un conjunto demo por los mismos escritores del producto, probado contra el emulador, corrido en el ensayo de staging con los disparadores reales, recorrido con cinco sesiones —ninguna pantalla vacía— y limpiado y resembrado con la misma huella que el emulador. **El recorrido sacó 18 rarezas del producto** (contrato, H.21–H.38); dos se arreglaron y están en producción: «Recibos emitidos», que se caía con dos recibos del mismo día (H.31), y la portería, que veía «Expirado» desde el mediodía las visitas de QR de la tarde (H.37). **Falta la fase 3, sembrar producción**, con permiso de David en cada paso, y decidir qué hacer con las 16 rarezas restantes, H.28 («Enviar acceso a 95») entre ellas. Lo que ya esperaba a David o a terceros sigue igual: App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» en UTC; `UX-005`; el abogado ecuatoriano; Albert; el primer conjunto REAL. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
+| **Verificado contra** | **Los servicios, al cerrar (04:30 UTC del 14).** Producción sirve `build-2026-09-13-003` (`44953b5`; el rollout nació a las 22:56 UTC del 13 y se vio sirviendo a las 04:24 UTC del 14) y staging `build-2026-09-13-009` (el mismo commit; detrás solo vienen notas sin código). Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`; sin despliegues de functions ni de reglas desde el 12. H.31 y H.37, vistos en staging contra una predicción escrita antes: los 6 recibos de una casa demo en el orden sacado de la base, y una visita de las 17:30 que pasa de «Expirado» a «Programado». Bancos: `npm test` **2080** y functions **1030**, contados el 13; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,35 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.75 — 13 de septiembre de 2026 — la semilla de la demo de Lomas, ensayada en staging; H.31 y H.37 en producción
+
+- **Un script para sembrar la historia de una demo** (`functions/scripts/sembrar-historia-demo.mjs`,
+  `3034ea7` y siguientes): tres meses de un conjunto —cartera, pagos, egresos, banco, informes, portería,
+  reservas, PQRS, comunicados, acuerdos y reglamento— **por los mismos escritores del producto**
+  (`functions/lib`), y lo que solo escribe el navegador, campo a campo. Simula por defecto, exige el
+  proyecto y `--si-produccion`, y se niega si el conjunto no es de ejemplo. `--refrescar` pone el día de la
+  demo; `--limpiar` borra por id exacto contra una línea base. Un verificador de 37 comprobaciones. Plan y
+  contrato de datos en `docs/`; runbook del día de la demo en `docs/runbook-demo-lomas-de-sayilbedra.md`.
+- **Ensayado en staging** sobre un conjunto de ensayo, con los disparadores reales: 504 de 504 avisos de la
+  historia capturados para poder limpiarlos, cero correos y cero llamadas a IA (la sombra de PQRS omite los
+  conjuntos de ejemplo y deja su fila). Limpiado y resembrado, dio **la misma huella del dinero que el
+  emulador**. Por el camino, una consulta pidió en staging un índice que no existe y la corrida se cayó a
+  media siembra: ahora pide sin rango, filtra en memoria y retoma lo que se cayó.
+- **El recorrido con cinco sesiones** —administración, consejero, residente al corriente, residente moroso
+  y portería— no dejó ninguna pantalla vacía y **sacó 18 rarezas del producto** que ninguna suite veía
+  (contrato, H.21–H.38): abrir Cartera escribe, la «Próxima reserva» del residente sale un día antes, el
+  listado de reservas de la portería empieza en junio…
+- **Dos, arreglados y en producción**, con el sí de David. «Recibos emitidos» se caía con dos recibos del
+  mismo día, porque el desempate comparaba un `Timestamp` como texto (`477112a`, H.31). Y la portería veía
+  «Expirado» desde el mediodía las visitas de QR de la tarde, y «Programado» hasta el mediodía las de la
+  mañana, porque la hora con fecha se descartaba en silencio (`e3462d7`, H.37). Cinco pruebas nuevas,
+  falsadas; la falsación cazó una prueba ciega del comparador. Vistos en staging contra una predicción
+  escrita antes; producción sirve `build-2026-09-13-003` desde `44953b5`.
+- **Método.** La causa de H.37 se escribió primero mal —«medianoche»— sin leer la función que fija la hora.
+  Y un sondeo del despliegue que solo imprimía la línea buscada se leyó durante horas como un despliegue
+  colgado. Las dos, en la memoria del agente.
+- Bancos: `npm test` **2080** · functions **1030** · reglas **591** · emulador de functions **379 de 381**.
 
 ### 0.9.74 — 12 de septiembre de 2026 (tarde) — lo construible, cubierto: `CF9` en las dos direcciones, `byUnit` fuera del informe, `FEAT-007` Productiva y la wiki al día
 
