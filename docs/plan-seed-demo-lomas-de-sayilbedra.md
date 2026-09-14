@@ -929,6 +929,9 @@ del producto (contrato, H.21–H.38).
      reciente primero—, y el registro de errores del ensayo no creció: siguen los 3 del build
      viejo, todos de esa misma pantalla.
 
-   Después, producción, con tu sí aparte.
+   **En producción el 13 sep, con tu sí:** `master` avanzó a `44953b5`, y `build-2026-09-13-003`
+   sirve ese commit (`rollout-2026-09-13-003`, creado a las 16:56 y SUCCEEDED; comprobado sirviendo
+   a las 22:24). Allí no se pueden ver con datos de demo hasta la fase 3: Lomas todavía no tiene
+   historia en producción.
 3. **La fase 3, con tu permiso en cada paso:** las banderas de D4, la puerta de D5, la corrida, la
    captura de avisos y las contraseñas de las cuatro cuentas (con enlaces de restablecer, como aquí).
