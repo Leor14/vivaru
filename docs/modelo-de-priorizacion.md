@@ -498,8 +498,20 @@ los cambios de la v0.2, y **esas seis entregas son ahora las referencias de §6.
 volver a calibrar**: la siguiente pasada usa entregas distintas. Detalle:
 `docs/valoraciones/calibracion-2026-09-15.md`.
 
-**Una pregunta abierta de la primera pasada:** aun con la v0.2, FLOW-008 y PLAT-005 seguirían en Pozo,
-y David las eligió. Si fue por algo que el modelo no pregunta, ese es el criterio que falta.
+**Segunda pasada, 15 sep 2026 (v0.2): mejora, pero no pasa.** Seis entregas nuevas: ONB-002, PH-003,
+FEAT-009, FEAT-010, FLOW-007 y FLOW-004.
+- **Esfuerzo:** el exceso medio baja de 4,7 a 1,8 veces, y tres de seis quedan dentro del 50 %. Pero las
+  seis compararon con una referencia L y cuatro acabaron en «4 horas» exactas, así que el orden
+  relativo se pierde (ρ ≈ 0,4).
+- **Impacto:** la confianza sale en 0,5 en todas, esta vez porque sin clientes nada está medido, y cinco
+  de seis caen en Pozo.
+- Detalle y propuestas en `docs/valoraciones/calibracion-2026-09-15-segunda.md`.
+
+**Una pregunta abierta de las dos pasadas:** el modelo habría dicho «no se hace» a la mayoría de las
+doce entregas que David eligió (FLOW-008, PLAT-005, FEAT-010, PH-003 entre ellas). Si las eligió por algo
+que el modelo no pregunta —dos estimadores lo llamaron «llegar listos al primer cliente»—, ese es el
+criterio que falta. **David lo confirmó el 15 sep: las eligió para llegar listos al primer cliente.**
+Falta decidir cómo entra en el modelo.
 
 ### 9.2 Doble valoración a ciegas
 
