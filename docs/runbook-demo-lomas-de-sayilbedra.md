@@ -7,9 +7,11 @@
 >
 > **Estado al 15 sep 2026:** sembrado en **producción** y en el **ensayo de staging**, los dos con el
 > verificador en 43 de 43.
-> - Producción: `PoyiASYEYoPSMulCWPJa`, «Lomas de Sayilbedra». La historia se sembró el 14 sep y los
->   documentos a las 00:35 UTC del 15.
-> - Staging: `fnBFuQe2p8h5fwy3jpeB`, «Lomas de Sayilbedra (ensayo)».
+> - Producción: `PoyiASYEYoPSMulCWPJa`, «Lomas de Sayilbedra». La historia se sembró el 14 sep, los
+>   documentos a las 00:35 UTC del 15 y las fotos de medidor ilustradas (D2) a las 04:53 UTC.
+> - Staging: `fnBFuQe2p8h5fwy3jpeB`, «Lomas de Sayilbedra (ensayo)»; las fotos de medidor, a las 04:25 UTC.
+> - Medidores abre en agosto, la última ronda, con una franja que dice que septiembre todavía no tiene
+>   lecturas (H.51, arreglada el 15 sep).
 >
 > La demo se enseña en **`www.grupovivaru.com`**. Sin `www` no sirve mientras falte el TXT `fah-claim`.
 
@@ -65,6 +67,10 @@ hotmail de David.
 - Si alguna no tiene contraseña, se genera un enlace para ponerla con la consola de administración, sin
   correo.
 - Al 15 sep, en producción solo había entrado la del residente al corriente.
+- **En el ensayo de staging, al 15 sep ninguna tenía contraseña.** Las cuatro nacieron de nuevo con la
+  resiembra de T2.3 (14 sep, 22:18 UTC): `--limpiar` borra las cuentas, y con ellas la contraseña que se
+  les hubiera puesto. Después de resembrar, hay que volver a generar el enlace. `+lomas-res1` es Encinos
+  03.
 
 ## 4. Durante la demo: lo que no hay que tocar
 
@@ -81,7 +87,9 @@ hotmail de David.
   - los PDF del informe mensual y del reporte de comité pintan el dinero en formato colombiano,
     «$598.400» (H.40);
   - el logo no sale en el informe mensual (H.41);
-  - el residente ve en Documentos el PDF de un comunicado programado antes de que se le publique (H.50).
+  - el residente ve en Documentos el PDF de un comunicado programado antes de que se le publique (H.50);
+  - la foto de cada lectura del medidor la ve el residente («Tus consumos medidos» → «Ver foto») y no la
+    administración (H.45).
 
 ## 5. Limpiar
 

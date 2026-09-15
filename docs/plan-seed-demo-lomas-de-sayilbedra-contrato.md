@@ -880,4 +880,4 @@ sesión de administración y leyendo después el código que las pinta:
       había cuatro meses de lecturas detrás del selector.
     - **Esta sí se arregla en el producto:** si el mes en curso está vacío, la pantalla abre en el último
       con lecturas, lo dice y ofrece ir al mes en curso (`src/features/medidores/periodos.ts`).
-    - Arreglada en el código el 15 sep; falta desplegarla.
+    - En staging y en producción desde el 15 sep (`bb238da`; producción sirve `build-2026-09-15-003`).

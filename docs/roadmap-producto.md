@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.76 |
-| **Fecha** | 14 de septiembre de 2026, noche (03:00 UTC del 15) |
-| **Estado** | **Lomas de Sayilbedra, sembrada en producción con tres meses de historia y con sus documentos.** El 14 de madrugada, la fase 3 del plan de la semilla sembró producción con permiso de David en cada paso: 37 de 37, cero correos y cero llamadas a IA. De mediodía a medianoche, el plan de documentos (`docs/plan-documentos-demo-lomas.md`) añadió el reglamento completo, las actas del consejo, la asamblea, el plano y la memoria de obra, carteles y circulares, fotos de las áreas, portadas y tarifas de servicios, contratos y póliza, comprobantes, relaciones bancarias, el archivo mensual del cron rellenado hacia atrás y el logo. Se probó en el emulador, se ensayó en staging (limpiar y resembrar incluido) y se corrió en producción: 43 de 43, cero avisos, correos e IA, y recorrido con la administración y con un residente. **Salieron 11 rarezas del producto** (contrato, H.40–H.50): el logo que no llega al informe mensual ni a los correos, el dinero en formato colombiano en los PDF del servidor, el adjunto de un comunicado programado que el residente ve antes de publicarse, entre otras. Ninguna se ha tocado. **Falta el cabo de T3.5** (la prueba de la puerta por pantalla, que tropieza con H.39) y decidir qué hacer con las rarezas (H.21–H.50, salvo H.31 y H.37). Lo que ya esperaba a David o a terceros sigue igual. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
-| **Verificado contra** | **Los servicios, al cerrar (03:38 UTC del 15).** `master` y `develop`, en `a9b2552` (un avance rápido sin código de la app). Producción sirve `build-2026-09-15-001` y staging `build-2026-09-15-002`, los dos desde `a9b2552`; detrás solo vienen notas. Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`; sin despliegues de functions ni de reglas desde el 12. **Esta pasada no despliega nada**: la semilla se corre. En producción, el verificador de la semilla da 43 de 43 tras escribir y tras los dos recorridos, y los testigos no registran avisos ni correos nuevos. Bancos: `npm test` **2080** y functions **1079**, contados el 14; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
+| **Versión** | 0.9.77 |
+| **Fecha** | 14 de septiembre de 2026, noche (05:00 UTC del 15) |
+| **Estado** | **Lomas de Sayilbedra, sembrada en producción con tres meses de historia, sus documentos y sus medidores.** El 14 de madrugada, la fase 3 del plan de la semilla sembró producción con permiso de David en cada paso: 37 de 37, cero correos y cero llamadas a IA. De mediodía a medianoche, el plan de documentos (`docs/plan-documentos-demo-lomas.md`) añadió el reglamento completo, las actas del consejo, la asamblea, el plano y la memoria de obra, carteles y circulares, fotos de las áreas, portadas y tarifas de servicios, contratos y póliza, comprobantes, relaciones bancarias, el archivo mensual del cron rellenado hacia atrás y el logo. Se probó en el emulador, se ensayó en staging (limpiar y resembrar incluido) y se corrió en producción: 43 de 43, cero avisos, correos e IA, y recorrido con la administración y con un residente. **Ya de noche, David vio Medidores vacía**, y la fase 5 del mismo plan lo arregló por los dos lados: la pantalla abre en el último mes con lecturas en vez del mes en curso vacío (H.51, **un cambio del producto**, `bb238da`, en los dos ambientes), y las 192 fotos de lectura pasan de tarjeta de texto a esfera de medidor (D2). **Salieron 11 rarezas del producto** (contrato, H.40–H.50): el logo que no llega al informe mensual ni a los correos, el dinero en formato colombiano en los PDF del servidor, el adjunto de un comunicado programado que el residente ve antes de publicarse, entre otras. Ninguna se ha tocado. **Falta el cabo de T3.5** (la prueba de la puerta por pantalla, que tropieza con H.39) y decidir qué hacer con las rarezas (H.21–H.50, salvo H.31 y H.37). Lo que ya esperaba a David o a terceros sigue igual. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
+| **Verificado contra** | **Los servicios, al cerrar (05:00 UTC del 15).** `master` y `develop`, en `bb238da` (la pantalla de Medidores y D2). Producción sirve `build-2026-09-15-003` y staging `build-2026-09-15-004`, los dos desde `bb238da`; detrás solo vienen notas. Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs` a las 03:38 UTC, y nada los ha tocado después; sin despliegues de functions ni de reglas desde el 12. **Esta pasada despliega solo el front** (Medidores), por el push a `master`; la semilla se corre. En producción, el verificador de la semilla da 43 de 43 tras escribir D2, y los testigos no registran avisos ni correos nuevos. Bancos: `npm test` **2087** y functions **1084**, contados el 15; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,23 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.77 — 14 de septiembre de 2026 (noche) — Medidores abre en el último mes con lecturas; fotos de medidor en Lomas
+
+- **La pantalla de lecturas abría en el mes en curso, y a mitad de mes está vacío** (contrato de la
+  semilla, H.51). La ronda se lee a fin de mes, así que la administración veía todas las casas en blanco y
+  los totales en cero, con meses de lecturas detrás del selector. Lo vio David en la demo de Lomas.
+  - Ahora, si el mes en curso está vacío, abre en el último con lecturas —una consulta por período con
+    `limit(1)`, sin `orderBy` ni índice—, lo dice en una franja y ofrece ir al mes en curso (`bb238da`).
+  - 7 pruebas nuevas, falsadas. Visto antes y después del despliegue en los dos ambientes: de 0 de 48 en
+    septiembre a 48 de 48 en agosto.
+- **D2 del plan de documentos:** las 192 fotos de lectura de Lomas pasan de tarjeta de texto a esfera de
+  medidor con el totalizador, en la misma ruta y con el mismo token. El verificador revisa también esas
+  fotos y sigue en 43. En staging y en producción, con permiso en cada paso: 43 de 43 y los testigos
+  quietos. La foto de Encinos 03 es idéntica byte a byte en el emulador, en staging y en producción.
+- **En staging, las cuentas demo del ensayo no tenían contraseña** desde la resiembra de T2.3, porque
+  `--limpiar` borra las cuentas. Anotado en el runbook.
+- Bancos: `npm test` **2087** · functions **1084** · reglas **591** · emulador de functions **379 de 381**.
 
 ### 0.9.76 — 14 de septiembre de 2026 — Lomas, sembrada en producción con su historia y sus documentos
 

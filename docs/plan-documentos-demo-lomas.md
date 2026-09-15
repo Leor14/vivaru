@@ -5,9 +5,10 @@
 > comunicados, estados de cuenta bancarios y los archivos financieros de cada mes. Todo generado, con
 > la marca de demostración, y coherente con los tres meses de historia que ya están sembrados.
 >
-> **Estado: aprobado el 14 sep 2026, con las cinco decisiones de §6 tal como se recomendaron; fase 0
-> en curso. Nada escrito en ningún ambiente.** Cada paso que escriba en producción lleva tu permiso
-> aparte, como en la semilla.
+> **Estado al 15 sep 2026: hecho entero, de la fase 0 a la 5.** Aprobado el 14 sep con las cinco
+> decisiones de §6 tal como se recomendaron. Sembrado en staging y en producción, cada paso de producción
+> con tu permiso aparte: 43 de 43, y cero avisos, correos e IA. La fase 5 (Medidores) añadió D2 y arregló
+> en el producto la H.51. D3 quedó fuera (DD1).
 >
 > **Parte de:** `docs/plan-seed-demo-lomas-de-sayilbedra.md` (la historia, sembrada en producción el
 > 14 sep) y su contrato de datos. Reutiliza su motor, su manifiesto y su `--limpiar`.
@@ -433,12 +434,46 @@ David eligió las dos recomendaciones: abrir en el último mes con lecturas, y D
     una foto enrojece esa comprobación sola y exacta; restaurada, 43 de 43. `--limpiar` deja el conjunto
     como estaba, con 0 fotos en Storage.
   - Bancos: app 2087, functions 1084, typecheck y lint en 0.
-- [ ] **T5.3 Commit y push a `develop`, con tu sí.** Staging despliega la pantalla solo.
-- [ ] **T5.4 Ensayo en staging:** D2 en seco, escribir dos veces, los testigos y el verificador. Mirar
+- [x] **T5.3 Commit y push a `develop`, con tu sí:** `bb238da`. Staging sirve `build-2026-09-15-004`
+  desde ese commit (visto a las 04:29 UTC).
+- [x] **T5.4 Ensayo en staging:** D2 en seco, escribir dos veces, los testigos y el verificador. Mirar
   Medidores con la administración (tiene que abrir en agosto) y una foto con el residente de Encinos 03.
-- [ ] **T5.5 Producción, un permiso por paso:** push a `master` (la pantalla) y D2 con `--si-produccion`;
+  - **En seco:** 192 fotos «se crearían» y todo lo demás «ya estaban». El verificador nuevo, antes de D2,
+    ya daba 43 de 43 con las tarjetas: solo mira que la foto exista, su tipo y su token.
+  - **Escribir:** 192 creadas, y la segunda corrida, 192 «ya estaban». Los testigos no se movieron: correos
+    2 → 2, IA 41 → 41, avisos 652 → 652, y ninguno nacido desde el inicio. Verificador 43 de 43, con 249
+    archivos.
+  - **La foto de Encinos 03 de agosto** (583 m³), bajada de Storage: la esfera, idéntica byte a byte a la
+    del emulador.
+  - **Medidores con la administración, antes y después del despliegue:** con `ecc0d0c` abría en 2026-09,
+    con 0 de 48 lecturas; con `bb238da`, en 2026-08, con la franja, 48 de 48, 1091 m³ y $24,002.00. El
+    botón «Ir a septiembre de 2026» lleva al mes en curso y quita la franja.
+  - **Con el residente de Encinos 03** (`+lomas-res1`), en «Tus consumos medidos» de `/resident/account`:
+    cuatro filas —agosto, 25 m³ y $550.00; julio, 31 y $682.00; junio, 17 y $374.00; mayo, «primera
+    lectura»—, y «Ver foto» de agosto abre la esfera: 900×900 y la ruta de la casa y el mes (la tarjeta de
+    texto medía 640×640). La huella de los bytes no se pudo sacar desde la página, porque el `fetch` falla
+    aunque la imagen carga; la foto de esa ruta, bajada de Storage, es idéntica a la del emulador.
+  - Para entrar hubo que generar el enlace de contraseña: las cuentas demo del ensayo se quedaron sin ella
+    en la resiembra de T2.3 (runbook, cuentas demo).
+- [x] **T5.5 Producción, un permiso por paso:** push a `master` (la pantalla) y D2 con `--si-produccion`;
   el verificador y el mismo recorrido.
-- [ ] **T5.6 Cierre:** el runbook, `docs/pendientes.md`, el roadmap y la memoria.
+  - **Push a `master`, con tu sí:** de `ecc0d0c` a `bb238da`, sin merge; el rollout `-003` nació a las
+    04:46 UTC.
+  - **Antes del despliegue,** con el admin en `www`: Medidores abría en 2026-09, con 0 de 48 lecturas.
+  - **D2 en seco, con tu sí:** 192 fotos «se crearían» y todo lo demás «ya estaban».
+  - Las cuatro cuentas demo de producción tienen contraseña, y `+lomas-res1` entró el 14 sep.
+  - **D2 escribiendo, con tu sí:** 192 creadas, y la segunda corrida, 192 «ya estaban». Los testigos no se
+    movieron: correos 2 → 2, IA 0 → 0, avisos 813 → 813, y ninguno nacido desde el inicio. Verificador 43
+    de 43, con 249 archivos. La foto de Encinos 03 de agosto es idéntica byte a byte a la de staging.
+  - **Después del despliegue** (`build-2026-09-15-003` desde `bb238da`, visto a las 05:00 UTC): Medidores
+    abre en 2026-08, con la franja, 48 de 48, 1091 m³ y $24,002.00, igual que en staging.
+  - El bucle que esperaba el despliegue lo bloqueó el clasificador del modo automático; se esperó con
+    lecturas sueltas de `estado-de-apphosting.mjs`.
+  - **La foto vista como residente en producción se saltó**, por decisión de David: es idéntica byte a
+    byte a la de staging, que sí se vio desde la pantalla del residente.
+- [x] **T5.6 Cierre:** el runbook, `docs/pendientes.md`, el roadmap (0.9.77), la wiki, el contrato (H.51) y
+  la memoria, en el commit del cierre del 15 sep. En Notion, una fila nueva en la bitácora
+  (`3dc1acebfa0981f7a6d9f8c380400360`) y el tablero al día (31 rarezas, tres arregladas; 0.9.77), releídos.
 
 ---
 

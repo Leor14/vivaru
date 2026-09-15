@@ -4,9 +4,9 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 14 de septiembre de 2026 (noche; 03:00 UTC del 15)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 14 de septiembre de 2026 (noche; 05:00 UTC del 15)
 
-> # LOMAS, SEMBRADA EN PRODUCCIÓN CON SU HISTORIA Y SUS DOCUMENTOS. SOLO QUEDA EL CABO DE T3.5.
+> # LOMAS, SEMBRADA EN PRODUCCIÓN CON SU HISTORIA, SUS DOCUMENTOS Y SUS MEDIDORES. SOLO QUEDA EL CABO DE T3.5.
 >
 > **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por qué
 > lo frena, está en «LO QUE SIGUE», justo debajo.
@@ -28,16 +28,25 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >   - 43 de 43, y cero avisos, correos e IA, medidos con testigos propios.
 >   - Recorridos con la administración y con un residente. Salieron **11 rarezas nuevas del producto**
 >     (contrato, H.40–H.50).
->   - Y la fase 4, el cierre: este traspaso, el roadmap (0.9.76), la bitácora, el tablero, la wiki y la
+>   - Y la fase 4, el cierre: el traspaso, el roadmap (0.9.76), la bitácora, el tablero, la wiki y la
 >     memoria.
+> - **Última hora (04:00–05:00 UTC del 15).** David vio Medidores vacía y pidió llenarla: la fase 5 del
+>   plan de documentos, con permiso en cada paso.
+>   - **La pantalla abre en el último mes con lecturas** (`bb238da`), con una franja que lo dice. Abría en
+>     el mes en curso, que a mitad de mes no tiene ninguna. Es la H.51 del contrato, y se arregló en el
+>     producto.
+>   - **D2:** las 192 fotos de lectura pasan de tarjeta de texto a esfera de medidor, en la misma ruta y con
+>     el mismo token. El residente las abre desde «Tus consumos medidos».
+>   - Staging y producción: 43 de 43 y los testigos quietos. En staging, las cuentas demo no tenían
+>     contraseña desde la resiembra de T2.3 (runbook, cuentas demo).
 >
-> **Lo que sirve cada ambiente al cerrar (medido a las 03:38 UTC del 15):**
-> - **`master` y `develop`, en `a9b2552`** desde el 15 sep: un avance rápido de cuatro commits (el plan de
->   documentos, su fase 1, el cierre y el runbook), sin código de la app.
-> - **Producción:** `build-2026-09-15-001` desde `a9b2552`, visto sirviendo a las 03:37 UTC.
-> - **Staging:** `build-2026-09-15-002` desde `a9b2552`.
-> - **Detrás de `a9b2552` solo vienen notas** (este traspaso y el roadmap): su despliegue no cambia la app.
-> - **Reglas:** `dbc6cdf1` en producción y `b3fb7c8a` en staging, **las dos idénticas al repo**.
+> **Lo que sirve cada ambiente al cerrar (medido a las 05:00 UTC del 15):**
+> - **`master` y `develop`, en `bb238da`** desde el 15 sep: la pantalla de Medidores y D2.
+> - **Producción:** `build-2026-09-15-003` desde `bb238da`, visto sirviendo a las 05:00 UTC.
+> - **Staging:** `build-2026-09-15-004` desde `bb238da`, visto sirviendo a las 04:29 UTC.
+> - **Detrás de `bb238da` solo vienen notas** (este traspaso y el roadmap): su despliegue no cambia la app.
+> - **Reglas:** `dbc6cdf1` en producción y `b3fb7c8a` en staging, **las dos idénticas al repo** (medido a
+>   las 03:38 UTC; nada las ha tocado después).
 > - **Functions:** sin despliegues desde el 12.
 >
 > ```bash
@@ -48,7 +57,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
 > ```
 >
-> **Bancos:** `npm test` **2080** · functions **1079** (contados el 14) · reglas **591** (sin Storage) ·
+> **Bancos:** `npm test` **2087** · functions **1084** (contados el 15) · reglas **591** (sin Storage) ·
 > emulador de functions **379 de 381** (contados en `ba98abe`, sin cambios en reglas ni en `functions/src`
 > desde entonces; los dos rojos, `CA12` y `D-B` de `payments.emulator.test.ts`, preexistentes).
 >
@@ -61,7 +70,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **B · Espera una decisión de David**
 > 1. **Las rarezas del producto, sin decidir** (contrato de la semilla, §H): las 16 del recorrido del 13
 >    (H.21–H.38 salvo H.31 y H.37), H.39 y las 11 del plan de documentos (H.40–H.50). Ninguna se ha
->    tocado. Las que más se verían en una demo:
+>    tocado; la H.51, que salió después, ya está arreglada en producción. Las que más se verían en una
+>    demo:
 >    - **H.28:** «Enviar acceso a 95», a un clic.
 >    - **H.32** y **H.36:** «Próxima reserva» sale un día antes, y a veces ya pasada.
 >    - **H.38:** el listado de reservas de la portería empieza en junio.

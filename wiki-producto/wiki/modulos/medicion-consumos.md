@@ -3,7 +3,7 @@ tags: [modulo, finanzas, consumos]
 tipo: concepto
 fuentes: ["PRD-V-FEAT-008"]
 fecha_creacion: 2026-09-12
-fecha_actualizacion: 2026-09-12
+fecha_actualizacion: 2026-09-15
 ---
 
 # Medición de consumos con foto
@@ -34,11 +34,18 @@ conceptos de cobro servía para el agua. `PRD-V-FEAT-008` lo construyó en tres 
   cuenta de egreso 2.2 del plan. Y el consumo necesitó un concepto de cargo propio: `aplicarPago` saca la
   cuenta del concepto, no del `accountCode`. Ver [[integridad-financiera]].
 
-## Una trampa de pantalla
+## Dos trampas de pantalla
 
 **El campo de la lectura no llevaba el período en su `key`**, así que al cambiar de mes seguía mostrando
 la lectura del anterior. Ninguna prueba unitaria lo veía; ahora lo vigila
 `tests/campo-no-controlado-con-periodo.test.ts`. Ver [[form-validation]] y [[trampas-conocidas]].
+
+**Y abría en el mes en curso**, que a mitad de mes no tiene ninguna lectura, porque la ronda se lee a fin
+de mes. La administración veía todas las unidades en blanco y los totales en cero, con meses registrados
+detrás del selector. Lo vio David en la demo de Lomas el 15 sep (contrato de la semilla, H.51). Desde
+`bb238da`, si el mes en curso está vacío, la pantalla abre en el último con lecturas y lo dice en una
+franja. Busca mes a mes con una consulta por período y `limit(1)`, sin `orderBy`, como exige
+`tests/consulta-sin-orderby-sin-indice.test.ts` ([[firebase-firestore]]).
 
 ## Bandera y estado
 

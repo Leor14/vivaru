@@ -10,6 +10,15 @@ fecha_actualizacion: 2026-09-15
 
 ---
 
+## [2026-09-15] update | Medidores abre en el último mes con lecturas
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 2 — [[medicion-consumos]] (la pantalla abría en el mes en curso, vacío; H.51 del contrato de la semilla, arreglada en `bb238da` y en producción) y este log
+- **Entidades extraídas**: `ultimoPeriodoConLecturas`, `hayLecturasEnPeriodo`, `src/features/medidores/periodos.ts`
+- **Nota**: salió de la demo de Lomas. Las fotos de medidor ilustradas (D2 del plan de documentos) son de la semilla y no cambian el producto, así que no entran aquí.
+
+---
+
 ## [2026-09-15] lint | La fase de documentos de la semilla de Lomas: nada que cambie la wiki todavía
 
 - **Páginas creadas**: 0
