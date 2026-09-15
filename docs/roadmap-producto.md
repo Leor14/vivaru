@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.77 |
-| **Fecha** | 14 de septiembre de 2026, noche (05:00 UTC del 15) |
-| **Estado** | **Lomas de Sayilbedra, sembrada en producción con tres meses de historia, sus documentos y sus medidores.** El 14 de madrugada, la fase 3 del plan de la semilla sembró producción con permiso de David en cada paso: 37 de 37, cero correos y cero llamadas a IA. De mediodía a medianoche, el plan de documentos (`docs/plan-documentos-demo-lomas.md`) añadió el reglamento completo, las actas del consejo, la asamblea, el plano y la memoria de obra, carteles y circulares, fotos de las áreas, portadas y tarifas de servicios, contratos y póliza, comprobantes, relaciones bancarias, el archivo mensual del cron rellenado hacia atrás y el logo. Se probó en el emulador, se ensayó en staging (limpiar y resembrar incluido) y se corrió en producción: 43 de 43, cero avisos, correos e IA, y recorrido con la administración y con un residente. **Ya de noche, David vio Medidores vacía**, y la fase 5 del mismo plan lo arregló por los dos lados: la pantalla abre en el último mes con lecturas en vez del mes en curso vacío (H.51, **un cambio del producto**, `bb238da`, en los dos ambientes), y las 192 fotos de lectura pasan de tarjeta de texto a esfera de medidor (D2). **Salieron 11 rarezas del producto** (contrato, H.40–H.50): el logo que no llega al informe mensual ni a los correos, el dinero en formato colombiano en los PDF del servidor, el adjunto de un comunicado programado que el residente ve antes de publicarse, entre otras. Ninguna se ha tocado. **Falta el cabo de T3.5** (la prueba de la puerta por pantalla, que tropieza con H.39) y decidir qué hacer con las rarezas (H.21–H.50, salvo H.31 y H.37). Lo que ya esperaba a David o a terceros sigue igual. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
-| **Verificado contra** | **Los servicios, al cerrar (05:00 UTC del 15).** `master` y `develop`, en `bb238da` (la pantalla de Medidores y D2). Producción sirve `build-2026-09-15-003` y staging `build-2026-09-15-004`, los dos desde `bb238da`; detrás solo vienen notas. Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs` a las 03:38 UTC, y nada los ha tocado después; sin despliegues de functions ni de reglas desde el 12. **Esta pasada despliega solo el front** (Medidores), por el push a `master`; la semilla se corre. En producción, el verificador de la semilla da 43 de 43 tras escribir D2, y los testigos no registran avisos ni correos nuevos. Bancos: `npm test` **2087** y functions **1084**, contados el 15; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
+| **Versión** | 0.9.78 |
+| **Fecha** | 15 de septiembre de 2026, tarde (22:25 UTC) |
+| **Estado** | **Hay un modelo para priorizar, calibrado contra nuestra historia, y el primer lote valorado con él.** El 15 sep, a petición de David: `docs/modelo-de-priorizacion.md` (v0.3; la v0.1 inflaba el esfuerzo hasta 8,6 veces y la tercera calibración pasa: seis de seis dentro del 50 %, ρ ≈ 0,94) y la skill `valorar-iniciativa-vivaru`, en el repositorio, con diez casos de prueba. **El primer lote es el análisis de una administradora colombiana** sobre la demo de Santa María: 32 necesidades, con su apartado propio arriba («Lote "Análisis de la plataforma"»). La mitad de lo que pide ya existe y no se ve, y los defectos pesan más que las mejoras. **Al planificarlo apareció `D-2b`**: cualquier residente puede leer un comunicado dirigido a otras unidades (regla comodín `sameTenant`; la audiencia solo se filtra en el navegador). David lo declaró **obligatorio**. El plan (`docs/plan-lote-analisis-plataforma.md`) está aprobado y va por fases: primero la v0.4 del modelo y el recálculo; después, reproducir en el emulador `D-1`, `D-2`, `D-2b`, `D-3` y `L-08a`. **Nada del producto cambió en esta revisión.** Lomas sigue sembrada en producción; falta el cabo de T3.5 y decidir las rarezas H.21–H.50 (salvo H.31 y H.37). El menú de `docs/pendientes.md` se pone al día al cerrar la sesión; los remotos, con `git ls-remote` |
+| **Verificado contra** | **Los servicios, a las 22:25 UTC del 15.** `develop` en `92286f3` antes de esta revisión y `master` en `444be09`. Producción sirve `build-2026-09-15-006` (desde `444be09`) y staging `build-2026-09-15-010` (desde `92286f3`): la app es la de `bb238da` y detrás solo vienen notas y la skill. Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`, medidos de nuevo el 15 por la tarde. Sin despliegues de functions ni de reglas desde el 12. **Esta revisión es solo documentos.** Los hallazgos de código (`D-1`, `D-2`, `D-2b`, `D-3`, `L-08a`, `L-21d`, `L-29`) están leídos con fichero y línea, **no reproducidos**. Bancos sin cambios de código: `npm test` **2087** y functions **1084**, contados el 15; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -142,6 +142,7 @@ de entrega.**
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
 | **Bloques de Habitanto** | 🟢 **LO CONSTRUIBLE, HECHO** (10 sep; el lote, once de once el 12 con `FIX-001` entera) — `FLOW-007` entregas 1 y 2 y `FLOW-008` encendidas en los diez por el valor global (medido el 12 sep); **`FEAT-008`** (§3.5, la foto del medidor, tres entregas) y **`FEAT-009`** (§3.8, presupuesto contra ejecución, dos entregas) en producción, **encendidas solo en las dos demos, Las Playas y Lomas** (medido el 15 sep) | **Encender** `FEAT-008` o `FEAT-009` donde haya quien mida consumos o cargue un presupuesto: es decisión, no código | 🔴 **`FLOW-006` y la entrega 3 de `FLOW-007` BLOQUEADAS por el abogado** · ◇ Fase 2 de `FEAT-009` (reformado, consejo en la app, línea en el informe) *(aquí iba `FIX-001` entrega 2, «van 10 de 11»: en producción el 12 sep)* | ◇ Quedan **32 P1, 38 P2 y 12 P3** sin ficha de los 108 candidatos (recontados el 15 sep) |
+| **Análisis de la plataforma** (lote del 15 sep; apartado propio, abajo) | 🔴 **Obligatorio, por reproducir: `D-2b`** (cualquier residente lee un comunicado dirigido a otras unidades), **`D-2`** (su aviso llega a todos) y **`D-3`** (la categoría por defecto de Documentos la leen los residentes) · 🟢 **Se puede ya:** `L-21d`, `L-08a` y `L-29` (defectos), el lote XS, y `L-27` y `L-04` con permiso | 🟡 **Decisiones de David que valen la pena:** `L-17`, `L-18`, `L-19`, `L-32`, `L-03` y `L-08b` | 🔵 `L-15`, `L-06`, `L-10`, `L-09`, `L-16` y `L-14` | ◇ No ahora: `L-26`, `L-25`, `L-30`, `L-28`, `L-01b` y `L-05` · ⏸ Terceros: `L-31` y `L-32b` |
 | **Experiencia y diseño** | ✅ **BLOQUE CERRADO** — `UX-001`, `UX-003`, `UX-004` y **`UX-006` MODO OSCURO en producción, ENCENDIDO EN TODOS LOS CONJUNTOS y PRODUCTIVO** (encendido el 3 sep, hoy en los diez; Productiva el 12; `PRD-V-FEAT-007`, por el valor global y sin overrides). Era el **paso previo acordado antes de volver a los bloques de Habitanto**, y ya está hecho | ✅ **`FEAT-007` PRODUCTIVA el 12 sep**: el destello y la impresión, mirados en staging; los PDF y el QR, por construcción *(aquí iban «cuatro criterios para marcarla Productiva»)* · 🟡 Repasar los criterios de `UX-004` contra producción | 🟠 **`UX-005`** (tableros configurables) — **DESBLOQUEADA**: su decisión pendiente era «por usuario o por conjunto» y `FEAT-007` la resolvió, **por usuario** · ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ Deuda de contraste anterior: `--slate-400` (2,83:1, 78 usos) y dos botones con etiqueta blanca (3,65 y 3,61). Medida, con suelo en las pruebas, y **arreglarla se ve en claro**: decisión de David |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
@@ -194,6 +195,107 @@ fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 des
 | Bloqueado por datos | Técnicamente posible, sin materia prima real para evaluarlo |
 | Descubrimiento | Falta validar problema, usuario o alternativa |
 | Decisión pendiente | Hay opciones, pero no una dirección aprobada |
+
+---
+
+## Lote «Análisis de la plataforma» — qué vale la pena, qué se puede y qué está frenado (15 sep 2026)
+
+**De dónde sale.** Una **administradora de propiedad horizontal en Colombia** recorrió el portal de
+administración del conjunto demo Santa María el 13 sep y lo comentó módulo por módulo. Salieron 32
+necesidades. Se valoraron el 15 sep con el **modelo de priorización** (`docs/modelo-de-priorizacion.md`,
+v0.3) y la skill `valorar-iniciativa-vivaru`: seis agentes leyeron el código, uno por bloque de módulos.
+David decidió que ella **cuenta como prospecto**.
+
+**Dónde está el detalle.**
+- Las 31 fichas puntuadas: `docs/valoraciones/lote-2026-09-15-analisis-plataforma.md`.
+- El orden de trabajo, con sus seis fases, aprobado por David el 15 sep: `docs/plan-lote-analisis-plataforma.md`.
+
+**Una advertencia.** Las puntuaciones son de la v0.3. La fase 0 del plan pasa la confianza a «cada
+estimación por su propio nivel» (v0.4) y recalcula el lote: el orden **dentro** de cada grupo puede
+moverse, pero **los grupos los fijan el freno y la puerta de lo obligatorio, no la puntuación**.
+
+**Lo que dice el lote, en tres frases.** La mitad de lo que pide ya existe y no se ve: el presupuesto
+privado, los perfiles de portería, el reglamento sin firmas, el editor de encuestas. Los defectos pesan
+más que las mejoras. Y casi todo es pequeño: 22 de 31 cuestan menos de 2 horas.
+
+### 1. Primero, lo obligatorio
+
+Leído en el código y **por reproducir en el emulador** (fase 1 del plan). No compite con nada: va por
+delante.
+
+| Id | Qué | Horas | Estado |
+|---|---|---|---|
+| **D-2b** | **Cualquier residente del conjunto puede leer un comunicado dirigido a otras unidades.** `communications` cae en la regla comodín (`sameTenant`) y la audiencia solo se filtra en el navegador. Obligatorio por decisión de David (acceso indebido entre unidades) | ~2,5 | Se puede; la regla restringe, así que se despliega al final y con relleno |
+| **D-2** | El aviso de un comunicado dirigido llega a todos los residentes (`onCommunicationCreated`) | ~0,8 | Se puede, tras D-2b |
+| **D-3** | La categoría por defecto al subir un documento es «otro», y los residentes la leen | ~0,4 | Se puede; antes se mide el radio |
+| **D-1** | «Enviar aviso a residentes», en Cartera, dice «tienes cartera en mora» a todos, también a los que están al día | ~0,4 | Se puede, tras D-2b y D-2 |
+
+### 2. Vale la pena y se puede ya (freno A)
+
+| Id | Qué | Puntuación | Cuadrante | Horas | Espera |
+|---|---|---|---|---|---|
+| **L-21d** | Defecto: PQRS enseña la unidad como un id crudo y al residente como «Residente» | 5,0 | Ganancia rápida | 1,1 | — |
+| **L-08a** | Defecto: la portería no puede registrar la salida de un visitante frecuente. Desbloquea L-10 | (de L-08) | Ganancia rápida | 0,8 | — |
+| **L-29** | Quién registró cada entrada y salida: hay 309 ingresos sin autor en producción | 2,3 | Ganancia rápida | 1,8 | — |
+| **L-27** | El presupuesto privado ya existe: **encenderlo en Santa María** | 6,1 | Relleno | 0,45 | Permiso de bandera |
+| **Lote XS** | L-01a (colores), L-02 (formato de la carga masiva), L-11 (la portería tiene su panel), L-12 (fecha de publicación) y dos tildes | sin puntuar | — | < 2 en total | — |
+| **L-20** | Paquetería: qué empresa lo trajo, en qué estado llegó y la entrega a la vista | 2,8 | Relleno | 1,2 | — |
+| **L-24** | Tendencia de cartera mensual y acumulada del año | 2,8 | Relleno | 0,9 | — |
+| **L-22** | Subir el informe del contador, con la categoría forzada a `financiero` | 2,6 | Relleno | 0,85 | — |
+| **L-23** | Correo de cobro solo a los deudores (va después de D-1) | 2,5 | Relleno; Ganancia rápida si se reproduce D-1 | 1,4 | — |
+| **L-07** | Ver las unidades de un mismo dueño | 2,0 | Relleno | 1,0 | — |
+| **L-21** | PQRS: evidencia de la solución y Excel del detalle | 1,7 | Relleno | 1,8 | — |
+
+### 3. Vale la pena, pero espera una decisión de David (freno B)
+
+| Id | Qué | Qué hay que decidir | Puntuación |
+|---|---|---|---|
+| **L-04** | Santa María no tiene país: dice «porcentaje de copropiedad» en vez de «coeficiente» (el punto 4 del menú) | Poner `country: CO`, con permiso | 5,5 |
+| **L-17** | Encuestas: un nombre más cercano; el editor de formularios ya existe | El nombre (con él, pasa a XS) | 3,6 |
+| **L-08b** | El residente crea su propio visitante frecuente | Si puede hacerlo él solo | 3,3, Ganancia rápida |
+| **L-18** | El reglamento pide firmas que en propiedad horizontal nadie da; el modo sin firmas ya existe | El valor por defecto por país | 3,1 |
+| **L-32** | Números de emergencia y preguntas frecuentes | ¿Del conjunto o de la plataforma? ¿Quién redacta? | 3,0 |
+| **L-03** | El alta de unidad pide área y valor del seguro, que nadie lee | ¿Retirar, esconder o por país? ¿Entra la H.39? | 2,5 |
+| **L-19** | Reservas con valor, depósito, aforo en personas y protocolo | ¿El valor solo se informa o genera un cargo? | 2,5, Ganancia rápida |
+| L-15 · L-06 · L-10 | Clase del comunicado · la inmobiliaria · el personal de servicios con horario | La taxonomía · a quién se cobra y quién accede · catálogo del conjunto o por unidad | 2,2 · 2,0 · 2,0 |
+| L-09 · L-16 · L-14 | Foto del visitante · clasificados de la copropiedad · registro de comunicados borrados | Cómo se ve y se guarda la foto · quién publica · qué se conserva | 1,9 · 1,6 · 1,4 |
+
+### 4. No vale la pena ahora, o está frenado por terceros
+
+- **Puntuación por debajo de 1:**
+  - L-26, matriz de mantenimientos (0,87)
+  - L-25, consumo de las zonas comunes (0,85)
+  - L-30, minuta de vigilancia (0,7)
+  - L-28, convivencia y descargos (0,68)
+  - L-01b, un tema más llamativo (0,5)
+  - L-05, la exención por mora en el parqueadero (0,5, y depende de `A8`)
+
+  Cada ficha dice qué prueba las subiría. Por ejemplo, **L-30 pasaría a Ganancia rápida si ella dice que
+  la minuta es diaria y en papel**.
+- **Terceros (C):**
+  - L-31, la calificación de Google (depende de Google y de la ficha de cada edificio).
+  - L-32b, el chatbot 24/7 (Pozo: sin preguntas reales ni corpus; iría por `crear-prd-ia-vivaru`).
+
+### 5. Los seis bloques, de un vistazo
+
+| Bloque | Obligatorio | Se puede ya | Espera a David | No ahora o terceros | XS |
+|---|---|---|---|---|---|
+| **Residentes y unidades** | — | L-07 | L-04, L-03, L-06 | L-01b, L-05 | L-01a, L-02, tildes |
+| **Visitantes y portería** | — | L-08a, L-29 | L-08b, L-10, L-09 | L-30 | L-11 |
+| **Comunicaciones y comunidad** | D-2b, D-2 | L-13 (puntúa poco: 1,0) | L-17, L-18, L-15, L-16, L-14 | L-31 | L-12 |
+| **Reservas, paquetería, PQRS y soporte** | — | L-21d, L-20, L-21 | L-19, L-32 | L-32b | — |
+| **Cartera, medidores y documentos** | D-3, y D-1 como defecto | L-24, L-22, L-23 | — | L-25 | — |
+| **Egresos, presupuesto y convivencia** | — | L-27 (encender) | — | L-26, L-28 | — |
+
+### 6. Tres señales para frentes ya construidos
+
+- **Tesorería (`FEAT-010`):** «no la veo tan requerida». Es prueba de 0,8 de que para una administradora
+  colombiana no forma parte de su mes. **Pesa contra seguir invirtiendo en ella o encenderla global.**
+- **Conciliación (`FLOW-004`):** «manejo directo de contabilidad». Choca con la administradora de
+  Ecuador, que concilia ella misma. En Colombia lo haría el contador, y **ese rol no existe en el
+  producto**.
+- **Libro y fondos:** no es su pantalla; lo que valora es el informe mensual (`FLOW-007`), que el Libro
+  alimenta. No se toca.
 
 ---
 
@@ -1238,6 +1340,33 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.78 — 15 de septiembre de 2026 — un modelo para priorizar, y el primer lote valorado con él
+
+- **Por qué cambió.** David pidió un modelo que valore cada necesidad —requerimiento, defecto, mejora,
+  frente o PRD— por su impacto (para el cliente final y para el negocio) y por todo lo que cuesta
+  construirla, mirando el código y los datos antes de calificar. Existe:
+  - `docs/modelo-de-priorizacion.md`;
+  - la skill `valorar-iniciativa-vivaru`, en el repositorio, con diez casos de prueba.
+- **Contra qué se verificó.** Tres calibraciones a ciegas contra el coste real en `git log` de 18
+  entregas (`docs/valoraciones/calibracion-2026-09-15*.md`):
+  - **La v0.1 inflaba el esfuerzo hasta 8,6 veces.** La v0.2 acertó la escala pero perdió el orden.
+  - **La v0.3 pasa:** seis de seis dentro del 50 %, sin sesgo y con el orden recuperado (ρ ≈ 0,94).
+  - Dos cosas las destapó la calibración, no el diseño: **la sesión no sirve como unidad de esfuerzo**
+    (una se tragó una PRD de tres entregas), y **el tiempo de David no suma trabajo, suma espera**.
+- **El primer lote**, del análisis de una administradora colombiana: el apartado nuevo de arriba.
+  **Al planificarlo apareció `D-2b`**: cualquier residente puede leer un comunicado dirigido a otras
+  unidades. Se encontró leyendo el código; no está reproducido.
+- **Decisiones de David, 15 sep:**
+  - la administradora cuenta como prospecto;
+  - la confianza pasa a «cada estimación por su propio nivel», porque la regla vigente no es monótona
+    (será la v0.4);
+  - entran cuatro definiciones: Cierre para mejorar algo cerrado, «ya existe y no se ve», una referencia
+    de encender una bandera, y Día uno por país;
+  - `D-2b` es obligatorio: el acceso indebido entre unidades se añade a §2.1;
+  - el plan está aprobado, con un commit por fase.
+- **Nada del producto cambió en esta revisión**: solo documentos y la skill. Producción sigue en
+  `444be09`.
 
 ### 0.9.77 — 14 de septiembre de 2026 (noche) — Medidores abre en el último mes con lecturas; fotos de medidor en Lomas
 
