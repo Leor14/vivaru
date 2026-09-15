@@ -3,7 +3,7 @@ tags: [modulo, finanzas, tesoreria]
 tipo: concepto
 fuentes: ["PRD-V-FEAT-010"]
 fecha_creacion: 2026-09-12
-fecha_actualizacion: 2026-09-12
+fecha_actualizacion: 2026-09-15
 ---
 
 # Tesorería: saldo por cuenta, traspasos y caja chica
@@ -40,10 +40,11 @@ se borra—. Ver [[firebase-firestore]] y [[trampas-conocidas]].
 
 ## Bandera
 
-`producto-tesoreria` ([[banderas-funcionalidad]]). En producción, **encendida solo en Las Playas**, con
-una demo sembrada (`functions/scripts/sembrar-demo-finanzas.mjs`), igual que el [[presupuesto]] y la
-[[medicion-consumos|medición de consumos]]; en staging, en Las Playas y Santa María. Producción no tiene
-clientes, así que el primer uso real espera a un conjunto de verdad.
+`producto-tesoreria` ([[banderas-funcionalidad]]). **Medido el 15 sep, resolviendo conjunto por conjunto:**
+en producción, **encendida en las dos demos** —Las Playas (`functions/scripts/sembrar-demo-finanzas.mjs`) y
+Lomas de Sayilbedra (`sembrar-historia-demo.mjs`)— y apagada en los otros ocho, igual que el
+[[presupuesto]] y la [[medicion-consumos|medición de consumos]]; en staging, en Las Playas, Santa María y
+el ensayo de Lomas. Producción no tiene clientes, así que el primer uso real espera a un conjunto de verdad.
 
 ## Relaciones
 

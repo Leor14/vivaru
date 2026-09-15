@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que toma las lecturas cada mes |
 | **Usuarios secundarios** | Residente (ve su consumo), consejo (lo ve en el informe) |
 | **Responsable** | David |
-| **Estado** | **LAS TRES ENTREGAS EN PRODUCCIÓN** (`6fac4bc`), vistas antes en staging · bandera encendida **solo en Las Playas**, con una demo sembrada (10 sep 2026); apagada en los otros ocho |
+| **Estado** | **LAS TRES ENTREGAS EN PRODUCCIÓN** (`6fac4bc`), vistas antes en staging · bandera encendida en las dos demos, Las Playas (10 sep 2026) y Lomas de Sayilbedra (14 sep), y apagada en los otros ocho de producción; en staging, en Las Playas, Palmas y el ensayo de Lomas *(medido el 15 sep resolviendo conjunto por conjunto)* · desde el 15 sep (`bb238da`) la pantalla abre en el último mes con lecturas (H.51 del contrato de la semilla) |
 | **Dependencias** | `PRD-V-FLOW-001` (reparto por coeficiente, **de donde sale la estructura**) · `PRD-V-PLAT-003` (plan de cuentas) |
 | **Riesgo** | Medio — toca dinero, pero no toca permisos ni el modelo de la unidad |
 | **Reversibilidad** | Reversible por bandera **salvo los cargos ya emitidos** (§13) |

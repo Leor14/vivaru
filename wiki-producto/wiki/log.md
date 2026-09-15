@@ -10,6 +10,14 @@ fecha_actualizacion: 2026-09-15
 
 ---
 
+## [2026-09-15] update | Las banderas de medidor, presupuesto y tesorería, medidas de nuevo
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 4 — [[medicion-consumos]], [[presupuesto]], [[tesoreria]] y este log
+- **Comprobado**: las tres decían «encendida solo en Las Playas» (medido el 12 sep). Resolviendo conjunto por conjunto con `functions/lib/feature-flags.js` el 15 sep: en producción, 2 de 10 —Las Playas y Lomas de Sayilbedra, las dos por override desde sus semillas—; en staging, 3 de 11, con el ensayo de Lomas junto a Las Playas y a Palmas (o a Santa María, en la tesorería). El dato viejo estaba copiado también en la memoria y en el tablero y el inventario de Notion, y se corrigió en todos.
+
+---
+
 ## [2026-09-15] update | Medidores abre en el último mes con lecturas
 
 - **Páginas creadas**: 0

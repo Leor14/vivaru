@@ -49,10 +49,12 @@ franja. Busca mes a mes con una consulta por período y `limit(1)`, sin `orderBy
 
 ## Bandera y estado
 
-`producto-medicion-de-consumos` ([[banderas-funcionalidad]]). **Medido el 12 sep:** en producción está
-encendida solo en Las Playas, con una demo de 24 lecturas con foto sin cobrar; en staging, en Las Playas
-y Palmas. Producción no tiene clientes, así que el primer uso real espera a un conjunto de verdad, como la
-[[tesoreria]] y el [[presupuesto]].
+`producto-medicion-de-consumos` ([[banderas-funcionalidad]]). **Medido el 15 sep, resolviendo conjunto por
+conjunto:** en producción está encendida en las dos demos —Las Playas, con 24 lecturas con foto sin cobrar, y
+Lomas de Sayilbedra, con 192 lecturas de mayo a agosto y la foto de cada medidor— y apagada en los otros
+ocho; en staging, en Las Playas, Palmas y el ensayo de Lomas. Todas por override. Producción no tiene
+clientes, así que el primer uso real espera a un conjunto de verdad, como la [[tesoreria]] y el
+[[presupuesto]].
 
 ## Relaciones
 

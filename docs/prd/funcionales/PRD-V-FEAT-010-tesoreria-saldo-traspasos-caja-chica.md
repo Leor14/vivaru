@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que mueve dinero entre las cuentas del conjunto y maneja la caja chica |
 | **Usuarios secundarios** | Ninguno. El residente **no ve nada de esto**, y es una regla (`RN-08`) |
 | **Responsable** | David |
-| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN** (10 sep 2026), **y el 11 sep la cuenta de salida en el pago de una cuota** · bandera encendida **solo en Las Playas**, con una demo sembrada; apagada en los otros nueve de producción. En staging, en Las Playas y Santa María. *(Medido el 12 sep 2026 resolviendo conjunto por conjunto. Esta celda decía «los otros ocho» y omitía la entrega del 11.)* |
+| **Estado** | **LAS CUATRO ENTREGAS —1, 2a, 2b y 3— EN PRODUCCIÓN** (10 sep 2026), **y el 11 sep la cuenta de salida en el pago de una cuota** · bandera encendida en las dos demos, Las Playas y Lomas de Sayilbedra, y apagada en los otros ocho de producción. En staging, en Las Playas, Santa María y el ensayo de Lomas. *(Medido el 15 sep 2026 resolviendo conjunto por conjunto; el 12 solo estaba Las Playas, porque Lomas se sembró el 13–14.)* |
 | **Dependencias** | `PRD-V-FLOW-002` (el pago registra a qué cuenta entró) · `PRD-V-FLOW-004` (la conciliación por cuenta) · `PRD-V-FLOW-007` entrega 1 (el saldo inicial por cuenta) |
 | **Riesgo** | Medio — no mueve dinero de nadie, pero **toca cómo se lee el dinero** del conjunto |
 | **Reversibilidad** | Por bandera en lo que se ve. Los traspasos no se borran: se anulan (`RN-06`) |
@@ -278,7 +278,7 @@ lee desde esta ficha como **«cuenta de tesorería»**; los ids son globales y n
 | El egreso | Su selector de cuenta incluye las cajas abiertas |
 | `payments.ts` | ~~Rechaza una caja como destino (`RN-10`)~~ Sin cambios: ya rechazaba toda cuenta que no esté en `bankAccounts`, así que `RN-10` se cumple por construcción |
 | `vocabulario-pais.ts` | «caja menor» / «caja chica» (`RN-12`) |
-| Bandera | `producto-tesoreria`, en **los CINCO sitios**. Nació apagada; hoy está encendida solo en Las Playas de producción, la demo |
+| Bandera | `producto-tesoreria`, en **los CINCO sitios**. Nació apagada; hoy está encendida en las dos demos de producción, Las Playas y Lomas de Sayilbedra (medido el 15 sep) |
 | Guardián | El núcleo, el informe y el presupuesto **no leen** `treasuryTransfers` — midiendo el código **sin comentarios** |
 
 ### `TBD`

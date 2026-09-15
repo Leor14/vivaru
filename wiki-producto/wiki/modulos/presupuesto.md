@@ -3,7 +3,7 @@ tags: [modulo, finanzas, asamblea]
 tipo: concepto
 fuentes: ["PRD-V-FEAT-009"]
 fecha_creacion: 2026-09-12
-fecha_actualizacion: 2026-09-12
+fecha_actualizacion: 2026-09-15
 ---
 
 # Presupuesto contra ejecución
@@ -38,8 +38,9 @@ asientos de producción son de 2026, su primer uso legal será la asamblea del p
 ## Bandera y estado
 
 `producto-presupuesto-anual` ([[banderas-funcionalidad]]); ninguna función del servidor la comprueba.
-**Medido el 12 sep:** en producción está encendida solo en Las Playas, con un presupuesto 2026 aprobado de
-demo; en staging, en Las Playas y Palmas. Como la [[tesoreria]] y la
+**Medido el 15 sep, resolviendo conjunto por conjunto:** en producción está encendida en las dos demos, Las
+Playas y Lomas de Sayilbedra, las dos con un presupuesto 2026 de demo, y apagada en los otros ocho; en
+staging, en Las Playas, Palmas y el ensayo de Lomas. Como la [[tesoreria]] y la
 [[medicion-consumos|medición de consumos]], espera a un conjunto real.
 
 ## Relaciones

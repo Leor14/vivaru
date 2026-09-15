@@ -9,7 +9,7 @@
 | **Usuario principal** | El administrador que lleva el presupuesto a la asamblea ordinaria |
 | **Usuarios secundarios** | La asamblea y el consejo — **sobre papel** en el MVP |
 | **Responsable** | David |
-| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS EN STAGING** (10 sep 2026). `CA2`, que la ficha reservaba a producción, se miró sobre Las Playas **de staging** · en producción, encendida **solo en Las Playas**, con un presupuesto 2026 de demo; apagada en los otros nueve. En staging, en Las Playas y Palmas. *(Medido el 12 sep 2026. Esta celda decía «los otros ocho» y «todos los criterios vistos», sin decir dónde.)* |
+| **Estado** | **ENTREGAS 1 Y 2 EN LOS DOS AMBIENTES, TODOS LOS CRITERIOS VISTOS EN STAGING** (10 sep 2026). `CA2`, que la ficha reservaba a producción, se miró sobre Las Playas **de staging** · en producción, encendida en las dos demos, Las Playas y Lomas de Sayilbedra, las dos con un presupuesto 2026 de demo, y apagada en los otros ocho. En staging, en Las Playas, Palmas y el ensayo de Lomas. *(Medido el 15 sep 2026 resolviendo conjunto por conjunto; el 12 solo estaba Las Playas, porque Lomas se sembró el 13–14.)* |
 | **Dependencias** | `PRD-V-PLAT-003` (el plan de cuentas: **contra qué** se presupuesta) · `PRD-V-FLOW-007` entrega 1 (el núcleo del estado financiero: **de dónde sale** lo ejecutado) |
 | **Riesgo** | Bajo — no mueve dinero, no toca el libro ni los permisos que ya existen |
 | **Reversibilidad** | Total por bandera. Los presupuestos guardados no alteran ninguna otra cifra |
@@ -583,7 +583,7 @@ pruebas. Aprobar no tiene vuelta atrás desde la app, así que se preguntó ante
 
 - ~~La vista previa real de impresión~~ — ✅ vista por David con `⌘P`: `CA8` cerrado.
 - Encenderla en un conjunto REAL de producción cuando haya quien cargue el presupuesto de 2026 (hoy
-  está encendida solo en la demo de Las Playas).
+  está encendida solo en las dos demos, Las Playas y Lomas de Sayilbedra).
 - Fase 2: `TBD-A` (reformado), `TBD-B` (consejo en la app), `TBD-D` (línea en el informe).
 
 ## Puertas
