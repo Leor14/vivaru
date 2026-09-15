@@ -5,12 +5,21 @@
 > usa el producto y para el negocio), cuánto cuesta construirla de verdad, qué necesita antes y qué
 > puede romper. **No se califica nada sin mirar antes el código, los datos y los documentos.**
 >
-> **Estado al 15 sep 2026: v0.2, calibrada una vez y corregida; falta repetir la calibración.** Lo pidió
-> David el 15 sep y aprobó los ocho cambios salidos de revisar el mercado (§12). La v0.1 **no pasó** la
-> calibración de §9.1: el esfuerzo salía inflado entre 3,3 y 8,6 veces, y la confianza en 0,5 en todas
-> las valoraciones (`docs/valoraciones/calibracion-2026-09-15.md`). **David aprobó el mismo día los seis
-> cambios que salieron de ahí**: el esfuerzo en horas, los casos de referencia, las esperas, la confianza
-> solo sobre lo estimado, cinco definiciones afinadas y el umbral de esfuerzo en 4 horas.
+> **Estado al 15 sep 2026: v0.3, PASA la calibración de esfuerzo (§9.1) a la tercera.** Faltan la doble
+> valoración a ciegas (§9.2) y la falsación (§9.3) antes de darla por buena. Lo pidió David el 15 sep y
+> aprobó los ocho cambios salidos de revisar el mercado (§12).
+> - **v0.1 → v0.2.** La primera calibración no pasó: el esfuerzo salía inflado entre 3,3 y 8,6 veces, y la
+>   confianza en 0,5 en todas (`docs/valoraciones/calibracion-2026-09-15.md`). Se pasó a horas, casos de
+>   referencia, esperas y confianza solo sobre lo estimado.
+> - **v0.2 → v0.3.** La segunda mejoró la escala (1,8 veces) pero perdió el orden, y cinco de seis
+>   entregas elegidas por David salían en Pozo (`docs/valoraciones/calibracion-2026-09-15-segunda.md`).
+>   David confirmó que las eligió **para llegar listos al primer cliente** y aprobó el mismo día tres
+>   cambios: el criterio **«Día uno»** (§5.2), la tabla de **doce referencias** con cuánto existía ya
+>   (§6.2) y el **umbral de impacto en 4** mientras no haya clientes (§7.2).
+> - **v0.3, tercera pasada.** Seis entregas nuevas, las seis dentro del 50 % (el error más grande, 22 %),
+>   sin sesgo y con el orden recuperado (ρ ≈ 0,94). Tres en Ganancia rápida y tres en Relleno, ninguna en
+>   Pozo (`docs/valoraciones/calibracion-2026-09-15-tercera.md`). Sus seis entregas pasan a ser
+>   referencias: la tabla tiene dieciocho.
 >
 > **Lo que NO es.** No decide: ordena y enseña lo que se gana y lo que se pierde con cada opción.
 > **Elige David.** Tampoco sustituye a `crear-prd-vivaru`: la valoración va antes de preguntar si algo
@@ -26,12 +35,14 @@
   datos personales) no compite: va por delante. Lo de **talla XS** no se puntúa: se agrupa y se hace.
 - **Cinco pasos, y no se califica antes del tercero:** el expediente (§3), qué requiere y qué puede
   romper (§4), el impacto (§5), el esfuerzo (§6) y la decisión (§7).
-- **Impacto en dos ejes, como pidió David:** valor al cliente final y valor al negocio, cuatro criterios
-  de 0 a 3 cada uno, **con definición de cada nota**. Más la **urgencia** (el coste de esperar).
+- **Impacto en dos ejes, como pidió David:** valor al cliente final (cuatro criterios) y valor al negocio
+  (cinco), de 0 a 3 cada uno, **con definición de cada nota**. Más la **urgencia** (el coste de esperar).
+  El quinto del negocio, **«Día uno»**, es la estrategia de hoy —llegar listos al primer cliente— y
+  **caduca** cuando llegue.
 - **La confianza solo descuenta lo que es una estimación del mundo** —cuánto duele, cuánto vende—. El
   alcance, el desbloqueo y el cierre son **hechos del repositorio** y no llevan descuento.
-- **Esfuerzo en horas de trabajo activo, estimado comparando con casos de referencia propios** (§6.2) y
-  comprobado después por componentes. **El tiempo de David se cuenta como esperas**: lo que cuesta no son
+- **Esfuerzo en horas de trabajo activo, interpolado entre las dos referencias más parecidas** de
+  dieciocho entregas medidas en nuestro git (§6.2), y comprobado después por componentes. **El tiempo de David se cuenta como esperas**: lo que cuesta no son
   sus minutos, sino el calendario que corre mientras la entrega lo espera.
 - **Puntuación = impacto ajustado ÷ horas.** Encima mandan cuatro reglas: lo obligatorio primero, lo que
   desbloquea antes que lo que depende, cerrar antes que abrir, y solo se elige lo que no está frenado.
@@ -161,8 +172,9 @@ en el mismo fichero, y es la mejor pista de la talla.
 Cada criterio se puntúa de 0 a 3 **con la definición de su tabla**, y cada nota lleva su prueba. Los
 criterios son de dos clases, y la diferencia importa para la confianza (§5.4):
 
-- **Estimaciones del mundo** —Dolor, Obligación, Rodeo, Ingreso, Riesgo que quita y Urgencia—: dicen
-  cuánto duele, cuánto vende, cuánto urge. Su prueba puede ser fuerte o débil.
+- **Estimaciones del mundo** —Dolor, Obligación, Rodeo, Ingreso, Riesgo que quita, Día uno y
+  Urgencia—: dicen cuánto duele, cuánto vende, cuánto urge, qué necesitará el primer cliente. Su prueba
+  puede ser fuerte o débil.
 - **Hechos del repositorio** —Alcance, Desbloqueo y Cierre—: se comprueban leyendo el código, las
   fichas y el traspaso. No son una opinión sobre el mundo.
 
@@ -198,7 +210,7 @@ de RICE (usuarios por trimestre).
 **Dolor = G si P ≥ 2; G − 1 si P = 1 (mínimo 0); 0 si P = 0.** Un defecto con G = 3 pasa por la puerta
 de lo obligatorio **solo si cumple §2.1**, que es la única puerta.
 
-### 5.2 Valor al negocio (VN, de 0 a 12)
+### 5.2 Valor al negocio (VN, de 0 a 15)
 
 | Nota | **Ingreso** *(estimación)* | **Riesgo que quita** *(estimación)* | **Desbloqueo** *(hecho)* | **Cierre** *(hecho)* |
 |---|---|---|---|---|
@@ -221,6 +233,28 @@ construirse o no puede funcionar sin él.
 **Cierre** es el criterio de David del 24 ago: cerrar antes que abrir, y **lo desplegado y apagado
 cuenta como abierto**. Encender suele ser el mejor retorno porque no cuesta código, pero no es
 gratis en atención.
+
+#### Día uno *(estimación; criterio temporal)*
+
+**La estrategia de hoy, dicha por David el 15 sep: construir para llegar listos al primer cliente.**
+Las dos calibraciones lo destaparon: el modelo habría dicho «no se hace» a la mayoría de las doce
+entregas que David eligió, y lo que tenían en común era esto.
+
+| Nota | Situación |
+|---|---|
+| **0** | Un conjunto puede operar sin esto su primer año |
+| **1** | Lo pediría con el tiempo, cuando ya use el producto |
+| **2** | **Una administradora lo usa cada mes**: la sesión con la administradora, el inventario de Habitanto o el marco legal lo muestran como parte de su mes |
+| **3** | **Sin esto, el primer cliente no puede operar su primer mes en Vivaru**: cobrar, pagar a proveedores, conciliar, informar al consejo o controlar la portería |
+
+- **La prueba más fuerte posible hoy es la sesión con la administradora** (`docs/sesion-administradora-habitanto.md`),
+  que vale 0,8 (§5.4). El inventario de Habitanto, que salió de mirar pantallas, vale 0,5.
+- **No se cuenta dos veces con el Ingreso.** El Ingreso mira la venta (la demo, un prospecto, un hueco
+  que se nota); el Día uno mira la operación del primer mes. Algo puede tener Ingreso 2 porque se ve bien
+  en la demo y Día uno 0 porque nadie lo necesita para operar, o al revés.
+- **Caduca.** Cuando llegue el primer cliente, el criterio se retira: lo que necesita pasa a medirse como
+  Dolor, Rodeo e Ingreso, con su propia prueba. Hasta entonces, **cada lote dice en su cabecera que
+  valora con el Día uno activo.**
 
 ### 5.3 Urgencia: el coste de esperar (U, de 0 a 3) *(estimación)*
 
@@ -278,28 +312,42 @@ tres entregas en los dos ambientes, y otra repartió la tarde entre tres frentes
 
 ### 6.2 Primero se compara con los casos de referencia
 
-**La talla se elige comparando con entregas ya hechas**, antes de descomponer. Es lo que funcionó en
-la calibración: el orden relativo de las estimaciones acertó (ρ = 0,89) aunque la escala absoluta
-fallaba por casi cinco veces. Estas son las referencias, con su coste real medido en git:
+**Las horas se estiman con las entregas ya hechas**, antes de descomponer. Dieciocho, medidas en
+`git log` en las tres calibraciones del 15 sep, ordenadas por horas reales:
 
-| Referencia | Qué fue | Horas reales | Talla | Qué la hizo de ese tamaño |
+| Referencia | Qué fue | Cuánto existía ya | Horas reales | Qué la hizo de ese tamaño |
 |---|---|---|---|---|
-| **H.31 y H.37** (13 sep) | Dos defectos del front: un orden que reventaba con un `Timestamp` y una hora mal leída | **0,9** | S | Cinco ficheros, sin servidor ni reglas; con gemelo bueno en el mismo módulo |
-| **FIX-003 / UX-004** (30 ago) | Que dos indicadores digan qué ventana miden, sin tocar fórmulas | **0,6–1,0** | S | Solo front, dos pantallas y un guardián |
-| **H.51 y D2** (14 sep) | Medidores abre en el último mes con lecturas, y 192 fotos de la semilla regeneradas en los dos ambientes | **1,3–1,6** | M | Una pantalla y un escritor de semilla, con permiso por paso en producción |
-| **PLAT-005** (29 ago) | Push al residente: SW, FCM, reglas de `pushTokens`, emisor e invitación | **1,9** | M, **más una espera** de 15 h | Infraestructura nueva, pero con el aviso ya centralizado en un embudo; la prueba en un iPhone real esperó al día siguiente |
-| **FEAT-008** (9 sep) | Medición de consumos, tres entregas: servidor, reglas, Storage, pantalla, cobro y vista del residente | **3,7** | L | Siete superficies y el camino del dinero, con gemelos para casi todo |
-| **FLOW-008** (3 sep) | Cuentas por pagar en cuotas: calendario, pagar y anular por callable, reglas endurecidas | **3,8** | L | Reglas que restringen, cinco consumidores de la deuda y cinco arreglos por el camino |
+| **PH-003** (30 ago) | Autorizar la visita que llega sin avisar | **Parcial con base**: la callable `registerWalkInVisit` y la lectura del residente ya estaban | **0,65**, más una espera (la portería, al día siguiente) y un arreglo | Tres portales, pero casi todo era cablear lo que había |
+| **FIX-003 / UX-004** (30 ago) | Que dos indicadores digan qué ventana miden, sin tocar fórmulas | **Parcial**: la fórmula ya era única | **0,6–1,0** | Solo front, dos pantallas y un guardián |
+| **H.31 y H.37** (13 sep) | Dos defectos del front: un orden que reventaba con un `Timestamp` y una hora mal leída | **Casi hecho**: arreglos de pocas líneas | **0,9** | Cinco ficheros, sin servidor ni reglas; gemelo bueno en el mismo módulo |
+| **PLAT-004, entrega 1** (9 sep) | Conceder y retirar la marca de consejo | **Parcial con base**: el rol ya leía; gemelo completo en `updateOperationalUser` | **0,8–1,5** | Una callable con gemelo y una regla |
+| **H.51 y D2** (14 sep) | Medidores abre en el último mes con lecturas, y 192 fotos de la semilla regeneradas en los dos ambientes | **Parcial**: la ilustración ya existía, sin escritor | **1,3–1,6** | Una pantalla y un escritor de semilla, con permiso por paso en producción |
+| **FEAT-006** (1 sep) | Unir varias columnas del archivo en un campo de la persona, al importar | **Parcial con base**: el detector y las fixtures ya estaban | **1,5–2,0** | Una pantalla y el campo de telemetría en los dos lados, sin reglas |
+| **PLAT-005** (29 ago) | Push al residente: SW, FCM, reglas de `pushTokens`, emisor e invitación | **Parcial**: el aviso ya pasaba por un solo embudo; no había SW | **1,9**, más una espera de 15 h | Infraestructura nueva; la prueba en un iPhone real esperó al día siguiente |
+| **FEAT-004** (25 ago) | Estado de cuenta y paz y salvo: el cálculo, dos PDF, emitir y anular | **Parcial con base**: la pantalla, los datos y los gemelos de PDF ya estaban | **~2,0**, más el paso a producción al día siguiente | Dos callables y dos PDF, con gemelos |
+| **FEAT-009** (10 sep) | Presupuesto contra ejecución, entregas 1 y 2 | **Nuevo, con lo ejecutado ya calculado** en el informe del consejo | **1,2–2,9** (1,7 h sin commits: dudosa) | Solo front y reglas, con gemelo para cada pieza |
+| **ONB-002** (30 ago) | Ver y fusionar personas duplicadas sin dejar referencias colgando | **Nuevo, con gemelo completo** (`mergeUnits`) | **2,35** | Dos callables, un inventario de referencias y la fusión real en producción |
+| **FLOW-004** (28 ago) | El expediente de conciliación: reglas del núcleo, callables, bandeja y relleno | **Parcial / Distinto**: el emparejado existía en el cliente | **2,8** | Del cliente al servidor, reglas que restringen y relleno en los dos ambientes |
+| **FLOW-003** (26 ago) | Cobranza que llega: rastro de entrega, webhook, calendario y adjunto | **Parcial**: el embudo de envío y los procesos diarios ya estaban | **2,3–3,3** | La primera función HTTP, con su firma verificada a mano |
+| **FEAT-010** (10 sep) | Tesorería, cuatro entregas: saldo por cuenta, traspasos, caja chica y su conciliación | **Nuevo, con gemelo** (presupuesto) | **3,0** | Colecciones nuevas y un cambio en la conciliación |
+| **PLAT-006** (1–2 sep) | La puerta de buzones: salida y entrada, y los datos de producción | **Parcial con base**: la salida ya pasaba por un embudo y la lista de dominios inertes existía | **~3,2**, en dos sesiones | Dos puertas, reglas que restringen y operaciones de datos en producción |
+| **FEAT-008** (9 sep) | Medición de consumos, tres entregas: servidor, reglas, Storage, pantalla, cobro y vista del residente | **Nuevo, con gemelos** para casi todo | **3,7** | Siete superficies y el camino del dinero |
+| **FLOW-008** (3 sep) | Cuentas por pagar en cuotas: calendario, pagar y anular por callable, reglas endurecidas | **Nuevo** | **3,8** | Reglas que restringen, cinco consumidores de la deuda y cinco arreglos por el camino |
+| **FEAT-007** (2 sep) | Modo oscuro elegible, tres entregas y canario | **Nuevo el mecanismo**; 815 usos de color sin migrar | **~3,8** (2,7 hasta producción apagada) | Volumen sin gemelo: cinco formas de color literal |
+| **FLOW-007** (3 sep) | Informe mensual anclado al banco, entregas 1 y 2: el núcleo en los dos lados, el PDF firmable, el cron | **Parcial / Distinto**: el estado financiero existía, sin el saldo inicial | **3,9–4,4** | Espejo front-servidor, PDF nuevo, cron vivo y canario |
 
 **El procedimiento:**
 
-1. Buscar la referencia que más se parece —en superficies, en si toca dinero o reglas y en si tiene
-   gemelo— y tomar su talla.
-2. Descomponer en los cinco componentes (§6.3) para comprobarla.
-3. **Si la comparación y la descomposición difieren en más de una talla, se escribe por qué** y se toma
-   la de la comparación salvo razón concreta. Una descomposición sin referencia es la que infló la v0.1.
+1. **Buscar las dos referencias más parecidas**, en este orden: **cuánto existe ya** (lo que más separó
+   las entregas: PH-003 tocaba tres portales y costó 40 minutos porque casi todo estaba), si toca dinero
+   o reglas que restringen, y cuántas superficies.
+2. **Interpolar sus horas**, sin redondear a una talla: si se parece a las dos por igual, el promedio; si
+   más a una, más cerca de esa. Las tallas de §6.1 son para hablar, no para puntuar. En la segunda
+   calibración, redondear a «L, 4 h» igualó cuatro entregas que costaron entre 2,35 y 4,4 horas.
+3. Descomponer en los cinco componentes (§6.3) para comprobar. **Si la descomposición y la interpolación
+   difieren en más del doble, se escribe por qué** y manda la interpolación salvo razón concreta.
 
-**Las referencias crecen**: cada entrega nueva, con su coste medido, puede entrar en la tabla.
+**Las referencias crecen**: cada entrega nueva, con su coste medido, entra en la tabla.
 
 ### 6.3 Los cinco componentes, para comprobar
 
@@ -363,9 +411,9 @@ las suyas en un solo momento. Los minutos se siguen anotando.
 La confianza descuenta solo las estimaciones; los hechos entran enteros:
 
 ```
-Estimaciones  E = 0,5 × (Dolor + Obligación + Rodeo) + 0,5 × (Ingreso + Riesgo que quita) + 2 × U
+Estimaciones  E = 0,5 × (Dolor + Obligación + Rodeo) + 0,5 × (Ingreso + Riesgo que quita + Día uno) + 2 × U
 Hechos        H = 0,5 × Alcance + 0,5 × (Desbloqueo + Cierre)
-Impacto ajustado = H + E × C                                           (0–18)
+Impacto ajustado = H + E × C                                           (0–19,5)
 Puntuación       = Impacto ajustado ÷ Horas
 ```
 
@@ -373,17 +421,22 @@ Los pesos son los de §11: 50/50 entre cliente final y negocio, y la urgencia al
 impacto ajustado es exactamente el coste de esperar de la v0.1: `0,5 × VC + 0,5 × VN + 2 × U`.
 
 **Ejemplo ilustrativo, con números inventados para enseñar la cuenta** (no es la valoración de nada):
-Dolor 2, Obligación 1, Rodeo 2, Alcance 2; Ingreso 1, Riesgo 1, Desbloqueo 0, Cierre 1; U = 1.
-E = 0,5 × 5 + 0,5 × 2 + 2 = 5,5. H = 0,5 × 2 + 0,5 × 1 = 1,5. C = 0,8 (la prueba más débil entre las
-estimaciones con nota 2). Impacto ajustado = 1,5 + 5,5 × 0,8 = 5,9. Horas = 2 (talla M, confirmada por
-componentes). **Puntuación = 5,9 ÷ 2 = 3,0.**
+Dolor 2, Obligación 1, Rodeo 2, Alcance 2; Ingreso 1, Riesgo 1, Día uno 2, Desbloqueo 0, Cierre 1;
+U = 1. E = 0,5 × 5 + 0,5 × 4 + 2 = 6,5. H = 0,5 × 2 + 0,5 × 1 = 1,5. C = 0,8 (la prueba más débil entre
+las estimaciones con nota 2). Impacto ajustado = 1,5 + 6,5 × 0,8 = 6,7. Horas = 2 (interpoladas entre dos
+referencias y confirmadas por componentes). **Puntuación = 6,7 ÷ 2 = 3,4.**
 
-### 7.2 El cuadrante *(umbrales de §11; el de impacto, pendiente de la calibración)*
+### 7.2 El cuadrante *(umbrales de §11)*
 
 | | Menos de 4 horas | 4 horas o más |
 |---|---|---|
-| **Impacto ajustado ≥ 6** | **Ganancia rápida:** primero | **Apuesta:** se planifica y se parte |
-| **Impacto ajustado < 6** | **Relleno:** entre frentes | **Pozo:** no se hace sin una razón nueva |
+| **Impacto ajustado ≥ 4** | **Ganancia rápida:** primero | **Apuesta:** se planifica y se parte |
+| **Impacto ajustado < 4** | **Relleno:** entre frentes | **Pozo:** no se hace sin una razón nueva |
+
+**El umbral de impacto es 4 mientras no haya clientes.** Sin clientes, casi ninguna estimación pasa de
+0,5 de confianza, y con eso el impacto ajustado de doce entregas elegidas por David quedó entre 1,25 y
+4,75: un umbral de 6 no lo alcanzaba casi nada. **Se revisa cuando llegue el primer cliente**, el mismo
+día en que caduca el Día uno (§5.2).
 
 ### 7.3 Cuatro reglas por encima de la puntuación
 
@@ -448,13 +501,15 @@ Una por necesidad. Las pequeñas caben en una fila de la tabla del lote; las gra
 | Alcance | hecho | | | — |
 | Ingreso | estimación | | | |
 | Riesgo que quita | estimación | | | |
+| Día uno | estimación | | | |
 | Desbloqueo | hecho | | | — |
 | Cierre | hecho | | | — |
 | Urgencia | estimación | | | |
 **E:** … · **H:** … · **Confianza:** [la regla de §5.4] · **Impacto ajustado:** …
 
 **Esfuerzo**
-- Referencia más parecida (§6.2): [cuál] → talla [..] → **N horas**
+- Las dos referencias más parecidas (§6.2): [cuáles, y cuánto existía ya en cada una] → **N horas**
+  interpoladas
 - Comprobación por componentes:
 | Componente | Horas | Coeficiente | Por qué |
 |---|---|---|---|
@@ -511,7 +566,16 @@ FEAT-009, FEAT-010, FLOW-007 y FLOW-004.
 doce entregas que David eligió (FLOW-008, PLAT-005, FEAT-010, PH-003 entre ellas). Si las eligió por algo
 que el modelo no pregunta —dos estimadores lo llamaron «llegar listos al primer cliente»—, ese es el
 criterio que falta. **David lo confirmó el 15 sep: las eligió para llegar listos al primer cliente.**
-Falta decidir cómo entra en el modelo.
+Entra como el criterio «Día uno» de la v0.3 (§5.2).
+
+**Tercera pasada, 15 sep 2026 (v0.3): PASA.** Seis entregas nuevas: FEAT-004, FLOW-003, PLAT-006,
+FEAT-006, PLAT-004 (entrega 1) y FEAT-007.
+- **Esfuerzo:** las seis dentro del 50 % (el error más grande, 22 %), sin sesgo (cociente medio 1,0) y
+  con el orden recuperado (ρ ≈ 0,94). Las seis interpolaron, y en las seis la descomposición salió más
+  alta: mandó la interpolación y acertó.
+- **Impacto:** tres en Ganancia rápida y tres en Relleno, ninguna en Pozo. El Día uno distinguió (0, 1
+  y 2).
+- Esas seis pasan a ser referencias. Detalle: `docs/valoraciones/calibracion-2026-09-15-tercera.md`.
 
 ### 9.2 Doble valoración a ciegas
 
@@ -560,7 +624,8 @@ su fecha y su razón.
 | Factor de la urgencia | **2 × U** | Una urgencia de 3 (plazo legal) pesa la mitad de la escala de valor |
 | Unidad de esfuerzo | **Horas de trabajo activo**, y las esperas de David aparte | **Cambiado el 15 sep** (era «sesiones»): la sesión dura entre media hora y cuatro, y no mide nada |
 | Umbral de esfuerzo del cuadrante | **4 horas** (talla L) | **Cambiado el 15 sep** (eran 3 sesiones): las entregas grandes de referencia costaron unas 4 horas |
-| Umbral de impacto del cuadrante | **6** | Sin tocar: se mira en la segunda calibración, con la confianza ya corregida |
+| Umbral de impacto del cuadrante | **4, mientras no haya clientes** | **Cambiado el 15 sep** (era 6): sin clientes la confianza es 0,5 en casi todo, y doce entregas elegidas quedaron entre 1,25 y 4,75. Se revisa con el primer cliente |
+| Criterio «Día uno» | **Activo, hasta el primer cliente** | **Añadido el 15 sep**: David eligió las doce entregas de referencia para llegar listos al primer cliente, y el modelo no lo preguntaba |
 | Primer lote después de calibrar | **El menú de `pendientes.md` y las rarezas del §H** | Es entre lo que se elige ahora; los 82 candidatos de Habitanto van después |
 
 **Y una duda del recuento, previa al primer lote:** el menú cuenta 28 rarezas sin decidir
