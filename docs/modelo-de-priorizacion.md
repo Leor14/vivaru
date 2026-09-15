@@ -5,15 +5,16 @@
 > usa el producto y para el negocio), cuánto cuesta construirla de verdad, qué necesita antes y qué
 > puede romper. **No se califica nada sin mirar antes el código, los datos y los documentos.**
 >
-> **Estado al 15 sep 2026: v0.1, SIN CALIBRAR.** Lo pidió David el 15 sep y aprobó los ocho cambios
-> que salieron de revisar lo que hay en el mercado (§12). **David confirmó el mismo día los valores de
-> §11**: el peso 50/50 entre cliente y negocio, el factor de la urgencia, la unidad de esfuerzo, los
-> umbrales de los cuadrantes y el primer lote. La calibración de §9 puede ajustarlos, y cada ajuste se
-> anota allí con su razón.
+> **Estado al 15 sep 2026: v0.2, calibrada una vez y corregida; falta repetir la calibración.** Lo pidió
+> David el 15 sep y aprobó los ocho cambios salidos de revisar el mercado (§12). La v0.1 **no pasó** la
+> calibración de §9.1: el esfuerzo salía inflado entre 3,3 y 8,6 veces, y la confianza en 0,5 en todas
+> las valoraciones (`docs/valoraciones/calibracion-2026-09-15.md`). **David aprobó el mismo día los seis
+> cambios que salieron de ahí**: el esfuerzo en horas, los casos de referencia, las esperas, la confianza
+> solo sobre lo estimado, cinco definiciones afinadas y el umbral de esfuerzo en 4 horas.
 >
-> **Lo que NO es.** No decide: ordena y enseña lo que se gana y lo que se pierde con cada opción. **Elige David.** Tampoco
-> sustituye a `crear-prd-vivaru`: la valoración va antes de preguntar si algo merece una PRD, y la PRD
-> puede citar la ficha.
+> **Lo que NO es.** No decide: ordena y enseña lo que se gana y lo que se pierde con cada opción.
+> **Elige David.** Tampoco sustituye a `crear-prd-vivaru`: la valoración va antes de preguntar si algo
+> merece una PRD, y la PRD puede citar la ficha.
 
 ---
 
@@ -21,21 +22,21 @@
 
 - **Se valora el problema, no la solución.** Primero se decide si el problema merece resolverse; cómo
   resolverlo viene después, y una misma necesidad puede tener dos soluciones con esfuerzos distintos.
-- **Dos puertas antes de puntuar.** Lo **obligatorio** (ley, seguridad, integridad del dinero, datos
-  personales) no compite: va por delante. Lo de **talla XS** no se puntúa: se agrupa en un lote y se hace.
+- **Dos puertas antes de puntuar.** Lo **obligatorio** (ley, acceso indebido, integridad del dinero,
+  datos personales) no compite: va por delante. Lo de **talla XS** no se puntúa: se agrupa y se hace.
 - **Cinco pasos, y no se califica antes del tercero:** el expediente (§3), qué requiere y qué puede
   romper (§4), el impacto (§5), el esfuerzo (§6) y la decisión (§7).
 - **Impacto en dos ejes, como pidió David:** valor al cliente final y valor al negocio, cuatro criterios
-  de 0 a 3 cada uno, **con definición de cada nota**. Más la **urgencia** (el coste de esperar) y la
-  **confianza**, que baja la nota de lo que no está medido.
-- **Esfuerzo en sesiones de trabajo, contando todo lo que conlleva**: construir, datos, verificar,
-  desplegar y cerrar. Lleva coeficiente de riesgo y un recargo por integrar. **Y el tiempo de David se cuenta
-  aparte**: permisos, validar en el navegador, reautenticar, decidir. Es el recurso escaso.
-- **Puntuación = (valor + 2 × urgencia) × confianza ÷ esfuerzo.** Encima mandan cuatro reglas: lo
-  obligatorio primero, lo que desbloquea antes que lo que depende, cerrar antes que abrir, y solo se
-  elige lo que no está frenado.
-- **Antes de fiarse del modelo, se comprueba** (§9): calibrarlo con entregas ya hechas, valorar dos veces
-  a ciegas y ver cuánto coinciden, y falsarlo con casos de respuesta obvia.
+  de 0 a 3 cada uno, **con definición de cada nota**. Más la **urgencia** (el coste de esperar).
+- **La confianza solo descuenta lo que es una estimación del mundo** —cuánto duele, cuánto vende—. El
+  alcance, el desbloqueo y el cierre son **hechos del repositorio** y no llevan descuento.
+- **Esfuerzo en horas de trabajo activo, estimado comparando con casos de referencia propios** (§6.2) y
+  comprobado después por componentes. **El tiempo de David se cuenta como esperas**: lo que cuesta no son
+  sus minutos, sino el calendario que corre mientras la entrega lo espera.
+- **Puntuación = impacto ajustado ÷ horas.** Encima mandan cuatro reglas: lo obligatorio primero, lo que
+  desbloquea antes que lo que depende, cerrar antes que abrir, y solo se elige lo que no está frenado.
+- **Antes de fiarse del modelo, se comprueba** (§9): calibrar con entregas ya hechas, valorar dos veces a
+  ciegas y ver cuánto coinciden, y falsarlo con casos de respuesta obvia.
 
 ---
 
@@ -65,10 +66,12 @@ backlog de Notion se derivan de la puntuación, no al revés.
 
 ### 2.1 Lo obligatorio no compite
 
-Pasa la puerta si se cumple **una** de estas, con prueba de nivel 0,5 o más (§5.4):
+Pasa la puerta si se cumple **una** de estas, con prueba de nivel 0,5 o más (§5.4). **Es la única puerta
+de lo obligatorio**: ningún otro criterio manda aquí por sí solo.
 
 - lo exige una **ley** del país del conjunto (México, Colombia o Ecuador) o la protección de datos;
-- hay **acceso indebido** entre roles o entre conjuntos (el patrón de `FIX-004` y `CF8`);
+- hay **acceso indebido** entre roles o entre conjuntos (el patrón de `FIX-004` y `CF8`). Un acceso
+  *negado* —alguien que no puede hacer lo que debe— no es esto: va por el Dolor;
 - está en juego la **integridad del dinero**: un cobro, un saldo, un asiento o un recibo que puede quedar mal;
 - hay **datos personales** expuestos o conservados de más.
 
@@ -77,9 +80,9 @@ y el impacto, para ordenar entre obligatorios.
 
 ### 2.2 Lo pequeño no se puntúa
 
-Pasa la puerta si **todo** esto es cierto: cabe en media sesión, no toca reglas, dinero ni datos de
-producción, y no pide ninguna intervención de David. **Se agrupa en un lote de XS y se hace**; puntuarlo
-cuesta más que construirlo. Los textos sin traducir de la `H.47` son el caso típico.
+Pasa la puerta si **todo** esto es cierto: cabe en **media hora** de trabajo activo, no toca reglas,
+dinero ni datos de producción, y no pide ninguna intervención de David. **Se agrupa en un lote de XS y
+se hace**; puntuarlo cuesta más que construirlo. Los textos sin traducir de la `H.47` son el caso típico.
 
 ---
 
@@ -155,43 +158,54 @@ en el mismo fichero, y es la mejor pista de la talla.
 
 ## 5. Paso 3 · Impacto
 
-Cada criterio se puntúa de 0 a 3 **con la definición de su tabla**, y cada nota lleva su prueba y
-el nivel de esa prueba (§5.4). Si dos personas leen la misma prueba y ponen notas distintas, la
-definición está mal escrita (§9.2).
+Cada criterio se puntúa de 0 a 3 **con la definición de su tabla**, y cada nota lleva su prueba. Los
+criterios son de dos clases, y la diferencia importa para la confianza (§5.4):
+
+- **Estimaciones del mundo** —Dolor, Obligación, Rodeo, Ingreso, Riesgo que quita y Urgencia—: dicen
+  cuánto duele, cuánto vende, cuánto urge. Su prueba puede ser fuerte o débil.
+- **Hechos del repositorio** —Alcance, Desbloqueo y Cierre—: se comprueban leyendo el código, las
+  fichas y el traspaso. No son una opinión sobre el mundo.
+
+Si dos personas leen la misma prueba y ponen notas distintas, la definición está mal escrita (§9.2).
 
 ### 5.1 Valor al cliente final (VC, de 0 a 12)
 
 El cliente final es quien usa el producto: la administración (`tenant_admin`), el residente
 (`resident`), la portería (`security_guard`) y el consejo (`committee`).
 
-| Nota | **Dolor** | **Obligación** | **Rodeo** | **Alcance** |
+| Nota | **Dolor** *(estimación)* | **Obligación** *(estimación)* | **Rodeo** *(estimación)* | **Alcance** *(hecho)* |
 |---|---|---|---|---|
 | **0** | Sin prueba de que a alguien le duela | Ninguna | No hay rodeo: simplemente no se hace | Un rol, un caso raro |
 | **1** | Molestia ocasional o cosmética: confunde, pero la tarea se completa | Buena práctica o expectativa del mercado (la competencia lo tiene) | Rodeo breve dentro del producto | Un rol, en uso habitual |
 | **2** | Frena una tarea mensual, o da un dato equivocado que alguien lee | Lo pide el reglamento del conjunto, un contrato o **una promesa escrita del producto** (una pantalla que dice que hace algo que no hace) | Se hace fuera del producto (Excel, correo, WhatsApp) cada mes | Dos roles, o todos los residentes de un conjunto |
 | **3** | Frena una tarea semanal o diaria, o hace decidir con un dato falso (dinero o acceso) | Lo exige una ley del país del conjunto | Se hace fuera cada semana, o el rodeo produce errores (volver a teclear, archivos aparte) | Tres roles o más, o todos los conjuntos |
 
-**Alcance es estructural, no medido**: sin clientes no hay usuarios que contar, así que no se usa el
-«alcance» de RICE (usuarios por trimestre). Se cuentan roles, unidades y conjuntos que lo tocan.
+**El Alcance cuenta a quién le duele el problema, no dónde existe la pantalla.** Una pantalla que tienen
+todos los conjuntos pero cuyo defecto solo aparece con cierta configuración cuenta los conjuntos con esa
+configuración. Y es estructural: sin clientes no hay usuarios que contar, así que no se usa el «alcance»
+de RICE (usuarios por trimestre).
 
-**Para un defecto, el Dolor sale de probabilidad × gravedad**, no de la tabla:
+**Para un defecto, el Dolor depende de lo que hace el defecto:**
+
+- **si bloquea una tarea** —alguien no puede hacer lo que debe—, se lee en la tabla general de arriba;
+- **si da un dato o un estado equivocado**, sale de probabilidad × gravedad:
 
 | | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
-| **Gravedad (G)** | Cosmético | Confunde | Dato equivocado a la vista | Dinero, acceso o pérdida de datos |
+| **Gravedad (G)** | Cosmético | Confunde | Dato equivocado a la vista | Dinero, acceso indebido o datos perdidos |
 | **Probabilidad (P)** | No pasa con datos reales | Raro | Con el uso normal | Siempre o casi siempre |
 
-**Dolor = G si P ≥ 2; G − 1 si P = 1 (mínimo 0); 0 si P = 0.** Un defecto con G = 3 y P ≥ 1 pasa
-además por la puerta de §2.1.
+**Dolor = G si P ≥ 2; G − 1 si P = 1 (mínimo 0); 0 si P = 0.** Un defecto con G = 3 pasa por la puerta
+de lo obligatorio **solo si cumple §2.1**, que es la única puerta.
 
 ### 5.2 Valor al negocio (VN, de 0 a 12)
 
-| Nota | **Ingreso** | **Riesgo que quita** | **Desbloqueo** | **Cierre** |
+| Nota | **Ingreso** *(estimación)* | **Riesgo que quita** *(estimación)* | **Desbloqueo** *(hecho)* | **Cierre** *(hecho)* |
 |---|---|---|---|---|
 | **0** | Ninguno: ni se ve en la demo ni lo pide nadie | Ninguno | No desbloquea nada | Abre un frente nuevo |
 | **1** | Mejora la demo acompañada o la prueba de 15 días, sin ser decisivo | De imagen, menor (un texto en inglés, un formato raro) | Facilita una iniciativa | Extiende un frente abierto |
-| **2** | Lo pide un prospecto o el canal por escrito; es un hueco contra Habitanto que se nota en la demo; o amplía las unidades con plataforma completa | Un dato equivocado a la vista de un cliente, o la reputación del dominio de correo | Es requisito de una iniciativa | Cierra un cabo de un frente abierto (un criterio sin cumplir, un cabo como T3.5) |
-| **3** | Sin esto, una venta concreta no cierra o un cliente se va (bloquea la conversión o la renovación) | Dinero, acceso indebido, datos personales o riesgo legal | Es requisito de dos o más, o de un P0 | Pone en uso algo desplegado y apagado, o cierra un frente entero |
+| **2** | Lo pide un prospecto o el canal por escrito; es un hueco contra Habitanto que se nota en la demo; **algo que falla a la vista durante la demo acompañada**; o amplía las unidades con plataforma completa | Un dato equivocado a la vista de un cliente, o la reputación del dominio de correo | Es requisito técnico o de datos de una iniciativa | Cierra un cabo de un frente abierto (un criterio sin cumplir, un cabo como T3.5) |
+| **3** | Sin esto, una venta concreta no cierra o un cliente se va (bloquea la conversión o la renovación) | Dinero, acceso indebido, datos personales o riesgo legal | Es requisito técnico o de datos de dos o más, o de un P0 | Pone en uso algo desplegado y apagado, o cierra un frente entero |
 
 **Ingreso, leído con el modelo de reventa.** El precio va por unidades con plataforma completa; en
 México y Ecuador el canal compra y revende, en Colombia factura Qintilab; la demo es acompañada para
@@ -200,18 +214,25 @@ todos; la prueba de 15 días es herramienta, no etapa. De ahí las cuatro formas
 más conjuntos) y **retener** (la renovación). **Mientras no haya clientes, retener casi nunca pasa de
 0,3 de confianza.**
 
+**Desbloqueo cuenta requisitos técnicos o de datos, no el orden de un plan.** Que un plan propio ponga
+algo «antes de la fase 3» no lo convierte en requisito: lo es si la otra iniciativa no puede
+construirse o no puede funcionar sin él.
+
 **Cierre** es el criterio de David del 24 ago: cerrar antes que abrir, y **lo desplegado y apagado
 cuenta como abierto**. Encender suele ser el mejor retorno porque no cuesta código, pero no es
 gratis en atención.
 
-### 5.3 Urgencia: el coste de esperar (U, de 0 a 3)
+### 5.3 Urgencia: el coste de esperar (U, de 0 a 3) *(estimación)*
 
 | Nota | Situación |
 |---|---|
 | **0** | Puede esperar sin coste |
 | **1** | Su valor baja despacio: conviene este trimestre |
-| **2** | Ventana de 1 a 3 meses: una demo agendada, una temporada, un plazo de contrato |
-| **3** | Plazo en menos de un mes, o **el coste crece cada día**: un dato que se corrompe, dinero que se pierde, algo que caduca (el caso de `REVOPS-001E`, un conjunto creado sin atribución que ya no se reatribuye) |
+| **2** | Ventana de 1 a 3 meses fijada desde fuera: una demo agendada, una temporada, un plazo de contrato |
+| **3** | Plazo externo en menos de un mes, o **el coste crece cada día**: un dato que se corrompe, dinero que se pierde, algo que caduca (el caso de `REVOPS-001E`, un conjunto creado sin atribución que ya no se reatribuye) |
+
+**Solo cuentan fechas externas**: una demo con un prospecto, una ley, un contrato, un dato que se
+estropea. El calendario de un plan propio no es urgencia.
 
 Sale de WSJF (§12), que ordena por el coste de esperar. Va aparte del valor porque algo valioso sin
 plazo puede esperar, y algo modesto con plazo no.
@@ -225,30 +246,62 @@ plazo puede esperar, y algo modesto con plazo no.
 | **0,5** | **Leído**: en el código, en la ley, en la competencia o en el recorrido de la demo |
 | **0,3** | **Especulación**: nadie lo dijo, nada lo midió |
 
-**La confianza de la valoración es la de la prueba más débil entre los criterios con nota 2 o 3**,
-porque esos son los que cargan la puntuación. Una nota alta apoyada en una especulación no se compensa
-con otras bien medidas. Mientras no haya clientes, casi nada pasará de 0,8, y el modelo tiene que
-enseñarlo en vez de disimularlo.
+**La confianza solo se calcula sobre las estimaciones del mundo** (§5), y es **la de la prueba más débil
+entre las estimaciones con nota 2 o 3**, porque esas son las que cargan la puntuación. Si ninguna
+estimación llega a 2, manda la más débil de las que tienen 1 o más; si ninguna tiene 1, C = 1,0, porque
+lo único que queda son hechos.
+
+**Los hechos no llevan descuento.** El Alcance de un cambio se comprueba leyendo qué roles y portales
+toca; tratarlo como una prueba «leída» de 0,5 hundía la confianza de todas las valoraciones de la v0.1
+(`docs/valoraciones/calibracion-2026-09-15.md`, §3).
 
 **Una existencia leída no es un impacto medido.** Un defecto confirmado en el código existe con certeza;
-cuánto muerde sin clientes es otra cosa. La confianza va sobre el impacto.
+cuánto muerde sin clientes es otra cosa. Mientras no haya clientes, casi ninguna estimación pasará de
+0,8, y el modelo tiene que enseñarlo en vez de disimularlo.
 
 ---
 
 ## 6. Paso 4 · Esfuerzo: todo lo que conlleva
 
-### 6.1 La unidad: la sesión de trabajo *(confirmada, §11)*
+### 6.1 La unidad: la hora de trabajo activo
 
-Una **sesión** es una ventana de trabajo con Claude que acaba en un punto de corte limpio
-(`CLAUDE.md`). Las tallas siguen la serie de Fibonacci, que obliga a comparar tamaños en vez de fingir precisión:
+Una **hora de trabajo activo** es tiempo de reloj trabajando con Claude en la entrega: leer, construir,
+probar, desplegar, verificar y cerrar. **No cuenta la espera** a que David dé un permiso o tenga un
+teléfono a mano: eso va en §6.5.
+
+La sesión **no sirve** como unidad: en la calibración del 15 sep, una sola sesión se tragó una PRD de
+tres entregas en los dos ambientes, y otra repartió la tarde entre tres frentes.
 
 | Talla | XS | S | M | L | XL | XXL | Más |
 |---|---|---|---|---|---|---|---|
-| **Sesiones** | ≤ 0,5 | 1 | 2 | 3 | 5 | 8 | **Se parte en entregas** |
+| **Horas** | ≤ 0,5 | 1 | 2 | 4 | 8 | 16 | **Se parte en entregas** |
 
-### 6.2 Los cinco componentes
+### 6.2 Primero se compara con los casos de referencia
 
-Cada uno se estima en sesiones y con su coeficiente de riesgo:
+**La talla se elige comparando con entregas ya hechas**, antes de descomponer. Es lo que funcionó en
+la calibración: el orden relativo de las estimaciones acertó (ρ = 0,89) aunque la escala absoluta
+fallaba por casi cinco veces. Estas son las referencias, con su coste real medido en git:
+
+| Referencia | Qué fue | Horas reales | Talla | Qué la hizo de ese tamaño |
+|---|---|---|---|---|
+| **H.31 y H.37** (13 sep) | Dos defectos del front: un orden que reventaba con un `Timestamp` y una hora mal leída | **0,9** | S | Cinco ficheros, sin servidor ni reglas; con gemelo bueno en el mismo módulo |
+| **FIX-003 / UX-004** (30 ago) | Que dos indicadores digan qué ventana miden, sin tocar fórmulas | **0,6–1,0** | S | Solo front, dos pantallas y un guardián |
+| **H.51 y D2** (14 sep) | Medidores abre en el último mes con lecturas, y 192 fotos de la semilla regeneradas en los dos ambientes | **1,3–1,6** | M | Una pantalla y un escritor de semilla, con permiso por paso en producción |
+| **PLAT-005** (29 ago) | Push al residente: SW, FCM, reglas de `pushTokens`, emisor e invitación | **1,9** | M, **más una espera** de 15 h | Infraestructura nueva, pero con el aviso ya centralizado en un embudo; la prueba en un iPhone real esperó al día siguiente |
+| **FEAT-008** (9 sep) | Medición de consumos, tres entregas: servidor, reglas, Storage, pantalla, cobro y vista del residente | **3,7** | L | Siete superficies y el camino del dinero, con gemelos para casi todo |
+| **FLOW-008** (3 sep) | Cuentas por pagar en cuotas: calendario, pagar y anular por callable, reglas endurecidas | **3,8** | L | Reglas que restringen, cinco consumidores de la deuda y cinco arreglos por el camino |
+
+**El procedimiento:**
+
+1. Buscar la referencia que más se parece —en superficies, en si toca dinero o reglas y en si tiene
+   gemelo— y tomar su talla.
+2. Descomponer en los cinco componentes (§6.3) para comprobarla.
+3. **Si la comparación y la descomposición difieren en más de una talla, se escribe por qué** y se toma
+   la de la comparación salvo razón concreta. Una descomposición sin referencia es la que infló la v0.1.
+
+**Las referencias crecen**: cada entrega nueva, con su coste medido, puede entrar en la tabla.
+
+### 6.3 Los cinco componentes, para comprobar
 
 | Componente | Qué incluye |
 |---|---|
@@ -258,7 +311,7 @@ Cada uno se estima en sesiones y con su coeficiente de riesgo:
 | **Desplegar** | Los dos ambientes, el orden (que se invierte si la regla restringe), las banderas y el encendido |
 | **Cerrar** | El traspaso, el roadmap, la bitácora, la wiki, Notion y la memoria |
 
-### 6.3 Coeficiente de riesgo e integración
+### 6.4 Coeficiente de riesgo e integración
 
 | Coeficiente | Cuándo |
 |---|---|
@@ -267,34 +320,39 @@ Cada uno se estima en sesiones y con su coeficiente de riesgo:
 | **1,5** | Poco documentado o de infraestructura: reglas de Storage, App Hosting, emulador, índices |
 | **2,0** | Posible callejón sin salida: un servicio externo, una ley sin abogado, un comportamiento sin documentar |
 
-**Esfuerzo = Σ (componente × su coeficiente) × (1 + integración)**, con integración de **0 %** si toca
-una superficie, **10 %** si toca dos o tres y **20 %** si toca cuatro o más. Las piezas funcionan solas y
-se rompen al juntarlas.
+**Horas = Σ (componente × su coeficiente) × (1 + integración)**, con integración de **0 %** si toca una
+superficie, **10 %** si toca dos o tres y **20 %** si toca cuatro o más. Esta cuenta **comprueba** la
+talla de §6.2; no la sustituye.
 
-### 6.4 El tiempo de David, aparte
+### 6.5 El tiempo de David: las esperas
 
-Se cuentan **las intervenciones**, con una estimación en minutos:
+Lo que cuesta de David no son sus minutos: es **la espera**. En la calibración, con David presente toda
+la tarde, FEAT-008 y FLOW-008 no esperaron nada; PLAT-005 esperó 15 horas a un iPhone y H.31–37 esperó
+5,5 horas a un permiso de producción.
 
-- permisos de producción (uno por paso, nunca en bloque);
-- validación en el navegador con su sesión;
+Se cuentan **los puntos de espera**: cada momento en que la entrega no puede seguir sin David.
+
+- un permiso de producción (uno por paso, nunca en bloque);
+- una validación en el navegador con su sesión, o en un teléfono;
 - reautenticar una credencial (ADC, CLI de firebase, gcloud);
-- decisiones de producto;
+- una decisión de producto;
 - la consola, Squarespace o cualquier cosa que solo él puede tocar;
 - una conversación con un tercero.
 
-**No entra en la división de la puntuación: es la capacidad.** Al armar un lote, se suman las
-intervenciones y se comparan con el tiempo que David tiene; si no alcanza, se prefieren las necesidades
-con menos intervenciones.
+**Si David está en la sesión, un punto de espera cuesta minutos; si no, cuesta calendario**: de horas a
+un día. **Las esperas no entran en la división de la puntuación**: se usan para planificar. Al armar un
+lote se suman, y si David no va a estar, se prefieren las necesidades con menos esperas o se agrupan
+las suyas en un solo momento. Los minutos se siguen anotando.
 
-### 6.5 Cinco errores de estimación que el modelo prohíbe
+### 6.6 Cinco errores de estimación que el modelo prohíbe
 
-1. **Anclar en tiempos humanos** («un desarrollador tardaría dos semanas»). Se parte de las sesiones.
+1. **Anclar en tiempos humanos** («un desarrollador tardaría dos semanas»). Se compara con las
+   referencias de §6.2; la v0.1 lo prohibía solo con palabras, y los seis estimadores lo hicieron igual.
 2. **Acolchar a ojo.** Toda holgura es un coeficiente con su razón escrita.
 3. **Confundir volumen con dificultad.** Quinientas líneas repetitivas no son difíciles; una línea de
    regla puede serlo.
 4. **Olvidar la integración** y el cierre, que aquí es trabajo de verdad.
-5. **Ignorar el cuello de botella de la persona**: un permiso de producción es una espera, no una
-   sesión de más; va en §6.4.
+5. **Meter las esperas en las horas.** Un permiso de producción es una espera (§6.5), no trabajo.
 
 ---
 
@@ -302,22 +360,27 @@ con menos intervenciones.
 
 ### 7.1 La puntuación
 
+La confianza descuenta solo las estimaciones; los hechos entran enteros:
+
 ```
-VC     = Dolor + Obligación + Rodeo + Alcance                  (0–12)
-VN     = Ingreso + Riesgo que quita + Desbloqueo + Cierre     (0–12)
-Valor  = 0,5 × VC + 0,5 × VN                                    (0–12)   ← pesos de §11
-CdE    = Valor + 2 × U                                          (0–18)   ← factor de §11
-Impacto ajustado = CdE × C
-Puntuación       = Impacto ajustado ÷ Esfuerzo (sesiones)
+Estimaciones  E = 0,5 × (Dolor + Obligación + Rodeo) + 0,5 × (Ingreso + Riesgo que quita) + 2 × U
+Hechos        H = 0,5 × Alcance + 0,5 × (Desbloqueo + Cierre)
+Impacto ajustado = H + E × C                                           (0–18)
+Puntuación       = Impacto ajustado ÷ Horas
 ```
+
+Los pesos son los de §11: 50/50 entre cliente final y negocio, y la urgencia al doble. Con C = 1, el
+impacto ajustado es exactamente el coste de esperar de la v0.1: `0,5 × VC + 0,5 × VN + 2 × U`.
 
 **Ejemplo ilustrativo, con números inventados para enseñar la cuenta** (no es la valoración de nada):
-VC = 7, VN = 5 → Valor = 6. U = 1 → CdE = 8. C = 0,5 → Impacto ajustado = 4. Esfuerzo = 2 sesiones
-× 1,3 × 1,10 = 2,86. **Puntuación = 4 ÷ 2,86 = 1,4.**
+Dolor 2, Obligación 1, Rodeo 2, Alcance 2; Ingreso 1, Riesgo 1, Desbloqueo 0, Cierre 1; U = 1.
+E = 0,5 × 5 + 0,5 × 2 + 2 = 5,5. H = 0,5 × 2 + 0,5 × 1 = 1,5. C = 0,8 (la prueba más débil entre las
+estimaciones con nota 2). Impacto ajustado = 1,5 + 5,5 × 0,8 = 5,9. Horas = 2 (talla M, confirmada por
+componentes). **Puntuación = 5,9 ÷ 2 = 3,0.**
 
-### 7.2 El cuadrante *(umbrales de §11, a ajustar con la calibración)*
+### 7.2 El cuadrante *(umbrales de §11; el de impacto, pendiente de la calibración)*
 
-| | Esfuerzo < 3 sesiones | Esfuerzo ≥ 3 sesiones |
+| | Menos de 4 horas | 4 horas o más |
 |---|---|---|
 | **Impacto ajustado ≥ 6** | **Ganancia rápida:** primero | **Apuesta:** se planifica y se parte |
 | **Impacto ajustado < 6** | **Relleno:** entre frentes | **Pozo:** no se hace sin una razón nueva |
@@ -330,8 +393,8 @@ VC = 7, VN = 5 → Valor = 6. U = 1 → CdE = 8. C = 0,5 → Impacto ajustado = 
 3. **Cerrar antes que abrir.** Entre dos con puntuaciones parecidas (diferencia menor al 25 %), va
    primero la que cierra. Si esta regla contradice una recomendación anterior, **se dice en voz alta**.
 4. **Solo se elige lo que no está frenado.** Lo construible (A) se puede elegir hoy. Lo que espera una
-   decisión de David (B) va a su lista **ordenado por puntuación**, que dice qué decisión vale más la pena tomar
-   primero. Lo que espera a un tercero (C) espera.
+   decisión de David (B) va a su lista **ordenado por puntuación**, que dice qué decisión vale más la
+   pena tomar primero. Lo que espera a un tercero (C) espera.
 
 **Solo se comparan puntuaciones del mismo lote.** Una puntuación de hoy y una de hace un mes pueden
 haberse hecho con pruebas distintas.
@@ -343,9 +406,9 @@ comparación:
 
 ```markdown
 ## Qué se gana y qué se pierde: [A] frente a [B]
-- A: puntuación · cuadrante · freno · qué se gana · qué cuesta esperarla
+- A: puntuación · cuadrante · freno · esperas · qué se gana · qué cuesta esperarla
 - B: lo mismo
-- Qué inclina la balanza: [la regla de §7.3 que aplica, la capacidad de David, una fecha]
+- Qué inclina la balanza: [la regla de §7.3 que aplica, si David va a estar, una fecha]
 Decide David.
 ```
 
@@ -377,32 +440,35 @@ Una por necesidad. Las pequeñas caben en una fila de la tabla del lote; las gra
 - Gemelos: …
 
 **Impacto**
-| Criterio | Nota | Prueba | Nivel |
-|---|---|---|---|
-| Dolor (o G × P) | | | |
-| Obligación | | | |
-| Rodeo | | | |
-| Alcance | | | |
-| Ingreso | | | |
-| Riesgo que quita | | | |
-| Desbloqueo | | | |
-| Cierre | | | |
-| **Urgencia** | | | |
-**Confianza:** [nivel de la prueba más débil entre las notas de 2 o 3]
+| Criterio | Clase | Nota | Prueba | Nivel |
+|---|---|---|---|---|
+| Dolor (tabla general, o G × P) | estimación | | | |
+| Obligación | estimación | | | |
+| Rodeo | estimación | | | |
+| Alcance | hecho | | | — |
+| Ingreso | estimación | | | |
+| Riesgo que quita | estimación | | | |
+| Desbloqueo | hecho | | | — |
+| Cierre | hecho | | | — |
+| Urgencia | estimación | | | |
+**E:** … · **H:** … · **Confianza:** [la regla de §5.4] · **Impacto ajustado:** …
 
 **Esfuerzo**
-| Componente | Sesiones | Coeficiente | Por qué |
+- Referencia más parecida (§6.2): [cuál] → talla [..] → **N horas**
+- Comprobación por componentes:
+| Componente | Horas | Coeficiente | Por qué |
 |---|---|---|---|
 | Construir | | | |
 | Datos | | | |
 | Verificar | | | |
 | Desplegar | | | |
 | Cerrar | | | |
-Integración: [0/10/20 %] · **Total: N sesiones** · Intervenciones de David: [lista, minutos]
+  Integración: [0/10/20 %] · total por componentes: … h · [si difiere en más de una talla, por qué]
+- **Esperas:** [lista de puntos de espera, con minutos si David está]
 
-**Resultado:** puntuación · cuadrante · freno · reglas de §7.3 que aplican
+**Resultado:** puntuación · cuadrante · freno · esperas · reglas de §7.3 que aplican
 **Qué cambiaría la valoración:** [la prueba que la movería, y hacia dónde]
-**Sensibilidad:** ¿cambia el orden si el esfuerzo fuera el doble?
+**Sensibilidad:** ¿cambia el orden si las horas fueran el doble?
 ```
 
 La línea «qué cambiaría la valoración» es la más útil del lote: dice qué prueba conviene conseguir
@@ -417,21 +483,23 @@ este orden:
 
 ### 9.1 Calibración con lo ya construido
 
-Se valoran **seis a ocho entregas de la bitácora** como si no estuvieran hechas, con el expediente que
-había antes de construirlas, y se compara con lo que costaron de verdad: sesiones (días con commits
-del frente en `git log`) e intervenciones de David (el traspaso y la bitácora). Candidatas, por
-variedad de talla:
+Se valoran **entregas de la bitácora** como si no estuvieran hechas, a ciegas —con el repositorio tal
+como estaba antes de construirlas—, y se compara con lo que costaron de verdad: las horas de reloj en
+`git log` y las esperas del traspaso y la bitácora.
 
-- la compuerta de morosos en reservas (`H1`, «la más barata»);
-- Medidores abriendo en el último mes con lecturas (`H.51`, `bb238da`);
-- medición de consumos (`FEAT-008`);
-- cuentas por pagar en cuotas (`FLOW-008`);
-- push en iPhone (`PLAT-005`);
-- las ventanas del Panel de Control (`UX-004`).
+**Criterio:** si en más de la mitad las horas reales se desvían más del 50 % de la estimación, se
+reescriben las tallas, las referencias o los coeficientes. Y el orden que da el modelo tiene que
+parecerse al que eligió David; donde no se parezca, se busca el criterio que falta.
 
-**Criterio:** si en más de la mitad el esfuerzo real se desvía más del 50 % de la estimación, se
-reescriben las tallas o los coeficientes. Y el orden que da el modelo tiene que parecerse al que
-eligió David; donde no se parezca, se busca el criterio que falta.
+**Primera pasada, 15 sep 2026 (v0.1): NO PASÓ.** Seis entregas: H.31 y H.37, FIX-003, H.51 y D2,
+PLAT-005, FEAT-008 y FLOW-008. El esfuerzo salió inflado entre 3,3 y 8,6 veces en las seis, aunque el
+orden relativo se conservó (ρ = 0,89); la confianza, en 0,5 en todas las valoraciones. De ahí salieron
+los cambios de la v0.2, y **esas seis entregas son ahora las referencias de §6.2**, así que **no pueden
+volver a calibrar**: la siguiente pasada usa entregas distintas. Detalle:
+`docs/valoraciones/calibracion-2026-09-15.md`.
+
+**Una pregunta abierta de la primera pasada:** aun con la v0.2, FLOW-008 y PLAT-005 seguirían en Pozo,
+y David las eligió. Si fue por algo que el modelo no pregunta, ese es el criterio que falta.
 
 ### 9.2 Doble valoración a ciegas
 
@@ -448,7 +516,7 @@ Tienen que salir donde se espera; si no, el modelo está roto:
 - **Una necesidad bloqueada por el abogado** (`FLOW-006`) → freno C, **sea cual sea su puntuación**.
 - **Un defecto de dinero reproducido** → puerta de obligatorio.
 - **La dispersión**: en un lote de diez, las puntuaciones no pueden salir todas en el mismo cuadrante.
-  Si salen, las definiciones no distinguen.
+  Si salen, las definiciones no distinguen. La v0.1 la rozó: cuatro de seis en Pozo.
 
 Estos casos serán además **las pruebas de la skill** (§10), como hace `orchestkit` con las suyas.
 
@@ -457,11 +525,11 @@ Estos casos serán además **las pruebas de la skill** (§10), como hace `orches
 ## 10. Dónde vive y cómo se mantiene
 
 - **Este documento es la regla.** Se cambia aquí y en ningún otro sitio; lo demás lo cita.
-- **Las valoraciones**, un fichero por lote: `docs/valoraciones/lote-AAAA-MM-DD.md`, con la tabla del lote
-  y las fichas grandes debajo. **Por escribir.**
+- **Las valoraciones y las calibraciones** viven en `docs/valoraciones/`, un fichero por lote o por
+  pasada, con la tabla y las fichas grandes debajo.
 - **La skill `valorar-iniciativa-vivaru`** ejecuta los cinco pasos y produce la ficha, como las de
   PRD. Lleva los casos de §9.3 como pruebas. **Por escribir.**
-- **Notion:** columnas nuevas en «Backlog e inventario detallado» (impacto ajustado, esfuerzo,
+- **Notion:** columnas nuevas en «Backlog e inventario detallado» (impacto ajustado, horas, esperas,
   confianza, puntuación, freno). **Pide el permiso de David** antes de tocar el esquema.
 - **Cuándo se revalora:** cuando cambia la prueba —llega un cliente, se mide algo, aparece un plazo— y
   antes de armar cada menú de `docs/pendientes.md`. Una valoración vieja se marca con su fecha, no se
@@ -471,15 +539,16 @@ Estos casos serán además **las pruebas de la skill** (§10), como hace `orches
 
 ## 11. Los valores de partida
 
-**Confirmados por David el 15 sep 2026**, tal como se recomendaron. La calibración de §9.1 puede
-ajustarlos; si lo hace, el cambio se anota aquí con su fecha y su razón.
+**Confirmados por David el 15 sep 2026.** La calibración puede ajustarlos; cada ajuste se anota aquí con
+su fecha y su razón.
 
 | Qué | Valor | Por qué ese |
 |---|---|---|
-| Peso cliente / negocio | **50 / 50** | La confianza ya castiga el valor al cliente no medido; subir el negocio lo castigaría dos veces |
+| Peso cliente / negocio | **50 / 50** | La confianza ya descuenta el valor al cliente no medido; subir el negocio lo descontaría dos veces |
 | Factor de la urgencia | **2 × U** | Una urgencia de 3 (plazo legal) pesa la mitad de la escala de valor |
-| Unidad de esfuerzo | **Sesiones**, y las intervenciones de David aparte | Es como se trabaja aquí; lo escaso es la atención de David |
-| Umbrales del cuadrante | **Impacto ajustado 6 · esfuerzo 3 sesiones** | A ojo; los fija la calibración |
+| Unidad de esfuerzo | **Horas de trabajo activo**, y las esperas de David aparte | **Cambiado el 15 sep** (era «sesiones»): la sesión dura entre media hora y cuatro, y no mide nada |
+| Umbral de esfuerzo del cuadrante | **4 horas** (talla L) | **Cambiado el 15 sep** (eran 3 sesiones): las entregas grandes de referencia costaron unas 4 horas |
+| Umbral de impacto del cuadrante | **6** | Sin tocar: se mira en la segunda calibración, con la confianza ya corregida |
 | Primer lote después de calibrar | **El menú de `pendientes.md` y las rarezas del §H** | Es entre lo que se elige ahora; los 82 candidatos de Habitanto van después |
 
 **Y una duda del recuento, previa al primer lote:** el menú cuenta 28 rarezas sin decidir
@@ -499,7 +568,7 @@ ninguna. De las que tienen licencia MIT se toma el método; de las que no la dec
 |---|---|---|
 | Confianza en cuatro niveles ligados a la prueba; el coste de esperar (WSJF) para lo que tiene plazo; «decide la persona»; solo comparar dentro del mismo objetivo; la skill con sus propias pruebas | `yonatangross/orchestkit`, skill `prioritization` | MIT |
 | Tallas de esfuerzo en Fibonacci; los cuadrantes de valor y esfuerzo | `alirezarezvani/claude-skills`, `product-manager-toolkit` y `senior-pm` | MIT |
-| Esfuerzo en unidades del agente, coeficientes de riesgo de 1,0 a 2,0, recargo por integrar, el cuello de botella de la persona aparte | `zhanghandong/agent-estimation` | MIT |
+| Esfuerzo en unidades del propio trabajo, no en tiempos humanos; coeficientes de riesgo de 1,0 a 2,0; recargo por integrar; el cuello de botella de la persona aparte; **estimar contra ejemplos de calibración** | `zhanghandong/agent-estimation` | MIT |
 | Las formas de tocar el ingreso (vender, convertir, ampliar, retener); «lo de menos de una semana no se puntúa: se hace»; «qué tendría que cambiar» | `deanpeters/product-manager-skills`, `feature-investment-advisor` | No declarada: solo la idea |
 | Sin datos de uso, RICE no sirve: su «alcance» los necesita | `deanpeters/product-manager-skills`, `prioritization-advisor` | No declarada: solo la idea |
 | Primero el problema, después la solución | `borghei/claude-skills`, `prioritization-frameworks` | No declarada: solo la idea |
@@ -507,5 +576,6 @@ ninguna. De las que tienen licencia MIT se toma el método; de las que no la dec
 
 **Lo propio de Vivaru, que no existe en el mercado:** el expediente leído del código y de los datos
 (§3), el análisis de lo que rompe con nuestras trampas (§4), la puerta de lo obligatorio con nuestras
-definiciones (§2.1), la calibración con nuestra bitácora (§9.1) y la prueba de acuerdo entre
-calificadores (§9.2).
+definiciones (§2.1), la separación entre hechos y estimaciones en la confianza (§5.4), los casos de
+referencia medidos en nuestro git (§6.2), la calibración con nuestra bitácora (§9.1) y la prueba de
+acuerdo entre calificadores (§9.2).
