@@ -677,7 +677,13 @@ Leídas en el código, **no probadas**. No se arreglan con la semilla; quedan pa
 8. La regla de portería no admite volver de `inside` a `scheduled`, que es el reingreso de una
    visita de larga duración.
 9. El saldo de apertura del informe mensual no se arrastra de un mes al siguiente (§12.3.3 del
-   plan).
+   plan). **Medido el 14 sep** al replicar el archivo mensual (plan de documentos, C2):
+   - el informe emitido y el reporte de comité parten TODOS los meses del saldo de apertura
+     registrado;
+   - en Lomas, junio, julio y agosto arrancan en 598,400, y julio no parte de los 609,897.37 con que
+     cerró junio;
+   - desde el segundo mes, «saldo final del fondo» no es el del banco (agosto: 557,838.85 contra
+     614,668.08 en las dos cuentas).
 10. **La puerta de buzones deja pasar los dominios inertes**, y no hay otro filtro que evite
     escribirles. Si se abre un camino de correo hacia una persona con correo `@ejemplo.vivaru.app`,
     el envío se intenta y rebota.
@@ -814,3 +820,54 @@ sesión de administración y leyendo después el código que las pinta:
     Las personas de la historia no tienen teléfono (D12), así que en la demo no se edita ninguna sin
     inventarle uno; lo mismo le pasaría a un padrón real importado sin teléfonos. Por eso la prueba de
     la puerta no llegó a Firestore: no se guardó nada (comprobado en la base tres veces).
+
+**Del plan de documentos** (14–15 sep, `docs/plan-documentos-demo-lomas.md` §7):
+- Las 40–45 se leyeron en el código al replicar sus escritores; la 41 se confirmó después en pantalla.
+- Las 46–50 se vieron en las pantallas de staging y de producción, o se midieron.
+- Tampoco se arreglan con la semilla.
+
+40. **El dinero de dos PDF del servidor sale en formato colombiano.** El informe mensual y el reporte
+    de comité automático (`formatMoney` de `functions/src/index.ts`, `es-CO`) pintan «$598.400» y
+    «$-40.561» en un conjunto mexicano, donde la pantalla dice «$598,400.00».
+41. **El logo no llega al informe mensual ni a los correos.**
+    - La administración lo guarda en `tenantSettings.logoUrl`.
+    - El PDF del informe (`descargarLogo`) y la cabecera de `/admin/reports` lo leen de
+      `tenants.branding.logoUrl`, que no escribe nada del repositorio. Es la división en dos colecciones
+      que `tests/marca-del-conjunto.test.ts` ya arregló para la cabecera del residente
+      (`ResidentHeader`, que sí lo pinta).
+    - La administración solo lo ve en la vista previa de Ajustes: la franja del `app-shell` es solo
+      para el superadmin.
+    - Ningún correo lo lee, aunque Ajustes promete que «el logo y los colores se reflejan en el portal
+      del residente y en los correos».
+42. **Cuatro campos de archivo sin pantalla:** `expenses.supportFile*` (se escriben siempre en `null`),
+    los adjuntos de PQRS, `reservations.mudanza.receiptUrl` y `paymentVouchers.pdfUrl`.
+43. **Los espejos de Documentos comparten el archivo con su origen.**
+    - Borrar la fila desde `/admin/documents` borra el archivo del comprobante, el acta o el
+      comunicado.
+    - Borrar un comunicado o un servicio deja su archivo huérfano (`deleteService` solo borra el
+      documento).
+    - Los archivos de un servicio nuevo se suben a `services/new-{ts}/` antes de que el servicio
+      exista, así que su carpeta nunca es la del servicio.
+44. **La carpeta `monthly-reports` no está en `storage.rules`:** el informe solo se abre con el token de
+    su `fileUrl` o con la URL firmada.
+45. **La foto del medidor la ve el residente y no la administración:** su pantalla solo tiene el botón
+    para subirla.
+46. **La categoría `informe_mensual` sale en crudo en Documentos.** La escribe el propio producto al
+    archivar el informe, y `CATEGORY_OPTIONS` de `/admin/documents` no la trae: la columna pinta
+    «informe_mensual» y el filtro no la ofrece. Es el gemelo, del lado de la administración, de la H.34.
+47. **Textos sin traducir o sin acento en dos listados de administración:** el estado «Scheduled» de un
+    comunicado programado en `/admin/communications`, y las columnas «Titulo» y «Categoria» ahí y en
+    `/admin/services`.
+48. **«Subido por —» en los documentos de los acuerdos:** `src/features/committee-agreements/services.ts`
+    escribe `uploadedByName: ""` al archivar el acta.
+49. **El cron escribe sumas sin redondear en los XLSX** del histórico de cartera y del reporte de
+    comité: acumula con `+=` y no redondea, y deja celdas como `170653.21999999997`.
+    - Excel las pinta bien, porque muestra 15 cifras significativas.
+    - Pero dos corridas iguales dan bytes distintos según el orden en que llegan los cargos, que lo
+      deciden sus ids al azar. Está emparentada con la H.17.
+50. **El adjunto de un comunicado programado se ve en Documentos antes de publicarse.**
+    - `admin/communications/page.tsx` registra los adjuntos nuevos en Documentos
+      (`createDocumentRecord`, categoría `comunicado`) en cuanto se guarda, sin mirar el estado.
+    - El residente lee esa categoría, así que ve el PDF de un comunicado que su portal todavía no le
+      enseña.
+    - Visto en staging y en producción con el aviso de la cisterna del 22 de septiembre.

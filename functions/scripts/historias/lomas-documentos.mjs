@@ -938,7 +938,7 @@ export function egresosAl(corte, egresos) {
     });
 }
 
-/** El formato de dinero de `monthlyFinancialArchive` (`formatMoney`, `es-CO`): «$598.400». Candidato a H.40. */
+/** El formato de dinero de `monthlyFinancialArchive` (`formatMoney`, `es-CO`): «$598.400». Es la H.40 del contrato de la semilla. */
 const formatoDelCron = (v) => `$${Math.round(v).toLocaleString("es-CO")}`;
 
 /**

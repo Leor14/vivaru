@@ -3,10 +3,18 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-09-13
+fecha_actualizacion: 2026-09-15
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-09-15] lint | La fase de documentos de la semilla de Lomas: nada que cambie la wiki todavía
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — este log
+- **Comprobado sin cambio**: el plan de documentos de la demo de Lomas (`docs/plan-documentos-demo-lomas.md`) sembró en staging y en producción archivos, fotos y el archivo mensual sin tocar el producto. Sus 11 rarezas (contrato de la semilla, H.40–H.50) no entran aquí hasta que se decida qué hacer con ellas, igual que las del 13. Se buscó en la wiki lo que desmienten y no aparece: [[configuracion]] dice que `tenantSettings.logoUrl` es el logo del conjunto, y lo es. La H.41 es que el informe mensual y `/admin/reports` leen otro campo, `tenants.branding.logoUrl`, que no escribe nadie.
 
 ---
 

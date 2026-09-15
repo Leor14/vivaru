@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.75 |
-| **Fecha** | 13 de septiembre de 2026, noche |
-| **Estado** | **La semilla de la demo de Lomas, ensayada en staging; H.31 y H.37, en producción.** Fases 0, 1, 2 y 4 del plan de la semilla (`docs/plan-seed-demo-lomas-de-sayilbedra.md`): un script que siembra tres meses de vida de un conjunto demo por los mismos escritores del producto, probado contra el emulador, corrido en el ensayo de staging con los disparadores reales, recorrido con cinco sesiones —ninguna pantalla vacía— y limpiado y resembrado con la misma huella que el emulador. **El recorrido sacó 18 rarezas del producto** (contrato, H.21–H.38); dos se arreglaron y están en producción: «Recibos emitidos», que se caía con dos recibos del mismo día (H.31), y la portería, que veía «Expirado» desde el mediodía las visitas de QR de la tarde (H.37). **Falta la fase 3, sembrar producción**, con permiso de David en cada paso, y decidir qué hacer con las 16 rarezas restantes, H.28 («Enviar acceso a 95») entre ellas. Lo que ya esperaba a David o a terceros sigue igual: App Check; el `country` de cuatro conjuntos; las fechas de las reglas de visitas; el «vencido» en UTC; `UX-005`; el abogado ecuatoriano; Albert; el primer conjunto REAL. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
-| **Verificado contra** | **Los servicios, al cerrar (04:30 UTC del 14).** Producción sirve `build-2026-09-13-003` (`44953b5`; el rollout nació a las 22:56 UTC del 13 y se vio sirviendo a las 04:24 UTC del 14) y staging `build-2026-09-13-009` (el mismo commit; detrás solo vienen notas sin código). Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`; sin despliegues de functions ni de reglas desde el 12. H.31 y H.37, vistos en staging contra una predicción escrita antes: los 6 recibos de una casa demo en el orden sacado de la base, y una visita de las 17:30 que pasa de «Expirado» a «Programado». Bancos: `npm test` **2080** y functions **1030**, contados el 13; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
+| **Versión** | 0.9.76 |
+| **Fecha** | 14 de septiembre de 2026, noche (03:00 UTC del 15) |
+| **Estado** | **Lomas de Sayilbedra, sembrada en producción con tres meses de historia y con sus documentos.** El 14 de madrugada, la fase 3 del plan de la semilla sembró producción con permiso de David en cada paso: 37 de 37, cero correos y cero llamadas a IA. De mediodía a medianoche, el plan de documentos (`docs/plan-documentos-demo-lomas.md`) añadió el reglamento completo, las actas del consejo, la asamblea, el plano y la memoria de obra, carteles y circulares, fotos de las áreas, portadas y tarifas de servicios, contratos y póliza, comprobantes, relaciones bancarias, el archivo mensual del cron rellenado hacia atrás y el logo. Se probó en el emulador, se ensayó en staging (limpiar y resembrar incluido) y se corrió en producción: 43 de 43, cero avisos, correos e IA, y recorrido con la administración y con un residente. **Salieron 11 rarezas del producto** (contrato, H.40–H.50): el logo que no llega al informe mensual ni a los correos, el dinero en formato colombiano en los PDF del servidor, el adjunto de un comunicado programado que el residente ve antes de publicarse, entre otras. Ninguna se ha tocado. **Falta el cabo de T3.5** (la prueba de la puerta por pantalla, que tropieza con H.39) y decidir qué hacer con las rarezas (H.21–H.50, salvo H.31 y H.37). Lo que ya esperaba a David o a terceros sigue igual. El menú completo, en la cabecera de `docs/pendientes.md`; los remotos, con `git ls-remote` |
+| **Verificado contra** | **Los servicios, al cerrar (02:45 UTC del 15).** Producción sirve `build-2026-09-14-001` desde `130c18e`, la punta de `master` (solo notas desde `44953b5`), y staging `build-2026-09-14-004` desde `fdc5a92`. Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`; sin despliegues de functions ni de reglas desde el 12. **Esta pasada no despliega nada**: la semilla se corre. En producción, el verificador de la semilla da 43 de 43 tras escribir y tras los dos recorridos, y los testigos no registran avisos ni correos nuevos. Bancos: `npm test` **2080** y functions **1079**, contados el 14; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1238,6 +1238,35 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.76 — 14 de septiembre de 2026 — Lomas, sembrada en producción con su historia y sus documentos
+
+- **La historia, en producción** (plan de la semilla, fase 3, con permiso de David en cada paso): las
+  overrides de Lomas, la puerta de buzones solo ahí, la simulación y la corrida con `--si-produccion`.
+  - Una corrida que se cayó al cerrar la tapa del portátil se retomó sin duplicar nada.
+  - Resultado: 37 de 37, 513 avisos de la historia capturados y borrados, cero correos y cero IA.
+  - De T3.5 quedan las contraseñas hechas y la prueba de la puerta por pantalla, que tropieza con
+    H.39.
+- **El plan de documentos** (`docs/plan-documentos-demo-lomas.md`, `223d759` y `fdc5a92`): un modo
+  `--documentos` que enriquece un conjunto ya sembrado.
+  - **Reemplaza cada archivo en su ruta y con su token**, así que ninguna URL guardada cambia, y solo
+    crea lo que no avisa.
+  - Trae un maquetador de PDF e ilustraciones en SVG.
+  - Rellena hacia atrás el archivo mensual del cron: reconstruye la cartera a cada corte y la prueba
+    contra la de hoy antes de escribir.
+  - El verificador pasa de 37 a 43 comprobaciones, y las seis nuevas se falsaron.
+- **Ensayado en staging y corrido en producción:** dos corridas, la segunda sin cambios; 43 de 43; cero
+  avisos, correos e IA, medidos con testigos propios. Limpiar y resembrar el ensayo reprodujo lo mismo.
+- **El control cruzado entre ambientes** dio 57 y 58 huellas iguales. Las demás solo cambian por claves
+  de rastreo que salen de ids y por el orden de sumas en coma flotante. Se midió en la base, no se
+  supuso: la primera hipótesis era falsa.
+- **Los recorridos** (administración y residente, en staging y en producción) confirmaron que el
+  residente ve lo suyo y nada de administración. **Y sacaron 11 rarezas del producto** (contrato,
+  H.40–H.50).
+  - Una la afirmé mal a medias: dije que el residente no veía el logo porque solo buscaba en `src/`.
+  - Su cabecera vive en `components/`, en la raíz del repositorio, y la pantalla lo desmintió.
+- Bancos: `npm test` **2080** · functions **1079** (49 pruebas nuevas de la semilla) · reglas **591** ·
+  emulador de functions **379 de 381**.
 
 ### 0.9.75 — 13 de septiembre de 2026 — la semilla de la demo de Lomas, ensayada en staging; H.31 y H.37 en producción
 

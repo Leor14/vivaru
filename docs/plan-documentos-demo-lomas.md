@@ -266,26 +266,140 @@ el PDF de revisión que junta las versiones finales.
 
 ### Fase 2 — Ensayo en staging
 
-- [ ] **T2.1 Corrida sobre el ensayo** (`fnBFuQe2p8h5fwy3jpeB`). Criterio: verificador en verde; cero
-  avisos nuevos a residentes; cero correos.
-- [ ] **T2.2 Recorrido por las pantallas del catálogo** con tus sesiones: Documentos (administración
+- [x] **T2.1 Corrida sobre el ensayo** (`fnBFuQe2p8h5fwy3jpeB`). Criterio: verificador en verde; cero
+  avisos nuevos a residentes; cero correos. **Hecho el 14 sep (21:28 y 21:32 UTC)**, con testigos
+  propios antes y después de cada corrida (`scratchpad/ensayo-testigos.mjs`):
+  - **Primera corrida:** creó 27 documentos y 4 carpetas y reemplazó el resto en su ruta. Quedan 59
+    documentos y 11 carpetas, lo mismo que en el emulador. **La segunda:** todo «ya estaban».
+  - **Tras cada una:** verificador 43 de 43; cero avisos (655 → 655 en todo staging, ninguno con
+    `createdAt` posterior al inicio); cero correos (`emailDeliveries` 2 → 2); `aiUsage` sin cambio (41).
+  - **Antes de escribir, el verificador ya daba 42 de 43.** Sobraba un aviso del propio producto a la
+    portería, de las 08:00 UTC: «Visitas sin salida registrada», por las dos visitas del lote del 13
+    que siguen «Dentro». El barrido de la corrida lo apuntó en el manifiesto.
+  - **El «hoy» de la corrida (14) no es el de la siembra (13).** Entre los dos cambian 52 eventos del
+    guion, y ninguno es de los dos que leen los documentos (`egreso-impermeabilizacion-*`,
+    `egreso-seguro-2026`).
+  - **La simulación dice 1 carpeta y la escritura creó 4.** La comprobación de las carpetas de sistema
+    va después del retorno en seco. Para T3.1 no importa: la simulación de producción cuenta igual de
+    corto que esta.
+  - **Control cruzado con el emulador, huella por huella:**
+    - 58 archivos iguales.
+    - Las 8 huellas distintas (relaciones de la cuenta operativa, históricos de cartera y reportes de
+      comité en XLSX) y los 21 comprobantes solo difieren en claves de rastreo que salen de ids
+      aleatorios y en el orden de sumas en coma flotante. La cifra es la misma al centavo.
+    - Comprobado bajando tres archivos de cada ambiente: con los ids enmascarados, la relación de
+      junio queda idéntica.
+- [x] **T2.2 Recorrido por las pantallas del catálogo** con tus sesiones: Documentos (administración
   y residente), Reglamento, Acuerdos, Comunicados, Reservas (galerías), Servicios, la barra con el
   logo. Criterio: cada archivo abre, se ve bien, y el residente no ve lo de administración.
-- [ ] **T2.3 `--limpiar` y resembrar**, para comprobar que lo nuevo se va entero.
+  **La administración, hecha el 14 sep**, con su sesión del ensayo en el navegador de la app:
+  - **Documentos:** 58 en el listado; el reglamento va en su módulo (`page.tsx`). Las 11 carpetas
+    suman 59.
+  - **Reglamento:** 48 unidades y 29 firmas. **Acuerdos:** los 5, con su PDF. **Comunicados:** con sus
+    8 adjuntos.
+  - **Reservas:** las 5 amenidades, y la galería de 3 fotos en «Editar amenidad» (cerrado sin
+    guardar). **Servicios:** los 6.
+  - **El logo:** en la vista previa de Ajustes, 512×512 desde `branding/logo.png`.
+  - **«Ver PDF» abre el archivo en otra pestaña**, y el navegador de la app bloquea las que no abre un
+    clic tuyo. Que cada archivo se ve bien lo da el control cruzado de T2.1: la misma huella que lo
+    revisado en el emulador.
+  - **La barra con el logo solo existe para el superadmin** (§7, punto 1).
 
-**Punto de control B:** tu visto bueno sobre lo que se ve en staging.
+  **El residente, hecho el 14 sep**, con la sesión de Encinos 03 (Raúl Álvarez Torres) en el Chrome
+  de David. El navegador de la app tenía la de la administración, y los dos no comparten sesión.
+  - **Documentos:** los 18 esperados (8 comunicados, 5 acuerdos, 2 de la asamblea, el reglamento, el
+    plano y la memoria de obra) y nada de administración. La lista blanca de `use-documents.ts`
+    coincide con la regla.
+  - **Reglamento:** «Ya firmaste». **Acuerdos:** los 5, con «Ver documento» (el de las cámaras, por
+    firmar; no se firmó). **Comunicaciones:** con el cartel de la noche mexicana adjunto.
+  - **Reservas:** las 5 áreas se eligen por su foto, y «Ver fotos» abre la galería (la alberca, 3
+    fotos). **Servicios:** la portada ilustrada y las tarifas.
+  - **El logo:** en la cabecera de todas sus páginas (§7, punto 1, corregido).
+  - **Tras los dos recorridos:** verificador 43 de 43, y cero avisos y cero correos desde las 21:32
+    UTC. Los recorridos no escribieron nada.
+- [x] **T2.3 `--limpiar` y resembrar**, para comprobar que lo nuevo se va entero. **Hecho el 14 sep
+  (22:15–22:56 UTC)**, en una sola cadena que solo resembraba si `--limpiar` dejaba el conjunto como
+  estaba:
+  - **`--limpiar`:** borró 4.572 documentos, 40 cuentas y 282 archivos. Ajustes y guía, como estaban
+    (el logo, fuera). «Nada fuera de la línea base».
+  - **La resiembra (36 min):** avisos D6 de la historia, 510 de 510; de hoy, 1 (el del superadmin).
+  - **Una reserva la rechaza la regla de anticipación:** `reserva-palapa-2026-06-28-1`, pedida el 27
+    a las 13:30 para el 28 a las 12:00, en una palapa que exige 24 horas. Es del guion y no depende
+    del «hoy»: el 13 la huella también contaba 154 reservas de 155.
+  - **Documentos, dos veces:** la primera crea lo mismo que en T2.1 (27 documentos y 4 carpetas; 59 y
+    11 en total); la segunda, todo «ya estaban». 282 archivos en el manifiesto, 87 con huella.
+  - **Testigos y verificador:** 43 de 43; cero correos; `aiUsage` sin cambio.
+  - **Los 15 avisos nacidos en la corrida** son los de hoy que D6 conserva a propósito (a portería, a
+    los residentes demo y a la administración). La fase «hoy» solo borra los del superadmin.
+  - **Huellas antes y después:** 58 iguales y 8 distintas.
+    - Las líneas de extracto de agosto son idénticas en la base entre staging y el emulador (152 de
+      152, con los rastreos enmascarados), y el resumen de la relación coincide al centavo.
+    - Lo que cambia en el PDF son las claves de rastreo que salen de ids y, por ellas, el orden de
+      algunas líneas del mismo día: se ordenan por descripción, y la descripción lleva el rastreo.
+    - En los XLSX cambia el orden de las sumas en coma flotante.
+    - Supuse primero que era el reparto al azar de un pago parcial, y la base lo desmintió.
+
+**Punto de control B:** tu visto bueno sobre lo que se ve en staging. **Dado el 14 sep**, con T2.1–T2.3
+hechas. Tus 4 cuentas `+lomas-*` de staging se recrearon sin contraseña en T2.3; ese mismo día se
+generaron sus enlaces para ponerla, sin correo.
 
 ### Fase 3 — Producción (un permiso por paso)
 
-- [ ] **T3.1 Simulación** contra `hogaru-1`, sin `--escribir`. Criterio: el plan de escritura
-  coincide con el de staging.
-- [ ] **T3.2 Corrida** con `--documentos --escribir --si-produccion`. Criterio: verificador en verde.
-- [ ] **T3.3 Recorrido** con tus sesiones.
+- [x] **T3.1 Simulación** contra `hogaru-1`, sin `--escribir`. Criterio: el plan de escritura
+  coincide con el de staging. **Hecho el 14 sep, con tu permiso:**
+  - **El verificador en producción, antes de escribir:** 43 de 43, sin nada fuera del manifiesto (el
+    ensayo daba 42). 32 documentos con su archivo, ninguno tocado todavía.
+  - **La simulación da el mismo plan que staging, línea por línea** (comparadas con `diff`): mismas
+    cuentas y mismas páginas.
+  - **La carpeta sale como 1 en los dos:** la simulación no cuenta las de sistema (T2.1).
+  - Firma la administración de producción (`n2LTuofl1gapEelBnGYep7iNb713`), escogida sola por ser la
+    única activa.
+- [x] **T3.2 Corrida** con `--documentos --escribir --si-produccion`. Criterio: verificador en verde.
+  **Hecho el 14 sep (00:31–00:35 UTC del 15), con tu permiso:**
+  - **Antes de escribir, una simulación nueva,** idéntica a la de T3.1. Ya era el día 15 en UTC y
+    seguía siendo el 14 en Puebla.
+  - **Primera corrida:** lo mismo que en staging (27 documentos y 4 carpetas nuevos; logo, fotos,
+    servicios, comprobantes y el archivo mensual). **Segunda corrida:** todo «ya estaban».
+  - **Testigos:** cero avisos (813 → 813, y 274 del conjunto); cero correos (`emailDeliveries` 2 → 2);
+    `aiUsage` en 0.
+  - **Verificador:** 43 de 43, con 56 archivos puestos por la fase y 87 huellas en el manifiesto.
+  - **Control cruzado con staging:**
+    - 57 huellas iguales y 9 distintas: las tres relaciones de la cuenta operativa y los seis XLSX.
+    - Las líneas de extracto de junio a agosto son idénticas en las dos bases (331 de la cuenta
+      operativa y 6 de la reserva, con los rastreos enmascarados).
+    - Lo que cambia son las claves de rastreo, que salen de ids que llevan el del conjunto, y el
+      orden de las sumas en coma flotante.
+- [x] **T3.3 Recorrido** con tus sesiones. **El residente, hecho el 15 sep (UTC)**, con la sesión de
+  Encinos 03 (Raúl Álvarez Torres) en `www.grupovivaru.com`, desde el navegador de la app. El dominio
+  sin `www` no sirve: falta el TXT `fah-claim`.
+  - **Documentos:** los 18 esperados y nada de administración.
+  - **Reglamento:** firmado. **Acuerdos:** los 5.
+  - **Comunicaciones:** 15 comunicados con 7 adjuntos. El octavo adjunto es el del comunicado
+    programado (§7, punto 12).
+  - **Servicios:** las 6 portadas y las 6 tarifas.
+  - **Reservas:** las 5 fotos de portada y la galería de la alberca (1 de 3, con las imágenes
+    cargadas). En el navegador de la app la captura de un modal sale en blanco, así que se comprobó
+    por el DOM.
+  - **El logo:** en la cabecera.
+
+  **La administración, hecha el 15 sep (UTC)**, con Carolina Méndez (`tenant_admin`) en la misma
+  pestaña:
+  - **Documentos:** 58 en la lista, y 11 carpetas con los mismos conteos que en staging (suman 59).
+  - **Reglamento:** 29 firmas de 48 unidades. **Acuerdos:** los mismos 5.
+  - **Comunicados:** 16, y en la primera página los mismos 4 adjuntos que en staging.
+  - **Servicios:** los 6. **Reservas:** 5 amenidades activas y 154 reservas.
+  - **El logo:** en la vista previa de Ajustes, 512×512 desde `branding/logo.png`.
+  - **En producción no se abrió el editor de amenidades.** Tiene «Guardar», y las mismas fotos ya se
+    vieron cargar desde el residente.
+  - **Tras los dos recorridos:** verificador 43 de 43; cero avisos y cero correos desde las 00:31 UTC;
+    `aiUsage` en 0. Los recorridos no escribieron nada.
 
 ### Fase 4 — Cierre
 
-- [ ] **T4.1** Commit, con tu sí. **T4.2** Los hallazgos del producto al contrato (§7). **T4.3**
-  `docs/pendientes.md`, roadmap, bitácora, wiki y memoria.
+- [x] **T4.1** Commit, con tu sí: `fdc5a92` (fase 1), y el del cierre, el 15 sep.
+- [x] **T4.2** Los hallazgos del producto al contrato (§7): de la H.40 a la H.50, y la H.9 ampliada.
+- [x] **T4.3** `docs/pendientes.md`, el roadmap (0.9.76), la wiki y la memoria van en el commit del cierre.
+  La bitácora y el tablero de Notion, justo después.
 
 ---
 
@@ -320,11 +434,26 @@ el PDF de revisión que junta las versiones finales.
 
 ## 7. Hallazgos del producto (del mapa del 14 sep; leídos en el código, no probados)
 
-Para el contrato de la semilla, junto a H.39 (el formulario de personas exige teléfono):
+Para el contrato de la semilla, junto a H.39 (el formulario de personas exige teléfono). **Pasados
+al contrato el 15 sep (T4.2):** los puntos 1 a 6 son la H.41, H.42, H.43, H.44, H.45 y H.40; del 8 al
+12, la H.46 a la H.50; y el 7 amplía la H.9, que ya lo recogía.
 
-1. **El logo no llega al informe mensual.** El administrador lo guarda en `tenantSettings.logoUrl`,
-   pero el PDF del informe y la cabecera de `/admin/reports` leen `tenants.branding.logoUrl`, que no
-   escribe nada del repositorio.
+1. **El logo no llega al informe mensual.** La administración lo guarda en `tenantSettings.logoUrl`.
+   El PDF del informe (las dos llamadas a `descargarLogo` de `functions/src/index.ts`) y la cabecera
+   de `/admin/reports` leen `tenants.branding.logoUrl`, que no escribe nada del repositorio. Es la
+   misma división en dos colecciones que `tests/marca-del-conjunto.test.ts` ya arregló para la
+   cabecera del residente, y que sigue en esos dos sitios. **Visto en el recorrido de staging (T2.2,
+   14 sep):**
+   - **El residente sí lo ve**, en la cabecera de su portal. `ResidentHeader` (en `components/shared/`,
+     en la raíz del repositorio) lo lee de `tenantSettings` con `getTenantBranding`, y el layout del
+     residente la pinta en todas sus páginas.
+   - **La administración solo lo ve en la vista previa de Ajustes.** La franja con el logo del
+     `app-shell` solo se pinta cuando un superadmin entra al portal de un conjunto
+     (`!isAdminRole && shellRole === "tenant_admin"`).
+   - **Ningún correo lee el logo** (`git grep` en todo el repositorio), aunque Ajustes promete que «el
+     logo y los colores se reflejan en el portal del residente y en los correos».
+   - **Una primera lectura mía dijo que el residente no lo veía.** Buscaba solo en `src/`, y la
+     cabecera vive en `components/`, fuera de él. Lo desmintió la pantalla.
 2. **Cuatro campos de archivo sin pantalla:** `expenses.supportFile*` (se escriben siempre en
    `null`), los adjuntos de PQRS, `reservations.mudanza.receiptUrl` y `paymentVouchers.pdfUrl`.
 3. **Los espejos de Documentos comparten el archivo con su origen:** borrar la fila desde
@@ -336,7 +465,7 @@ Para el contrato de la semilla, junto a H.39 (el formulario de personas exige te
    su `fileUrl` o con la URL firmada.
 5. **La foto del medidor la ve el residente y no la administración:** su pantalla solo tiene el botón
    para subirla.
-6. **El dinero de dos PDF del servidor sale en formato colombiano** (candidato a H.40): el informe
+6. **El dinero de dos PDF del servidor sale en formato colombiano** (H.40 del contrato): el informe
    mensual y el reporte de comité automático (`formatMoney` de `functions/src/index.ts`, `es-CO`)
    pintan «$598.400» y «$-40.561» en un conjunto mexicano, donde la pantalla dice «$598,400.00».
    Visto al replicar C2 con el generador del producto.
@@ -345,6 +474,29 @@ Para el contrato de la semilla, junto a H.39 (el formulario de personas exige te
    meses del saldo de apertura registrado: en Lomas, junio, julio y agosto arrancan en 598,400, y
    julio no parte de los 609,897.37 con que cerró junio. Desde el segundo mes, «saldo final del
    fondo» no es el del banco (agosto: 557,838.85 contra 614,668.08 en las dos cuentas).
+
+Y del ensayo en staging (T2.1 y T2.2, 14 sep), vistos en pantalla o medidos:
+
+8. **La categoría `informe_mensual` sale en crudo en Documentos.** La escribe el propio producto al
+   archivar el informe mensual (`functions/src/index.ts`), y `CATEGORY_OPTIONS` de `/admin/documents`
+   no la trae: la columna pinta «informe_mensual» y el filtro de categorías no la ofrece.
+9. **Textos sin traducir o sin acento en dos listados de administración:** el estado «Scheduled» de un
+   comunicado programado en `/admin/communications`, y las columnas «Titulo» y «Categoria» ahí y en
+   `/admin/services`.
+10. **«Subido por —» en los documentos de los acuerdos.** `src/features/committee-agreements/services.ts`
+    escribe `uploadedByName: ""` al archivar el acta. La semilla lo replica tal cual.
+11. **El cron escribe sumas sin redondear en los XLSX** del histórico de cartera y del reporte de
+    comité (acumula con `+=` y no redondea): celdas como `170653.21999999997`. Excel lo pinta bien,
+    porque muestra 15 cifras significativas; solo se ve al leer el valor crudo. Y hace que dos siembras
+    iguales den bytes distintos según el orden en que devuelve los cargos la consulta.
+12. **El adjunto de un comunicado programado se ve en Documentos antes de publicarse.**
+    - `admin/communications/page.tsx` registra los adjuntos nuevos en Documentos (`createDocumentRecord`,
+      categoría `comunicado`) en cuanto se guarda, sin mirar el estado.
+    - El residente puede leer esa categoría (por la regla y la lista blanca), así que ve el PDF de un
+      comunicado que su portal todavía no le enseña.
+    - Visto en staging y en producción (T3.3) con el aviso de la cisterna del 22 de septiembre: está
+      programado, falta en Comunicaciones del residente y aparece en su Documentos.
+    - La semilla lo replica tal cual.
 
 ---
 
