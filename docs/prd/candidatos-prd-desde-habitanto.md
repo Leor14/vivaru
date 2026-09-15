@@ -292,6 +292,28 @@ dónde caer.
 | M · Multi-conjunto y comercial | 8 | — | 3 | 2 | 3 |
 | N · Soporte y adopción | 3 | — | 1 | 1 | 1 |
 
+### Lo que queda sin ficha — recontado el 15 de septiembre de 2026
+
+Las filas no apuntan qué candidato tomó cada ficha, y por eso circulaban cuatro cifras distintas
+(33/41, 33/39, 37/42 y 38/42 en P1/P2). **La regla:** un candidato está tomado si una ficha lo declara
+en su alcance —aunque sea para una fase posterior o esté bloqueada— o si ya existía. Los que una ficha
+nombra solo para mandarlos al backlog o dejarlos fuera siguen en la lista.
+
+| Tomado | Por qué |
+|---|---|
+| `B5` (P1) | Es `PRD-V-FLOW-006` |
+| `D5` (P1) | `PRD-V-FLOW-004` lo recoge como uno de sus tres arquetipos |
+| `D6` (P2) | Ya existía: `LedgerEntry.reconciled`, según `PRD-V-FLOW-004` |
+| `E8` (P1) | Fase 2 de `PRD-V-PLAT-003` |
+| `F1`, `F2`, `F3` (P1) y `F4` (P2) | `PRD-V-FEAT-008` |
+| `C7` y `C8` (P2) | `PRD-V-FEAT-010` |
+
+**Quedan sin ficha: 32 P1, 38 P2 y 12 P3.** Las categorías con más P1 sin ficha son G · comunicaciones
+(6), B · cartera y cobro (5) y E · egresos (4). Siguen en la lista, porque una ficha los nombra para
+dejarlos fuera o en el backlog: `A7`, `A12`, `B8`, `E4`, `E6`, `E7`, `E9` y `M5`. Y `K1` y `K2`, que
+`PRD-V-FLOW-007` atribuye a `PRD-V-PLAT-004` sin que esta los declare. **Al escribir una ficha que tome
+un candidato, se añade a esta tabla.**
+
 ### Los P0, en orden de dependencia — **quedan 14: `H1` ya se construyó**
 
 1. **A1 · Alícuota por unidad** — de aquí cuelgan B1, B2, K5 y el certificado de expensas

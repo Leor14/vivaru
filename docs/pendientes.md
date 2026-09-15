@@ -107,8 +107,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 14. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
 > 15. **Albert** — el contrato de `vivaruWonSignals`.
 > 16. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos a la vez).
-> 17. **Habitanto**: lo que queda de los 108 candidatos vive en la fila 30 del backlog largo de Notion.
->     Hay tres cifras distintas: **recontar sobre las filas** antes de citarla.
+> 17. **Habitanto**: de los 108 candidatos quedan **32 P1, 38 P2 y 12 P3** sin ficha, recontados sobre las
+>     filas el 15 sep. La regla y los tomados, en `docs/prd/candidatos-prd-desde-habitanto.md` (§Resumen);
+>     la fila 30 del backlog largo de Notion ya lo dice.
 >
 > ## NO REABRIR
 >
