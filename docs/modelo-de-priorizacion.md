@@ -603,8 +603,11 @@ Estos casos serán además **las pruebas de la skill** (§10), como hace `orches
 - **Este documento es la regla.** Se cambia aquí y en ningún otro sitio; lo demás lo cita.
 - **Las valoraciones y las calibraciones** viven en `docs/valoraciones/`, un fichero por lote o por
   pasada, con la tabla y las fichas grandes debajo.
-- **La skill `valorar-iniciativa-vivaru`** ejecuta los cinco pasos y produce la ficha, como las de
-  PRD. Lleva los casos de §9.3 como pruebas. **Por escribir.**
+- **La skill `valorar-iniciativa-vivaru`** (`.claude/skills/valorar-iniciativa-vivaru/`, escrita el 15
+  sep 2026) ejecuta los cinco pasos y produce la ficha, como las de PRD. **No copia las reglas: las lee
+  de este documento.** Lleva sus pruebas en `casos-de-prueba.md`: los casos de §9.3 y los que salieron
+  de las calibraciones. Vive solo en el repositorio, no en `~/.claude/skills/`: dos copias son dos sitios
+  donde envejecer.
 - **Notion:** columnas nuevas en «Backlog e inventario detallado» (impacto ajustado, horas, esperas,
   confianza, puntuación, freno). **Pide el permiso de David** antes de tocar el esquema.
 - **Cuándo se revalora:** cuando cambia la prueba —llega un cliente, se mide algo, aparece un plazo— y
