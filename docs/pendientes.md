@@ -4,7 +4,7 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 14 de septiembre de 2026 (noche; 05:00 UTC del 15)
+## LO PRIMERO AL ABRIR SESIÓN — corte del 15 de septiembre de 2026 (tarde; 20:05 UTC)
 
 > # LOMAS, SEMBRADA EN PRODUCCIÓN CON SU HISTORIA, SUS DOCUMENTOS Y SUS MEDIDORES. SOLO QUEDA EL CABO DE T3.5.
 >
@@ -40,14 +40,27 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >   - Staging y producción: 43 de 43 y los testigos quietos. En staging, las cuentas demo no tenían
 >     contraseña desde la resiembra de T2.3 (runbook, cuentas demo).
 >
-> **Lo que sirve cada ambiente al cerrar (medido a las 05:00 UTC del 15):**
-> - **`master` y `develop`, en `bb238da`** desde el 15 sep: la pantalla de Medidores y D2.
-> - **Producción:** `build-2026-09-15-003` desde `bb238da`, visto sirviendo a las 05:00 UTC.
-> - **Staging:** `build-2026-09-15-004` desde `bb238da`, visto sirviendo a las 04:29 UTC.
-> - **Detrás de `bb238da` solo vienen notas** (este traspaso y el roadmap): su despliegue no cambia la app.
+> **Lo del 15 por la tarde (18:00–20:05 UTC): solo documentación y Notion, sin tocar la app ni los datos.**
+> - **El reporte «Estado de la demo de Lomas», al día** (versión 5):
+>   <https://claude.ai/artifact/KszrPvGdKrbwF74Pvm5NDj>.
+> - **Las banderas de medidor, presupuesto y tesorería, medidas de nuevo** resolviendo conjunto por
+>   conjunto: en producción, 2 de 10 (Las Playas y Lomas, por override); en staging, 3 de 11. «Solo en
+>   Las Playas» estaba copiado en la wiki, las fichas, el índice de PRD, el roadmap, la memoria y Notion,
+>   y se corrigió en todos (`f9bca06`).
+> - **Los 108 candidatos de Habitanto, recontados sobre las filas:** quedan 32 P1, 38 P2 y 12 P3 sin
+>   ficha (punto 17 del menú). Circulaban cuatro cifras porque las filas no apuntaban qué tomó cada ficha;
+>   la regla y la tabla de los tomados están ahora en el propio documento (`444be09`).
+>
+> **Lo que sirve cada ambiente (medido a las 20:02 UTC del 15):**
+> - **`master` y `develop`, en `444be09`.** La app es la de **`bb238da`** (Medidores y D2); detrás solo
+>   vienen notas —`a6b9ebd`, `f9bca06`, `444be09` y este traspaso—, y su despliegue no cambia la app.
+> - **Producción:** sirve `build-2026-09-15-005`, desde `f9bca06`; el de `444be09` (`-006`), en cola.
+> - **Staging:** sirve `build-2026-09-15-006`, desde `f9bca06`; el de `444be09` (`-007`), en cola.
 > - **Reglas:** `dbc6cdf1` en producción y `b3fb7c8a` en staging, **las dos idénticas al repo** (medido a
->   las 03:38 UTC; nada las ha tocado después).
+>   las 03:38 UTC del 15; nada las ha tocado después).
 > - **Functions:** sin despliegues desde el 12.
+> - **Credenciales:** la ADC se renovó el 15 (18:10 UTC). **El CLI de firebase sigue caducado**: antes de
+>   desplegar reglas o functions, David corre `firebase login --reauth`.
 >
 > ```bash
 > git ls-remote origin refs/heads/master refs/heads/develop
@@ -102,6 +115,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 13. **Dos detalles de la semilla, si se quieren.** Ninguno se ve en la demo:
 >     - una reserva del guion (la palapa del 28 de junio) la rechaza siempre la regla de anticipación;
 >     - el orden de las líneas del mismo día en las relaciones bancarias depende de la clave de rastreo.
+>
+>     Y dos cabos de la demo: **D3** (notas de portería con foto), el único opcional del plan de documentos
+>     que sigue fuera; y las **tres cuentas demo del ensayo de staging sin contraseña** (`+lomas-res2`,
+>     `+lomas-consejo` y `+lomas-porteria`), que piden un enlace si hacen falta (runbook, cuentas demo).
 >
 > **C · Espera a un tercero o a un dato**
 > 14. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
