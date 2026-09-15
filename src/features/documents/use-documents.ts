@@ -46,6 +46,8 @@ export const CATEGORIAS_SOLO_ADMINISTRACION = [
   "comprobante",
   "contrato",
   "legal",
+  // `D-2c` · el adjunto de un comunicado dirigido: solo lo ve su audiencia, dentro del comunicado.
+  "comunicado_dirigido",
   // `PRD-V-FLOW-007`. **Aquí hasta la entrega 3**, que es la que lo publica al
   // residente — y su alcance espera al abogado (`RN-11`). Mientras tanto el
   // informe se emite y se firma, y el PDF lo abre SOLO la administración: el

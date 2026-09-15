@@ -306,6 +306,30 @@ async function listResidentUidsByUnit(tenantId, unitId) {
     })
         .filter((uid) => Boolean(uid));
 }
+/**
+ * Los residentes activos de VARIAS unidades, sin repetir. Es la audiencia de un comunicado
+ * dirigido (`D-2`, 15 sep 2026). `in` admite hasta 30 valores por consulta: se parte en tramos.
+ */
+async function listResidentUidsByUnits(tenantId, unitIds) {
+    const unicas = [...new Set(unitIds.filter((unitId) => typeof unitId === "string" && unitId.length > 0))];
+    const uids = new Set();
+    for (let i = 0; i < unicas.length; i += 30) {
+        const snapshot = await db
+            .collection("tenantUsers")
+            .where("tenantId", "==", tenantId)
+            .where("role", "==", "resident")
+            .where("unitId", "in", unicas.slice(i, i + 30))
+            .get();
+        for (const entry of snapshot.docs) {
+            const data = entry.data();
+            if (data.status && data.status !== "active")
+                continue;
+            if (data.uid)
+                uids.add(data.uid);
+        }
+    }
+    return [...uids];
+}
 async function listSuperadminUids() {
     const snapshot = await db.collection("users").where("role", "==", "superadmin").get();
     return snapshot.docs
@@ -2391,6 +2415,13 @@ exports.onCommunicationCreated = (0, firestore_2.onDocumentCreated)("communicati
     const data = event.data?.data();
     if (!data?.tenantId)
         return;
+    // **`D-2` (15 sep 2026): el aviso llega solo a la audiencia.** Hasta ese día iba a todos los
+    // residentes, y el de otra unidad recibía el TÍTULO de un comunicado dirigido a una sola. Con
+    // `audienceUnitIds`, solo sus residentes; sin él o vacío, el conjunto entero, como siempre. Es
+    // el gemelo de `D-2b`, que cerró la LECTURA en `firestore.rules`.
+    const audiencia = Array.isArray(data.audienceUnitIds)
+        ? data.audienceUnitIds.filter((unitId) => typeof unitId === "string" && unitId.length > 0)
+        : [];
     // Hasta agosto de 2026 esto decía «La administracion publico un nuevo
     // comunicado» para TODOS los comunicados, siempre. El residente recibía un
     // aviso que no le decía nada y tenía que entrar para saber si le afectaba.
@@ -2400,7 +2431,15 @@ exports.onCommunicationCreated = (0, firestore_2.onDocumentCreated)("communicati
     // falta se cae a la frase de siempre — nunca se inventa un resumen ni se
     // recorta el mensaje por su cuenta, que sería adivinar qué es lo importante.
     const resumen = data.notificationSummary?.trim();
-    const residentUids = await listTenantUidsByRoles(data.tenantId, ["resident"]);
+    // **Dirigido y sin unidades → a nadie.** La regla de lectura no deja leerlo a ningún residente
+    // (`audience` distinto de "all" y ninguna unidad en la lista), así que avisar a todos sería
+    // mandar un aviso que nadie puede abrir. Sin `audience` —los anteriores a VIV-401— es general.
+    const paraTodos = data.audience === undefined || data.audience === null || data.audience === "all";
+    const residentUids = audiencia.length > 0
+        ? await listResidentUidsByUnits(data.tenantId, audiencia)
+        : paraTodos
+            ? await listTenantUidsByRoles(data.tenantId, ["resident"])
+            : [];
     await createNotifications(residentUids.map((uid) => ({
         userId: uid,
         tenantId: data.tenantId,

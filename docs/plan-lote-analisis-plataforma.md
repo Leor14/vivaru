@@ -225,6 +225,41 @@ verdad. El correo es otra necesidad (L-23).
 
 > **Control C.** Los bancos en verde, falsación hecha, staging visto por David, producción con permiso
 > y lo desplegado verificado. Commit y push con el sí de David.
+>
+> **Estado de la fase 2 (15 sep, noche): construida y verificada en local; sin commit ni despliegue.**
+> - **D-2b.** `communications` tiene bloque propio en `firestore.rules`: lectura para la
+>   administración, y para el residente los de `audience: "all"` o los de su unidad. La portería deja
+>   de leerlos (ninguna pantalla lo hacía). `relaxedTenantCollection` queda vacía. `useCommunications`
+>   tiene modo residente (dos consultas, sin `orderBy`), y `createCommunication` pone `audience: "all"`
+>   por defecto. Se corrigieron las dos semillas que no la ponían. **Relleno en seco**
+>   (`functions/scripts/rellenar-audiencia-de-comunicados.mjs`, medido el 15 sep): sin `audience`,
+>   **26 de 42** en producción y **16 de 40** en staging; el resto, `all`. **Ninguno por torres ni por
+>   unidades** en los dos. Uno por torres ya guarda sus `audienceUnitIds` (la pantalla resuelve las
+>   torres a unidades), así que la regla nueva lo cubre.
+> - **D-2.** El aviso va solo a la audiencia; dirigido y sin unidades, a nadie; sin `audience`, a
+>   todos. `functions/lib` compilado.
+> - **D-1.** `features/billing/aviso-de-mora.ts` (`audience: "units"`; sin unidades no se construye).
+>   La pantalla de Comunicaciones conserva esa audiencia al editar.
+> - **D-3.** La categoría arranca vacía y es obligatoria.
+> - **D-2c (nuevo, el espejo de D-2b; lo decidió David el 15 sep).** El adjunto de un comunicado se
+>   registraba en Documentos como `comunicado`, que lee todo residente: el de un aviso por torres se
+>   leía desde otra torre. Ahora el de uno dirigido va como `comunicado_dirigido`,
+>   solo-administración (`features/communications/adjunto-de-comunicado.ts`). La regla no cambia:
+>   su lista blanca no la nombra. **Límite conocido:** al editar un comunicado general para
+>   dirigirlo, los adjuntos ya registrados conservan `comunicado`. Hoy no hay ningún comunicado
+>   dirigido en los dos ambientes.
+> - **Falsación hecha:** con cada fichero de `HEAD`, enrojecen exactamente sus pruebas; D-2c, en
+>   cuatro variantes (pantalla, función, lista, regla). Bancos: app **2104**, functions **1084**,
+>   reglas **607** (con solo Firestore: `storage.rules.test.ts` aparte), emulador de D-2 **5 de 5**,
+>   typechecks en 0.
+> - **Un guardián ajeno enrojeció, y era correcto que lo hiciera**: `clave-de-unidad-guarda` cita
+>   `services.ts` por número de línea, y la excepción se movió de la 736 a la 738 por dos líneas de
+>   comentario. Se comprobó que es la misma línea contra `HEAD`.
+>
+> **Orden de despliegue, por ambiente** (el delta lo decide): **relleno → functions → front → regla**.
+> El relleno va primero porque el front nuevo filtra por `audience`, y sin él el residente dejaría de
+> ver los comunicados antiguos. El push a `develop` despliega el front de staging, así que el relleno de
+> staging va ANTES del push.
 
 ### Fase 3 · Lote XS *(front; menos de 2 h en total)*
 

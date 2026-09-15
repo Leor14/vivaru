@@ -82,6 +82,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { AdvancesPanel } from "@/components/features/billing/AdvancesPanel";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication, createDocumentRecord } from "@/features/admin/services";
+import { construirAvisoDeMora, textoDeAvisoEnviado } from "@/features/billing/aviso-de-mora";
 import { storage } from "@/lib/firebase/client";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
@@ -1252,12 +1253,11 @@ function AdminBillingPageContent() {
 
     setIsBulkSending(true);
     try {
-      await createCommunication(user.tenantId, user.uid, {
-        title: "Aviso de cartera — Saldo pendiente",
-        message: bulkMessage.trim(),
-        status: "published",
-      });
-      toast.success(`Comunicado enviado a los residentes (${selectedBulkUnitIds.length} unidad(es) en mora).`);
+      // `D-1` (15 sep 2026): dirigido a las unidades elegidas, no a todo el conjunto. Hasta ese
+      // día el comunicado salía sin audiencia y le decía «tienes cartera en mora» a todos.
+      const aviso = construirAvisoDeMora({ unitIds: selectedBulkUnitIds, mensaje: bulkMessage });
+      await createCommunication(user.tenantId, user.uid, aviso);
+      toast.success(textoDeAvisoEnviado(aviso.audienceUnitIds.length));
       setIsBulkDrawerOpen(false);
       setSelectedBulkUnitIds([]);
       setBulkMessage("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");

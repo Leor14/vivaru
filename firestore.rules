@@ -104,8 +104,12 @@ service cloud.firestore {
         (!('deletedAt' in amenityDoc(amenityId).data) || amenityDoc(amenityId).data.deletedAt == null);
     }
 
+    // **Vacía desde el 15 sep 2026 (`D-2b`).** Su único miembro era `communications`, y con él la
+    // lectura era `sameTenant`: cualquier miembro leía un comunicado dirigido a otra unidad. Ahora
+    // tiene bloque propio, más abajo. No basta con añadir el bloque y dejarla aquí: las reglas se
+    // SUMAN, y la lectura comodín seguiría abriendo lo que el bloque cierra.
     function relaxedTenantCollection(collection) {
-      return collection in ['communications'];
+      return collection in [];
     }
 
     // ─── `PRD-V-PLAT-006` · la puerta de ENTRADA ───────────────────────────
@@ -547,6 +551,44 @@ service cloud.firestore {
       allow create, update: if tenantOperable(tenantId) && (signedIn() && tenantAdminOrSuper(tenantId) && request.resource.data.tenantId == tenantId)
         && calendarioDeCobranzaValido(request.resource.data);
       allow delete: if tenantOperable(tenantId) && (signedIn() && superadmin());
+    }
+
+    // **`communications` — la lectura respeta la audiencia (`D-2b`, 15 sep 2026).**
+    //
+    // Hasta ese día caía en la comodín de abajo, con lectura `sameTenant`: la audiencia
+    // (`audienceUnitIds`, VIV-401) solo se filtraba en el navegador, y un residente podía leer con
+    // una consulta directa lo que la administración dirigió a otra unidad. Lo reprodujo
+    // `tests/comunicados-audiencia.rules.test.ts`, y David lo declaró obligatorio (acceso indebido
+    // entre unidades).
+    //
+    // - **Administración y superadmin:** todos.
+    // - **Residente** (el consejero también: es residente, `RN-01`): los de `audience: "all"` y los
+    //   dirigidos a su unidad. **Su consulta TIENE que filtrar por uno de los dos** —`audience ==
+    //   "all"` o `audienceUnitIds array-contains <su unidad>`—, o Firestore la rechaza entera. Lo
+    //   hace `useCommunications` en modo residente.
+    // - **Portería y cualquier otro rol:** nada. Ninguna pantalla de `/guard` lee esta colección.
+    //
+    // **Un comunicado sin `audience` no lo lee ningún residente**: por eso el relleno
+    // (`functions/scripts/rellenar-audiencia-de-comunicados.mjs`) va ANTES que esta regla, y todo
+    // escritor pone `audience`. Las escrituras siguen como en la comodín: solo administración.
+    match /communications/{docId} {
+      allow read: if signedIn() && resource.data.tenantId is string && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          tenantRole(resource.data.tenantId, 'resident') && (
+            resource.data.audience == 'all' ||
+            membershipDoc(resource.data.tenantId).data.get('unitId', '') in resource.data.audienceUnitIds
+          )
+        )
+      );
+      allow create: if signedIn() && request.resource.data.tenantId is string && tenantOperable(request.resource.data.tenantId)
+        && tenantAdminOrSuper(request.resource.data.tenantId);
+      // CF9: decide el conjunto de ANTES, y el `tenantId` no se muda.
+      allow update: if signedIn() && resource.data.tenantId is string && tenantOperable(resource.data.tenantId)
+        && tenantAdminOrSuper(resource.data.tenantId)
+        && request.resource.data.tenantId == resource.data.tenantId;
+      allow delete: if signedIn() && resource.data.tenantId is string && tenantOperable(resource.data.tenantId)
+        && tenantAdminOrSuper(resource.data.tenantId);
     }
 
     // Shared tenant-scoped collections.

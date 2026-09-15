@@ -139,7 +139,9 @@ export type CommunicationItem = {
   startsAt?: string;
   endsAt?: string;
   /** Audiencia (VIV-401): "all" (default) o "towers" (segmentado por torre). */
-  audience?: "all" | "towers";
+  // "units": dirigido a unidades concretas, sin torre —el aviso de mora de Cartera (`D-1`)—. La
+  // pantalla de Comunicaciones no lo elige, pero tiene que conservarlo al editar.
+  audience?: "all" | "towers" | "units";
   /** Torres canónicas elegidas (solo display). */
   audienceTowers?: string[];
   /** Unidades resueltas al publicar — el residente filtra por su unitId. */
@@ -271,6 +273,12 @@ export type DocumentCategory =
   | "financiero"
   | "legal"
   | "comunicado"
+  /**
+   * `D-2c` · el adjunto de un comunicado DIRIGIDO (a torres o a unidades). Solo-administración:
+   * con `comunicado`, cualquier residente lo leía en Documentos aunque el comunicado no fuera
+   * para él. Lo elige `categoriaDelAdjuntoDeComunicado`.
+   */
+  | "comunicado_dirigido"
   | "acuerdo"
   | "comprobante"
   | "reporte"
@@ -993,6 +1001,13 @@ export async function createCommunication(
   // Sin vigencia, `startsAt`/`endsAt` llegan como `undefined` y Firestore rechaza el
   // documento entero: un comunicado sin fechas no se podía crear. Ver `stripUndefined`.
   const ref = await addDoc(collection(firestore, "communications"), {
+    // **Todo comunicado nace con audiencia** (`D-2b`, 15 sep 2026). La regla solo deja al
+    // residente leer los de `audience: "all"` o los dirigidos a su unidad, y su consulta
+    // filtra por esos campos: un comunicado sin `audience` quedaría invisible para todos.
+    // Lo que traiga el payload manda; esto solo cubre al que no lo trae.
+    audience: "all",
+    audienceTowers: [],
+    audienceUnitIds: [],
     ...stripUndefined(payload),
     tenantId,
     createdBy: userId,

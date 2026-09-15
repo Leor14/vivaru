@@ -80,12 +80,32 @@ describe("D-2 · el aviso de un comunicado llega solo a su audiencia", () => {
     expect(await destinatarios()).toEqual(["res-aviso-a", "res-aviso-b"]);
   });
 
-  it.fails("DEFECTO D-2: un comunicado dirigido a la unidad A solo avisa a su residente", async () => {
+  // Nació con `it.fails` en la fase 1 (el defecto reproducido) y pasó a `it` con el arreglo (T2.2).
+  it("D-2: un comunicado dirigido a la unidad A solo avisa a su residente", async () => {
     await publicar("com-dirigido", {
       title: "Aviso de cartera — Saldo pendiente",
       audience: "towers",
       audienceUnitIds: ["unit-aviso-a"],
     });
     expect(await destinatarios()).toEqual(["res-aviso-a"]);
+  });
+
+  it("un comunicado dirigido a dos unidades avisa a los residentes de las dos, sin repetir", async () => {
+    await publicar("com-dos-unidades", {
+      title: "Obra en la fachada",
+      audience: "towers",
+      audienceUnitIds: ["unit-aviso-a", "unit-aviso-b", "unit-aviso-a"],
+    });
+    expect(await destinatarios()).toEqual(["res-aviso-a", "res-aviso-b"]);
+  });
+
+  it("un comunicado dirigido SIN unidades no avisa a nadie: la regla no deja leerlo a ningún residente", async () => {
+    await publicar("com-dirigido-vacio", { title: "Aviso sin unidades", audience: "units", audienceUnitIds: [] });
+    expect(await destinatarios()).toEqual([]);
+  });
+
+  it("un comunicado antiguo, sin audience, sigue avisando a todos", async () => {
+    await publicar("com-antiguo", { title: "Asamblea ordinaria" });
+    expect(await destinatarios()).toEqual(["res-aviso-a", "res-aviso-b"]);
   });
 });

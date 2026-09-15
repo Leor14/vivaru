@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { communicationSchema, type CommunicationInput } from "@/features/admin/schemas";
 import { AsistenteBorrador } from "@/features/communications/asistente-borrador";
 import { useFeedbackBorrador } from "@/features/communications/use-feedback-borrador";
+import { categoriaDelAdjuntoDeComunicado } from "@/features/communications/adjunto-de-comunicado";
 import {
   createCommunication,
   createDocumentRecord,
@@ -70,7 +71,8 @@ export default function AdminCommunicationsPage() {
   const [deleting, setDeleting] = useState(false);
   // Audiencia (VIV-401): "all" o segmentado por torres canónicas.
   const [units, setUnits] = useState<UnitItem[]>([]);
-  const [audienceType, setAudienceType] = useState<"all" | "towers">("all");
+  // "units" solo aparece al EDITAR un aviso de Cartera (`D-1`): esta pantalla no lo elige.
+  const [audienceType, setAudienceType] = useState<"all" | "towers" | "units">("all");
   const [selectedTowers, setSelectedTowers] = useState<string[]>([]);
 
   const form = useForm<CommunicationInput>({
@@ -213,7 +215,7 @@ export default function AdminCommunicationsPage() {
     setPrevioAsistente(null);
     feedbackIa.reiniciar();
     setExistingAttachments(attachmentsOf(item));
-    setAudienceType(item.audience === "towers" ? "towers" : "all");
+    setAudienceType(item.audience === "towers" ? "towers" : item.audience === "units" ? "units" : "all");
     setSelectedTowers(item.audienceTowers ?? []);
     form.reset({
       title: item.title,
@@ -269,9 +271,15 @@ export default function AdminCommunicationsPage() {
         setSubmitting(false);
         return;
       }
-      const audienceUnitIds = segmented
-        ? units.filter((u) => selectedTowers.includes(normalizeTower(u.tower))).map((u) => u.id)
-        : [];
+      // `D-1`: un aviso de Cartera va dirigido a unidades concretas (`audience: "units"`). Esta
+      // pantalla no elige esa audiencia, pero al editarlo la CONSERVA: tratarlo como «todo el
+      // conjunto» lo publicaría a residentes a los que no iba dirigido.
+      const conservaUnidades = audienceType === "units" && (editingItem?.audienceUnitIds?.length ?? 0) > 0;
+      const audienceUnitIds = conservaUnidades
+        ? [...(editingItem?.audienceUnitIds ?? [])]
+        : segmented
+          ? units.filter((u) => selectedTowers.includes(normalizeTower(u.tower))).map((u) => u.id)
+          : [];
 
       const payload = {
         ...values,
@@ -281,7 +289,7 @@ export default function AdminCommunicationsPage() {
         attachmentUrl: "",
         attachmentName: "",
         attachments,
-        audience: segmented ? ("towers" as const) : ("all" as const),
+        audience: conservaUnidades ? ("units" as const) : segmented ? ("towers" as const) : ("all" as const),
         audienceTowers: segmented ? selectedTowers : [],
         audienceUnitIds,
       };
@@ -295,7 +303,8 @@ export default function AdminCommunicationsPage() {
         toast.success("Comunicado creado.");
       }
 
-      // Repositorio: registra los adjuntos NUEVOS en Documentos (categoría Comunicados).
+      // Repositorio: registra los adjuntos NUEVOS en Documentos. La categoría depende de la
+      // audiencia (`D-2c`): la de un comunicado dirigido no la lee el residente.
       // Best-effort: si falla, no rompe el guardado del comunicado.
       if (uploadedNew.length > 0) {
         const tid = user.tenantId;
@@ -318,7 +327,7 @@ export default function AdminCommunicationsPage() {
               storagePath: att.path ?? "",
               contentType: att.contentType,
               fileSize: att.size,
-              category: "comunicado",
+              category: categoriaDelAdjuntoDeComunicado(payload.audience),
               description: values.title ? `Comunicado: ${values.title}` : "Adjunto de comunicado",
               source: "communication",
               sourceId: commId,
@@ -586,19 +595,29 @@ export default function AdminCommunicationsPage() {
           </div>
           {/* Audiencia (VIV-401): todos o segmentado por torre. */}
           <div>
-            <label className="text-sm text-[var(--slate-700)]">
-              Audiencia
-              <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
-                value={audienceType}
-                onChange={(event) => setAudienceType(event.target.value === "towers" ? "towers" : "all")}
-              >
-                <option value="all">Todo el conjunto</option>
-                <option value="towers" disabled={availableTowers.length === 0}>
-                  Solo algunas torres…
-                </option>
-              </select>
-            </label>
+            {audienceType === "units" ? (
+              <div className="text-sm text-[var(--slate-700)]">
+                Audiencia
+                <p className="mt-1 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3 text-sm text-[var(--slate-700)]">
+                  Dirigido a {editingItem?.audienceUnitIds?.length ?? 0} unidades (aviso de Cartera). La audiencia no se
+                  cambia desde aquí: solo lo ven los residentes de esas unidades.
+                </p>
+              </div>
+            ) : (
+              <label className="text-sm text-[var(--slate-700)]">
+                Audiencia
+                <select
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                  value={audienceType}
+                  onChange={(event) => setAudienceType(event.target.value === "towers" ? "towers" : "all")}
+                >
+                  <option value="all">Todo el conjunto</option>
+                  <option value="towers" disabled={availableTowers.length === 0}>
+                    Solo algunas torres…
+                  </option>
+                </select>
+              </label>
+            )}
             {audienceType === "towers" ? (
               <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
                 {availableTowers.map((tower) => {

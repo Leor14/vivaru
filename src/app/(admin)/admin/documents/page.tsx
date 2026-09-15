@@ -53,7 +53,11 @@ const CATEGORY_OPTIONS: { value: DocumentCategory; label: string }[] = [
   { value: "reporte", label: "Reportes" },
   { value: "otro", label: "Otro" },
 ];
-const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c.label]));
+// `comunicado_dirigido` (`D-2c`) no se elige al subir: la pone Comunicaciones. Solo se rotula.
+const CATEGORY_LABEL: Record<string, string> = {
+  ...Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c.label])),
+  comunicado_dirigido: "Comunicados dirigidos",
+};
 const ACCEPTED_TYPES =
   "application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -70,7 +74,10 @@ export default function AdminDocumentsPage() {
   const [items, setItems] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
-  const [category, setCategory] = useState<DocumentCategory>("otro");
+  // **Sin categoría por defecto** (`D-3`, 15 sep 2026). Arrancaba en «otro», que está en la lista
+  // blanca del residente: un informe de cartera subido sin cambiarla lo leían todos. Ahora hay que
+  // elegirla, porque de ella depende quién ve el documento.
+  const [category, setCategory] = useState<DocumentCategory | "">("");
   const [uploading, setUploading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
@@ -125,6 +132,10 @@ export default function AdminDocumentsPage() {
       toast.error("El archivo supera el límite de 25 MB.");
       return;
     }
+    if (!category) {
+      toast.error("Elige la categoría del documento: de ella depende quién lo ve.");
+      return;
+    }
     setUploading(true);
     try {
       await uploadDocumentForTenant({
@@ -136,7 +147,7 @@ export default function AdminDocumentsPage() {
         category,
       });
       setFile(null);
-      setCategory("otro");
+      setCategory("");
       form.reset();
       toast.success("Documento subido y registrado.");
     } catch (error) {
@@ -321,8 +332,11 @@ export default function AdminDocumentsPage() {
           <select
             className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
             value={category}
-            onChange={(event) => setCategory(event.target.value as DocumentCategory)}
+            onChange={(event) => setCategory(event.target.value as DocumentCategory | "")}
           >
+            <option value="" disabled>
+              Elige una categoría…
+            </option>
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}

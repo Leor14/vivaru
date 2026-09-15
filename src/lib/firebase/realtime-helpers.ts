@@ -64,11 +64,21 @@ export function subscribeTenantCollection<T extends { id: string }>(
      * cumplieran. Es la misma trampa de `bankAccounts` y su `active == true`.
      */
     oneOf?: { field: string; values: readonly string[] };
+    /**
+     * Filtro `array-contains` sobre un campo lista. Existe por lo mismo que `oneOf`: la
+     * regla de `communications` deja al residente leer lo dirigido a SU unidad
+     * (`unitId in resource.data.audienceUnitIds`), y Firestore solo acepta la consulta si
+     * esta lo filtra así. Sin él, la consulta se rechaza entera (`D-2b`, 15 sep 2026).
+     */
+    arrayContains?: { field: string; value: string };
   },
 ) {
   if (!db) return null;
 
   const constraints: QueryConstraint[] = [where("tenantId", "==", tenantId)];
+  if (options?.arrayContains) {
+    constraints.push(where(options.arrayContains.field, "array-contains", options.arrayContains.value));
+  }
   if (options?.equals?.length) {
     for (const filter of options.equals) {
       constraints.push(where(filter.field, "==", filter.value));

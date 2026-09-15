@@ -23,9 +23,10 @@ const leer = (f: string) => fs.readFileSync(path.join(raiz, f), "utf8");
 const pagina = leer("src/app/(admin)/admin/documents/page.tsx");
 const lista = leer("src/features/documents/use-documents.ts");
 
+// Admite `useState<DocumentCategory | "">("")`: desde el arreglo, la categoría arranca vacía.
 const valoresPorDefecto = [
-  ...pagina.matchAll(/useState<DocumentCategory>\("([a-z_]+)"\)/g),
-  ...pagina.matchAll(/setCategory\("([a-z_]+)"\)/g),
+  ...pagina.matchAll(/useState<DocumentCategory(?: \| "")?>\("([a-z_]*)"\)/g),
+  ...pagina.matchAll(/setCategory\("([a-z_]*)"\)/g),
 ].map((m) => m[1]);
 
 const bloque = lista.match(/CATEGORIAS_VISIBLES_PARA_RESIDENTE\s*=\s*\[([\s\S]*?)\]/)?.[1] ?? "";
@@ -40,8 +41,15 @@ describe("D-3 · la categoría por defecto de Documentos no es visible para el r
     expect(visibles.length).toBeGreaterThan(0);
   });
 
-  it.fails("DEFECTO D-3: ningún valor por defecto está en la lista blanca del residente", () => {
+  // Nació con `it.fails` en la fase 1 (el defecto reproducido) y pasó a `it` con el arreglo (T2.4).
+  it("D-3: ningún valor por defecto está en la lista blanca del residente", () => {
     const expuestos = valoresPorDefecto.filter((c) => visibles.includes(c));
     expect(expuestos).toEqual([]);
+  });
+
+  it("la subida rechaza un documento sin categoría", () => {
+    const inicio = pagina.indexOf("async function handleUpload");
+    const cuerpo = pagina.slice(inicio, pagina.indexOf("\n  }\n", inicio));
+    expect(cuerpo).toContain("if (!category)");
   });
 });

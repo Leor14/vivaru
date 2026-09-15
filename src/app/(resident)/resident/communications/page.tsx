@@ -79,7 +79,8 @@ function shouldTruncateBody(body: string) {
 
 export default function ResidentCommunicationsPage() {
   const { user } = useAuth();
-  const { items, loading, error } = useCommunications(user?.tenantId);
+  // Modo residente: solo lee los generales y los dirigidos a su unidad (`D-2b`).
+  const { items, loading, error } = useCommunications(user?.tenantId, { residente: { unitId: user?.unitId } });
   const isSimpleMode = useModuleVariant(user?.tenantId, "communications") === "tablon_simple";
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
 

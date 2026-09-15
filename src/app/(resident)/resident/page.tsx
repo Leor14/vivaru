@@ -92,7 +92,10 @@ export default function ResidentHomePage() {
   const { items: reservations = [], loading: reservationsLoading, error: reservationsError } = useReservations(tenantId, unitId);
   const { items: visitors = [], loading: visitorsLoading, error: visitorsError } = useVisitorPasses(tenantId, unitId);
   const { items: packages = [], loading: packagesLoading, error: packagesError } = usePackages(tenantId, unitId);
-  const { items: communications = [], loading: communicationsLoading, error: communicationsError } = useCommunications(tenantId);
+  // Modo residente: solo lee los generales y los dirigidos a su unidad (`D-2b`).
+  const { items: communications = [], loading: communicationsLoading, error: communicationsError } = useCommunications(tenantId, {
+    residente: { unitId: user?.unitId },
+  });
 
   // ── Defensive guards ──
   if (!tenantId) {
