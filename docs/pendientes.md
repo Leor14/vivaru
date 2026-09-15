@@ -31,14 +31,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >   - Y la fase 4, el cierre: este traspaso, el roadmap (0.9.76), la bitácora, el tablero, la wiki y la
 >     memoria.
 >
-> **Lo que sirve cada ambiente al cerrar (medido a las 02:45 UTC del 15):**
-> - **Producción:** `build-2026-09-14-001` desde `130c18e`, la punta de `master` (solo notas desde
->   `44953b5`).
-> - **Staging:** `build-2026-09-14-004` desde `fdc5a92`, y detrás de él solo notas.
+> **Lo que sirve cada ambiente al cerrar (medido a las 03:38 UTC del 15):**
+> - **`master` y `develop`, en `a9b2552`** desde el 15 sep: un avance rápido de cuatro commits (el plan de
+>   documentos, su fase 1, el cierre y el runbook), sin código de la app.
+> - **Producción:** `build-2026-09-15-001` desde `a9b2552`, visto sirviendo a las 03:37 UTC.
+> - **Staging:** `build-2026-09-15-002` desde `a9b2552`.
+> - **Detrás de `a9b2552` solo vienen notas** (este traspaso y el roadmap): su despliegue no cambia la app.
 > - **Reglas:** `dbc6cdf1` en producción y `b3fb7c8a` en staging, **las dos idénticas al repo**.
 > - **Functions:** sin despliegues desde el 12.
-> - **El commit del cierre va solo a `develop`.** `master` sigue en `130c18e`; lo que le falta son notas
->   y scripts de la semilla, sin código de la app.
 >
 > ```bash
 > git ls-remote origin refs/heads/master refs/heads/develop
