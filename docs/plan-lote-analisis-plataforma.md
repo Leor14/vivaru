@@ -118,8 +118,10 @@ Datos de producción (L-04, L-27): independientes; cada uno, con su permiso
 ### Fase 0 · Modelo v0.4 y recálculo *(solo documentos; ~1 h)*
 
 **T0.1 · Confianza por criterio.** Cambiar §5.4 y §7.1 a `E = Σ peso × nota × nivel`.
-- **Criterios:** es monótona (una prueba de papel: subir una nota o su nivel nunca baja el impacto); se
-  recalculan las 18 referencias de §6.2 y el orden de la tercera calibración se mantiene (ρ ≥ 0,9).
+- **Criterios:** es monótona por construcción, y la tercera calibración conserva sus cuadrantes con el
+  umbral de 4. *(Aquí decía «las 18 referencias mantienen su orden (ρ ≥ 0,9)», pero la confianza solo
+  toca el impacto: el esfuerzo y su orden no cambian.)* **Hecho el 15 sep**: tres Ganancias rápidas y
+  tres Rellenos, como con la v0.3.
 - **Comprobación:** tabla antes y después en `docs/valoraciones/`.
 - **Depende de:** el sí de David a §7.1.
 - **Ficheros:** `docs/modelo-de-priorizacion.md`.
@@ -139,6 +141,13 @@ el scratchpad, no a mano.
 - **Ficheros:** `docs/valoraciones/lote-2026-09-15-analisis-plataforma.md`.
 
 > **Control A.** David aprueba la v0.4 y el orden nuevo. Commit.
+>
+> **Fase 0 hecha el 15 sep; espera el control A.**
+> - La v0.4 está en el modelo, con la confianza por criterio y las cuatro definiciones.
+> - El lote está recalculado con un script que primero reproduce las 37 valoraciones de la v0.3 sin
+>   ninguna diferencia.
+> - **El umbral de impacto se queda en 4**: con la v0.4, la tercera calibración conserva sus cuadrantes.
+> - El lote pasa de 4 a **6 Ganancias rápidas**: entran L-23 y L-10.
 
 ### Fase 1 · Reproducir *(emulador, sin datos; ~1,5 h)*
 

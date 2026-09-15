@@ -51,7 +51,7 @@ Una fila por criterio, con **clase**, **nota**, **prueba** y **nivel**:
 - **Estimaciones del mundo**: Dolor, Obligación, Rodeo, Ingreso, Riesgo que quita, Día uno y Urgencia. Llevan nivel de prueba.
 - **Hechos del repositorio**: Alcance, Desbloqueo y Cierre. Se comprueban leyendo; **no llevan descuento**.
 
-La nota sale de la **definición escrita** de cada una en el modelo, no de la impresión. Para un defecto, el Dolor sale de probabilidad × gravedad si da un dato equivocado, y de la tabla general si bloquea una tarea. La confianza se calcula con la regla de §5.4; mientras no haya clientes, casi siempre saldrá 0,5, y hay que decirlo, no disimularlo.
+La nota sale de la **definición escrita** de cada una en el modelo, no de la impresión. Para un defecto, el Dolor sale de probabilidad × gravedad si da un dato equivocado, y de la tabla general si bloquea una tarea. Cada estimación se multiplica por el nivel de su propia prueba (§5.4); los hechos entran enteros. Mientras no haya clientes, casi ninguna prueba pasará de 0,8, y hay que decirlo, no disimularlo.
 
 **Si una necesidad no encaja en ninguna definición, no se fuerza la nota**: se pone la más cercana y se anota en el lote como hallazgo de la definición. Así se afinó el modelo tres veces.
 

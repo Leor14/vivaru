@@ -5,9 +5,10 @@
 > usa el producto y para el negocio), cuánto cuesta construirla de verdad, qué necesita antes y qué
 > puede romper. **No se califica nada sin mirar antes el código, los datos y los documentos.**
 >
-> **Estado al 15 sep 2026: v0.3, PASA la calibración de esfuerzo (§9.1) a la tercera.** Faltan la doble
-> valoración a ciegas (§9.2) y la falsación (§9.3) antes de darla por buena. Lo pidió David el 15 sep y
-> aprobó los ocho cambios salidos de revisar el mercado (§12).
+> **Estado al 15 sep 2026: v0.4.** Pasa la calibración de esfuerzo (§9.1) desde la v0.3; la v0.4 cambia
+> cómo se descuenta la confianza. Faltan la doble valoración a ciegas (§9.2) y la falsación (§9.3) antes
+> de darla por buena. Lo pidió David el 15 sep y aprobó los ocho cambios salidos de revisar el mercado
+> (§12).
 > - **v0.1 → v0.2.** La primera calibración no pasó: el esfuerzo salía inflado entre 3,3 y 8,6 veces, y la
 >   confianza en 0,5 en todas (`docs/valoraciones/calibracion-2026-09-15.md`). Se pasó a horas, casos de
 >   referencia, esperas y confianza solo sobre lo estimado.
@@ -20,6 +21,14 @@
 >   sin sesgo y con el orden recuperado (ρ ≈ 0,94). Tres en Ganancia rápida y tres en Relleno, ninguna en
 >   Pozo (`docs/valoraciones/calibracion-2026-09-15-tercera.md`). Sus seis entregas pasan a ser
 >   referencias: la tabla tiene dieciocho.
+> - **v0.3 → v0.4 (15 sep, tras el primer lote).** Aprobado por David:
+>   - **La confianza por criterio**: cada estimación se multiplica por el nivel de su prueba. La regla
+>     anterior no era monótona, y el lote lo destapó al aplicar el «es prospecto».
+>   - **«Entre unidades del mismo conjunto»** entra en el acceso indebido de §2.1 (`D-2b`).
+>   - **Cuatro definiciones**: Cierre para mejorar algo cerrado, la clase «existe y no se ve», la
+>     referencia de encender una bandera y Día uno por país.
+>
+>   Comprobado sobre la tercera calibración: mismos cuadrantes con el umbral de 4.
 >
 > **Lo que NO es.** No decide: ordena y enseña lo que se gana y lo que se pierde con cada opción.
 > **Elige David.** Tampoco sustituye a `crear-prd-vivaru`: la valoración va antes de preguntar si algo
@@ -39,8 +48,8 @@
   (cinco), de 0 a 3 cada uno, **con definición de cada nota**. Más la **urgencia** (el coste de esperar).
   El quinto del negocio, **«Día uno»**, es la estrategia de hoy —llegar listos al primer cliente— y
   **caduca** cuando llegue.
-- **La confianza solo descuenta lo que es una estimación del mundo** —cuánto duele, cuánto vende—. El
-  alcance, el desbloqueo y el cierre son **hechos del repositorio** y no llevan descuento.
+- **Cada estimación del mundo se descuenta por el nivel de su propia prueba** —cuánto duele, cuánto
+  vende—. El alcance, el desbloqueo y el cierre son **hechos del repositorio** y no llevan descuento.
 - **Esfuerzo en horas de trabajo activo, interpolado entre las dos referencias más parecidas** de
   dieciocho entregas medidas en nuestro git (§6.2), y comprobado después por componentes. **El tiempo de David se cuenta como esperas**: lo que cuesta no son
   sus minutos, sino el calendario que corre mientras la entrega lo espera.
@@ -81,8 +90,9 @@ Pasa la puerta si se cumple **una** de estas, con prueba de nivel 0,5 o más (§
 de lo obligatorio**: ningún otro criterio manda aquí por sí solo.
 
 - lo exige una **ley** del país del conjunto (México, Colombia o Ecuador) o la protección de datos;
-- hay **acceso indebido** entre roles o entre conjuntos (el patrón de `FIX-004` y `CF8`). Un acceso
-  *negado* —alguien que no puede hacer lo que debe— no es esto: va por el Dolor;
+- hay **acceso indebido** entre roles, entre conjuntos (el patrón de `FIX-004` y `CF8`) **o entre unidades
+  del mismo conjunto** (`D-2b`: un residente que lee lo dirigido a otra unidad; lo añadió David el 15 sep).
+  Un acceso *negado* —alguien que no puede hacer lo que debe— no es esto: va por el Dolor;
 - está en juego la **integridad del dinero**: un cobro, un saldo, un asiento o un recibo que puede quedar mal;
 - hay **datos personales** expuestos o conservados de más.
 
@@ -104,10 +114,15 @@ dónde sale; lo que no se pudo medir se dice.
 
 | Qué | Cómo se obtiene | Qué se anota |
 |---|---|---|
-| **Estado en el código** | Leyendo el código, en `src/`, `components/` y `features/` de la raíz y `functions/src/`. Los documentos no valen como fuente del estado | Nuevo · Parcial · Distinto, con la ruta del fichero y la función |
+| **Estado en el código** | Leyendo el código, en `src/`, `components/` y `features/` de la raíz y `functions/src/`. Los documentos no valen como fuente del estado | Nuevo · Parcial · Distinto · **Existe y no se ve**, con la ruta del fichero y la función |
 | **Los datos que lo alimentan** | Contando filas con los scripts de `functions/scripts/` (solo lectura), por conjunto y ambiente | Cuántas filas, en qué conjuntos, con qué banderas. **Encender no es poner en uso** |
 | **De dónde sale el dolor** | La fuente, dicha en voz alta: la sesión con la administradora, la ley, la competencia, el recorrido de la demo o el código | Cuál es, con cita. Una pasada por las pantallas no dice qué duele: los huecos grandes fueron ley, dolor y rodeo |
 | **Qué más lo toca** | El índice de PRD (`docs/prd/README.md`), la tabla de tomados de los candidatos, las rarezas del §H, el inventario de Notion | Solapes y fichas que ya lo declaran |
+
+**«Existe y no se ve»** (v0.4) es lo que se pide y ya está construido, pero quien lo pide no lo encontró:
+apagado en su conjunto, en otro portal o sin un texto que lo diga. En el primer lote fue la mitad de lo
+pedido. **La necesidad pasa a ser enseñarlo**: un texto, una bandera o el guion de la demo. Casi siempre
+cae en la puerta XS o cuesta minutos (la referencia de encender una bandera, §6.2).
 
 Tres reglas del expediente, porque ya costaron caras:
 
@@ -215,7 +230,7 @@ de lo obligatorio **solo si cumple §2.1**, que es la única puerta.
 | Nota | **Ingreso** *(estimación)* | **Riesgo que quita** *(estimación)* | **Desbloqueo** *(hecho)* | **Cierre** *(hecho)* |
 |---|---|---|---|---|
 | **0** | Ninguno: ni se ve en la demo ni lo pide nadie | Ninguno | No desbloquea nada | Abre un frente nuevo |
-| **1** | Mejora la demo acompañada o la prueba de 15 días, sin ser decisivo | De imagen, menor (un texto en inglés, un formato raro) | Facilita una iniciativa | Extiende un frente abierto |
+| **1** | Mejora la demo acompañada o la prueba de 15 días, sin ser decisivo | De imagen, menor (un texto en inglés, un formato raro) | Facilita una iniciativa | Extiende un frente abierto, o mejora algo ya construido y cerrado |
 | **2** | Lo pide un prospecto o el canal por escrito; es un hueco contra Habitanto que se nota en la demo; **algo que falla a la vista durante la demo acompañada**; o amplía las unidades con plataforma completa | Un dato equivocado a la vista de un cliente, o la reputación del dominio de correo | Es requisito técnico o de datos de una iniciativa | Cierra un cabo de un frente abierto (un criterio sin cumplir, un cabo como T3.5) |
 | **3** | Sin esto, una venta concreta no cierra o un cliente se va (bloquea la conversión o la renovación) | Dinero, acceso indebido, datos personales o riesgo legal | Es requisito técnico o de datos de dos o más, o de un P0 | Pone en uso algo desplegado y apagado, o cierra un frente entero |
 
@@ -225,6 +240,9 @@ todos; la prueba de 15 días es herramienta, no etapa. De ahí las cuatro formas
 **vender** (la demo, un prospecto), **convertir** (de la prueba al pago), **ampliar** (más unidades o
 más conjuntos) y **retener** (la renovación). **Mientras no haya clientes, retener casi nunca pasa de
 0,3 de confianza.**
+
+**Quién cuenta como prospecto** (David, 15 sep): una administradora o un administrador que evalúa la
+demo y lo pide por escrito. Lo que pide lleva Ingreso 2, con prueba de 0,8.
 
 **Desbloqueo cuenta requisitos técnicos o de datos, no el orden de un plan.** Que un plan propio ponga
 algo «antes de la fase 3» no lo convierte en requisito: lo es si la otra iniciativa no puede
@@ -252,6 +270,10 @@ entregas que David eligió, y lo que tenían en común era esto.
 - **No se cuenta dos veces con el Ingreso.** El Ingreso mira la venta (la demo, un prospecto, un hueco
   que se nota); el Día uno mira la operación del primer mes. Algo puede tener Ingreso 2 porque se ve bien
   en la demo y Día uno 0 porque nadie lo necesita para operar, o al revés.
+- **Se lee por país** (v0.4). Una prueba vale para el país donde se dijo o se midió. En el primer lote,
+  la administradora colombiana dejó fuera de su mes la conciliación, y la de Ecuador concilia ella misma.
+  Si las fuentes de dos países chocan, se valora con la del país del mercado al que va el lote, y se
+  anota la otra.
 - **Caduca.** Cuando llegue el primer cliente, el criterio se retira: lo que necesita pasa a medirse como
   Dolor, Rodeo e Ingreso, con su propia prueba. Hasta entonces, **cada lote dice en su cabecera que
   valora con el Día uno activo.**
@@ -280,10 +302,17 @@ plazo puede esperar, y algo modesto con plazo no.
 | **0,5** | **Leído**: en el código, en la ley, en la competencia o en el recorrido de la demo |
 | **0,3** | **Especulación**: nadie lo dijo, nada lo midió |
 
-**La confianza solo se calcula sobre las estimaciones del mundo** (§5), y es **la de la prueba más débil
-entre las estimaciones con nota 2 o 3**, porque esas son las que cargan la puntuación. Si ninguna
-estimación llega a 2, manda la más débil de las que tienen 1 o más; si ninguna tiene 1, C = 1,0, porque
-lo único que queda son hechos.
+**Cada estimación del mundo se multiplica por el nivel de su propia prueba** (v0.4): un Dolor de 2
+dicho por la administradora aporta 2 × 0,8; un Rodeo de 2 inferido, 2 × 0,3. Así, **subir una nota o
+mejorar su prueba nunca baja el impacto**.
+
+**La regla anterior no era monótona, y por eso se cambió.** Hasta la v0.3, la confianza era la de la
+prueba más débil entre las notas de 2 o 3, aplicada a todas las estimaciones. En el primer lote, al
+subir a 2 el Ingreso de lo que pidió una prospecta:
+- las necesidades cuyo único 2 pasaba a ser el Ingreso saltaban de 0,5 a 0,8;
+- las que ya tenían otro 2 con prueba leída se quedaban en 0,5.
+
+Tener más pruebas bajaba la nota (`docs/valoraciones/lote-2026-09-15-analisis-plataforma.md`).
 
 **Los hechos no llevan descuento.** El Alcance de un cambio se comprueba leyendo qué roles y portales
 toca; tratarlo como una prueba «leída» de 0,5 hundía la confianza de todas las valoraciones de la v0.1
@@ -317,6 +346,7 @@ tres entregas en los dos ambientes, y otra repartió la tarde entre tres frentes
 
 | Referencia | Qué fue | Cuánto existía ya | Horas reales | Qué la hizo de ese tamaño |
 |---|---|---|---|---|
+| **Encender una bandera por conjunto** (operación, v0.4) | El canario del modo oscuro (2 sep) y las cuotas en Las Playas (3 sep) | **Existe**: solo se enciende | **0,05–0,25**, más **una espera**: el permiso de producción | Un comando y comprobar en pantalla; de 3 a 15 minutos por paso, medidos en git |
 | **PH-003** (30 ago) | Autorizar la visita que llega sin avisar | **Parcial con base**: la callable `registerWalkInVisit` y la lectura del residente ya estaban | **0,65**, más una espera (la portería, al día siguiente) y un arreglo | Tres portales, pero casi todo era cablear lo que había |
 | **FIX-003 / UX-004** (30 ago) | Que dos indicadores digan qué ventana miden, sin tocar fórmulas | **Parcial**: la fórmula ya era única | **0,6–1,0** | Solo front, dos pantallas y un guardián |
 | **H.31 y H.37** (13 sep) | Dos defectos del front: un orden que reventaba con un `Timestamp` y una hora mal leída | **Casi hecho**: arreglos de pocas líneas | **0,9** | Cinco ficheros, sin servidor ni reglas; gemelo bueno en el mismo módulo |
@@ -408,23 +438,29 @@ las suyas en un solo momento. Los minutos se siguen anotando.
 
 ### 7.1 La puntuación
 
-La confianza descuenta solo las estimaciones; los hechos entran enteros:
+Cada estimación se multiplica por el nivel de su prueba; los hechos entran enteros:
 
 ```
-Estimaciones  E = 0,5 × (Dolor + Obligación + Rodeo) + 0,5 × (Ingreso + Riesgo que quita + Día uno) + 2 × U
+Estimaciones  E = 0,5 × (Dolor·n + Obligación·n + Rodeo·n)
+                + 0,5 × (Ingreso·n + Riesgo que quita·n + Día uno·n)
+                + 2 × U·n                (n = el nivel de la prueba de cada una: 1,0 · 0,8 · 0,5 · 0,3)
 Hechos        H = 0,5 × Alcance + 0,5 × (Desbloqueo + Cierre)
-Impacto ajustado = H + E × C                                           (0–19,5)
+Impacto ajustado = H + E                                                   (0–19,5)
 Puntuación       = Impacto ajustado ÷ Horas
 ```
 
-Los pesos son los de §11: 50/50 entre cliente final y negocio, y la urgencia al doble. Con C = 1, el
-impacto ajustado es exactamente el coste de esperar de la v0.1: `0,5 × VC + 0,5 × VN + 2 × U`.
+Los pesos son los de §11: 50/50 entre cliente final y negocio, y la urgencia al doble. Con todas las
+pruebas en 1,0, el impacto ajustado es exactamente el coste de esperar de la v0.1:
+`0,5 × VC + 0,5 × VN + 2 × U`.
 
 **Ejemplo ilustrativo, con números inventados para enseñar la cuenta** (no es la valoración de nada):
-Dolor 2, Obligación 1, Rodeo 2, Alcance 2; Ingreso 1, Riesgo 1, Día uno 2, Desbloqueo 0, Cierre 1;
-U = 1. E = 0,5 × 5 + 0,5 × 4 + 2 = 6,5. H = 0,5 × 2 + 0,5 × 1 = 1,5. C = 0,8 (la prueba más débil entre
-las estimaciones con nota 2). Impacto ajustado = 1,5 + 6,5 × 0,8 = 6,7. Horas = 2 (interpoladas entre dos
-referencias y confirmadas por componentes). **Puntuación = 6,7 ÷ 2 = 3,4.**
+- **Notas y niveles:** Dolor 2 (0,8), Obligación 1 (0,5), Rodeo 2 (0,8), Alcance 2; Ingreso 1 (0,8),
+  Riesgo 1 (0,5), Día uno 2 (0,8), Desbloqueo 0, Cierre 1; U = 1 (0,5).
+- **E** = 0,5 × (1,6 + 0,5 + 1,6) + 0,5 × (0,8 + 0,5 + 1,6) + 2 × 0,5 = 1,85 + 1,45 + 1,0 = 4,3.
+- **H** = 0,5 × 2 + 0,5 × 1 = 1,5.
+- **Impacto ajustado** = 1,5 + 4,3 = 5,8.
+- **Horas** = 2, interpoladas entre dos referencias y confirmadas por componentes.
+- **Puntuación = 5,8 ÷ 2 = 2,9.**
 
 ### 7.2 El cuadrante *(umbrales de §11)*
 
@@ -505,7 +541,7 @@ Una por necesidad. Las pequeñas caben en una fila de la tabla del lote; las gra
 | Desbloqueo | hecho | | | — |
 | Cierre | hecho | | | — |
 | Urgencia | estimación | | | |
-**E:** … · **H:** … · **Confianza:** [la regla de §5.4] · **Impacto ajustado:** …
+**E** (cada estimación × el nivel de su prueba): … · **H:** … · **Impacto ajustado:** …
 
 **Esfuerzo**
 - Las dos referencias más parecidas (§6.2): [cuáles, y cuánto existía ya en cada una] → **N horas**
@@ -577,6 +613,12 @@ FEAT-006, PLAT-004 (entrega 1) y FEAT-007.
   y 2).
 - Esas seis pasan a ser referencias. Detalle: `docs/valoraciones/calibracion-2026-09-15-tercera.md`.
 
+**La v0.4, comprobada sobre la tercera pasada (15 sep).** Con la confianza por criterio, las seis
+conservan sus cuadrantes con el umbral de 4: tres Ganancias rápidas y tres Rellenos. El esfuerzo no
+cambia, porque la confianza solo toca el impacto. El script que lo calcula
+(`docs/valoraciones/recalculo-lote-2026-09-15.py`) reproduce primero las 37 valoraciones de la v0.3 sin
+ninguna diferencia.
+
 ### 9.2 Doble valoración a ciegas
 
 **Diez necesidades, valoradas por dos agentes independientes con el mismo expediente.** Todo criterio
@@ -629,6 +671,7 @@ su fecha y su razón.
 | Umbral de esfuerzo del cuadrante | **4 horas** (talla L) | **Cambiado el 15 sep** (eran 3 sesiones): las entregas grandes de referencia costaron unas 4 horas |
 | Umbral de impacto del cuadrante | **4, mientras no haya clientes** | **Cambiado el 15 sep** (era 6): sin clientes la confianza es 0,5 en casi todo, y doce entregas elegidas quedaron entre 1,25 y 4,75. Se revisa con el primer cliente |
 | Criterio «Día uno» | **Activo, hasta el primer cliente** | **Añadido el 15 sep**: David eligió las doce entregas de referencia para llegar listos al primer cliente, y el modelo no lo preguntaba |
+| Confianza | **Cada estimación × el nivel de su prueba** | **Cambiado el 15 sep (v0.4)**: antes era la prueba más débil entre las notas de 2 o 3, aplicada a todo, y no era monótona; lo midió el primer lote |
 | Primer lote después de calibrar | **El menú de `pendientes.md` y las rarezas del §H** | Es entre lo que se elige ahora; los 82 candidatos de Habitanto van después |
 
 **Y una duda del recuento, previa al primer lote:** el menú cuenta 28 rarezas sin decidir
