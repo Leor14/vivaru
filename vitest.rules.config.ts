@@ -35,6 +35,9 @@ export default defineConfig({
       "tests/tesoreria-caja-chica.rules.test.ts",
       "tests/egresos-en-cuotas.rules.test.ts",
       "tests/cf9-conjunto-de-antes.rules.test.ts",
+      // Lote «Análisis de la plataforma» (15 sep 2026): reproducciones de `D-2b` y `L-08a`.
+      "tests/comunicados-audiencia.rules.test.ts",
+      "tests/visitante-frecuente.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.

@@ -174,6 +174,25 @@ comunicado a una función que se pueda probar.
 
 > **Control B.** Las cuatro pruebas en rojo, cada una por la causa esperada. **David decide qué es
 > obligatorio** (§7.3): D-2b, y D-3 según su radio.
+>
+> **Fase 1 hecha el 15 sep; control B pasado.**
+> - **Cinco reproducciones con `it.fails`** (el plan decía cuatro: D-2b y D-2 van por separado). Cada
+>   una se convirtió un momento a `it` normal para comprobar que falla por su causa:
+>   - `tests/comunicados-audiencia.rules.test.ts` (D-2b);
+>   - `functions/tests/comunicado-avisos-audiencia.emulator.test.ts` (D-2, con `.run()` sobre el
+>     disparador);
+>   - `tests/aviso-de-mora-audiencia.test.ts` (D-1);
+>   - `tests/documentos-categoria-por-defecto.test.ts` (D-3);
+>   - `tests/visitante-frecuente.rules.test.ts` (L-08a, con el límite de que un pase puntual no puede
+>     volver a `scheduled`).
+> - **Cambio sobre T1.3:** D-1 se reproduce leyendo el código, sin sacar todavía la función. La
+>   extracción va con su arreglo (T2.3).
+> - **Radio de D-3** (`scripts/contar-documentos-por-categoria.mjs`): 2 documentos «otro» en producción
+>   (el reglamento de convivencia y un acta de Las Playas, los dos compartibles) y 2 en staging.
+>   **David: D-3 no es obligatorio, pero se arregla en la fase 2 obligando a elegir la categoría**, sin
+>   tocar la lista blanca. Reclasificar esos dos documentos sería opcional y con permiso.
+> - Bancos: `npm test` **2096** (+5 de las pruebas nuevas y +4 del guardián de las dos listas, que
+>   genera dos por banco); functions **1084**. Typechecks en 0.
 
 ### Fase 2 · Lo obligatorio *(~4 h; orden según el control B)*
 
