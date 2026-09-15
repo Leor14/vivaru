@@ -26,3 +26,7 @@ export declare function comprobanteDeTransferencia(p: {
 }): Promise<Buffer>;
 
 export declare function portadaDeServicio(p: { clave: string; titulo: string; detalle: string; tercero: boolean }): Promise<Buffer>;
+
+export declare function digitosDelTotalizador(lectura: number): string[];
+
+export declare function esferaDeMedidor(p: { casa: string; periodo: string; lectura: number; tomada: string }): Promise<Buffer>;

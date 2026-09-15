@@ -723,7 +723,8 @@ const uidPorCorreo = new Map([...usuarios.values()].map((u) => [u.email, u.uid])
 
 // Cada archivo al que apunta un campo existe en Storage, con su tipo y con el token de su enlace:
 // adjuntos de comunicados, fotos de áreas (en orden y como mucho 8, lo que admite la pantalla),
-// portada y adjunto de servicios, logo y comprobantes; y cada documento, del tipo que dice.
+// portada y adjunto de servicios, logo, comprobantes y fotos de las lecturas del medidor; y cada
+// documento, del tipo que dice.
 {
   const bucket = getStorage().bucket();
   const f = [];
@@ -755,12 +756,16 @@ const uidPorCorreo = new Map([...usuarios.values()].map((u) => [u.email, u.uid])
   const ajustes = (await db.collection("tenantSettings").doc(tenantId).get()).data() ?? {};
   if (ajustes.logoPath) await revisar("logo", ajustes.logoPath, /^image\//, ajustes.logoUrl);
   for (const [id, r] of await delConjunto("paymentReceipts")) await revisar(id, r.storagePath, /^image\//, r.fileUrl);
+  // La lectura solo guarda el enlace de su foto: la ruta sale de él.
+  for (const [id, l] of await delConjunto("meterReadings")) {
+    if (l.photoUrl) await revisar(`${id} · foto`, decodeURIComponent(/\/o\/([^?]+)/.exec(l.photoUrl)?.[1] ?? ""), /^image\//, l.photoUrl);
+  }
   for (const [id, d] of await delConjunto("documents")) {
     if (!d.contentType || !d.storagePath || !(await bucket.file(d.storagePath).exists())[0]) continue;
     const [meta] = await bucket.file(d.storagePath).getMetadata();
     if (meta.contentType !== d.contentType) f.push(`${id}: dice ${d.contentType} y el archivo es ${meta.contentType}`);
   }
-  comprobar(`los ${n} archivos de adjuntos, fotos, servicios, logo y comprobantes están en Storage, con su tipo y su token`, f);
+  comprobar(`los ${n} archivos de adjuntos, fotos de áreas y de medidor, servicios, logo y comprobantes están en Storage, con su tipo y su token`, f);
 }
 
 // Cada espejo de Documentos comparte ruta y enlace con su origen —el acta con su acuerdo, el adjunto

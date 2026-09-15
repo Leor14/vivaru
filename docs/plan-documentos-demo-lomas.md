@@ -244,8 +244,8 @@ Visibilidad: **R** = residente y consejo (categorías `asamblea`, `comunicado`, 
   >   `sumarCuentasPorCobrar`, `sumarDeudaAProveedores` y `sumarSaldoDeApertura` de `functions/lib`;
   >   rutas de `ARCHIVE_PATH` (`cartera-history`, `committee-reports`). **El riesgo:** el cron calcula
   >   con el estado de HOY de cada cargo; para rellenar hacia atrás hay que reconstruirlo a cada fecha.
-- [x] **T1.6 Opcionales** (D1–D3), si los eliges. **(S)** D1 hecho el 14 sep; D2 y D3 quedan fuera,
-  como dejó DD1 («solo si sobra tiempo»).
+- [x] **T1.6 Opcionales** (D1–D3), si los eliges. **(S)** D1 hecho el 14 sep. D2 y D3 quedaron fuera,
+  como dejó DD1 («solo si sobra tiempo»); **D2 entró el 15 sep, a petición de David, en la fase 5**.
 - [x] **T1.7 Verificador**: cada archivo referenciado existe en Storage con su tipo; cada espejo
   comparte ruta con su origen; las categorías caen donde deben; todo está en el manifiesto; nada
   nuevo en las categorías que disparan. Falsado rompiendo cada comprobación a propósito. **(M)**
@@ -401,6 +401,45 @@ generaron sus enlaces para ponerla, sin correo.
 - [x] **T4.3** `docs/pendientes.md`, el roadmap (0.9.76), la wiki y la memoria van en el commit del cierre.
   La bitácora y el tablero de Notion, justo después.
 
+### Fase 5 — Medidores (15 sep, a petición de David)
+
+David vio que Medidores «quedó vacía». Tenía dos causas, y se arreglan las dos:
+
+- **La pantalla abría en el mes en curso.** La ronda se lee el último día del mes, así que septiembre no
+  tiene lecturas y la administración veía todas las casas en blanco, con cuatro meses de lecturas detrás
+  del selector. Es del producto (§7, punto 13; contrato, H.51), no de la semilla.
+- **Las 192 fotos eran tarjetas de texto**, las que dejó la historia, y el residente las abre a tamaño
+  completo desde «Tus consumos medidos». La administración no las ve (H.45).
+
+David eligió las dos recomendaciones: abrir en el último mes con lecturas, y D2.
+
+- [x] **T5.1 La pantalla abre en el último mes con lecturas.** Si el mes en curso está vacío, busca hacia
+  atrás mes a mes, hasta doce, con la misma consulta de tres igualdades más `limit(1)`: sin `orderBy` y
+  sin índice compuesto. Una franja dice «Septiembre de 2026 todavía no tiene lecturas. Te enseñamos
+  agosto de 2026, la última ronda.», con un botón para ir al mes en curso. Si la administración elige otro
+  mes mientras busca, la búsqueda ya no lo pisa.
+  - `src/features/medidores/periodos.ts`, `hayLecturasEnPeriodo` en `services.ts` y la página.
+  - 7 pruebas en `tests/medidores-periodo-inicial.test.ts`. Falsadas: romper el cambio de año enrojece 3,
+    y quitar la guarda de «ya eligió», 1.
+- [x] **T5.2 D2 en el emulador.** `fotosDeMedidor`, en el escritor de documentos: a cada lectura cuya foto
+  lleva el token de la semilla le pinta una esfera de 900×900 con el totalizador (cinco tambores de m³ y
+  uno rojo para la décima), la casa, el período y la hora local de la lectura, y la sube en la misma ruta
+  con el mismo token (`subirSiCambia`). Una foto subida desde la pantalla lleva token al azar y no se toca.
+  No escribe ningún documento: solo Storage.
+  - 5 pruebas en `functions/tests/semilla-medidores.test.ts`; quitar el épsilon de la décima enrojece 1.
+  - El verificador revisa también las fotos de las lecturas: siguen siendo 43 comprobaciones, y la de
+    archivos cuenta 249.
+  - En el emulador: 192 creadas, y 192 «ya estaban» en la segunda corrida; 43 de 43. Falsear el token de
+    una foto enrojece esa comprobación sola y exacta; restaurada, 43 de 43. `--limpiar` deja el conjunto
+    como estaba, con 0 fotos en Storage.
+  - Bancos: app 2087, functions 1084, typecheck y lint en 0.
+- [ ] **T5.3 Commit y push a `develop`, con tu sí.** Staging despliega la pantalla solo.
+- [ ] **T5.4 Ensayo en staging:** D2 en seco, escribir dos veces, los testigos y el verificador. Mirar
+  Medidores con la administración (tiene que abrir en agosto) y una foto con el residente de Encinos 03.
+- [ ] **T5.5 Producción, un permiso por paso:** push a `master` (la pantalla) y D2 con `--si-produccion`;
+  el verificador y el mismo recorrido.
+- [ ] **T5.6 Cierre:** el runbook, `docs/pendientes.md`, el roadmap y la memoria.
+
 ---
 
 ## 5. Riesgos
@@ -424,7 +463,7 @@ generaron sus enlaces para ponerla, sin correo.
 
 | # | Decisión | Recomendación |
 |---|---|---|
-| **DD1** | Qué bloques entran | **A, B, C y D1** (logo). D2 y D3 solo si sobra tiempo |
+| **DD1** | Qué bloques entran | **A, B, C y D1** (logo). D2 y D3 solo si sobra tiempo. *El 15 sep David pidió D2 (fase 5)* |
 | **DD2** | Estilo de las imágenes | **Ilustraciones generadas en SVG**: sin coste y sin derechos de terceros. Alternativas: fotos generadas con la IA de Vertex, más realistas, pero cuestan y piden decidir el gasto; o fotos tuyas de un lugar real |
 | **DD3** | La marca «EJEMPLO · DEMO VIVARU» también en las fotos de las áreas | **Sí, discreta en una esquina**: coherente con el resto de la demo |
 | **DD4** | Reemplazar los archivos delgados o añadir versiones nuevas | **Reemplazar en la misma ruta**: nada cambia de URL y no se duplica |
@@ -436,7 +475,8 @@ generaron sus enlaces para ponerla, sin correo.
 
 Para el contrato de la semilla, junto a H.39 (el formulario de personas exige teléfono). **Pasados
 al contrato el 15 sep (T4.2):** los puntos 1 a 6 son la H.41, H.42, H.43, H.44, H.45 y H.40; del 8 al
-12, la H.46 a la H.50; y el 7 amplía la H.9, que ya lo recogía.
+12, la H.46 a la H.50; y el 7 amplía la H.9, que ya lo recogía. El 13 es la H.51, y es el único que se
+arregla en el producto (fase 5).
 
 1. **El logo no llega al informe mensual.** La administración lo guarda en `tenantSettings.logoUrl`.
    El PDF del informe (las dos llamadas a `descargarLogo` de `functions/src/index.ts`) y la cabecera
@@ -497,6 +537,13 @@ Y del ensayo en staging (T2.1 y T2.2, 14 sep), vistos en pantalla o medidos:
     - Visto en staging y en producción (T3.3) con el aviso de la cisterna del 22 de septiembre: está
       programado, falta en Comunicaciones del residente y aparece en su Documentos.
     - La semilla lo replica tal cual.
+
+Y de la demo, pedido por David el 15 sep:
+
+13. **Medidores abre en el mes en curso, y a mitad de mes está vacío.** La ronda se lee el último día
+    del mes, así que `/admin/finanzas/medidores` enseñaba septiembre con todas las casas en blanco y los
+    totales en cero, con cuatro meses de lecturas detrás del selector. Parecía que no había datos. Se
+    arregla en la fase 5 (T5.1).
 
 ---
 

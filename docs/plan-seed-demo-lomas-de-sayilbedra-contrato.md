@@ -871,3 +871,13 @@ sesión de administración y leyendo después el código que las pinta:
     - El residente lee esa categoría, así que ve el PDF de un comunicado que su portal todavía no le
       enseña.
     - Visto en staging y en producción con el aviso de la cisterna del 22 de septiembre.
+
+**De los medidores** (15 sep, pedido por David; `docs/plan-documentos-demo-lomas.md`, fase 5):
+
+51. **Medidores abría en el mes en curso, y a mitad de mes está vacío.**
+    - La ronda de lecturas se hace a fin de mes, así que durante casi todo el mes
+      `/admin/finanzas/medidores` abría con todas las casas en blanco y los totales en cero. En Lomas
+      había cuatro meses de lecturas detrás del selector.
+    - **Esta sí se arregla en el producto:** si el mes en curso está vacío, la pantalla abre en el último
+      con lecturas, lo dice y ofrece ir al mes en curso (`src/features/medidores/periodos.ts`).
+    - Arreglada en el código el 15 sep; falta desplegarla.

@@ -7,12 +7,13 @@ import { createRequire } from "node:module";
 
 import { Timestamp } from "firebase-admin/firestore";
 
-import { documentoEstructurado, huellaDe, subirSiCambia } from "../archivos.mjs";
+import { documentoEstructurado, huellaDe, subirSiCambia, tokenDe } from "../archivos.mjs";
 import { semilla } from "../azar.mjs";
 import {
   TIPOS_DE_AREA,
   cartel,
   comprobanteDeTransferencia,
+  esferaDeMedidor,
   fotoDeArea,
   fotoDeObra,
   logoDelConjunto,
@@ -371,6 +372,35 @@ export function crearEscritoresDeDocumentos(ctx, { padron, eventos, hoy }) {
           const { estado } = await subirSiCambia(ctx, r.storagePath, jpeg, "image/jpeg", huellaDe({ v: VERSION_DOCUMENTOS, comprobante: datos }));
           ctx.cuenta(etiqueta, estado === "igual" ? "existe" : ctx.escribir ? "creado" : "crearia");
         }
+      }
+    },
+
+    /**
+     * D2 · Las fotos de las lecturas del medidor: una esfera con el totalizador en m³, en vez de la
+     * tarjeta de texto que dejó la historia. Cada foto se repinta en su ruta y con su token, así que
+     * el `photoUrl` de la lectura sigue valiendo y la lectura —cobrada y sellada— no se toca.
+     * **Una foto que no subió la semilla no se toca:** la que sube la administración desde la
+     * pantalla lleva un token al azar, y la de la semilla, el de su ruta (`tokenDe`).
+     */
+    async fotosDeMedidor() {
+      const etiqueta = "medidores: fotos de lectura";
+      const casas = new Map(padron.casas.map((c) => [c.id, c]));
+      for (const d of (await db.collection("meterReadings").where("tenantId", "==", t).get()).docs) {
+        const l = d.data();
+        const ruta = decodeURIComponent(/\/o\/([^?]+)/.exec(l.photoUrl ?? "")?.[1] ?? "");
+        if (!ruta || !l.photoUrl.includes(`token=${tokenDe(ruta)}`)) {
+          ctx.cuenta(etiqueta, "no son de la semilla");
+          continue;
+        }
+        const local = new Date(l.readAt.toMillis() - DESFASE_HORAS * 3_600_000).toISOString();
+        const datos = {
+          casa: casas.get(l.unitId)?.displayName ?? l.unitId,
+          periodo: l.period,
+          lectura: l.current,
+          tomada: `${local.slice(0, 10)} ${local.slice(11, 16)}`,
+        };
+        const { estado } = await subirSiCambia(ctx, ruta, await esferaDeMedidor(datos), "image/jpeg", huellaDe({ v: VERSION_DOCUMENTOS, medidor: datos }));
+        ctx.cuenta(etiqueta, estado === "igual" ? "existe" : ctx.escribir ? "creado" : "crearia");
       }
     },
 

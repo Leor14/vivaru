@@ -11,9 +11,11 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-context";
 import { watchUnits, type UnitItem } from "@/features/admin/services";
+import { nombreDelPeriodo, ultimoPeriodoConLecturas } from "@/features/medidores/periodos";
 import {
   createMeteredService,
   deleteMeteredService,
+  hayLecturasEnPeriodo,
   uploadMeterPhoto,
   watchMeterReadings,
   watchMeteredServices,
@@ -65,6 +67,10 @@ export default function MedidoresPage() {
   const [cobrandoAbierto, setCobrandoAbierto] = useState(false);
   const [nuevo, setNuevo] = useState({ name: "", unit: "m3" as MeteredService["unit"], rate: "" });
   const inputFoto = useRef<Record<string, HTMLInputElement | null>>({});
+  // El mes en curso vacío abre el último con lecturas (`periodos.ts`). Un período que la persona
+  // eligió a mano no se le mueve.
+  const eligioPeriodo = useRef(false);
+  const [aviso, setAviso] = useState<{ vacio: string; mostrado: string } | null>(null);
 
   useEffect(() => {
     if (!user?.tenantId) return;
@@ -79,6 +85,28 @@ export default function MedidoresPage() {
   useEffect(() => {
     if (!servicioId && servicios.length > 0) setServicioId(servicios[0].id);
   }, [servicios, servicioId]);
+
+  useEffect(() => {
+    const tenantId = user?.tenantId;
+    if (!tenantId || !servicioId) return;
+    const actual = periodoActual();
+    let vigente = true;
+    void (async () => {
+      try {
+        const destino = (await hayLecturasEnPeriodo(tenantId, servicioId, actual))
+          ? null
+          : await ultimoPeriodoConLecturas((p) => hayLecturasEnPeriodo(tenantId, servicioId, p), actual);
+        if (!vigente || eligioPeriodo.current) return;
+        setPeriodo(destino ?? actual);
+        setAviso(destino ? { vacio: actual, mostrado: destino } : null);
+      } catch {
+        // Sin el aviso, la pantalla se queda en el mes en curso, como antes: no hay nada que romper.
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, [user?.tenantId, servicioId]);
 
   useEffect(() => {
     if (!user?.tenantId || !servicioId) {
@@ -336,7 +364,11 @@ export default function MedidoresPage() {
                 type="month"
                 className="ml-2 inline-block w-40"
                 value={periodo}
-                onChange={(e) => setPeriodo(e.target.value)}
+                onChange={(e) => {
+                  eligioPeriodo.current = true;
+                  setAviso(null);
+                  setPeriodo(e.target.value);
+                }}
               />
             </label>
             {periodoCerrado ? (
@@ -359,6 +391,25 @@ export default function MedidoresPage() {
               </Button>
             ) : null}
           </div>
+
+          {aviso && periodo === aviso.mostrado ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--slate-700)]">
+              <span>
+                {conMayuscula(nombreDelPeriodo(aviso.vacio))} todavía no tiene lecturas. Te enseñamos{" "}
+                <b className="text-[var(--slate-900)]">{nombreDelPeriodo(aviso.mostrado)}</b>, la última ronda.
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  eligioPeriodo.current = true;
+                  setAviso(null);
+                  setPeriodo(aviso.vacio);
+                }}
+              >
+                Ir a {nombreDelPeriodo(aviso.vacio)}
+              </Button>
+            </div>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--slate-600)]">
             <span>
@@ -519,6 +570,10 @@ export default function MedidoresPage() {
       ) : null}
     </div>
   );
+}
+
+function conMayuscula(texto: string) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 function etiquetaUnidad(u: MeteredService["unit"]) {

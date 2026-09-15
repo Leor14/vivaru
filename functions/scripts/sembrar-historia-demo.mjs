@@ -233,6 +233,8 @@ if (modo === "documentos") {
     await documentos.comprobantes();
     await documentos.relacionesBancarias();
     await documentos.archivoMensual();
+    console.log("\n· Medidores");
+    await documentos.fotosDeMedidor();
     console.log("\n· Marca");
     await documentos.logo();
     if (escribir) await completarManifiesto(ctx, base);

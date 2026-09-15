@@ -5,6 +5,8 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
+  limit,
   onSnapshot,
   query,
   updateDoc,
@@ -81,6 +83,21 @@ export function watchMeterReadings(
     (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<MeterReading, "id">) }))),
     (e) => onError(e.message),
   );
+}
+
+/**
+ * Si un período tiene alguna lectura. La misma consulta que `watchMeterReadings` —tres igualdades,
+ * sin ordenar— con `limit(1)`: no pide índice compuesto y lee un documento como mucho.
+ */
+export async function hayLecturasEnPeriodo(tenantId: string, serviceId: string, period: string): Promise<boolean> {
+  const consulta = query(
+    collection(assertDb(), "meterReadings"),
+    where("tenantId", "==", tenantId),
+    where("serviceId", "==", serviceId),
+    where("period", "==", period),
+    limit(1),
+  );
+  return !(await getDocs(consulta)).empty;
 }
 
 /**

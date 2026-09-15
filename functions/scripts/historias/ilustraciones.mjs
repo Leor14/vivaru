@@ -209,14 +209,21 @@ export async function logoDelConjunto({ nombre, color = "#2F6B4F" }) {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+/**
+ * Los seis tambores del totalizador: cinco negros para los m³ enteros y uno rojo para la décima,
+ * como un contador real (el rojo es la fracción, no las unidades). Pasado de 99999 da la vuelta.
+ * El épsilon no es cosmético: `583.4 % 1` es 0.3999…, y sin él la décima saldría 3.
+ */
+export function digitosDelTotalizador(lectura) {
+  const entero = String(Math.floor(lectura)).padStart(5, "0").slice(-5).split("");
+  const decima = String(Math.floor((lectura % 1) * 10 + 1e-6) % 10);
+  return [...entero, decima];
+}
+
 /** La foto de un medidor de agua: esfera con el totalizador en m³ y la etiqueta de la toma. */
 export async function esferaDeMedidor({ casa, periodo, lectura, tomada }) {
   const S = 900;
-  // Cinco dígitos negros para los m³ y uno rojo para la décima, como un totalizador real: el rojo
-  // es la fracción, no las unidades.
-  const entero = String(Math.floor(lectura)).padStart(5, "0").slice(-5).split("");
-  const decima = String(Math.floor((lectura % 1) * 10));
-  const digitos = [...entero, decima];
+  const digitos = digitosDelTotalizador(lectura);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}">
     <rect width="${S}" height="${S}" fill="#6D6A63"/>
     <rect x="0" y="0" width="${S}" height="${S}" fill="#8A857B" fill-opacity="0.35"/>
