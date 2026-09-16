@@ -226,7 +226,23 @@ verdad. El correo es otra necesidad (L-23).
 > **Control C.** Los bancos en verde, falsación hecha, staging visto por David, producción con permiso
 > y lo desplegado verificado. Commit y push con el sí de David.
 >
-> **Estado de la fase 2 (15 sep, noche): construida y verificada en local; sin commit ni despliegue.**
+> **Estado de la fase 2 (16 sep): EN PRODUCCIÓN (`9e4a052`), validada en staging.**
+> - **Staging (15 sep):** relleno 16 → 0 sin `audience`; `onCommunicationCreated` rev. `-00028`
+>   (23:19 UTC); front rollout `-014`; reglas `dbc4d470`, idénticas al repositorio.
+> - **Validación en staging (16 sep), por el navegador y contra la base, en Santa María:** un
+>   comunicado a T1 con adjunto avisó solo a los dos residentes de `u-t1-101`; el aviso de mora a
+>   `u-t2-503`, solo a sus dos residentes; la residente de T2 ve el aviso y el comunicado general
+>   rellenado, y no el de T1 (Comunicaciones e Inicio); el adjunto quedó `comunicado_dirigido`;
+>   subir un documento sin categoría se rechaza. **No visto:** la pantalla de un residente de T1
+>   (no hay contraseña de esas cuentas), y la consola del navegador no capturó mensajes.
+> - **Producción (16 sep):** relleno 26 → 0 (lo corrió David); `onCommunicationCreated` rev.
+>   `-00035` (21:17 UTC); push `444be09..9e4a052`, rollout `2026-09-16-001` sirviendo a las 21:23;
+>   reglas `b654ec99` (21:25), idénticas al repositorio.
+> - **Rareza del relleno:** `PV4jJOwL9lDTPWLbmzuV`, un «Aviso de cartera» de Santa María anterior a
+>   D-1, no guardaba sus unidades y quedó `audience: "all"` — lo ve todo el conjunto, como antes.
+>   Archivarlo espera a David.
+>
+> *Lo que sigue es el estado en local, del 15 sep por la noche:*
 > - **D-2b.** `communications` tiene bloque propio en `firestore.rules`: lectura para la
 >   administración, y para el residente los de `audience: "all"` o los de su unidad. La portería deja
 >   de leerlos (ninguna pantalla lo hacía). `relaxedTenantCollection` queda vacía. `useCommunications`
