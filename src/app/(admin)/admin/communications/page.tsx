@@ -24,6 +24,7 @@ import { communicationSchema, type CommunicationInput } from "@/features/admin/s
 import { AsistenteBorrador } from "@/features/communications/asistente-borrador";
 import { useFeedbackBorrador } from "@/features/communications/use-feedback-borrador";
 import { categoriaDelAdjuntoDeComunicado } from "@/features/communications/adjunto-de-comunicado";
+import { fechaDePublicacion } from "@/features/communications/fecha-de-publicacion";
 import {
   createCommunication,
   createDocumentRecord,
@@ -408,6 +409,16 @@ export default function AdminCommunicationsPage() {
       key: "message",
       header: "Mensaje",
       render: (item) => <span className="text-[var(--slate-700)]">{item.message}</span>,
+    },
+    {
+      // `L-12`: la fecha que pone la plataforma al publicar; el residente ya la veía.
+      key: "publishedAt",
+      header: "Publicado",
+      render: (item) => (
+        <span className="whitespace-nowrap text-[var(--slate-700)]">
+          {fechaDePublicacion(item.publishedAt ?? item.createdAt) ?? "-"}
+        </span>
+      ),
     },
     {
       key: "status",

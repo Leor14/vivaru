@@ -17,8 +17,8 @@
  * mapeo; cualquier otro se asigna a mano en el paso 2. El catálogo de campos
  * destino vive en `src/lib/import/field-catalog.ts`, no aquí.
  *
- * Valores válidos para "tipo" : apartment, house, office, other
- *                               (y alias: apartamento, casa, oficina, otro)
+ * Valores válidos para "tipo" : los de `src/lib/units/tipos.ts` (apartamento, casa, oficina,
+ *                               parqueadero, bodega, otro, y sus alias)
  * Valores válidos para "estado": active, inactive
  *                               (y alias: activo, activa, inactivo, inactiva)
  */
@@ -40,6 +40,12 @@ import {
 
 import { filaEnElArchivo, readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
 import { ALIAS_DE_TIPO, ETIQUETA_DE_TIPO } from "@/lib/units/tipos";
+import {
+  descargarPlantilla,
+  PLANTILLA_DE_UNIDADES,
+  TIPOS_PARA_LA_PLANTILLA,
+  type FormatoDePlantilla,
+} from "@/lib/import/plantillas";
 
 import { registrarImportacionCallable } from "@/lib/firebase/callables";
 
@@ -115,26 +121,9 @@ function getField(raw: Record<string, string>, ...keys: string[]): string {
   return "";
 }
 
-function generateCsvTemplate(): string {
-  const headers = ["nombre", "torre", "tipo", "estado"];
-  const examples = [
-    ["T1-101", "T1", "apartment", "active"],
-    ["T1-102", "T1", "apartment", "active"],
-    ["T2-201", "T2", "house", "active"],
-    ["Local-01", "Local", "office", "active"],
-  ];
-  return [headers, ...examples].map((r) => r.join(",")).join("\r\n");
-}
-
-function downloadTemplate() {
-  const csv = generateCsvTemplate();
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "plantilla_unidades.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+// `L-02`: la plantilla vive en `src/lib/import/plantillas.ts`, en Excel y en CSV.
+function downloadTemplate(formato: FormatoDePlantilla) {
+  descargarPlantilla(PLANTILLA_DE_UNIDADES, "plantilla_unidades", formato);
 }
 
 /**
@@ -488,9 +477,13 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
               <Upload className="mr-2 h-4 w-4" />
               Seleccionar archivo
             </Button>
-            <Button variant="outline" onClick={downloadTemplate}>
+            <Button variant="outline" onClick={() => downloadTemplate("xlsx")}>
               <Download className="mr-2 h-4 w-4" />
-              Descargar plantilla
+              Plantilla en Excel
+            </Button>
+            <Button variant="outline" onClick={() => downloadTemplate("csv")}>
+              <Download className="mr-2 h-4 w-4" />
+              Plantilla en CSV
             </Button>
           </div>
 
@@ -509,8 +502,13 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[var(--slate-700)]">
               <div>
                 <p className="font-medium">Tipo</p>
-                <p className="text-[var(--slate-500)]">apartment · house · office · other</p>
-                <p className="text-[var(--slate-400)]">(o: apartamento · casa · oficina · otro)</p>
+                {/* `L-02`: sale del catálogo de tipos, así que parqueadero y bodega aparecen solos. */}
+                <p className="text-[var(--slate-500)]">
+                  {TIPOS_PARA_LA_PLANTILLA.map((t) => t.etiqueta.toLowerCase()).join(" · ")}
+                </p>
+                <p className="text-[var(--slate-400)]">
+                  (o: {TIPOS_PARA_LA_PLANTILLA.map((t) => t.clave).join(" · ")})
+                </p>
               </div>
               <div>
                 <p className="font-medium">Estado</p>

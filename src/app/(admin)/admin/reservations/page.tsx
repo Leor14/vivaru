@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Modal } from "@/components/shared/modal";
+import { NotaPanelDePorteria } from "@/components/shared/nota-panel-de-porteria";
 import { cn } from "@/lib/utils/cn";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -892,6 +893,7 @@ export default function AdminReservationsPage() {
         <div>
           <CardTitle help="Controla el uso de las amenidades del conjunto: salón comunal, piscina, gimnasio y más. Define horarios, límites mensuales y requisitos de pago para que el acceso sea ordenado y equitativo para todos los residentes.">Reservas de zonas comunes</CardTitle>
           <CardDescription className="mt-1">Aprueba, edita y cancela las reservas de las zonas comunes del conjunto.</CardDescription>
+          <NotaPanelDePorteria queHace="consulta desde allí las reservas de las zonas comunes" />
           {dateChipLabel ? (
             <button
               type="button"

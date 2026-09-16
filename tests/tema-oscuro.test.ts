@@ -240,7 +240,10 @@ describe("PRD-V-FEAT-007 · rellenos claros por debajo de AA, deuda ANTERIOR", (
  * Techo, no comentario: si aparecen mas, enrojece.
  */
 const HEX_SUELTO = /#[0-9a-fA-F]{6}\b/g;
-const TECHO_HEX_JS = 116;
+// Era 116 contando también los de `NO_SON_DEL_TEMA` (19 el 16 sep 2026), así que añadir un color de
+// marca sugerido (`L-01a`, menta y violeta) lo ponía rojo sin tocar el tema. Ahora esos no cuentan y
+// el techo es el de los del tema: 116 − 19 = 97, igual de estricto con lo que vigila.
+const TECHO_HEX_JS = 97;
 
 /** Colores que NO son del tema y no deben migrarse nunca. */
 const NO_SON_DEL_TEMA = [
@@ -253,7 +256,7 @@ const NO_SON_DEL_TEMA = [
 
 describe("PRD-V-FEAT-007 · hexadecimales fuera de las clases, deuda medida", () => {
   it("no crecen", () => {
-    const cuenta = TODOS_TSX.reduce(
+    const cuenta = TODOS_TSX.filter((f) => !NO_SON_DEL_TEMA.some((x) => f.endsWith(x))).reduce(
       (n, f) => n + (readFileSync(f, "utf8").match(HEX_SUELTO)?.length ?? 0),
       0,
     );

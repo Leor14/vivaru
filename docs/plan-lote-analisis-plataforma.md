@@ -290,6 +290,23 @@ verdad. El correo es otra necesidad (L-23).
 Para cada una: typecheck, `npm test` y un vistazo en staging.
 
 > **Control D.** Un commit para el lote, push con el sí de David, staging visto.
+>
+> **Estado de la fase 3 (16 sep): construida y verificada en local.**
+> - **L-01a:** menta `#1f7a5c` (5,25:1 con blanco) y violeta `#6d28d9` (7,10:1).
+> - **L-02:** `src/lib/import/plantillas.ts`. Los dos asistentes ofrecen la plantilla en Excel y en
+>   CSV; la de unidades trae parqueadero y bodega, y «valores válidos» sale del catálogo de tipos.
+>   Residentes enlaza las dos plantillas en Excel sin abrir el asistente.
+> - **L-11:** `NotaPanelDePorteria` en Visitantes, Reservas y Paquetería; el guardián comprueba
+>   también que `/guard` tiene esas tres pantallas.
+> - **L-12:** columna «Publicado» en Comunicaciones (`fechaDePublicacion`; lee `Timestamp` o ISO).
+> - **Tildes:** «Tipo de ocupación» (dos) y «Núcleo familiar».
+> - Pruebas en `tests/lote-xs-analisis-plataforma.test.ts` (16), falsadas en seis variantes.
+> - **Dos guardianes ajenos se movieron, los dos con razón:** `clave-de-unidad-guarda` (la
+>   excepción pasa a la 745 por `publishedAt`) y `tema-oscuro`, que contaba los hexadecimales de
+>   `NO_SON_DEL_TEMA` y se ponía rojo con un color de marca: ahora no los cuenta y el techo es 97
+>   (116 − 19), falsado con un hexadecimal de tema de más.
+> - **El despojador de comentarios de los guardianes confunde `accept="image/*"` con un comentario**
+>   y se come el resto del fichero: la prueba de L-11 lee el texto crudo por eso.
 
 ### Fase 4 · Defectos construibles ya *(~3,7 h)*
 

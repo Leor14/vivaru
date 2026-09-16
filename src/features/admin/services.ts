@@ -152,6 +152,7 @@ export type CommunicationItem = {
   attachments?: CommunicationAttachment[];
   createdBy: string;
   createdAt: string;
+  publishedAt?: unknown; // `Timestamp` al leer (`mapDoc` no lo convierte); ver `fechaDePublicacion`.
   updatedAt: string;
 };
 

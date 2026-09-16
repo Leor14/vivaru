@@ -25,6 +25,10 @@ export const SUGGESTED_BRAND_COLORS = [
   "#8f2a20",
   "#4a4a54",
   "#24314d",
+  // `L-01a` (lote «Análisis de la plataforma»): menta y violeta, oscuros lo bastante para el texto
+  // blanco — `tests/colores-sugeridos-de-marca.test.ts` lo exige a todos.
+  "#1f7a5c",
+  "#6d28d9",
 ] as const;
 
 type PersistedBrandingSnapshot = {

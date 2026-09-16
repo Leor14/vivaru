@@ -30,6 +30,7 @@ import {
 } from "@/lib/import/field-catalog";
 
 import { filaEnElArchivo, readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+import { descargarPlantilla, PLANTILLA_DE_RESIDENTES, type FormatoDePlantilla } from "@/lib/import/plantillas";
 
 import { registrarImportacionCallable } from "@/lib/firebase/callables";
 
@@ -122,20 +123,9 @@ function normName(s: string): string {
   return s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-function downloadTemplate() {
-  const rows = [
-    ["nombre", "email", "telefono", "documento", "unidad", "rol"],
-    ["Ana Pérez", "ana@correo.com", "3001234567", "12345678", "T1-101", "propietario"],
-    ["Luis Gómez", "luis@correo.com", "3009876543", "87654321", "T1-102", "inquilino"],
-  ];
-  const csv = rows.map((r) => r.join(",")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "plantilla_residentes.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+// `L-02`: la plantilla vive en `src/lib/import/plantillas.ts`, en Excel y en CSV.
+function downloadTemplate(formato: FormatoDePlantilla) {
+  descargarPlantilla(PLANTILLA_DE_RESIDENTES, "plantilla_residentes", formato);
 }
 
 /**
@@ -441,7 +431,8 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           {parseError && <p className="rounded-xl border border-[var(--danger-200)] bg-[var(--danger-50)] px-4 py-2 text-sm text-[var(--danger-700)]">{parseError}</p>}
           <div className="flex flex-wrap justify-center gap-2">
             <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar archivo</Button>
-            <Button variant="outline" onClick={downloadTemplate}><Download className="mr-2 h-4 w-4" /> Descargar plantilla</Button>
+            <Button variant="outline" onClick={() => downloadTemplate("xlsx")}><Download className="mr-2 h-4 w-4" /> Plantilla en Excel</Button>
+            <Button variant="outline" onClick={() => downloadTemplate("csv")}><Download className="mr-2 h-4 w-4" /> Plantilla en CSV</Button>
           </div>
           <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleFileChange} />
           {/* Espeja la tarjeta del asistente de unidades: qué hace esto, qué NO

@@ -17,6 +17,7 @@ import { db } from "@/lib/firebase/client";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { UnitBulkImportWizard } from "@/components/features/residents/UnitBulkImportWizard";
 import { ResidentBulkImportWizard } from "@/components/features/residents/ResidentBulkImportWizard";
+import { descargarPlantilla, PLANTILLA_DE_RESIDENTES, PLANTILLA_DE_UNIDADES } from "@/lib/import/plantillas";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { Modal } from "@/components/shared/modal";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -1125,6 +1126,27 @@ export default function AdminResidentsPage() {
             <Button onClick={openCreateUnit}>Crear unidad y titular</Button>
           </div>
         </div>
+        {/* `L-02`: el formato de la carga masiva, a la vista antes de abrir el asistente. */}
+        {importacionMasiva && (
+          <p className="mt-2 text-xs text-[var(--slate-500)]">
+            Formato de la carga masiva, en Excel:{" "}
+            <button
+              type="button"
+              className="font-medium text-[var(--brand-700)] hover:underline"
+              onClick={() => descargarPlantilla(PLANTILLA_DE_UNIDADES, "plantilla_unidades", "xlsx")}
+            >
+              plantilla de unidades
+            </button>{" "}
+            ·{" "}
+            <button
+              type="button"
+              className="font-medium text-[var(--brand-700)] hover:underline"
+              onClick={() => descargarPlantilla(PLANTILLA_DE_RESIDENTES, "plantilla_residentes", "xlsx")}
+            >
+              plantilla de residentes
+            </button>
+          </p>
+        )}
         {sinUnidades && (
           <p className="mt-3 rounded-lg bg-[var(--slate-50)] px-3 py-2 text-sm text-[var(--slate-600)]">
             Empieza por las unidades. Cada persona se vincula a la suya, así que{" "}
@@ -1647,7 +1669,7 @@ export default function AdminResidentsPage() {
                     <Input {...personForm.register("documentNumber")} error={personForm.formState.errors.documentNumber?.message} />
                   </div>
                   <label className="text-sm text-[var(--slate-700)]">
-                    Tipo de ocupacion
+                    Tipo de ocupación
                     <select
                       className={`mt-1 h-10 w-full rounded-xl border bg-[var(--surface-strong)] px-3 text-sm ${
                         personForm.formState.errors.occupancyType
@@ -1675,7 +1697,7 @@ export default function AdminResidentsPage() {
 
               <Card className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="text-base">3. Nucleo familiar (opcional)</CardTitle>
+                  <CardTitle className="text-base">3. Núcleo familiar (opcional)</CardTitle>
                   <Button type="button" variant="outline" size="sm" onClick={addFamilyMember}>Agregar familiar</Button>
                 </div>
                 {familyMembers.length === 0 ? (
@@ -1771,7 +1793,7 @@ export default function AdminResidentsPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
-              Tipo de ocupacion
+              Tipo de ocupación
               <select
                 className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...personForm.register("occupancyType")}

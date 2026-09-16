@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Modal } from "@/components/shared/modal";
+import { NotaPanelDePorteria } from "@/components/shared/nota-panel-de-porteria";
 import { Dialog } from "@/components/ui/dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -418,6 +419,7 @@ export default function AdminVisitorsPage() {
               ? "Modo registro simple: la portería registra las visitas al llegar. Aquí ves los registros operativos."
               : "Autorizaciones puntuales o de larga duración, con categoría y responsable de autorización."}
           </CardDescription>
+          <NotaPanelDePorteria queHace="registra desde allí las visitas que llegan a la puerta" />
         </div>
         {canEdit ? (
           <Button className="w-full sm:w-auto" onClick={openCreate}>

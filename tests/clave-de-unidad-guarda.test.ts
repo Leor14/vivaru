@@ -152,8 +152,9 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
   // Y de la 736 a la 744 el 15 sep 2026: dos líneas de comentario que `D-1` añadió al
   // tipo `audience` de `CommunicationItem` y seis de la categoría `comunicado_dirigido`
   // (`D-2c`). Misma comprobación: la 736 de `a69701e` y la 744 de ahora son idénticas
-  // carácter a carácter.
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:744"]);
+  // carácter a carácter. Y a la 745 el 16 sep, por `publishedAt` en `CommunicationItem`
+  // (`L-12`), comprobada igual contra `b30fa6d`.
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:745"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);

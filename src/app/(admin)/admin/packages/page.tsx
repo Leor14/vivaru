@@ -4,6 +4,7 @@ import { Filter, FilterX, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { NotaPanelDePorteria } from "@/components/shared/nota-panel-de-porteria";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
@@ -150,6 +151,7 @@ export default function AdminPackagesPage() {
       <CardDescription className="mt-1">
         Trazabilidad de paquetes recibidos por la portería. El registro de nuevos paquetes lo realiza el guardia desde su panel.
       </CardDescription>
+      <NotaPanelDePorteria queHace="registra desde allí los paquetes que llegan y su entrega" />
 
       <div className="mt-4">
         <MobileFiltersPanel
