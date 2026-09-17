@@ -89,10 +89,10 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **2087** (15 sep 2026) |
-  | Functions | `npm --prefix functions test` | **1084** (15 sep 2026) |
-  | Reglas | `npm run test:rules:all` | **591** *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
-  | Emulador de functions | `npm --prefix functions run test:emulator` | **379 de 381** *(pide emulador)* |
+  | App | `npm test` | **2144** (17 sep 2026) |
+  | Functions | `npm --prefix functions test` | **1084** (17 sep 2026) |
+  | Reglas | `npm run test:rules:all` | **616** (17 sep 2026) *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
+  | Emulador de functions | `npm --prefix functions run test:emulator` | **379 de 381**, pero es de `ba98abe` y **`functions/src` cambió el 15 sep** (`onCommunicationCreated`, `D-2`): **hay que volver a contarlo** *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
   `payments.emulator.test.ts`. Confirmados **por nombre** el 12 de septiembre de 2026.
@@ -281,6 +281,12 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   única palanca.
 - **Una consulta de `bankAccounts` que no haga un administrador TIENE que filtrar `active == true`.** Desde `FLOW-002` la lectura está abierta **al residente** —no a «los miembros»— y solo para cuentas activas, y Firestore evalúa la consulta contra la regla **sin ejecutarla**: sin ese `where` se rechaza entera aunque todas estuvieran activas. El saldo inicial vive aparte, en `bankAccountBalances`, y ese sí es solo-administrador. **La rama decía `tenantMember` hasta el 24 de agosto de 2026, y eso incluía a la portería y al consejo**: la PRD (§3) le da al `security_guard` «Nada / no puede Acceder», y la regla de `advances` evita `sameTenant` diciendo exactamente eso. Corregido a `tenantRole(..., 'resident')`.
 - **Tenant siempre con `currency` válido** (`COP`|`MXN`|`USD`): cualquier alta/seed de un tenant debe escribir `currency`; los formateadores (`Intl.NumberFormat`, `useTenantCurrency`) deben defaultear a un valor válido y nunca recibir `undefined`.
+  **Y esto es una regla, no una descripción: en producción NO se cumple.** Medido el 17 de septiembre de
+  2026 conjunto por conjunto: **6 de 10 no tienen el campo**, y `useTenantCurrency` cae a **COP**, así que
+  **Privada Las Palmas, que es de México, enseña pesos colombianos**. El script y la pantalla leen el
+  mismo campo (`tenants/{id}.currency`), así que la falta es del dato y no de la medición. Santa María ya
+  lo tiene (`COP`, con `country: CO`, desde la consola de superadmin). Los otros cinco esperan decisión de
+  David — está en el menú de `docs/pendientes.md`.
 - **TAILWIND 4 ESCANEA TODO FICHERO DE TEXTO DEL PROYECTO**, no solo los `.tsx`. Un JSON, un CSV o
   un `.mjs` que contenga algo con pinta de clase la genera en el bundle. Costó descubrir por qué
   la utilidad de radio **sin sufijo** seguía emitiéndose después de migrar los 90 usos: la mantenían dos
