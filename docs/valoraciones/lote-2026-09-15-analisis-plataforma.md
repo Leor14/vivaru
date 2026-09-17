@@ -60,7 +60,7 @@ Se reproducen en el emulador, sin escribir datos (fase 1 del plan, `docs/plan-lo
 
 | Id | Necesidad | Qué hay que decidir | IA | Horas | Punt. | Cuadrante |
 |---|---|---|---|---|---|---|
-| **L-04** | «Porcentaje de copropiedad» en vez de «coeficiente»: **Santa María no tiene país** (medido) | Poner `country: CO` (punto 4 del menú, permiso uno a uno) | 3,05 | ~0,5 | **6,1** | Relleno |
+| **L-04** | «Coeficiente de la unidad» en vez de «porcentaje de copropiedad» —así lo pide en la pág. 2, y esta ficha lo decía AL REVÉS hasta el 17 sep—: **Santa María no tenía país** (medido; sin país la pantalla dice «porcentaje de copropiedad» y con `CO` dice «coeficiente de copropiedad») | Poner `country: CO` (punto 4 del menú, permiso uno a uno) | 3,05 | ~0,5 | **6,1** | Relleno |
 | **L-17** | Encuestas: un nombre más cercano. **El editor de formularios ya existe** | El nombre (con él, XS) | 2,2 | 0,5 | 4,4 | Relleno |
 | **L-08b** | El residente crea su propio visitante frecuente | Si puede hacerlo él solo | 5,85 (con L-08a) | 1,5 | 3,9 | **Ganancia rápida** |
 | **L-18** | **El reglamento pide firmas que en propiedad horizontal nadie da.** El modo sin firmas (`governance: informativo`) ya existe, pero el reglamento no lo consulta, y el panel avisa en rojo de «17 firmas pendientes» | El valor por defecto por país; qué pasa con la firma de acuerdos | 3,25 | 1,1 | 2,95 | Relleno |

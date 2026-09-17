@@ -401,6 +401,27 @@ formateadores? Si faltan de verdad, es la trampa de `CLAUDE.md` y va antes que T
 **T5.2 · L-27: encender el presupuesto en Santa María** (`mover-bandera-de-conjunto.mjs`).
 - **Criterio:** `/admin/finanzas/presupuesto` abre en Santa María.
 
+> **Estado de la fase 5 (17 sep): los dos cambios de dato HECHOS en producción, por el producto y no
+> por script; falta verlos en pantalla.**
+> - **T5.0 confirmado, y con un hallazgo.** El script y el formateador leen el mismo campo
+>   (`tenants/{id}.currency`), así que la falta es real: **6 de 10 conjuntos sin moneda**. Y el
+>   formateador **cae a COP** cuando falta, así que **Privada Las Palmas, que es de México, muestra
+>   pesos colombianos**. Es dato, no código, y no se tocó: espera decisión de David.
+> - **T5.1 hecho** desde la consola de superadmin (el diálogo avisa: «fija la moneda (COP) y la
+>   tarifa»). Medido después: Santa María tiene `country: CO` y `currency: COP`. Radio medido antes:
+>   22 reservas, **1 futura**; el país decide además la zona de las reservas
+>   (`zona-del-conjunto.ts`: `CO` → Bogotá, por defecto Ciudad de México).
+> - **T5.2 hecho** desde la consola (`Banderas` → override del conjunto). Verificado **resolviendo**
+>   con `functions/lib/feature-flags.js`: `producto-presupuesto-anual` es `true` en Santa María y
+>   sigue `false` en El Nogal.
+> - **La ficha de L-04 estaba al revés** —decía «porcentaje de copropiedad en vez de coeficiente»— y
+>   se corrigió: la pág. 2 del documento pide lo contrario. Sin país la pantalla dice «porcentaje de
+>   copropiedad»; con `CO`, «coeficiente de copropiedad».
+> - **Visto en pantalla en producción (17 sep), con la administración de Santa María:** el alta de
+>   unidad dice **«Coeficiente de copropiedad (%)»** y **Presupuesto abre** —2026 en curso, con lo
+>   ejecutado por cuenta y «aún no hay presupuesto para 2026», que es lo correcto: la bandera abre la
+>   pantalla, no inventa datos—. **Con esto la fase 5 queda cerrada.**
+
 ---
 
 ## 5. Riesgos
