@@ -291,7 +291,17 @@ Para cada una: typecheck, `npm test` y un vistazo en staging.
 
 > **Control D.** Un commit para el lote, push con el sí de David, staging visto.
 >
-> **Estado de la fase 3 (16 sep): construida y verificada en local.**
+> **Estado de la fase 3 (16–17 sep): en staging (`5aac90f`, rollout `2026-09-16-002`) y vista por el
+> navegador** —colores en Ajustes, plantillas y «valores válidos» en Residentes y en el asistente,
+> la nota de portería en las tres pantallas, la columna «Publicado»—. Sin producción.
+> - **Añadido por David (17 sep): los estados en inglés de las insignias.** Al archivar el aviso de
+>   mora antiguo en producción salió «Archived», y en staging «Scheduled». `StatusBadge` caía a la
+>   clave cruda cuando no tenía tono propio, aunque `statusMapper` la traduce; ahora toma esa
+>   traducción. Guardián: ninguna clave traducida sale cruda en una insignia. Sin commit aún.
+> - **Hecho en producción (16 sep, con permiso):** el aviso de mora antiguo de Santa María
+>   (`PV4jJOwL9lDTPWLbmzuV`) archivado desde la pantalla; `status: "archived"` medido en la base.
+>
+> *Lo construido en local:*
 > - **L-01a:** menta `#1f7a5c` (5,25:1 con blanco) y violeta `#6d28d9` (7,10:1).
 > - **L-02:** `src/lib/import/plantillas.ts`. Los dos asistentes ofrecen la plantilla en Excel y en
 >   CSV; la de unidades trae parqueadero y bodega, y «valores válidos» sale del catálogo de tipos.

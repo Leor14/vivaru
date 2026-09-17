@@ -18,6 +18,8 @@ import {
   TIPOS_PARA_LA_PLANTILLA,
 } from "@/lib/import/plantillas";
 import { ALIAS_DE_TIPO, TIPOS_DE_UNIDAD } from "@/lib/units/tipos";
+import { resolveStatusTone } from "@/components/ui/StatusBadge";
+import { getStatusLabel } from "@/utils/statusMapper";
 
 /**
  * **Fase 3 del lote «Análisis de la plataforma» — la puerta XS** (`docs/plan-lote-analisis-plataforma.md`).
@@ -136,6 +138,31 @@ describe("L-12 · la fecha de publicación, a la vista del administrador", () =>
     const c = codigo("src/app/(admin)/admin/communications/page.tsx");
     expect(c).toMatch(/header: "Publicado"/);
     expect(c).toMatch(/fechaDePublicacion\(item\.publishedAt \?\? item\.createdAt\)/);
+  });
+});
+
+describe("estados en inglés en las insignias («Archived», «Scheduled»)", () => {
+  it("un estado sin tono propio toma la traducción del catálogo", () => {
+    expect(resolveStatusTone("archived").label).toBe("Archivado");
+    expect(resolveStatusTone("scheduled").label).toBe("Programado");
+  });
+
+  it("guardián: ninguna clave traducida en `statusMapper` sale cruda en una insignia", () => {
+    const mapper = leer("src/utils/statusMapper.ts");
+    const bloque = mapper.slice(mapper.indexOf("const STATUS_LABELS"), mapper.indexOf("export function getStatusLabel"));
+    const claves = [...bloque.matchAll(/^\s*"?([a-z_ áéíóú]+)"?:\s*"/gm)].map((m) => m[1]);
+    expect(claves.length).toBeGreaterThan(20);
+    for (const clave of claves) {
+      // Si la insignia enseña la clave cruda, es solo porque la traducción dice lo mismo.
+      const cruda = clave.replace(/[_-]+/g, " ").toLowerCase();
+      if (resolveStatusTone(clave).label.toLowerCase() === cruda) {
+        expect(getStatusLabel(clave).toLowerCase(), clave).toBe(cruda);
+      }
+    }
+  });
+
+  it("lo que nadie conoce se sigue enseñando tal cual, con mayúscula", () => {
+    expect(resolveStatusTone("en_revision_externa").label).toBe("En revision externa");
   });
 });
 

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils/cn";
+import { getStatusLabel } from "@/utils/statusMapper";
 
 export type StatusBadgeContext =
   | "unit"
@@ -95,7 +96,11 @@ function capitalize(value: string): string {
 export function resolveStatusTone(status: string): StatusTone {
   const key = (status ?? "").trim().toLowerCase();
   if (key && STATUS_TONES[key]) return STATUS_TONES[key];
-  return { ...FALLBACK, label: capitalize(status) };
+  // Sin tono propio, la etiqueta la pone el catálogo de `statusMapper`: hasta el 16 sep 2026 caía a la
+  // clave cruda con mayúscula, y un comunicado salía «Archived» o «Scheduled» teniendo su traducción
+  // escrita allí. Solo lo que ninguno de los dos conoce se enseña tal cual.
+  const traducida = getStatusLabel(status);
+  return { ...FALLBACK, label: traducida !== status ? traducida : capitalize(status) };
 }
 
 /**
