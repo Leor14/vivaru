@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.79 |
-| **Fecha** | 15 de septiembre de 2026, noche |
-| **Estado** | **Hay un modelo para priorizar, calibrado contra nuestra historia, y el primer lote valorado con él.** El 15 sep, a petición de David: `docs/modelo-de-priorizacion.md` (v0.3; la v0.1 inflaba el esfuerzo hasta 8,6 veces y la tercera calibración pasa: seis de seis dentro del 50 %, ρ ≈ 0,94) y la skill `valorar-iniciativa-vivaru`, en el repositorio, con diez casos de prueba. **El primer lote es el análisis de una administradora colombiana** sobre la demo de Santa María: 32 necesidades, con su apartado propio arriba («Lote "Análisis de la plataforma"»). La mitad de lo que pide ya existe y no se ve, y los defectos pesan más que las mejoras. **Al planificarlo apareció `D-2b`**: cualquier residente puede leer un comunicado dirigido a otras unidades (regla comodín `sameTenant`; la audiencia solo se filtra en el navegador). David lo declaró **obligatorio**. El plan (`docs/plan-lote-analisis-plataforma.md`) está aprobado y va por fases. **La fase 0 está hecha**: modelo v0.4 (la confianza por criterio) y el lote recalculado, con seis Ganancias rápidas. Espera el control de David. Después, reproducir en el emulador `D-1`, `D-2`, `D-2b`, `D-3` y `L-08a`. **Nada del producto cambió en esta revisión.** Lomas sigue sembrada en producción; falta el cabo de T3.5 y decidir las rarezas H.21–H.50 (salvo H.31 y H.37). El menú de `docs/pendientes.md` se pone al día al cerrar la sesión; los remotos, con `git ls-remote` |
-| **Verificado contra** | **Los servicios, a las 22:25 UTC del 15.** `develop` en `92286f3` antes de esta revisión y `master` en `444be09`. Producción sirve `build-2026-09-15-006` (desde `444be09`) y staging `build-2026-09-15-010` (desde `92286f3`): la app es la de `bb238da` y detrás solo vienen notas y la skill. Rulesets `dbc6cdf1` y `b3fb7c8a`, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`, medidos de nuevo el 15 por la tarde. Sin despliegues de functions ni de reglas desde el 12. **Esta revisión es solo documentos.** Los hallazgos de código (`D-1`, `D-2`, `D-2b`, `D-3`, `L-08a`, `L-21d`, `L-29`) están leídos con fichero y línea, **no reproducidos**. Bancos sin cambios de código: `npm test` **2087** y functions **1084**, contados el 15; reglas **591** y emulador de functions **379 de 381**, contados en `ba98abe` |
+| **Versión** | 0.9.80 |
+| **Fecha** | 17 de septiembre de 2026, noche |
+| **Estado** | **El lote «Análisis de la plataforma» está ENTERO EN PRODUCCIÓN, y es el primer frente que sale del modelo de priorización.** Las cinco fases, verificadas en pantalla los días 15–17 de septiembre: **los cuatro defectos obligatorios más `D-2c`** —la audiencia de un comunicado se respeta ahora en la regla del servidor, el aviso llega solo a su audiencia, el aviso de mora de Cartera va a las unidades elegidas, la categoría de un documento es obligatoria, y el adjunto de un comunicado dirigido dejó de colarse por Documentos—; **el lote XS** (colores, plantillas de carga masiva en Excel, «la portería tiene su propio panel», la fecha de publicación, tildes y los estados que salían en inglés); **los tres defectos construibles** (`L-21d` el nombre de la unidad en PQRS, `L-08a` la salida del visitante frecuente, `L-29` qué guarda abrió la puerta); y **los dos cambios de dato** de Santa María (`country: CO`, `currency: COP` y el presupuesto encendido). **De las 36 necesidades del análisis, 9 están resueltas y 27 esperan**: 10 se pueden construir ya, 12 esperan una decisión de producto —el freno que más pesa—, 2 esperan dato o permiso y 2 a un tercero. **Lo que enseñó la jornada**: un campo puede escribirse bien y no llegar a la pantalla —`normalizeVisitorPass` arma el pase campo por campo y el autor de la puerta se quedaba fuera—, y «SUCCEEDED» no es «sirviendo». El menú vivo, en `docs/pendientes.md` |
+| **Verificado contra** | **Los servicios, a las 23:37 UTC del 17.** `master` en `4fc35ca` (la app del lote) y `develop` en `b3c2abd` (notas). Producción sirve `build-2026-09-17-002` desde `4fc35ca`; staging, `build-2026-09-17-004` desde `7adfb66`. Rulesets **`c8189e65`** en producción y **`d246465c`** en staging, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. De functions se desplegó **solo `onCommunicationCreated`** (revisiones `-00035` y `-00028`, las dos `ACTIVE`). Datos medidos el 17, no citados: **0 de 42 comunicados sin audiencia** en cada ambiente; **6 de 54 tickets** de PQRS con la unidad como id crudo antes del arreglo, y **309 ingresos y 301 salidas** de portería sin autor; **6 de 10 conjuntos sin `currency`**, con el formateador cayendo a COP. Bancos contados el 17: `npm test` **2144**, functions **1084**, reglas **616** (sin Storage); el del emulador de functions **está por contar** desde `ba98abe`, porque `functions/src` cambió en la fase 2 |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -142,7 +142,7 @@ de entrega.**
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
 | **Bloques de Habitanto** | 🟢 **LO CONSTRUIBLE, HECHO** (10 sep; el lote, once de once el 12 con `FIX-001` entera) — `FLOW-007` entregas 1 y 2 y `FLOW-008` encendidas en los diez por el valor global (medido el 12 sep); **`FEAT-008`** (§3.5, la foto del medidor, tres entregas) y **`FEAT-009`** (§3.8, presupuesto contra ejecución, dos entregas) en producción, **encendidas solo en las dos demos, Las Playas y Lomas** (medido el 15 sep) | **Encender** `FEAT-008` o `FEAT-009` donde haya quien mida consumos o cargue un presupuesto: es decisión, no código | 🔴 **`FLOW-006` y la entrega 3 de `FLOW-007` BLOQUEADAS por el abogado** · ◇ Fase 2 de `FEAT-009` (reformado, consejo en la app, línea en el informe) *(aquí iba `FIX-001` entrega 2, «van 10 de 11»: en producción el 12 sep)* | ◇ Quedan **32 P1, 38 P2 y 12 P3** sin ficha de los 108 candidatos (recontados el 15 sep) |
-| **Análisis de la plataforma** (lote del 15 sep; apartado propio, abajo) | 🔴 **Obligatorio, por reproducir: `D-2b`** (cualquier residente lee un comunicado dirigido a otras unidades), **`D-2`** (su aviso llega a todos) y **`D-3`** (la categoría por defecto de Documentos la leen los residentes) · 🟢 **Se puede ya:** `L-21d`, `L-08a` y `L-29` (defectos), el lote XS, y `L-27` y `L-04` con permiso | 🟡 **Decisiones de David que valen la pena:** `L-17`, `L-08b`, `L-18`, `L-03`, `L-06`, `L-32`, y las Ganancias rápidas `L-19` y `L-10` | 🔵 `L-15`, `L-09`, `L-14` y `L-16` | ◇ No ahora: `L-26`, `L-30`, `L-25`, `L-28`, `L-05` y `L-01b` · ⏸ Terceros: `L-31` y `L-32b` |
+| **Análisis de la plataforma** (lote del 15 sep; apartado propio, abajo) | 🟢 **CERRADO lo obligatorio y lo construible del turno:** `D-2b`, `D-2`, `D-1`, `D-3`, `D-2c`, el lote XS, `L-21d`, `L-08a`, `L-29`, `L-04` y `L-27`, todos en producción y vistos en pantalla · 🟢 **Se puede ya, sin planificar:** `L-22`, `L-23`, `L-24`, `L-07`, `L-20`, `L-21` y `L-13` | 🟡 **Doce decisiones de David**, y la más barata es `L-17` (el nombre de Encuestas) | 🔵 Seis «no ahora»: `L-26`, `L-30`, `L-25`, `L-28`, `L-05` y `L-01b` | ⏸ Terceros: `L-31` y `L-32b` |
 | **Experiencia y diseño** | ✅ **BLOQUE CERRADO** — `UX-001`, `UX-003`, `UX-004` y **`UX-006` MODO OSCURO en producción, ENCENDIDO EN TODOS LOS CONJUNTOS y PRODUCTIVO** (encendido el 3 sep, hoy en los diez; Productiva el 12; `PRD-V-FEAT-007`, por el valor global y sin overrides). Era el **paso previo acordado antes de volver a los bloques de Habitanto**, y ya está hecho | ✅ **`FEAT-007` PRODUCTIVA el 12 sep**: el destello y la impresión, mirados en staging; los PDF y el QR, por construcción *(aquí iban «cuatro criterios para marcarla Productiva»)* · 🟡 Repasar los criterios de `UX-004` contra producción | 🟠 **`UX-005`** (tableros configurables) — **DESBLOQUEADA**: su decisión pendiente era «por usuario o por conjunto» y `FEAT-007` la resolvió, **por usuario** · ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ Deuda de contraste anterior: `--slate-400` (2,83:1, 78 usos) y dos botones con etiqueta blanca (3,65 y 3,61). Medida, con suelo en las pruebas, y **arreglarla se ve en claro**: decisión de David |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
@@ -201,10 +201,15 @@ fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 des
 ## Lote «Análisis de la plataforma» — qué vale la pena, qué se puede y qué está frenado (15 sep 2026)
 
 **De dónde sale.** Una **administradora de propiedad horizontal en Colombia** recorrió el portal de
-administración del conjunto demo Santa María el 13 sep y lo comentó módulo por módulo. Salieron 32
-necesidades. Se valoraron el 15 sep con el **modelo de priorización** (`docs/modelo-de-priorizacion.md`,
-v0.3) y la skill `valorar-iniciativa-vivaru`: seis agentes leyeron el código, uno por bloque de módulos.
+administración del conjunto demo Santa María el 13 sep y lo comentó módulo por módulo. Salieron **36
+necesidades** —eran 32 antes de que cuatro se partieran en dos al valorarlas—. Se valoraron el 15 sep con
+el **modelo de priorización** (`docs/modelo-de-priorizacion.md`, v0.4) y la skill `valorar-iniciativa-vivaru`: seis agentes leyeron el código, uno por bloque de módulos.
 David decidió que ella **cuenta como prospecto**.
+
+**ESTADO AL 17 DE SEPTIEMBRE: las cinco fases del plan están en producción y verificadas en pantalla.**
+Resueltas: los cuatro defectos obligatorios, `D-2c`, el lote XS con los estados en inglés, `L-21d`,
+`L-08a`, `L-29`, `L-04` y `L-27`. Lo que queda son siete del grupo A sin planificar, doce decisiones de
+David, seis descartadas por ahora y dos que esperan a un tercero.
 
 **Dónde está el detalle.**
 - Las 31 fichas puntuadas: `docs/valoraciones/lote-2026-09-15-analisis-plataforma.md`.
@@ -1342,6 +1347,29 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.80 — 17 de septiembre de 2026 (noche) — el lote «Análisis de la plataforma», entero en producción
+
+- **Qué entró.** Las cinco fases del plan, en este orden y con su control: los obligatorios (`9e4a052`),
+  el lote XS (`5aac90f` y `4948fd9`), los tres defectos construibles (`eda51ad` y `4fc35ca`) y los dos
+  cambios de dato de Santa María, hechos desde la consola de superadmin.
+- **Lo que cambia para quien usa la plataforma.** Un residente ya no puede leer un comunicado dirigido a
+  otra unidad ni su adjunto; el aviso de mora va solo a las unidades elegidas; la categoría de un documento
+  es obligatoria; la carga masiva se entiende sin abrir el asistente y trae Excel, parqueadero y bodega;
+  PQRS enseña nombres en vez de identificadores; la portería puede registrar la salida de un visitante
+  frecuente y queda escrito qué guarda abrió la puerta; y Santa María habla de «coeficiente» con su
+  presupuesto encendido.
+- **Orden de despliegue que se usó, y por qué.** Relleno de audiencia → functions → front → regla en la
+  fase 2, porque el front nuevo filtra por audiencia y la regla restringe; y front → regla en la fase 4,
+  porque `L-29` exige el autor de la puerta.
+- **Dos hallazgos de método.** `normalizeVisitorPass` arma el pase campo por campo, así que el autor se
+  escribía y **no llegaba a la pantalla**: los guardianes vigilaban la pantalla y la regla, no el camino
+  del dato. Y «SUCCEEDED» no es «sirviendo»: la primera comprobación en staging midió el build viejo.
+- **Datos medidos, no citados.** 0 de 42 comunicados sin audiencia por ambiente; 6 de 54 tickets con la
+  unidad cruda; 309 ingresos y 301 salidas sin autor; 6 de 10 conjuntos sin moneda, con el formateador
+  cayendo a COP — por eso Privada Las Palmas, que es de México, muestra pesos colombianos.
+- **Y una corrección a la valoración:** la ficha de `L-04` decía «porcentaje de copropiedad en vez de
+  coeficiente», y el documento pide lo contrario. Corregida.
 
 ### 0.9.79 — 15 de septiembre de 2026 (noche) — el lote, recalculado con la v0.4 del modelo
 
