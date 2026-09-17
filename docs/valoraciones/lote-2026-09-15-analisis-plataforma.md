@@ -23,9 +23,48 @@
 
 ---
 
+## 0. Estado al 17 de septiembre de 2026 — qué está construido y qué sigue
+
+**Las cinco fases del plan (`docs/plan-lote-analisis-plataforma.md`) están EN PRODUCCIÓN y vistas en
+pantalla.** Esta sección se reescribe; las puntuaciones y las fichas de abajo son del 15 sep y no se
+tocan — son el registro de cómo se decidió.
+
+| Grupo | Cuántas | Estado |
+|---|---|---|
+| Obligatorio (§1.1) | 4 + 1 | **Resueltos**: `D-2b`, `D-2`, `D-3`, `D-1` (iba dentro de `L-23`) y `D-2c`, que apareció construyendo |
+| Freno A (§1.2) | 11 | **4 resueltos** (`L-27`, `L-08a`, `L-21d`, `L-29`) · **7 sin planificar** |
+| Decisión de David (§1.3) | 13 | **1 resuelta** (`L-04`) · **12 esperan** |
+| No ahora (§1.3, las seis últimas) | 6 | Descartadas por ahora; cada ficha dice qué prueba las subiría |
+| Terceros (§1.4) | 2 | `L-31` y `L-32b`, sin cambios |
+| Puerta XS (§1.5) | 4 + tildes | **Todas hechas**; `L-17` sigue esperando el nombre |
+
+**De las 36 necesidades del documento, 9 están resueltas** —`L-01a`, `L-02`, `L-11`, `L-12`, `L-04`,
+`L-27`, `L-08a`, `L-21d` y `L-29`, más las tildes— y **27 siguen**. Fuera de la lista se arreglaron los
+cinco defectos de acceso y **los estados que salían en inglés** en las insignias, que David sumó al ver
+«Archived» al archivar un comunicado.
+
+**Lo que sigue, por qué lo frena:**
+- **Construible ya, sin planificar (7):** `L-22`, `L-23` —su parte de defecto, `D-1`, ya está—, `L-24`,
+  `L-07`, `L-20`, `L-21` y `L-13`.
+- **Espera una decisión (12):** `L-17` (el más barato: media hora en cuanto haya nombre), `L-08b`,
+  `L-18`, `L-03`, `L-06`, `L-32`, `L-15`, `L-09`, `L-19`, `L-14`, `L-10` y `L-16`.
+- **Descartadas por ahora (6):** `L-26`, `L-30`, `L-25`, `L-28`, `L-05` y `L-01b`.
+- **Terceros (2):** `L-31` (la ficha de Google de cada edificio) y `L-32b` (el chatbot, que se parte antes
+  de valorarlo).
+
+**Y lo que quedó fuera del lote y no se ha tocado:** los nueve defectos de §4 —entre ellos que **6 de 10
+conjuntos de producción no tienen moneda**, y por eso Privada Las Palmas, que es de México, enseña pesos
+colombianos—, las seis peticiones suyas que nunca tuvieron ficha (los documentos informativos visibles a
+todos, el tiempo estimado de respuesta en PQRS, los colores de los formularios, la app como único canal de
+reservas, los dos «no me queda claro este módulo» y el terracota, que ya estaba) y la fila que sugirió el
+propio análisis: el coeficiente y la cuota en la carga masiva (~1,7 h, sin valorar).
+
 ## 1. El lote ordenado (reglas de §7.3 del modelo; puntuaciones de la v0.4)
 
 Horas de trabajo activo; las esperas (§6.5), aparte. IA = impacto ajustado. Umbral de impacto: 4.
+
+**Las marcas dicen el estado al 17 sep** (ver §0): ✅ resuelta y en producción · ◐ resuelta a medias · sin
+marca, pendiente. **Las puntuaciones no se recalculan al resolver una**: son el registro del 15 sep.
 
 ### 1.1 Lo obligatorio — reproducir y arreglar antes de nada
 
@@ -34,25 +73,28 @@ David (acceso indebido entre unidades, §2.1 de la v0.4). `D-3` lo será si su r
 
 | Id | Qué | Dónde |
 |---|---|---|
-| **D-2b** | **Cualquier residente del conjunto puede leer un comunicado dirigido a otras unidades.** `communications` cae en la regla comodín (`sameTenant`) y la audiencia solo se filtra en el navegador | `firestore.rules` ~l.553; `src/app/(resident)/resident/communications/page.tsx:86` |
-| **D-2** | **El aviso de un comunicado dirigido llega a todos los residentes**: `onCommunicationCreated` no lee `audienceUnitIds` | `functions/src/index.ts:3156` |
-| **D-3** | **La categoría por defecto al subir un documento es «otro», y los residentes la leen** (está en su lista blanca) | `src/app/(admin)/admin/documents/page.tsx:73`; `firestore.rules:1325` |
+| ✅ **D-2b** | **Cualquier residente del conjunto puede leer un comunicado dirigido a otras unidades.** `communications` cae en la regla comodín (`sameTenant`) y la audiencia solo se filtra en el navegador | `firestore.rules` ~l.553; `src/app/(resident)/resident/communications/page.tsx:86` |
+| ✅ **D-2** | **El aviso de un comunicado dirigido llega a todos los residentes**: `onCommunicationCreated` no lee `audienceUnitIds` | `functions/src/index.ts:3156` |
+| ✅ **D-3** | **La categoría por defecto al subir un documento es «otro», y los residentes la leen** (está en su lista blanca) | `src/app/(admin)/admin/documents/page.tsx:73`; `firestore.rules:1325` |
 
-Se reproducen en el emulador, sin escribir datos (fase 1 del plan, `docs/plan-lote-analisis-plataforma.md`).
+**Los tres están RESUELTOS y en producción** (fase 2, `9e4a052`), junto con **`D-1`** —el aviso de mora de
+Cartera, que iba dentro de `L-23`— y **`D-2c`**, que apareció construyendo: el adjunto de un comunicado
+dirigido se registraba en Documentos con una categoría que lee cualquier residente. Se reprodujeron primero
+en el emulador, sin escribir datos (fase 1 del plan).
 
 ### 1.2 Se puede ya (freno A), por puntuación
 
 | Id | Necesidad | IA | Horas | Puntuación | Cuadrante | Esperas |
 |---|---|---|---|---|---|---|
-| **L-27** | Presupuesto del año, privado del administrador: **ya existe y ya es privado**; en Santa María está apagado | 3,75 | 0,45 | **8,3** | Relleno | Encender la bandera en producción |
-| **L-08a** | **Defecto: la portería no puede registrar la salida de un visitante frecuente** (la regla niega `inside→scheduled`, sin test). Desbloquea L-10 | con L-08: 5,85 | ~0,8 | — | **Ganancia rápida** | Permiso de reglas, sesión de portería |
+| ✅ **L-27** | Presupuesto del año, privado del administrador: **ya existe y ya es privado**; en Santa María está apagado | 3,75 | 0,45 | **8,3** | Relleno | Encender la bandera en producción |
+| ✅ **L-08a** | **Defecto: la portería no puede registrar la salida de un visitante frecuente** (la regla niega `inside→scheduled`, sin test). Desbloquea L-10 | con L-08: 5,85 | ~0,8 | — | **Ganancia rápida** | Permiso de reglas, sesión de portería |
 | **L-22** | Subir el informe del contador sobre la cartera, forzando la categoría `financiero` | 3,1 | 0,85 | 3,65 | Relleno | Permiso |
-| **L-21d** | **Defecto: PQRS enseña la unidad como un id crudo** («torre1-G1bW…») y al residente como «Residente» | 4,0 | 1,1 | 3,6 | **Ganancia rápida** | Push; corregir los datos es opcional y con permiso |
-| **L-23** | Correo de cobro a los deudores. Incluye **el defecto D-1**: «Enviar aviso a residentes» dice «tienes cartera en mora» **a todos**, también a los que están al día (`billing/page.tsx:1255`) | 4,35 | 1,4 | 3,1 | **Ganancia rápida** | CLI de firebase, functions, correo real |
+| ✅ **L-21d** | **Defecto: PQRS enseña la unidad como un id crudo** («torre1-G1bW…») y al residente como «Residente» | 4,0 | 1,1 | 3,6 | **Ganancia rápida** | Push; corregir los datos es opcional y con permiso |
+| ◐ **L-23** | Correo de cobro a los deudores. **Su defecto `D-1` ya está resuelto**; el correo, no. Incluye **el defecto D-1**: «Enviar aviso a residentes» dice «tienes cartera en mora» **a todos**, también a los que están al día (`billing/page.tsx:1255`) | 4,35 | 1,4 | 3,1 | **Ganancia rápida** | CLI de firebase, functions, correo real |
 | **L-24** | Tendencia de cartera mensual y acumulada del año | 2,75 | 0,9 | 3,1 | Relleno | Push |
 | **L-07** | Ver las unidades de un mismo dueño | 2,85 | 1,0 | 2,85 | Relleno | Push |
 | **L-20** | Paquetería: qué empresa lo trajo, en qué estado llegó, la entrega a la vista y el protocolo | 3,1 | 1,2 | 2,6 | Relleno | Push, portería |
-| **L-29** | Saber qué guarda hizo cada gestión: la entrada y salida por QR no guardan autor (**309 ingresos sin autor** en producción) | 4,15 | 1,8 | 2,3 | **Ganancia rápida** | Reglas (amplía), portería |
+| ✅ **L-29** | Saber qué guarda hizo cada gestión: la entrada y salida por QR no guardan autor (**309 ingresos sin autor** en producción) | 4,15 | 1,8 | 2,3 | **Ganancia rápida** | Reglas (amplía), portería |
 | **L-21** | PQRS: adjuntar evidencia de la solución y exportar el detalle a Excel | 3,75 | 1,8 | 2,1 | Relleno | `storage.rules`, residente |
 | **L-13** | Cuántas personas vieron un comunicado | 2,35 | 1,5 | 1,6 | Relleno | Reglas, push |
 
@@ -60,7 +102,7 @@ Se reproducen en el emulador, sin escribir datos (fase 1 del plan, `docs/plan-lo
 
 | Id | Necesidad | Qué hay que decidir | IA | Horas | Punt. | Cuadrante |
 |---|---|---|---|---|---|---|
-| **L-04** | «Coeficiente de la unidad» en vez de «porcentaje de copropiedad» —así lo pide en la pág. 2, y esta ficha lo decía AL REVÉS hasta el 17 sep—: **Santa María no tenía país** (medido; sin país la pantalla dice «porcentaje de copropiedad» y con `CO` dice «coeficiente de copropiedad») | Poner `country: CO` (punto 4 del menú, permiso uno a uno) | 3,05 | ~0,5 | **6,1** | Relleno |
+| ✅ **L-04** | «Coeficiente de la unidad» en vez de «porcentaje de copropiedad» —así lo pide en la pág. 2, y esta ficha lo decía AL REVÉS hasta el 17 sep—: **Santa María no tenía país** (medido; sin país la pantalla dice «porcentaje de copropiedad» y con `CO` dice «coeficiente de copropiedad») | Poner `country: CO` (punto 4 del menú, permiso uno a uno) | 3,05 | ~0,5 | **6,1** | Relleno |
 | **L-17** | Encuestas: un nombre más cercano. **El editor de formularios ya existe** | El nombre (con él, XS) | 2,2 | 0,5 | 4,4 | Relleno |
 | **L-08b** | El residente crea su propio visitante frecuente | Si puede hacerlo él solo | 5,85 (con L-08a) | 1,5 | 3,9 | **Ganancia rápida** |
 | **L-18** | **El reglamento pide firmas que en propiedad horizontal nadie da.** El modo sin firmas (`governance: informativo`) ya existe, pero el reglamento no lo consulta, y el panel avisa en rojo de «17 firmas pendientes» | El valor por defecto por país; qué pasa con la firma de acuerdos | 3,25 | 1,1 | 2,95 | Relleno |
@@ -92,15 +134,15 @@ subiría: por ejemplo, L-30 pasaría a Ganancia rápida si ella dice que la minu
 
 ### 1.5 Puerta XS: sin puntuar, se hacen juntas (menos de 2 horas en total)
 
-- **L-01a:** añadir menta y violeta a los colores sugeridos del conjunto.
-- **L-02:** enseñar el formato de la carga masiva fuera del asistente, en Excel y no solo en CSV, con
+- ✅ **L-01a:** añadir menta y violeta a los colores sugeridos del conjunto.
+- ✅ **L-02:** enseñar el formato de la carga masiva fuera del asistente, en Excel y no solo en CSV, con
   parqueadero y bodega en «valores válidos».
-- **L-11:** decir en Visitantes, Reservas y Paquetería que **la portería tiene su propio panel**. Los «dos
+- ✅ **L-11:** decir en Visitantes, Reservas y Paquetería que **la portería tiene su propio panel**. Los «dos
   perfiles» que ella pidió ya existen: es la clase «existe y no se ve» de la v0.4.
-- **L-12:** enseñarle al administrador la fecha de publicación que pone la plataforma. El residente ya la
+- ✅ **L-12:** enseñarle al administrador la fecha de publicación que pone la plataforma. El residente ya la
   ve.
-- Tildes: «Tipo de ocupación» y «Núcleo familiar».
-- **L-17**, en cuanto David decida el nombre.
+- ✅ Tildes: «Tipo de ocupación» y «Núcleo familiar». **Y una más, sumada por David:** los estados que salían en inglés en las insignias («Archived», «Scheduled»).
+- **L-17**, en cuanto David decida el nombre. **Sigue esperando.**
 
 **Fila nueva que sugiere el bloque 1, sin valorar:** el coeficiente y la cuota en la carga masiva de
 unidades (candidato `A13`). Unas 1,7 h, con Día uno 2.
