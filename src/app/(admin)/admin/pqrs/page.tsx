@@ -17,6 +17,10 @@ import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { resolveIdentityCell } from "@/lib/utils/identity";
+import { personaDelTicket, unidadDelTicket } from "@/features/pqrs/identidad-del-ticket";
+import { watchUnits, type UnitItem } from "@/features/admin/services";
+import { useNombresPorUid } from "@/features/admin/use-nombres-por-uid";
+import { buildUnitIndex } from "@/utils/unitLabel";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { AsistenteTicket } from "@/features/pqrs/asistente-ticket";
@@ -118,10 +122,23 @@ export default function AdminPqrsPage() {
    */
   const feedbackIa = useFeedbackAsistencia();
 
+  // `L-21d`: la unidad se resuelve con el índice —como en Visitantes— y el nombre que falta se
+  // busca por el uid de quien abrió el ticket. Las dos suscripciones son del propio conjunto.
+  const [unidades, setUnidades] = useState<UnitItem[]>([]);
+  const nombrePorUid = useNombresPorUid(user?.tenantId);
+
+  useEffect(() => {
+    const tenantId = user?.tenantId;
+    if (!tenantId) return;
+    return watchUnits(tenantId, setUnidades, () => setUnidades([]));
+  }, [user?.tenantId]);
+
+  const indiceDeUnidades = useMemo(() => buildUnitIndex(unidades), [unidades]);
+
   const enrichedItems = useMemo(() => {
     return items.map((ticket) => {
-      const unitLabel = ticket.unitLabel || "Sin unidad";
-      const residentName = ticket.residentName || "Residente";
+      const unitLabel = unidadDelTicket(ticket, indiceDeUnidades);
+      const residentName = personaDelTicket(ticket, nombrePorUid);
       const radicado = ticket.radicado || `PQRS-${ticket.id.slice(0, 8).toUpperCase()}`;
       const radicationDate = ticket.radicationDate || ticket.createdAt || ticket.updatedAt;
       const sla = getTicketSla({
@@ -139,7 +156,9 @@ export default function AdminPqrsPage() {
         sla,
       };
     });
-  }, [items]);
+    // Las dos suscripciones llegan DESPUÉS del primer render: sin ellas en las dependencias, la
+    // tabla se quedaría con el índice vacío y enseñaría «Unidad no vinculada» para siempre.
+  }, [items, indiceDeUnidades, nombrePorUid]);
 
   const units = useMemo(
     () => Array.from(new Set(enrichedItems.map((item) => item.unitLabel))).sort((a, b) => a.localeCompare(b)),

@@ -1362,6 +1362,8 @@ describe("Firestore Rules - HOGARU", () => {
       updateDoc(doc(guard.firestore(), "visitorPasses", "vis-guard-checkin"), {
         status: "inside",
         checkInAt: "2026-03-21T09:32:00.000Z",
+        // `L-29`: la regla exige que el autor sea quien firma la peticion.
+        checkInBy: "guard-1",
       }),
     );
   });
@@ -1381,6 +1383,7 @@ describe("Firestore Rules - HOGARU", () => {
         updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-autorizada"), {
           status: "inside",
           checkInAt: "2026-03-21T10:05:00.000Z",
+          checkInBy: "guard-1",
         }),
       );
     });
@@ -1391,6 +1394,7 @@ describe("Firestore Rules - HOGARU", () => {
         updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-pendiente"), {
           status: "inside",
           checkInAt: "2026-03-21T10:05:00.000Z",
+          checkInBy: "guard-1",
         }),
       );
     });
@@ -1401,6 +1405,7 @@ describe("Firestore Rules - HOGARU", () => {
         updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-rechazada"), {
           status: "inside",
           checkInAt: "2026-03-21T10:05:00.000Z",
+          checkInBy: "guard-1",
         }),
       );
     });
@@ -1416,6 +1421,7 @@ describe("Firestore Rules - HOGARU", () => {
         updateDoc(doc(guard.firestore(), "visitorPasses", "vis-guard-checkin"), {
           status: "inside",
           checkInAt: "2026-03-21T09:32:00.000Z",
+          checkInBy: "guard-1",
         }),
       );
     });
@@ -1453,6 +1459,7 @@ describe("Firestore Rules - HOGARU", () => {
       updateDoc(doc(guard.firestore(), "visitorPasses", "vis-guard-checkout"), {
         status: "inside",
         checkInAt: "2026-03-21T09:35:00.000Z",
+        checkInBy: "guard-1",
       }),
     );
 
@@ -1460,6 +1467,7 @@ describe("Firestore Rules - HOGARU", () => {
       updateDoc(doc(guard.firestore(), "visitorPasses", "vis-guard-checkout"), {
         status: "completed",
         checkOutAt: "2026-03-21T10:08:00.000Z",
+        checkOutBy: "guard-1",
       }),
     );
   });

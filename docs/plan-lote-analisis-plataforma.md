@@ -291,9 +291,11 @@ Para cada una: typecheck, `npm test` y un vistazo en staging.
 
 > **Control D.** Un commit para el lote, push con el sí de David, staging visto.
 >
-> **Estado de la fase 3 (16–17 sep): en staging (`5aac90f`, rollout `2026-09-16-002`) y vista por el
-> navegador** —colores en Ajustes, plantillas y «valores válidos» en Residentes y en el asistente,
-> la nota de portería en las tres pantallas, la columna «Publicado»—. Sin producción.
+> **Estado de la fase 3 (17 sep): EN PRODUCCIÓN (`4948fd9`, rollout `2026-09-17-001`, 17:46 UTC) y
+> vista por el navegador en los dos ambientes** — en staging, colores en Ajustes, plantillas y
+> «valores válidos» en Residentes y en el asistente, la nota de portería en las tres pantallas y la
+> columna «Publicado»; en producción, la columna con sus fechas y el aviso archivado como
+> «Archivado». Solo front: ni reglas, ni functions, ni datos.
 > - **Añadido por David (17 sep): los estados en inglés de las insignias.** Al archivar el aviso de
 >   mora antiguo en producción salió «Archived», y en staging «Scheduled». `StatusBadge` caía a la
 >   clave cruda cuando no tenía tono propio, aunque `statusMapper` la traduce; ahora toma esa
@@ -342,6 +344,34 @@ reentrables. La regla **amplía**, así que el orden es el normal.
 - **~1,8 h.**
 
 > **Control E.** Como el control C.
+>
+> **Estado de la fase 4 (17 sep): construida y verificada en local; sin commit ni despliegue.**
+> - **Medido antes de tocar** (solo lectura, 17 sep): PQRS **6 de 54 tickets** en producción con la
+>   unidad como id crudo —todos en Santa María, los 6 resuelven por su `unitId`— y **4 sin nombre de
+>   residente**, los 4 recuperables por su membresía; en staging, **0 de 76**. Pases: **309 ingresos
+>   y 301 salidas sin autor** en producción (299 y 293 en staging); `validUntil` es siempre una
+>   cadena `YYYY-MM-DD` y los 6 frecuentes están vigentes en los dos ambientes.
+> - **T4.1 · L-21d.** `features/pqrs/identidad-del-ticket.ts`: el `unitId` manda y la etiqueta es el
+>   segundo intento —al revés, una etiqueta con id dentro se llevaría por delante un `unitId` que sí
+>   resuelve—, y el nombre que falta se busca por el uid de quien abrió el ticket. La pantalla ya no
+>   pinta `unitLabel` tal cual. **No se toca el dato.**
+> - **T4.2 · L-08a.** La regla acepta `inside→scheduled` para un pase de larga duración **vigente**,
+>   con la misma condición que la pantalla (`dentroDeVigencia`; la ausencia de `validUntil` es «sin
+>   límite»). La prueba de la fase 1 pasó de `it.fails` a `it`, y se añadieron sus dos bordes: sin
+>   fecha sale, y un frecuente **vencido** no se reabre.
+> - **T4.3 · L-29.** El pase guarda `checkInBy` y `checkOutBy`, **y la regla exige que sean quien
+>   firma la petición**: un autor que el cliente elige no sostiene nada. Banco propio,
+>   `tests/autor-de-la-puerta.rules.test.ts`, en las **dos** listas de vitest. La administración lo
+>   ve en el detalle del pase; los pases antiguos no dicen nada, que es mejor que inventar un autor.
+> - **Un sitio menos donde envejecer:** la suscripción de nombres por uid hacía falta en PQRS y en
+>   Visitantes, así que vive en `features/admin/use-nombres-por-uid.ts` y no en cada página.
+> - **Bancos:** app **2142**, reglas **616** (con solo Firestore; `storage.rules.test.ts` aparte),
+>   typechecks en 0. Functions no se tocó. **Falsación en cinco variantes**, una por arreglo y dos
+>   por los dos modos de romper L-21d y L-29; en cada una enrojece solo lo suyo.
+> - **Orden de despliegue: front → reglas.** La regla de L-08a amplía, pero la de L-29 **exige** el
+>   autor, así que restringe: con el front viejo, la portería no podría registrar entradas.
+> - **Lo que no se puede ver en staging:** los 6 tickets sucios están solo en producción, así que
+>   L-21d se comprueba allí. L-08a y L-29 piden una sesión de portería.
 
 ### Fase 5 · Datos de producción *(cada paso con su permiso; ~1 h)*
 

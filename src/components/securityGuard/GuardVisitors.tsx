@@ -278,6 +278,8 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
         visitorId: item.id,
         tenantId,
         previousStatus: item.status,
+        // `L-29`: queda escrito quién abrió la puerta.
+        guardiaUid: guardId ?? "",
       });
       toast.success("Ingreso registrado correctamente");
     } catch (actionError) {
@@ -298,6 +300,8 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
         tenantId,
         previousStatus: item.status,
         reentrable,
+        // `L-29`: y quién registró la salida.
+        guardiaUid: guardId ?? "",
       });
       toast.success(reentrable ? "Salida registrada. La autorización sigue vigente." : "Salida registrada correctamente");
     } catch (actionError) {

@@ -351,6 +351,13 @@ export interface VisitorPass {
   validUntil?: string;
   checkInAt?: string;
   checkOutAt?: string;
+  /**
+   * `L-29`: el uid del guarda que registró la entrada y el de quien registró la salida. La regla
+   * exige que sea quien firma la petición. Los pases anteriores al 17 sep 2026 no los traen —309
+   * ingresos y 301 salidas en producción—, así que son opcionales y la pantalla calla si faltan.
+   */
+  checkInBy?: string;
+  checkOutBy?: string;
   /** True si la visita la capturó la portería (sin QR). `PRD-V-FLOW-005`. */
   registeredByGuard?: boolean;
   /**

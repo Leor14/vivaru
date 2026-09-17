@@ -44,6 +44,7 @@ export default defineConfig({
       // Lote «Análisis de la plataforma» (15 sep 2026): `D-2b` y `L-08a`. En las DOS listas.
       "**/comunicados-audiencia.rules.test.ts",
       "**/visitante-frecuente.rules.test.ts",
+      "**/autor-de-la-puerta.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

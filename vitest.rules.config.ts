@@ -38,6 +38,7 @@ export default defineConfig({
       // Lote «Análisis de la plataforma» (15 sep 2026): reproducciones de `D-2b` y `L-08a`.
       "tests/comunicados-audiencia.rules.test.ts",
       "tests/visitante-frecuente.rules.test.ts",
+      "tests/autor-de-la-puerta.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.

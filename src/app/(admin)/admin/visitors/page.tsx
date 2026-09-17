@@ -10,6 +10,8 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Modal } from "@/components/shared/modal";
 import { NotaPanelDePorteria } from "@/components/shared/nota-panel-de-porteria";
+import { autorDeLaPuerta } from "@/features/visitors/autor-de-la-puerta";
+import { useNombresPorUid } from "@/features/admin/use-nombres-por-uid";
 import { Dialog } from "@/components/ui/dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -168,6 +170,8 @@ export default function AdminVisitorsPage() {
   }, [user?.tenantId]);
 
   const unitIndex = useMemo(() => buildUnitIndex(units), [units]);
+  // `L-29`: para poner nombre al guarda que registró cada entrada y salida.
+  const nombrePorUid = useNombresPorUid(user?.tenantId);
 
   const mappedItems = useMemo(
     () =>
@@ -711,6 +715,12 @@ export default function AdminVisitorsPage() {
                       ? new Date(selectedPass.checkInAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
                       : "-"}
                   </span>
+                  {/* `L-29`: quién abrió la puerta. Los pases anteriores no lo traen y aquí no sale nada. */}
+                  {autorDeLaPuerta(selectedPass.checkInBy, nombrePorUid) ? (
+                    <span className="block text-xs text-[var(--slate-500)]">
+                      {autorDeLaPuerta(selectedPass.checkInBy, nombrePorUid)}
+                    </span>
+                  ) : null}
                 </p>
                 <p className="text-[var(--slate-700)]">
                   Salida: <span className="font-medium text-[var(--slate-900)]">
@@ -718,6 +728,11 @@ export default function AdminVisitorsPage() {
                       ? new Date(selectedPass.checkOutAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
                       : "-"}
                   </span>
+                  {autorDeLaPuerta(selectedPass.checkOutBy, nombrePorUid) ? (
+                    <span className="block text-xs text-[var(--slate-500)]">
+                      {autorDeLaPuerta(selectedPass.checkOutBy, nombrePorUid)}
+                    </span>
+                  ) : null}
                 </p>
               </section>
 

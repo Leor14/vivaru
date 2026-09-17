@@ -377,11 +377,22 @@ export async function registerWalkInVisit(input: {
   return registerWalkInVisitCallable({ ...input, date, scheduledTime });
 }
 
-export async function markVisitorAsInside(input: { visitorId: string; tenantId: string; previousStatus: VisitorPass["status"] }) {
+export async function markVisitorAsInside(input: {
+  visitorId: string;
+  tenantId: string;
+  previousStatus: VisitorPass["status"];
+  /**
+   * `L-29`: quién registra el ingreso. Va explícito y no leído del SDK dentro de la función para
+   * que la pantalla no pueda omitirlo sin que se note, y la regla exige que sea quien firma la
+   * petición: un autor que el cliente elige a su antojo no sostendría nada.
+   */
+  guardiaUid: string;
+}) {
   if (!db) throw new Error("Firebase no esta configurado.");
   if (input.previousStatus !== "scheduled") {
     throw new Error("Solo se puede registrar ingreso para visitantes programados.");
   }
+  if (!input.guardiaUid) throw new Error("Falta la sesion de porteria para registrar el ingreso.");
 
   console.debug("[guard:visitors] update status", {
     tenantId: input.tenantId,
@@ -393,6 +404,7 @@ export async function markVisitorAsInside(input: { visitorId: string; tenantId: 
   await updateDoc(doc(db, "visitorPasses", input.visitorId), {
     status: "inside",
     checkInAt: serverTimestamp(),
+    checkInBy: input.guardiaUid,
   });
 }
 
@@ -403,11 +415,14 @@ export async function markVisitorAsCompleted(input: {
   /** Si la autorización sigue vigente (larga duración), el pase vuelve a "scheduled"
    * para permitir ingresos repetidos en lugar de cerrarse. */
   reentrable?: boolean;
+  /** `L-29`: quién registra la salida. Ver `markVisitorAsInside`. */
+  guardiaUid: string;
 }) {
   if (!db) throw new Error("Firebase no esta configurado.");
   if (input.previousStatus !== "inside") {
     throw new Error("Solo se puede registrar salida para visitantes en estado Dentro.");
   }
+  if (!input.guardiaUid) throw new Error("Falta la sesion de porteria para registrar la salida.");
 
   const nextStatus = input.reentrable ? "scheduled" : "completed";
   console.debug("[guard:visitors] update status", {
@@ -420,6 +435,7 @@ export async function markVisitorAsCompleted(input: {
   await updateDoc(doc(db, "visitorPasses", input.visitorId), {
     status: nextStatus,
     checkOutAt: serverTimestamp(),
+    checkOutBy: input.guardiaUid,
   });
 }
 

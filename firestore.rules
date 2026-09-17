@@ -662,12 +662,18 @@ service cloud.firestore {
         ) ||
         (
           securityGuardRole(resource.data.tenantId) &&
-          request.resource.data.diff(resource.data).changedKeys().hasOnly(["status", "checkInAt", "checkOutAt"]) &&
+          // `L-29` (17 sep 2026): la entrada y la salida guardan su AUTOR, y tiene que ser quien
+          // firma la petición — un autor que el cliente elige a su antojo no sostiene nada. Se
+          // exige presente en cada transición de portería, así que esta regla RESTRINGE: el front
+          // que escribe el autor va antes. Medido el 17 sep: 309 ingresos y 301 salidas en
+          // producción sin autor, y ninguna pantalla lo enseñaba.
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(["status", "checkInAt", "checkOutAt", "checkInBy", "checkOutBy"]) &&
           (
             (
               resource.data.status == "scheduled" &&
               request.resource.data.status == "inside" &&
               request.resource.data.checkInAt != null &&
+              request.resource.data.checkInBy == request.auth.uid &&
               request.resource.data.checkOutAt == resource.data.checkOutAt &&
               // `PRD-V-FLOW-005` R1 y CF4 — **a `inside` solo se llega desde `autorizada`.**
               //
@@ -687,7 +693,43 @@ service cloud.firestore {
               resource.data.status == "inside" &&
               request.resource.data.status == "completed" &&
               request.resource.data.checkInAt == resource.data.checkInAt &&
-              request.resource.data.checkOutAt != null
+              request.resource.data.checkOutAt != null &&
+              request.resource.data.checkOutBy == request.auth.uid
+            ) ||
+            // **`L-08a` · la SALIDA de un visitante frecuente** (lote «Análisis de la plataforma»,
+            // 17 sep 2026). Un pase de larga duración vigente vuelve a `scheduled` al salir, para
+            // poder entrar otra vez: lo hace `markVisitorAsCompleted` con `reentrable`. La regla
+            // solo aceptaba `scheduled→inside` e `inside→completed`, así que la salida fallaba y el
+            // visitante frecuente dejaba de servir tras la primera visita.
+            //
+            // **Dice lo mismo que la pantalla, y por eso comprueba la vigencia:** el cliente calcula
+            // `reentrable = larga_duracion && dentroDeVigencia`, y sin esa condición un pase vencido
+            // podría reabrirse para siempre. La AUSENCIA de `validUntil` es «sin límite», igual que
+            // en `dentroDeVigencia`. Medido el 17 sep: `validUntil` es siempre una cadena
+            // `YYYY-MM-DD` (8 pases en producción, 6 en staging) y los 6 frecuentes están vigentes.
+            //
+            // Un pase PUNTUAL sigue sin poder volver a `scheduled`: reabrirlo sería un QR reusable.
+            (
+              resource.data.status == "inside" &&
+              request.resource.data.status == "scheduled" &&
+              request.resource.data.checkInAt == resource.data.checkInAt &&
+              request.resource.data.checkOutAt != null &&
+              request.resource.data.checkOutBy == request.auth.uid &&
+              resource.data.get("authorizationType", "") == "larga_duracion" &&
+              (
+                !("validUntil" in resource.data) ||
+                resource.data.validUntil == null ||
+                (
+                  resource.data.validUntil is string &&
+                  resource.data.validUntil.split("-").size() == 3 &&
+                  // El día entero cuenta: la vigencia acaba cuando acaba su último día.
+                  timestamp.date(
+                    int(resource.data.validUntil.split("-")[0]),
+                    int(resource.data.validUntil.split("-")[1]),
+                    int(resource.data.validUntil.split("-")[2])
+                  ) + duration.value(1, 'd') > request.time
+                )
+              )
             )
           )
         ) ||

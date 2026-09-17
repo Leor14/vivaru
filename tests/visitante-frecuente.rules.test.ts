@@ -22,8 +22,12 @@ import { afterAll, beforeAll, describe, it } from "vitest";
  * ingreso todavía.
  *
  * Se usa `updateDoc`, que es lo que hace el cliente: la regla ve el documento resultante.
- * **La prueba del defecto va con `it.fails`**; las otras dos son el control y el límite que el
- * arreglo tiene que conservar: un pase PUNTUAL no puede volver a `scheduled`.
+ *
+ * **ARREGLADO el 17 sep 2026 (T4.2 del plan).** La prueba del defecto nació con `it.fails` y ahora
+ * va con `it`. El arreglo comprueba también la vigencia —como la pantalla—, así que aquí están sus
+ * dos bordes: sin `validUntil` sale, y un frecuente VENCIDO no se reabre. Los límites que conserva:
+ * un pase PUNTUAL no vuelve a `scheduled`, y la salida no sirve para tocar otros campos.
+ * El autor de la salida (`checkOutBy`, `L-29`) lo exige la misma regla.
  */
 
 let testEnv: RulesTestEnvironment;
@@ -76,6 +80,19 @@ beforeAll(async () => {
       doc(db, "visitorPasses", "pase-frecuente"),
       dentro({ authorizationType: "larga_duracion", validUntil: "2099-12-31" }),
     );
+    // El arreglo de T4.2 comprueba la vigencia, así que hacen falta sus dos bordes.
+    await setDoc(
+      doc(db, "visitorPasses", "pase-frecuente-vencido"),
+      dentro({ authorizationType: "larga_duracion", validUntil: "2026-01-31" }),
+    );
+    await setDoc(
+      doc(db, "visitorPasses", "pase-frecuente-sin-fecha"),
+      dentro({ authorizationType: "larga_duracion" }),
+    );
+    await setDoc(
+      doc(db, "visitorPasses", "pase-frecuente-otro-campo"),
+      dentro({ authorizationType: "larga_duracion", validUntil: "2099-12-31" }),
+    );
   });
 });
 
@@ -92,6 +109,7 @@ describe("L-08a · la salida de un visitante frecuente", () => {
       updateDoc(doc(guardia(), "visitorPasses", "pase-puntual-sale"), {
         status: "completed",
         checkOutAt: serverTimestamp(),
+        checkOutBy: GUARDIA,
       }),
     );
   });
@@ -101,15 +119,48 @@ describe("L-08a · la salida de un visitante frecuente", () => {
       updateDoc(doc(guardia(), "visitorPasses", "pase-puntual-vuelve"), {
         status: "scheduled",
         checkOutAt: serverTimestamp(),
+        checkOutBy: GUARDIA,
       }),
     );
   });
 
-  it.fails("DEFECTO L-08a: la portería registra la salida de un frecuente vigente (inside → scheduled)", async () => {
+  it("L-08a: la portería registra la salida de un frecuente vigente (inside → scheduled)", async () => {
     await assertSucceeds(
       updateDoc(doc(guardia(), "visitorPasses", "pase-frecuente"), {
         status: "scheduled",
         checkOutAt: serverTimestamp(),
+        checkOutBy: GUARDIA,
+      }),
+    );
+  });
+
+  it("sin `validUntil` también sale: la ausencia es «sin límite», como en la pantalla", async () => {
+    await assertSucceeds(
+      updateDoc(doc(guardia(), "visitorPasses", "pase-frecuente-sin-fecha"), {
+        status: "scheduled",
+        checkOutAt: serverTimestamp(),
+        checkOutBy: GUARDIA,
+      }),
+    );
+  });
+
+  it("límite: un frecuente VENCIDO no se reabre, o el pase se reusaría para siempre", async () => {
+    await assertFails(
+      updateDoc(doc(guardia(), "visitorPasses", "pase-frecuente-vencido"), {
+        status: "scheduled",
+        checkOutAt: serverTimestamp(),
+        checkOutBy: GUARDIA,
+      }),
+    );
+  });
+
+  it("límite: la salida no sirve para tocar otros campos del pase", async () => {
+    await assertFails(
+      updateDoc(doc(guardia(), "visitorPasses", "pase-frecuente-otro-campo"), {
+        status: "scheduled",
+        checkOutAt: serverTimestamp(),
+        checkOutBy: GUARDIA,
+        visitorName: "Otra persona",
       }),
     );
   });
