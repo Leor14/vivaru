@@ -59,6 +59,66 @@ todos, el tiempo estimado de respuesta en PQRS, los colores de los formularios, 
 reservas, los dos «no me queda claro este módulo» y el terracota, que ya estaba) y la fila que sugirió el
 propio análisis: el coeficiente y la cuota en la carga masiva (~1,7 h, sin valorar).
 
+
+### 0.1 El tablero de las 36 — una fila por petición, con su estado
+
+**Leyenda:** ✅ construida y cerrada (en producción, vista en pantalla) · 🟢 se puede ya (nada la frena
+salvo el turno) · 🟡 espera una decisión de David · ◇ descartada por ahora · ⏸ espera a un tercero.
+
+| Estado | Cuántas |
+|---|---|
+| ✅ Construidas y cerradas | **9** |
+| 🟢 Se puede ya, sin planificar | **7** |
+| 🟡 Espera una decisión | **12** |
+| ◇ Descartada por ahora | **6** |
+| ⏸ Espera a un tercero | **2** |
+| **Total del documento** | **36** |
+
+| Id | Lo que pidió | Pág. | Estado | Dónde está |
+|---|---|---|---|---|
+| **L-01a** | Colores del panel: menta, violeta o terracota | 1 | ✅ | Fase 3 (`5aac90f`). El terracota ya estaba en la paleta |
+| **L-02** | ¿Cuál es el formato del Excel para la carga masiva? | 1 | ✅ | Fase 3 (`5aac90f`): Excel y CSV, con parqueadero y bodega |
+| **L-03** | Área y valor del seguro: «no lo veo necesario» | 1–2 | 🟡 | ¿Retirar, esconder o por país? |
+| **L-04** | «No es porcentaje de copropiedad: es coeficiente» | 2 | ✅ | Fase 5: `country: CO` y `currency: COP` en Santa María |
+| **L-05** | Exención de bloqueo por deuda, también en parqueadero | 2 | ◇ | Depende de `A8`; 3,75 h y 0,76 de puntuación |
+| **L-06** | Tres figuras: propietario, residente y administrador del apartamento | 3 | 🟡 | ¿Recibe cobros, avisos o acceso? |
+| **L-07** | Ver las unidades de un mismo dueño | 4 | 🟢 | 1,0 h |
+| **L-08a** | Registrar la salida del visitante frecuente *(defecto)* | 4 | ✅ | Fase 4 (`eda51ad`), con la vigencia comprobada en la regla |
+| **L-08b** | Que el residente cree su propio visitante frecuente | 4 | 🟡 | ¿Puede hacerlo él solo? |
+| **L-09** | Foto del visitante para que el dueño apruebe | 4 | 🟡 | Cómo la lee el residente y cuánto se guarda |
+| **L-10** | Personal de servicios por categoría, con horarios | 4 | 🟡 | ¿Catálogo del conjunto o personal por unidad? |
+| **L-11** | Dos perfiles: administración y equipo de seguridad | 4, 7, 8 | ✅ | Fase 3: «la portería tiene su propio panel», en tres pantallas |
+| **L-12** | La fecha que pone la plataforma al publicar | 4 | ✅ | Fase 3: columna «Publicado» en Comunicaciones |
+| **L-13** | Cuántas personas vieron un comunicado | 5 | 🟢 | 1,5 h |
+| **L-14** | Dejar registro si borran un comunicado | 5 | 🟡 | Qué se conserva (choca con protección de datos) |
+| **L-15** | Clase de comunicado: noticia, general, cartera | 5 | 🟡 | La taxonomía |
+| **L-16** | Servicios como clasificados, con la unidad en arriendo o venta | 5 | 🟡 | El nombre y quién publica |
+| **L-17** | Un nombre más cercano para Encuestas | 6 | 🟡 | **El más barato: media hora en cuanto elijas el nombre** |
+| **L-18** | «En propiedad horizontal nadie firma esos documentos» | 7 | 🟡 | El valor por defecto por país, y qué pasa con los acuerdos |
+| **L-19** | Reservas con valor, depósito, aforo y protocolo | 7 | 🟡 | ¿El valor informa o genera un cargo? |
+| **L-20** | Paquetería: quién lo trajo, en qué estado y el protocolo | 8 | 🟢 | 1,2 h |
+| **L-21** | PQRS: evidencia de la solución y descargar en Excel | 9 | 🟢 | 1,8 h |
+| **L-21d** | PQRS enseña un id crudo y «Residente» *(defecto)* | 9 | ✅ | Fase 4 (`eda51ad`); en producción salen «T1-403» y los nombres |
+| **L-22** | Subir el informe del contador sobre la cartera | 9 | 🟢 | 0,85 h — la mejor puntuación de lo que queda (3,65) |
+| **L-23** | Correo de cobro a todos los deudores | 9 | 🟢 | Su defecto `D-1` **ya está** (fase 2); el correo, no |
+| **L-24** | Tendencia de cartera mensual y acumulada | 9 | 🟢 | 0,9 h |
+| **L-25** | Consumo de zonas comunes con tendencia | 9–10 | ◇ | 2,0 h y 1,05 de puntuación |
+| **L-26** | Matriz de mantenimientos para el consejo | 10 | ◇ | 2,6 h y 1,3 |
+| **L-27** | Presupuesto del año, privado del administrador | 11 | ✅ | Fase 5: encendido en Santa María y visto abriendo |
+| **L-28** | Convivencia: llamados de atención y descargos | 12 | ◇ | 3,3 h y 1,0 |
+| **L-29** | Medir al guarda responsable de cada gestión | 13 | ✅ | Fase 4 (`eda51ad` y `4fc35ca`): `checkInBy`/`checkOutBy` y su regla |
+| **L-30** | Reportes de vigilancia y novedades | 13 | ◇ | 2,8 h y 1,1; subiría si la minuta es diaria y en papel |
+| **L-31** | Calificación del edificio unida a Google | 14 | ⏸ | La ficha de Google de cada edificio y sus términos |
+| **L-32** | Números de emergencia del conjunto | 14 | 🟡 | ¿FAQ del conjunto o de la plataforma? ¿Quién redacta? |
+| **L-32b** | Chatbot 24/7 | 14 | ⏸ | Corpus, tope de gasto; **se parte antes de valorarlo** |
+| **L-01b** | Un tema de color más llamativo en todo el panel | 1 | ◇ | 2,6 h y 0,65 |
+
+**Y siete cambios más que están en producción y NO venían en su lista** (los cinco de acceso salieron de
+leer el código para valorar lo suyo): `D-2b` (un residente leía comunicados de otras unidades), `D-2` (su
+aviso llegaba a todos), `D-1` (el aviso de mora al conjunto entero), `D-2c` (el adjunto se colaba por
+Documentos), `D-3` (la categoría nacía en «otro»), las **tildes** de «Tipo de ocupación» y «Núcleo
+familiar», y los **estados en inglés** de las insignias, que sumaste al ver «Archived».
+
 ## 1. El lote ordenado (reglas de §7.3 del modelo; puntuaciones de la v0.4)
 
 Horas de trabajo activo; las esperas (§6.5), aparte. IA = impacto ajustado. Umbral de impacto: 4.
