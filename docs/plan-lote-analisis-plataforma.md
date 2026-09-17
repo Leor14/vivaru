@@ -345,7 +345,23 @@ reentrables. La regla **amplía**, así que el orden es el normal.
 
 > **Control E.** Como el control C.
 >
-> **Estado de la fase 4 (17 sep): construida y verificada en local; sin commit ni despliegue.**
+> **Estado de la fase 4 (17 sep): EN PRODUCCIÓN y validada por el navegador en los dos ambientes.**
+> - **Staging** (`4fc35ca`, rollout `-003`; reglas `d246465c`): con la portería de Lomas, el pase de
+>   un frecuente **entró y salió** y volvió a «Programado» con su vigencia intacta (L-08a), y guardó
+>   `checkInBy`/`checkOutBy` con el uid de la caseta — el primer pase del proyecto con autor—. La
+>   administración lo lee en el detalle: «Registró Caseta de vigilancia · Lomas de Sayilbedra».
+> - **Producción** (`4fc35ca`, rollout `2026-09-17-002`; reglas `c8189e65`, idénticas al fichero):
+>   los 6 tickets de Santa María salen con «T1-403» y «1014», y con el nombre del residente en los 4
+>   que no lo guardaban (L-21d).
+> - **UN DEFECTO QUE LAS PRUEBAS NO VEÍAN, y lo cazó mirar la pantalla:** `normalizeVisitorPass`
+>   **arma el pase campo por campo**, así que `checkInBy` se escribía bien y **no llegaba a la
+>   interfaz**; el detalle no decía nada. Los guardianes vigilaban la pantalla y la regla, no el
+>   camino del dato. Arreglado en `4fc35ca` con dos pruebas sobre el normalizador y su falsación.
+>   **Es la lección de la fase:** el código estaba desplegado y la mitad visible no funcionaba.
+> - **Y una del rollout:** la primera comprobación en staging dijo «no aparece» porque el tráfico
+>   aún no había cambiado de build. «SUCCEEDED» y «sirviendo» no son lo mismo, ni al instante.
+>
+> *Lo construido en local:*
 > - **Medido antes de tocar** (solo lectura, 17 sep): PQRS **6 de 54 tickets** en producción con la
 >   unidad como id crudo —todos en Santa María, los 6 resuelven por su `unitId`— y **4 sin nombre de
 >   residente**, los 4 recuperables por su membresía; en staging, **0 de 76**. Pases: **309 ingresos
