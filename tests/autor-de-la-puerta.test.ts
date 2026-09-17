@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { autorDeLaPuerta } from "@/features/visitors/autor-de-la-puerta";
+import { normalizeVisitorPass } from "@/features/visitors/use-visitor-passes";
 
 /**
  * **`L-29` — quién registró cada entrada y salida.** Lote «Análisis de la plataforma», T4.3.
@@ -61,6 +62,40 @@ describe("L-29 · guardián: las dos escrituras mandan el autor", () => {
     const c = codigo("src/app/(admin)/admin/visitors/page.tsx");
     expect(c).toMatch(/autorDeLaPuerta\(selectedPass\.checkInBy, nombrePorUid\)/);
     expect(c).toMatch(/autorDeLaPuerta\(selectedPass\.checkOutBy, nombrePorUid\)/);
+  });
+});
+
+/**
+ * **El defecto que las otras pruebas no veían.** Vigilaban la pantalla y la regla, y el autor se
+ * quedaba en el camino: `normalizeVisitorPass` arma el pase campo por campo, así que lo que no se
+ * nombra ahí no llega a la interfaz. Se escribió bien en la base y el detalle no decía nada.
+ * Lo cazó mirarlo en staging el 17 sep 2026, con el dato ya guardado.
+ */
+describe("L-29 · el autor sobrevive al normalizador", () => {
+  it("el pase que llega a la pantalla trae los dos autores", () => {
+    const pase = normalizeVisitorPass("pase-1", {
+      tenantId: "t1",
+      unitId: "u1",
+      visitorName: "Renata Ocampo",
+      status: "scheduled",
+      date: "2026-07-04",
+      checkInBy: "guard-1",
+      checkOutBy: "guard-1",
+    });
+    expect(pase.checkInBy).toBe("guard-1");
+    expect(pase.checkOutBy).toBe("guard-1");
+  });
+
+  it("y un pase antiguo sigue sin inventárselos", () => {
+    const pase = normalizeVisitorPass("pase-2", {
+      tenantId: "t1",
+      unitId: "u1",
+      visitorName: "Gabriel Pacheco",
+      status: "completed",
+      date: "2026-07-03",
+    });
+    expect(pase.checkInBy).toBeUndefined();
+    expect(pase.checkOutBy).toBeUndefined();
   });
 });
 

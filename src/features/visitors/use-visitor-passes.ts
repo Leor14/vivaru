@@ -106,6 +106,11 @@ export function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass
     validUntil: asString(raw.validUntil) || undefined,
     checkInAt: asTimestampIso(raw.checkInAt) || undefined,
     checkOutAt: asTimestampIso(raw.checkOutAt) || undefined,
+    // `L-29`. **Este normalizador arma el pase campo por campo**, así que un campo que no se
+    // nombra aquí NO llega a la pantalla aunque esté en la base: el autor se escribió y se guardó
+    // bien, y el detalle del pase seguía sin decir nada. Lo cazó mirarlo en staging, no una prueba.
+    checkInBy: asString(raw.checkInBy) || undefined,
+    checkOutBy: asString(raw.checkOutBy) || undefined,
     registeredByGuard: raw.registeredByGuard === true,
     // `PRD-V-FLOW-005`. **La ausencia se conserva como `undefined` a propósito**: es lo que
     // distingue un pase del flujo de QR, y darle un valor por defecto haría que los 142 que ya
