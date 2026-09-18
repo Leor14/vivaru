@@ -6,14 +6,13 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — corte del 18 de septiembre de 2026 (04:30 UTC; noche del 17 en Bogotá)
 
-> # EL GRUPO A DEL LOTE «ANÁLISIS DE LA PLATAFORMA» ESTÁ CONSTRUIDO ENTERO Y EN PRODUCCIÓN.
+> # EL GRUPO A DEL LOTE «ANÁLISIS DE LA PLATAFORMA» ESTÁ CERRADO: CONSTRUIDO, EN PRODUCCIÓN Y VISTO.
 >
 > **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú está en «LO QUE
 > SIGUE», justo debajo. Lo que queda del lote **ya no es código: son decisiones de David** (13).
 >
 > **Tablero de las 36** (`docs/valoraciones/lote-2026-09-15-analisis-plataforma.md` §0.1, recontado sobre
-> las filas): **14 ✅ · 1 🔵 · 0 🟢 · 13 🟡 · 6 ◇ · 2 ⏸**. El único 🔵 es `L-13`, y le falta **un** paso
-> (ver abajo).
+> las filas): **15 ✅ · 0 🔵 · 0 🟢 · 13 🟡 · 6 ◇ · 2 ⏸**.
 >
 > **La fase 6 — las siete «se puede ya», en tres bloques.** El detalle, con la falsación de cada uno, en
 > `docs/plan-lote-analisis-plataforma.md`.
@@ -31,10 +30,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **VALIDADO EN PANTALLA EN PRODUCCIÓN (noche del 17), con las sesiones de David:** `L-21` (evidencia
 > subida, guardada y enseñada; el Excel **real** capturado y leído: 14 columnas, sin ids crudos),
 > `L-24`, `L-22` (documento en «Informes del contador» con categoría `financiero`), `L-20` (formulario de
-> portería y tabla: «Servientrega · Dañado») y `L-07`. **De `L-13` se validó la anotación** —un documento
-> por persona, y una segunda visita no cuenta dos veces—; **falta ver el NÚMERO** en «Vistos», que pide
-> un comunicado publicado **a partir del 18 sep** (los anteriores dicen «Sin registro», a propósito).
-> Propuesta: uno dirigido solo a T2-503, con el sí de David.
+> portería y tabla: «Servientrega · Dañado»), `L-07` y **`L-13`** (el 18: un comunicado de prueba a Torre 2,
+> visto como residente, y «Vistos» dice **«1 persona»**; una segunda visita no cuenta dos veces).
 >
 > **Lo que dejó la validación, y es lo que hay que llevarse:**
 > - **Mirar la pantalla cazó un defecto de `L-07` con 17 pruebas en verde.** El panel afirmó «David
@@ -47,14 +44,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >   `ls -d` con comodín devolvió quince carpetas— y los cambios rotos se acumularon. Se deshicieron a mano
 >   y se comprobó contra el commit (`firestore.rules` +33/−0). **Desde entonces, la carpeta del respaldo
 >   con ruta fija y un `ls` del respaldo antes de romper nada.**
+> - **Y validar `L-13` cazó otro defecto: la primera versión comparaba el DÍA local** con el 18 sep, y la
+>   administración mira desde Ciudad de México: el comunicado de prueba (05:28 UTC, 00:28 en Bogotá) salía
+>   «Sin registro» para siempre. Arreglado en `2dddfc2`: el registro empieza en **un instante**, 03:35 UTC
+>   del 18, elegido tarde a propósito. **Una pantalla no puede decir cosas distintas según el país del
+>   navegador.**
 > - **Registré un paquete de prueba con la descripción duplicada** (tecleé dos veces): error mío, no
 >   del producto. Paquete `onm1l0vamti7mYACVlpZ` en T2-503; corregirlo es una escritura en producción y
 >   espera el sí de David.
 >
 > **Lo que sirve cada ambiente (medido la noche del 17):**
-> - **`master` y `develop` en `4c178a4`** (más las notas que vengan detrás en `develop`).
-> - **Front:** producción `build-2026-09-18-003`, staging `build-2026-09-18-004`, los dos desde `4c178a4`
->   (comprobado por `traffic.current`).
+> - **`master` en `2dddfc2`**, `develop` igual más las notas que vengan detrás.
+> - **Front:** producción sirve `2dddfc2` (comprobado por `traffic.current`); staging lo recibe del mismo push.
 > - **Reglas de Firestore:** `7f8f4870` en producción, `1779f333` en staging. **De Storage:** `b2d70972` en
 >   producción, `2a907817` en staging. **Las cuatro «idéntico al repo: SÍ».** El script del repositorio
 >   solo mira Firestore; el de Storage se hizo en el scratchpad y **falta traerlo al repositorio**.
@@ -81,22 +82,21 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > **Datos de prueba que quedaron en producción (Santa María, demo), todos de la validación:** el ticket
 > «fuga en el techo de la torre 2» respondido y en `resolved` con una imagen de franjas; un «Informe del
-> contador» de prueba (PDF de una página); el paquete de prueba de T2-503; y una lectura de comunicado.
+> contador» de prueba (PDF de una página); el paquete de prueba de T2-503; el comunicado **«Prueba de lectura —
+> validación del 18 sep»** a Torre 2 (3 avisos en la app); y dos lecturas de comunicado.
 >
 > ## LO QUE SIGUE — el menú
 >
 > **A · Construible ya**
-> 1. **Cerrar `L-13`:** publicar un comunicado **desde el 18 sep**, dirigido a T2-503, y ver «Vistos»
->    contar (pide el sí de David, porque avisa a esa unidad).
-> 2. **Los nueve defectos que se vieron al valorar y NO entraron al lote** (§4 de la valoración): la
+> 1. **Los nueve defectos que se vieron al valorar y NO entraron al lote** (§4 de la valoración): la
 >    moneda que le falta a 6 de 10 conjuntos; `createTicket`/`createPackage` fabricando `unit-<slug>`; la
 >    fecha de un comunicado programado; el reglamento que cuenta las firmas de una forma y las enseña de
 >    otra; `billingResponsiblePersonId` sin quien lo escriba; los dos vocabularios de ocupación; la
 >    invitación de varios días que crea un pase de un día; la retención que no cubre las fotos de
 >    portería; y una PRD de `FEAT-009` obsoleta desde el 11 sep.
-> 3. **Traer al repositorio el verificador de reglas de Storage** (hoy vive en el scratchpad de la sesión).
-> 4. **El protocolo de paquetería** (la cuarta cosa de `L-20`): otra carpeta del sistema y dos despliegues.
-> 5. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree (`.claude/worktrees/great-bohr-ec49d3`);
+> 2. **Traer al repositorio el verificador de reglas de Storage** (hoy vive en el scratchpad de la sesión).
+> 3. **El protocolo de paquetería** (la cuarta cosa de `L-20`): otra carpeta del sistema y dos despliegues.
+> 4. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree (`.claude/worktrees/great-bohr-ec49d3`);
 >    mirar `c92ef13` antes de retirarlos.
 >
 > **B · Espera una decisión de David**

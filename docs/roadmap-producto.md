@@ -18,7 +18,7 @@ dependencias y criterio de salida.
 |---|---|
 | **Versión** | 0.9.81 |
 | **Fecha** | 17 de septiembre de 2026, madrugada del 18 en UTC |
-| **Estado** | **El grupo A del lote «Análisis de la plataforma» está construido ENTERO y en producción, y visto en pantalla salvo un paso.** A las cinco fases se sumó la **fase 6, las siete «se puede ya» en tres bloques**: Cartera (`L-24` la lectura acumulada, `L-22` el informe del contador), operación diaria (`L-20` la llegada del paquete, `L-07` los dueños con varias unidades) y PQRS y comunicados (`L-21` evidencia y Excel, `L-13` quién vio un comunicado). **`L-23` pasó a decisión**: le falta el canal de correo. **Tablero de las 36: 14 ✅ · 1 🔵 · 13 🟡 · 6 ◇ · 2 ⏸** — el 🔵 es `L-13`, al que le falta ver el número con un comunicado del 18 en adelante. **Lo que queda del lote ya no es código: son trece decisiones de David.** **Lo que enseñó la jornada:** mirar la pantalla en producción cazó que `L-07` afirmaba un dueño que eran dos personas con el documento de relleno `65465465`, con 17 pruebas en verde (arreglado en `4c178a4`); y dos rondas de falsación acumularon cambios rotos porque el respaldo no se hizo — se deshicieron y se comprobaron contra el commit. El menú vivo, en `docs/pendientes.md` |
+| **Estado** | **El grupo A del lote «Análisis de la plataforma» está construido ENTERO y en producción, y visto en pantalla salvo un paso.** A las cinco fases se sumó la **fase 6, las siete «se puede ya» en tres bloques**: Cartera (`L-24` la lectura acumulada, `L-22` el informe del contador), operación diaria (`L-20` la llegada del paquete, `L-07` los dueños con varias unidades) y PQRS y comunicados (`L-21` evidencia y Excel, `L-13` quién vio un comunicado). **`L-23` pasó a decisión**: le falta el canal de correo. **Tablero de las 36: 15 ✅ · 13 🟡 · 6 ◇ · 2 ⏸** — el grupo A, cerrado entero; `L-13` se vio contar el 18, tras arreglar que su corte dependía de la zona horaria del navegador (`2dddfc2`). **Lo que queda del lote ya no es código: son trece decisiones de David.** **Lo que enseñó la jornada:** mirar la pantalla en producción cazó que `L-07` afirmaba un dueño que eran dos personas con el documento de relleno `65465465`, con 17 pruebas en verde (arreglado en `4c178a4`); y dos rondas de falsación acumularon cambios rotos porque el respaldo no se hizo — se deshicieron y se comprobaron contra el commit. El menú vivo, en `docs/pendientes.md` |
 | **Verificado contra** | **Los servicios, la noche del 17.** `master` y `develop` en `4c178a4`. Producción sirve `build-2026-09-18-003` y staging `build-2026-09-18-004`, los dos desde `4c178a4`, por `traffic.current`. Reglas de Firestore **`7f8f4870`** (producción) y **`1779f333`** (staging); de Storage **`b2d70972`** y **`2a907817`**; las cuatro «idéntico al repo: SÍ». `ensureSystemFolder` `-00027` y `ACTIVE` en los dos. Datos medidos, no citados: **54 tickets de PQRS y 0 con adjunto** antes de `L-21`; **156 avisos de comunicado con el mismo enlace**, por lo que no servían para `L-13`; **223 paquetes** con fecha y entrega guardadas y sin empresa ni estado; **47 de 202 personas con documento**. Bancos contados la noche del 17: `npm test` **2216**, functions **1084**, reglas **685**, emulador de functions **384 de 386** (los dos rojos, `CA12` y `D-B`, preexistentes y confirmados por nombre) |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -209,7 +209,7 @@ David decidió que ella **cuenta como prospecto**.
 **ESTADO A LA NOCHE DEL 17 DE SEPTIEMBRE: las seis fases del plan están en producción.** Resueltas y
 vistas en pantalla: los cuatro defectos obligatorios, `D-2c`, el lote XS con los estados en inglés,
 `L-21d`, `L-08a`, `L-29`, `L-04`, `L-27` y, de la fase 6, `L-22`, `L-24`, `L-20`, `L-07` y `L-21`.
-`L-13` está en producción con la anotación validada y le falta ver el número. **Lo que queda son trece
+`L-13` se vio contar el 18 («1 persona»), tras arreglar que su corte dependía de la zona horaria del navegador. **Lo que queda son trece
 decisiones de David** (`L-23` entre ellas), seis descartadas por ahora y dos que esperan a un tercero.
 
 **Dónde está el detalle.**
@@ -1360,7 +1360,7 @@ fecha de revisión.
 - **`L-23` pasa a decisión:** su defecto ya estaba; falta el canal de correo.
 - **Validado en pantalla en producción** con las sesiones de David. Mirar cazó que `L-07` afirmaba un
   dueño que eran dos personas (documento de relleno `65465465`); arreglado en `4c178a4`.
-- **Tablero de las 36:** 14 ✅ · 1 🔵 · 13 🟡 · 6 ◇ · 2 ⏸.
+- **Tablero de las 36:** 15 ✅ · 13 🟡 · 6 ◇ · 2 ⏸. `L-13` se cerró el 18, con el arreglo de `2dddfc2`.
 
 ### 0.9.80 — 17 de septiembre de 2026 (noche) — el lote «Análisis de la plataforma», entero en producción
 

@@ -45,8 +45,8 @@ cinco defectos de acceso y **los estados que salían en inglés** en las insigni
 
 **Lo que sigue, por qué lo frena:**
 - **Construidas y vistas en producción el 17 sep (5 más):** `L-22`, `L-24`, `L-20`, `L-07` y `L-21`.
-- **Construida y sin ver del todo (1):** `L-13` — la anotación se validó; falta ver el número, que pide
-  un comunicado publicado desde el 18 sep.
+- **Y `L-13`, vista el 18 sep** con un comunicado de prueba a Torre 2: «1 persona». **El grupo A del lote
+  está cerrado entero.**
 - **Construible ya, sin planificar: ninguna.** El grupo A del lote queda construido entero.
 - **Espera una decisión (13):** `L-17` (el más barato: media hora en cuanto haya nombre), `L-23` (el
   canal de correo, reclasificada el 17 sep), `L-08b`, `L-18`, `L-03`, `L-06`, `L-32`, `L-15`, `L-09`,
@@ -76,8 +76,8 @@ tercero.
 
 | Estado | Cuántas |
 |---|---|
-| ✅ Construidas y cerradas | **14** |
-| 🔵 Construidas, sin desplegar o sin ver | **1** |
+| ✅ Construidas y cerradas | **15** |
+| 🔵 Construidas, sin desplegar o sin ver | **0** |
 | 🟢 Se puede ya, sin planificar | **0** |
 | 🟡 Espera una decisión | **13** |
 | ◇ Descartada por ahora | **6** |
@@ -99,7 +99,7 @@ tercero.
 | **L-10** | Personal de servicios por categoría, con horarios | 4 | 🟡 | ¿Catálogo del conjunto o personal por unidad? |
 | **L-11** | Dos perfiles: administración y equipo de seguridad | 4, 7, 8 | ✅ | Fase 3: «la portería tiene su propio panel», en tres pantallas |
 | **L-12** | La fecha que pone la plataforma al publicar | 4 | ✅ | Fase 3: columna «Publicado» en Comunicaciones |
-| **L-13** | Cuántas personas vieron un comunicado | 5 | 🔵 | Fase 6 bloque 3 (`d102f2e`): **en producción y la anotación validada**; falta ver el número, que pide un comunicado publicado desde el 18 sep |
+| **L-13** | Cuántas personas vieron un comunicado | 5 | ✅ | Fase 6 bloque 3 (`d102f2e`) y su arreglo (`2dddfc2`): «1 persona» visto en producción el 18 sep. El registro empieza en un instante (03:35 UTC del 18), no en un día local |
 | **L-14** | Dejar registro si borran un comunicado | 5 | 🟡 | Qué se conserva (choca con protección de datos) |
 | **L-15** | Clase de comunicado: noticia, general, cartera | 5 | 🟡 | La taxonomía |
 | **L-16** | Servicios como clasificados, con la unidad en arriendo o venta | 5 | 🟡 | El nombre y quién publica |

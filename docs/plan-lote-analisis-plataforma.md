@@ -469,6 +469,12 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   y no se cuenta. 14 pruebas, con el caso real dentro. **Falsarlo cazó otra ceguera:** con la
   condición de conflicto rota, todos los dueños salían dos veces y ninguna prueba lo decía; la
   prueba que falta se añadió y la falsación se repitió hasta que enrojeció.
+- 🔴 **Y validar `L-13` el 18 cazó un defecto de zona horaria.** La columna «Vistos» comparaba el **día
+  local** de publicación con el 18 sep, y la administración mira desde Ciudad de México: el comunicado de
+  prueba (05:28 UTC, 00:28 en Bogotá, 23:28 del 17 en México) decía «Sin registro» para siempre.
+  Arreglado en `2dddfc2`: el registro empieza en **un instante**, 03:35 UTC del 18 —el front sirvió hacia
+  las 03:28–03:30, y se elige tarde a propósito—. Visto después: **«1 persona»**. Con esto **las seis de
+  la fase 6 están vistas en producción**.
 
 **Bloque 3 · PQRS y comunicados (`L-21`, `L-13`) — hecho en local, sin commit:**
 
