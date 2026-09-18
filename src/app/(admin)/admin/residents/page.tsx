@@ -64,6 +64,7 @@ import { DEFAULT_TOWER, distinctTowers, normalizeTower } from "@/utils/tower";
 import { ETIQUETA_DE_TIPO, TIPOS_DE_UNIDAD, rotuloDeTipo } from "@/lib/units/tipos";
 import { DuplicatePeoplePanel } from "@/components/features/admin/residents/DuplicatePeoplePanel";
 import { DuplicateUnitsPanel } from "@/components/features/admin/residents/DuplicateUnitsPanel";
+import { DuenosConVariasUnidadesPanel } from "@/components/features/admin/residents/DuenosConVariasUnidadesPanel";
 
 export default function AdminResidentsPage() {
   const { user } = useAuth();
@@ -1181,6 +1182,9 @@ export default function AdminResidentsPage() {
       {padronSinDuplicados ? (
         <DuplicatePeoplePanel tenantId={user?.tenantId} people={people} units={units} />
       ) : null}
+      {/* `L-07`: va DEBAJO del panel de duplicados a propósito — el aviso se lee después de ver la
+          propuesta de fusión, que es donde está el riesgo. */}
+      <DuenosConVariasUnidadesPanel people={people} units={units} />
 
       <Card>
         <CardTitle help="El inventario de apartamentos, locales o casas del conjunto. Cada unidad es el punto de anclaje para cobros, residentes, reservas y PQRS. Mantén este listado preciso y todo lo demás fluye con consistencia.">Unidades</CardTitle>

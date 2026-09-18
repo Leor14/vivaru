@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { useAuth } from "@/features/auth/auth-context";
 import { confirmPackageReceived, usePackages } from "@/features/packages/use-packages";
+import { textoDeEntrega, textoDeLlegada } from "@/features/packages/llegada-del-paquete";
 import { remindPackagePickupCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { PackageItem } from "@/types/domain";
@@ -262,8 +263,9 @@ export default function AdminPackagesPage() {
             <tr>
               <th className="px-3 py-2 font-medium">Destinatario / Unidad</th>
               <th className="px-3 py-2 font-medium">Descripción</th>
+              <th className="px-3 py-2 font-medium">Llegada</th>
               <th className="px-3 py-2 font-medium">Recibido por</th>
-              <th className="px-3 py-2 font-medium">Fecha recepción</th>
+              <th className="px-3 py-2 font-medium">Fechas</th>
               <th className="px-3 py-2 font-medium">Estado</th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
             </tr>
@@ -271,12 +273,12 @@ export default function AdminPackagesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-4 text-[var(--slate-600)]">Cargando paquetería...</td>
+                <td colSpan={7} className="px-3 py-4 text-[var(--slate-600)]">Cargando paquetería...</td>
               </tr>
             ) : null}
             {!loading && filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-4">
+                <td colSpan={7} className="px-3 py-4">
                   <EmptyState
                     title={hasActiveFilters ? "Sin resultados" : "Sin paquetes"}
                     description={
@@ -293,6 +295,10 @@ export default function AdminPackagesPage() {
                 unitLabel: item.unitLabel,
                 personName: item.residentName || item.recipientName,
               });
+              const entrega = textoDeEntrega({
+                fecha: item.deliveredAt ? formatDate(item.deliveredAt) : null,
+                quien: item.deliveredToName,
+              });
               return (
                 <tr key={item.id} className="border-t border-[var(--slate-200)] align-top">
                   <td className="px-3 py-2">
@@ -303,8 +309,14 @@ export default function AdminPackagesPage() {
                     <p className="mt-0.5 text-[11px] text-[var(--slate-500)]">{item.reference || `PK-${item.id.slice(0, 6).toUpperCase()}`}</p>
                   </td>
                   <td className="px-3 py-2 text-[var(--slate-700)]">{item.description?.trim() || "Sin descripción"}</td>
+                  {/* `L-20`: los paquetes anteriores al 17 sep 2026 no traen empresa ni estado; se escribe «—». */}
+                  <td className="px-3 py-2 text-[var(--slate-700)]">{textoDeLlegada(item) ?? "—"}</td>
                   <td className="px-3 py-2 text-[var(--slate-700)]">{resolveGuardName(item)}</td>
-                  <td className="px-3 py-2 text-[var(--slate-700)]">{formatDate(item.arrivedAt)}</td>
+                  <td className="px-3 py-2 text-[var(--slate-700)]">
+                    <p>Recibido {formatDate(item.arrivedAt)}</p>
+                    {/* La entrega ya se guardaba y no se veía: fecha, hora y a quién. */}
+                    {entrega ? <p className="mt-0.5 text-[11px] text-[var(--slate-500)]">Entregado {entrega}</p> : null}
+                  </td>
                   <td className="px-3 py-2">
                     <StatusBadge status={item.status} context="package" />
                   </td>

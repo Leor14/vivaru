@@ -44,10 +44,13 @@ cinco defectos de acceso y **los estados que salían en inglés** en las insigni
 «Archived» al archivar un comunicado.
 
 **Lo que sigue, por qué lo frena:**
-- **Construible ya, sin planificar (7):** `L-22`, `L-23` —su parte de defecto, `D-1`, ya está—, `L-24`,
-  `L-07`, `L-20`, `L-21` y `L-13`.
-- **Espera una decisión (12):** `L-17` (el más barato: media hora en cuanto haya nombre), `L-08b`,
-  `L-18`, `L-03`, `L-06`, `L-32`, `L-15`, `L-09`, `L-19`, `L-14`, `L-10` y `L-16`.
+- **Construidas y sin desplegar (4):** `L-22` y `L-24` (bloque 1, en `develop`), `L-20` y `L-07`
+  (bloque 2, sin commit). **Nadie las ha visto en producción**, y hasta entonces no cuentan como
+  cerradas.
+- **Construible ya, sin planificar (2):** `L-21` y `L-13`.
+- **Espera una decisión (13):** `L-17` (el más barato: media hora en cuanto haya nombre), `L-23` (el
+  canal de correo, reclasificada el 17 sep), `L-08b`, `L-18`, `L-03`, `L-06`, `L-32`, `L-15`, `L-09`,
+  `L-19`, `L-14`, `L-10` y `L-16`.
 - **Descartadas por ahora (6):** `L-26`, `L-30`, `L-25`, `L-28`, `L-05` y `L-01b`.
 - **Terceros (2):** `L-31` (la ficha de Google de cada edificio) y `L-32b` (el chatbot, que se parte antes
   de valorarlo).
@@ -62,14 +65,21 @@ propio análisis: el coeficiente y la cuota en la carga masiva (~1,7 h, sin valo
 
 ### 0.1 El tablero de las 36 — una fila por petición, con su estado
 
-**Leyenda:** ✅ construida y cerrada (en producción, vista en pantalla) · 🟢 se puede ya (nada la frena
-salvo el turno) · 🟡 espera una decisión de David · ◇ descartada por ahora · ⏸ espera a un tercero.
+**Leyenda:** ✅ construida y cerrada (en producción, vista en pantalla) · 🔵 **construida y sin
+desplegar** (el código existe; no está en producción ni se ha visto en pantalla) · 🟢 se puede ya (nada
+la frena salvo el turno) · 🟡 espera una decisión de David · ◇ descartada por ahora · ⏸ espera a un
+tercero.
+
+> **El 🔵 nació el 17 de septiembre por la tarde, y hace falta precisamente porque ✅ mentiría.** Cuatro
+> peticiones están construidas y probadas en local y **no las ha visto nadie en producción**; llamarlas
+> «cerradas» es el error que este documento le señala a la ficha de una PRD.
 
 | Estado | Cuántas |
 |---|---|
 | ✅ Construidas y cerradas | **9** |
-| 🟢 Se puede ya, sin planificar | **7** |
-| 🟡 Espera una decisión | **12** |
+| 🔵 Construidas, sin desplegar | **4** |
+| 🟢 Se puede ya, sin planificar | **2** |
+| 🟡 Espera una decisión | **13** |
 | ◇ Descartada por ahora | **6** |
 | ⏸ Espera a un tercero | **2** |
 | **Total del documento** | **36** |
@@ -82,7 +92,7 @@ salvo el turno) · 🟡 espera una decisión de David · ◇ descartada por ahor
 | **L-04** | «No es porcentaje de copropiedad: es coeficiente» | 2 | ✅ | Fase 5: `country: CO` y `currency: COP` en Santa María |
 | **L-05** | Exención de bloqueo por deuda, también en parqueadero | 2 | ◇ | Depende de `A8`; 3,75 h y 0,76 de puntuación |
 | **L-06** | Tres figuras: propietario, residente y administrador del apartamento | 3 | 🟡 | ¿Recibe cobros, avisos o acceso? |
-| **L-07** | Ver las unidades de un mismo dueño | 4 | 🟢 | 1,0 h |
+| **L-07** | Ver las unidades de un mismo dueño | 4 | 🔵 | Fase 6 bloque 2: «Dueños con varias unidades», de solo lectura. **Sin desplegar** |
 | **L-08a** | Registrar la salida del visitante frecuente *(defecto)* | 4 | ✅ | Fase 4 (`eda51ad`), con la vigencia comprobada en la regla |
 | **L-08b** | Que el residente cree su propio visitante frecuente | 4 | 🟡 | ¿Puede hacerlo él solo? |
 | **L-09** | Foto del visitante para que el dueño apruebe | 4 | 🟡 | Cómo la lee el residente y cuánto se guarda |
@@ -96,12 +106,12 @@ salvo el turno) · 🟡 espera una decisión de David · ◇ descartada por ahor
 | **L-17** | Un nombre más cercano para Encuestas | 6 | 🟡 | **El más barato: media hora en cuanto elijas el nombre** |
 | **L-18** | «En propiedad horizontal nadie firma esos documentos» | 7 | 🟡 | El valor por defecto por país, y qué pasa con los acuerdos |
 | **L-19** | Reservas con valor, depósito, aforo y protocolo | 7 | 🟡 | ¿El valor informa o genera un cargo? |
-| **L-20** | Paquetería: quién lo trajo, en qué estado y el protocolo | 8 | 🟢 | 1,2 h |
+| **L-20** | Paquetería: quién lo trajo, en qué estado y el protocolo | 8 | 🔵 | Fase 6 bloque 2: empresa, estado de llegada y la entrega a la vista. **El protocolo, no** (pide otra carpeta del sistema). **Sin desplegar** |
 | **L-21** | PQRS: evidencia de la solución y descargar en Excel | 9 | 🟢 | 1,8 h |
 | **L-21d** | PQRS enseña un id crudo y «Residente» *(defecto)* | 9 | ✅ | Fase 4 (`eda51ad`); en producción salen «T1-403» y los nombres |
-| **L-22** | Subir el informe del contador sobre la cartera | 9 | 🟢 | 0,85 h — la mejor puntuación de lo que queda (3,65) |
-| **L-23** | Correo de cobro a todos los deudores | 9 | 🟢 | Su defecto `D-1` **ya está** (fase 2); el correo, no |
-| **L-24** | Tendencia de cartera mensual y acumulada | 9 | 🟢 | 0,9 h |
+| **L-22** | Subir el informe del contador sobre la cartera | 9 | 🔵 | Fase 6 bloque 1 (`3ed097a`). **Sin desplegar**: pide reglas de Storage y una function |
+| **L-23** | Correo de cobro a todos los deudores | 9 | 🟡 | **Reclasificada el 17 sep:** su defecto `D-1` ya está, pero el canal de correo está cerrado por decisión y en Santa María **12 de 14 direcciones no reciben** |
+| **L-24** | Tendencia de cartera mensual y acumulada | 9 | 🔵 | Fase 6 bloque 1 (`3ed097a`): **la mensual ya existía**; se añadió la acumulada. **Sin desplegar** |
 | **L-25** | Consumo de zonas comunes con tendencia | 9–10 | ◇ | 2,0 h y 1,05 de puntuación |
 | **L-26** | Matriz de mantenimientos para el consejo | 10 | ◇ | 2,6 h y 1,3 |
 | **L-27** | Presupuesto del año, privado del administrador | 11 | ✅ | Fase 5: encendido en Santa María y visto abriendo |

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { createGuardPackage } from "@/features/packages/use-packages";
+import { CONDICIONES_DE_LLEGADA, type CondicionDeLlegada } from "@/features/packages/llegada-del-paquete";
 import { usePackageDirectory } from "@/features/security-guard/use-package-directory";
 
 export function GuardPackageRegister({ tenantId, userId, guardName }: { tenantId?: string; userId?: string; guardName?: string }) {
@@ -16,6 +17,12 @@ export function GuardPackageRegister({ tenantId, userId, guardName }: { tenantId
   const [unitId, setUnitId] = useState("");
   const [residentId, setResidentId] = useState("");
   const [description, setDescription] = useState("");
+  // `L-20`: la empresa es texto libre —la lista de transportadoras cambia por ciudad— y el estado de
+  // llegada es vocabulario cerrado. **El estado es obligatorio y la empresa no**: es lo que la
+  // administradora necesita para reclamar, es un toque, y preseleccionarlo «En buen estado» sería
+  // afirmar por el guardia algo que no miró.
+  const [carrier, setCarrier] = useState("");
+  const [condition, setCondition] = useState<CondicionDeLlegada | "">("");
   const [saving, setSaving] = useState(false);
 
   const unitsByTower = useMemo(
@@ -32,7 +39,7 @@ export function GuardPackageRegister({ tenantId, userId, guardName }: { tenantId
   const selectedResident = useMemo(() => residentsByUnit.find((item) => item.id === residentId) ?? null, [residentsByUnit, residentId]);
 
   const canSubmit =
-    Boolean(towerId && unitId && residentId && description.trim()) &&
+    Boolean(towerId && unitId && residentId && description.trim() && condition) &&
     !saving &&
     !loadingDirectory;
 
@@ -53,8 +60,8 @@ export function GuardPackageRegister({ tenantId, userId, guardName }: { tenantId
       return;
     }
 
-    if (!selectedUnit || !selectedResident || !description.trim() || !towerId) {
-      toast.error("Completa torre, unidad, residente y descripcion.");
+    if (!selectedUnit || !selectedResident || !description.trim() || !towerId || !condition) {
+      toast.error("Completa torre, unidad, residente, descripcion y estado de llegada.");
       return;
     }
 
@@ -70,11 +77,15 @@ export function GuardPackageRegister({ tenantId, userId, guardName }: { tenantId
         residentId: selectedResident.id,
         residentName: selectedResident.fullName,
         description,
+        carrier,
+        condition,
       });
       setTowerId("");
       setUnitId("");
       setResidentId("");
       setDescription("");
+      setCarrier("");
+      setCondition("");
       toast.success("Paquete registrado correctamente.");
     } catch (error) {
       toastFirebaseError(error);
@@ -124,6 +135,27 @@ export function GuardPackageRegister({ tenantId, userId, guardName }: { tenantId
           <option value="">Selecciona residente</option>
           {residentsByUnit.map((residentOption) => (
             <option key={residentOption.id} value={residentOption.id}>{residentOption.fullName}</option>
+          ))}
+        </select>
+
+        <input
+          value={carrier}
+          onChange={(event) => setCarrier(event.target.value)}
+          placeholder="Empresa que lo deja (opcional): Servientrega, Rappi..."
+          maxLength={60}
+          disabled={saving}
+          className="h-12 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+        />
+
+        <select
+          value={condition}
+          onChange={(event) => setCondition(event.target.value as CondicionDeLlegada | "")}
+          className="h-12 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+          disabled={saving}
+        >
+          <option value="">Estado en que llega</option>
+          {CONDICIONES_DE_LLEGADA.map((opcion) => (
+            <option key={opcion.clave} value={opcion.clave}>{opcion.etiqueta}</option>
           ))}
         </select>
 

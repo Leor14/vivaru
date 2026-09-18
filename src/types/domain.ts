@@ -315,6 +315,12 @@ export interface PackageItem {
   description?: string;
   receivedByGuardId?: string;
   receivedByGuardName?: string;
+  /**
+   * `L-20`: qué empresa lo trajo y en qué estado llegó. Opcionales porque los 223 paquetes anteriores
+   * al 17 sep 2026 no los traen — ver `features/packages/llegada-del-paquete.ts`.
+   */
+  carrier?: string;
+  condition?: string;
   status: "pending" | "delivered";
   arrivedAt: string;
   registeredBy?: string;

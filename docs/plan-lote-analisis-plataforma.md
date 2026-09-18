@@ -404,7 +404,7 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   decisión, y en Santa María **12 de 14 direcciones no reciben**. Construir el correo sin decidir eso
   sería poner un botón que manda rebotes. **Pasa a esperar una decisión de David.**
 
-**Bloque 1 · Cartera — hecho en local, sin commit ni despliegue:**
+**Bloque 1 · Cartera — en `develop` (`3ed097a`), SIN desplegar:**
 - **`L-24`:** `acumularTendencia` y `acumuladoDelAnio` viven junto a `buildBillingTrend` —si cambia
   cómo se suma un período, cambian las dos lecturas a la vez—. La pantalla tiene un selector
   «Mes a mes / Acumulada» y tres tarjetas del año en curso, con su propio rango (enero a diciembre),
@@ -419,7 +419,42 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   en la jornada: se levantó el emulador de Storage, que es lo que dejaba rojo `storage.rules.test.ts`—,
   typechecks en 0 y `functions/lib` recompilado.
 - **Orden de despliegue: reglas de Storage → functions → front.** Las tres piezas amplían, y el botón
-  no funciona hasta que están las dos primeras.
+  no funciona hasta que están las dos primeras. **Sigue pendiente**: espera el sí de David.
+
+**Bloque 2 · Operación diaria (`L-20`, `L-07`) — hecho en local, sin commit:**
+
+*Lo que salió al medir, y otra vez cambia el alcance:*
+- **`L-20` estaba a medias en el dato, no en la pantalla.** De las cuatro cosas que pide la pág. 8, los
+  **223 paquetes de producción ya guardaban** la fecha de llegada, la de entrega y a quién
+  (`arrivedAt`, `deliveredAt`, `deliveredToName`) — **y la tabla del administrador no enseñaba la
+  entrega**. Lo que no existía es **la empresa** y **el estado de llegada**. Clase «existe y no se ve»,
+  la segunda del lote.
+- **`L-07` casi no tiene sujeto en los datos: de 202 personas, solo 47 traen documento**, y hay un
+  documento con dos unidades. **Y algo más serio, que no estaba en la ficha: una persona guarda UNA
+  unidad**, así que un dueño de tres aparece como tres personas — **y el panel de duplicados invita a
+  fusionarlas, que le quitaría dos unidades**.
+
+*Lo construido:*
+- **`L-20`:** el vocabulario en `features/packages/llegada-del-paquete.ts`. **La condición es cerrada
+  (cuatro claves) y la empresa es libre**: la lista de transportadoras cambia por ciudad y no hay
+  catálogo que mantener; el estado, en cambio, es lo que se podrá filtrar y contar el día que haya
+  volumen. En el formulario de portería **el estado es obligatorio y la empresa no** —es un toque, y
+  preseleccionar «En buen estado» sería afirmar por el guardia algo que no miró—. La tabla del
+  administrador gana la columna **«Llegada»** y la celda de fechas dice **«Recibido …» y «Entregado …
+  a …»**. Los 223 paquetes anteriores escriben **«—»**: inventar un estado de llegada sería peor que
+  no decirlo. **Las reglas no cambian**: `packages` no tiene `hasOnly` en el `create`, comprobado.
+- **`L-07`:** «Dueños con varias unidades» en el padrón, **sin una sola acción, y eso es la decisión**.
+  Agrupa por documento cuando lo hay y por nombre normalizado cuando no, y **avisa en pantalla de que
+  no se fusionen** — el panel de duplicados de al lado propondría justo eso. El guardián de la
+  decisión enrojece si alguien le pone un botón o una callable.
+- **Bancos:** app **2177** (17 nuevas), typechecks en 0. Reglas y functions **no se tocaron**.
+  **Falsación en seis variantes** —el texto de llegada devolviendo cadena vacía, el estado dejando de
+  ser obligatorio, el `colSpan` viejo, el nombre ganándole al documento, el filtro de dos unidades y
+  un botón en el panel—: en cada una enrojece solo lo suyo, y los cinco ficheros vuelven con el mismo
+  `shasum`.
+- **Orden de despliegue: solo front.** No hay reglas ni functions en este bloque.
+- **Lo que no puede ver una suite:** el estado de llegada pide una sesión de portería, y la columna
+  nueva, mirar la tabla con paquetes entregados.
 
 ### Fase 5 · Datos de producción *(cada paso con su permiso; ~1 h)*
 

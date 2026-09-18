@@ -58,6 +58,9 @@ export async function createPackage(input: {
   unitLabel: string;
   reference: string;
   description?: string;
+  /** `L-20`: la empresa que lo trajo y el estado en que llegó. */
+  carrier?: string;
+  condition?: string;
   registeredByName?: string;
 }) {
   const derivedUnitId =
@@ -72,6 +75,10 @@ export async function createPackage(input: {
     unitLabel: input.unitLabel,
     reference: input.reference,
     description: input.description?.trim() || "",
+    // `L-20`: solo se escriben si vienen. Un paquete sin empresa no guarda una cadena vacía que
+    // después habría que distinguir de «no se preguntó».
+    ...(input.carrier?.trim() ? { carrier: input.carrier.trim() } : {}),
+    ...(input.condition ? { condition: input.condition } : {}),
     status: "pending",
     arrivedAt: new Date().toISOString(),
     registeredBy: input.userId,
@@ -89,6 +96,9 @@ export async function createGuardPackage(input: {
   residentId: string;
   residentName: string;
   description: string;
+  /** `L-20`: qué empresa lo deja y en qué estado llega. */
+  carrier?: string;
+  condition?: string;
 }) {
   const cleanTowerId = input.towerId.trim();
   const cleanUnitId = input.unitId.trim();
@@ -108,6 +118,8 @@ export async function createGuardPackage(input: {
     tower: towerValue?.trim() || cleanTowerId,
     unit: unitValue?.trim() || cleanUnitLabel,
     description: cleanDescription,
+    ...(input.carrier?.trim() ? { carrier: input.carrier.trim() } : {}),
+    ...(input.condition ? { condition: input.condition } : {}),
     reference: `PK-${Date.now()}`,
     status: "pending",
     arrivedAt: new Date().toISOString(),
