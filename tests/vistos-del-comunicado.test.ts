@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// «Antes del registro» se decide por el día LOCAL: en UTC, un comunicado publicado el 17 a las
-// 19:00 de Bogotá ya sería del 18 y dejaría de decir «sin registro».
+// «Antes del registro» se decide por un INSTANTE, no por el día local. La zona se fija aquí igualmente
+// y una prueba la cambia a propósito: es lo que cazó el defecto de la primera versión.
 process.env.TZ = "America/Bogota";
 
 import {
@@ -71,17 +71,41 @@ describe("L-13 · cuántas personas vieron un comunicado", () => {
   });
 
   it("un comunicado anterior al registro dice «sin registro», no cero", () => {
-    // Los 40 publicados antes del 18 sep enseñarían 0 sin significar que nadie los vio.
+    // Los publicados antes de que empezara el registro enseñarían 0 sin significar que nadie los vio.
     expect(anteriorAlRegistro("2026-09-15T12:00:00.000Z")).toBe(true);
-    expect(anteriorAlRegistro(`${LECTURAS_DESDE}T12:00:00.000Z`)).toBe(false);
+    expect(anteriorAlRegistro("2026-09-18T03:34:59.000Z")).toBe(true);
+    expect(anteriorAlRegistro(LECTURAS_DESDE)).toBe(false);
     expect(anteriorAlRegistro("2026-09-20T12:00:00.000Z")).toBe(false);
     expect(anteriorAlRegistro(undefined)).toBe(false);
     expect(anteriorAlRegistro("no es fecha")).toBe(false);
   });
 
-  it("compara por el día LOCAL: el 17 a las 19:00 de Bogotá sigue siendo el 17", () => {
-    // En UTC eso ya es el 18 y el comunicado dejaría de declararse «sin registro».
-    expect(anteriorAlRegistro("2026-09-18T00:30:00.000Z")).toBe(true);
+  /**
+   * **El caso real que tumbó la primera versión** (18 sep 2026): el comunicado de prueba se publicó a
+   * las 05:28 UTC —00:28 en Bogotá, 23:28 del 17 en Ciudad de México—, y la administración, que mira
+   * desde México, lo veía «Sin registro» para siempre. Comparando el día local, la respuesta dependía
+   * del país del navegador.
+   */
+  it("da la MISMA respuesta desde Bogotá y desde Ciudad de México", () => {
+    const publicado = "2026-09-18T05:28:18.731Z";
+    const zonaOriginal = process.env.TZ;
+    try {
+      process.env.TZ = "America/Bogota";
+      const desdeBogota = anteriorAlRegistro(publicado);
+      process.env.TZ = "America/Mexico_City";
+      const desdeMexico = anteriorAlRegistro(publicado);
+      expect(desdeBogota).toBe(false);
+      expect(desdeMexico).toBe(false);
+    } finally {
+      process.env.TZ = zonaOriginal;
+    }
+  });
+
+  it("el registro empieza en un instante, y es DESPUÉS de que el front de producción sirviera", () => {
+    // `rollout-2026-09-18-002` se creó a las 03:22:30 UTC y la regla salió a las 03:20:18: un instante
+    // anterior daría por completo un conteo al que le faltan vistas.
+    expect(new Date(LECTURAS_DESDE).getTime()).toBeGreaterThan(new Date("2026-09-18T03:22:30.000Z").getTime());
+    expect(LECTURAS_DESDE).toMatch(/Z$/);
   });
 
   it("acepta un Timestamp de Firestore, que es lo que llega de la base", () => {

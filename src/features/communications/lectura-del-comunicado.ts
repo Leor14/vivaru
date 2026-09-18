@@ -14,13 +14,24 @@
  * es haber visto los cuarenta. No es «lo leyó» —eso no lo puede saber ningún software— y la
  * pantalla lo dice con esas palabras.
  *
- * **Y el registro empieza el 18 de septiembre de 2026.** Los 40 comunicados publicados antes van a
- * enseñar cero, y eso **no es que nadie los viera**: es que nadie lo estaba anotando. Decirlo en
- * pantalla es la diferencia entre un dato y una conclusión falsa.
+ * **Y el registro empieza en un INSTANTE, no un día.** Los comunicados publicados antes van a enseñar
+ * cero, y eso **no es que nadie los viera**: es que nadie lo estaba anotando. Decirlo en pantalla es la
+ * diferencia entre un dato y una conclusión falsa.
+ *
+ * **La primera versión comparaba el DÍA local con el 18 sep, y estaba mal.** El día depende de la zona
+ * de quien mira: el comunicado de prueba se publicó a las 05:28 UTC del 18 —las 00:28 en Bogotá—, y el
+ * navegador de la administración, en Ciudad de México, lo veía publicado el **17** y lo marcaba «Sin
+ * registro» para siempre. Una misma pantalla decía cosas distintas según el país del que miraba. El
+ * registro empezó cuando el front de producción sirvió con su regla, y eso es un instante.
  */
 
-/** El día en que empezó a anotarse. Anterior a esto, un cero no significa nada. */
-export const LECTURAS_DESDE = "2026-09-18";
+/**
+ * El instante desde el que se anota. Producción empezó a servir el front de `L-13` hacia las
+ * 03:28–03:30 UTC del 18 sep 2026 (`rollout-2026-09-18-002`, creado a las 03:22:30; la regla, a las
+ * 03:20:18). **Se elige 03:35 a propósito, tarde:** un instante tardío solo hace decir «Sin registro» a
+ * un comunicado que sí se contó; uno temprano haría pasar por completo un conteo al que le faltan vistas.
+ */
+export const LECTURAS_DESDE = "2026-09-18T03:35:00.000Z";
 
 export type LecturaDeComunicado = {
   id: string;
@@ -78,8 +89,8 @@ export function textoDeVistos(total: number): string {
 }
 
 /**
- * ¿Se publicó antes de que existiera el registro? Compara por DÍA y con la fecha local, que es la
- * que ve quien mira la pantalla.
+ * ¿Se publicó antes de que existiera el registro? Compara **instantes**, así que da lo mismo desde qué
+ * zona horaria se mire.
  */
 export function anteriorAlRegistro(publishedAt: unknown, desde = LECTURAS_DESDE): boolean {
   if (!publishedAt) return false;
@@ -88,7 +99,5 @@ export function anteriorAlRegistro(publishedAt: unknown, desde = LECTURAS_DESDE)
       ? (publishedAt as { toDate: () => Date }).toDate()
       : new Date(String(publishedAt));
   if (Number.isNaN(fecha.getTime())) return false;
-  const dos = (n: number) => String(n).padStart(2, "0");
-  const dia = `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
-  return dia < desde;
+  return fecha.getTime() < new Date(desde).getTime();
 }

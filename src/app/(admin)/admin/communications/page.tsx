@@ -444,9 +444,10 @@ export default function AdminCommunicationsPage() {
     },
     {
       /**
-       * `L-13` — cuántas personas lo vieron. **Un cero de antes del 18 de septiembre de 2026 no es
-       * «nadie lo vio»: es que nadie lo estaba anotando**, así que esos comunicados dicen «sin
-       * registro» y no un número que se leería como un fracaso de la administración.
+       * `L-13` — cuántas personas lo vieron. **Un cero de antes de que empezara el registro (03:35 UTC
+       * del 18 sep 2026, un instante y no un día: ver `LECTURAS_DESDE`) no es «nadie lo vio»: es que
+       * nadie lo estaba anotando**, así que esos comunicados dicen «sin registro» y no un número que se
+       * leería como un fracaso de la administración.
        */
       key: "vistos",
       header: "Vistos",
