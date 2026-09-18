@@ -89,13 +89,13 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 
   | Banco | Comando | Última medición |
   |---|---|---|
-  | App | `npm test` | **2144** (17 sep 2026) |
-  | Functions | `npm --prefix functions test` | **1084** (17 sep 2026) |
-  | Reglas | `npm run test:rules:all` | **616** (17 sep 2026) *(pide emulador; medido con solo Firestore, así que `storage.rules.test.ts` va aparte)* |
-  | Emulador de functions | `npm --prefix functions run test:emulator` | **379 de 381**, pero es de `ba98abe` y **`functions/src` cambió el 15 sep** (`onCommunicationCreated`, `D-2`): **hay que volver a contarlo** *(pide emulador)* |
+  | App | `npm test` | **2216** (17 sep 2026, noche) |
+  | Functions | `npm --prefix functions test` | **1084** (17 sep 2026, noche) |
+  | Reglas | `npm run test:rules:all` | **685** (17 sep 2026, noche) *(pide emulador: Firestore **y** Storage)* |
+  | Emulador de functions | `npm --prefix functions run test:emulator` | **384 de 386** (17 sep 2026, noche) *(pide emulador)* |
 
   **Los dos rojos del último son PREEXISTENTES**: `CA12` y `D-B` en
-  `payments.emulator.test.ts`. Confirmados **por nombre** el 12 de septiembre de 2026.
+  `payments.emulator.test.ts`. Confirmados **por nombre** el 12 y otra vez el 17 de septiembre de 2026.
 
   **Este bloque llegó a apilar CINCO épocas de cifras** —1348, 1449, 1510, 1789…— y así no se
   puede saber cuál manda. Se reescribe entero cada vez, como la cabecera de `pendientes.md`.

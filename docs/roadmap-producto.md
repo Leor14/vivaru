@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.80 |
-| **Fecha** | 17 de septiembre de 2026, noche |
-| **Estado** | **El lote «Análisis de la plataforma» está ENTERO EN PRODUCCIÓN, y es el primer frente que sale del modelo de priorización.** Las cinco fases, verificadas en pantalla los días 15–17 de septiembre: **los cuatro defectos obligatorios más `D-2c`** —la audiencia de un comunicado se respeta ahora en la regla del servidor, el aviso llega solo a su audiencia, el aviso de mora de Cartera va a las unidades elegidas, la categoría de un documento es obligatoria, y el adjunto de un comunicado dirigido dejó de colarse por Documentos—; **el lote XS** (colores, plantillas de carga masiva en Excel, «la portería tiene su propio panel», la fecha de publicación, tildes y los estados que salían en inglés); **los tres defectos construibles** (`L-21d` el nombre de la unidad en PQRS, `L-08a` la salida del visitante frecuente, `L-29` qué guarda abrió la puerta); y **los dos cambios de dato** de Santa María (`country: CO`, `currency: COP` y el presupuesto encendido). **De las 36 necesidades del análisis, 9 están resueltas y 27 esperan**: 10 se pueden construir ya, 12 esperan una decisión de producto —el freno que más pesa—, 2 esperan dato o permiso y 2 a un tercero. **Lo que enseñó la jornada**: un campo puede escribirse bien y no llegar a la pantalla —`normalizeVisitorPass` arma el pase campo por campo y el autor de la puerta se quedaba fuera—, y «SUCCEEDED» no es «sirviendo». El menú vivo, en `docs/pendientes.md` |
-| **Verificado contra** | **Los servicios, a las 23:37 UTC del 17.** `master` en `4fc35ca` (la app del lote) y `develop` en `b3c2abd` (notas). Producción sirve `build-2026-09-17-002` desde `4fc35ca`; staging, `build-2026-09-17-004` desde `7adfb66`. Rulesets **`c8189e65`** en producción y **`d246465c`** en staging, los dos «idéntico al repo: SÍ» con `verificar-reglas-desplegadas.mjs`. De functions se desplegó **solo `onCommunicationCreated`** (revisiones `-00035` y `-00028`, las dos `ACTIVE`). Datos medidos el 17, no citados: **0 de 42 comunicados sin audiencia** en cada ambiente; **6 de 54 tickets** de PQRS con la unidad como id crudo antes del arreglo, y **309 ingresos y 301 salidas** de portería sin autor; **6 de 10 conjuntos sin `currency`**, con el formateador cayendo a COP. Bancos contados el 17: `npm test` **2144**, functions **1084**, reglas **616** (sin Storage); el del emulador de functions **está por contar** desde `ba98abe`, porque `functions/src` cambió en la fase 2 |
+| **Versión** | 0.9.81 |
+| **Fecha** | 17 de septiembre de 2026, madrugada del 18 en UTC |
+| **Estado** | **El grupo A del lote «Análisis de la plataforma» está construido ENTERO y en producción, y visto en pantalla salvo un paso.** A las cinco fases se sumó la **fase 6, las siete «se puede ya» en tres bloques**: Cartera (`L-24` la lectura acumulada, `L-22` el informe del contador), operación diaria (`L-20` la llegada del paquete, `L-07` los dueños con varias unidades) y PQRS y comunicados (`L-21` evidencia y Excel, `L-13` quién vio un comunicado). **`L-23` pasó a decisión**: le falta el canal de correo. **Tablero de las 36: 14 ✅ · 1 🔵 · 13 🟡 · 6 ◇ · 2 ⏸** — el 🔵 es `L-13`, al que le falta ver el número con un comunicado del 18 en adelante. **Lo que queda del lote ya no es código: son trece decisiones de David.** **Lo que enseñó la jornada:** mirar la pantalla en producción cazó que `L-07` afirmaba un dueño que eran dos personas con el documento de relleno `65465465`, con 17 pruebas en verde (arreglado en `4c178a4`); y dos rondas de falsación acumularon cambios rotos porque el respaldo no se hizo — se deshicieron y se comprobaron contra el commit. El menú vivo, en `docs/pendientes.md` |
+| **Verificado contra** | **Los servicios, la noche del 17.** `master` y `develop` en `4c178a4`. Producción sirve `build-2026-09-18-003` y staging `build-2026-09-18-004`, los dos desde `4c178a4`, por `traffic.current`. Reglas de Firestore **`7f8f4870`** (producción) y **`1779f333`** (staging); de Storage **`b2d70972`** y **`2a907817`**; las cuatro «idéntico al repo: SÍ». `ensureSystemFolder` `-00027` y `ACTIVE` en los dos. Datos medidos, no citados: **54 tickets de PQRS y 0 con adjunto** antes de `L-21`; **156 avisos de comunicado con el mismo enlace**, por lo que no servían para `L-13`; **223 paquetes** con fecha y entrega guardadas y sin empresa ni estado; **47 de 202 personas con documento**. Bancos contados la noche del 17: `npm test` **2216**, functions **1084**, reglas **685**, emulador de functions **384 de 386** (los dos rojos, `CA12` y `D-B`, preexistentes y confirmados por nombre) |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -206,10 +206,11 @@ necesidades** —eran 32 antes de que cuatro se partieran en dos al valorarlas�
 el **modelo de priorización** (`docs/modelo-de-priorizacion.md`, v0.4) y la skill `valorar-iniciativa-vivaru`: seis agentes leyeron el código, uno por bloque de módulos.
 David decidió que ella **cuenta como prospecto**.
 
-**ESTADO AL 17 DE SEPTIEMBRE: las cinco fases del plan están en producción y verificadas en pantalla.**
-Resueltas: los cuatro defectos obligatorios, `D-2c`, el lote XS con los estados en inglés, `L-21d`,
-`L-08a`, `L-29`, `L-04` y `L-27`. Lo que queda son siete del grupo A sin planificar, doce decisiones de
-David, seis descartadas por ahora y dos que esperan a un tercero.
+**ESTADO A LA NOCHE DEL 17 DE SEPTIEMBRE: las seis fases del plan están en producción.** Resueltas y
+vistas en pantalla: los cuatro defectos obligatorios, `D-2c`, el lote XS con los estados en inglés,
+`L-21d`, `L-08a`, `L-29`, `L-04`, `L-27` y, de la fase 6, `L-22`, `L-24`, `L-20`, `L-07` y `L-21`.
+`L-13` está en producción con la anotación validada y le falta ver el número. **Lo que queda son trece
+decisiones de David** (`L-23` entre ellas), seis descartadas por ahora y dos que esperan a un tercero.
 
 **Dónde está el detalle.**
 - Las 31 fichas puntuadas: `docs/valoraciones/lote-2026-09-15-analisis-plataforma.md`.
@@ -1347,6 +1348,19 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.81 — 17 de septiembre de 2026 (madrugada del 18 en UTC) — el grupo A del lote, construido y en producción
+
+- **La fase 6 del lote, en tres bloques y en producción:** `L-24` (acumulada de cartera; la mensual ya
+  existía), `L-22` (informe del contador, carpeta del sistema nueva y solo-administración), `L-20`
+  (empresa y estado de llegada del paquete; la entrega ya se guardaba y no se veía), `L-07` (dueños con
+  varias unidades, de solo lectura), `L-21` (evidencia de la solución en carpeta solo-administración y
+  Excel de lo filtrado; el CSV compartido con las plantillas no entrecomillaba) y `L-13` (quién vio un
+  comunicado, colección `communicationReads` con el id exigido por la regla).
+- **`L-23` pasa a decisión:** su defecto ya estaba; falta el canal de correo.
+- **Validado en pantalla en producción** con las sesiones de David. Mirar cazó que `L-07` afirmaba un
+  dueño que eran dos personas (documento de relleno `65465465`); arreglado en `4c178a4`.
+- **Tablero de las 36:** 14 ✅ · 1 🔵 · 13 🟡 · 6 ◇ · 2 ⏸.
 
 ### 0.9.80 — 17 de septiembre de 2026 (noche) — el lote «Análisis de la plataforma», entero en producción
 

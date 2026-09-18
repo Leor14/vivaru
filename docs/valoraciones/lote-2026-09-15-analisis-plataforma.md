@@ -44,9 +44,9 @@ cinco defectos de acceso y **los estados que salían en inglés** en las insigni
 «Archived» al archivar un comunicado.
 
 **Lo que sigue, por qué lo frena:**
-- **Construidas y sin desplegar (6):** `L-22`, `L-24`, `L-20` y `L-07` **en producción desde el 18
-  de septiembre y sin mirar en pantalla todavía**; `L-21` y `L-13` (bloque 3), sin commit. **Hasta
-  verlas no cuentan como cerradas.**
+- **Construidas y vistas en producción el 17 sep (5 más):** `L-22`, `L-24`, `L-20`, `L-07` y `L-21`.
+- **Construida y sin ver del todo (1):** `L-13` — la anotación se validó; falta ver el número, que pide
+  un comunicado publicado desde el 18 sep.
 - **Construible ya, sin planificar: ninguna.** El grupo A del lote queda construido entero.
 - **Espera una decisión (13):** `L-17` (el más barato: media hora en cuanto haya nombre), `L-23` (el
   canal de correo, reclasificada el 17 sep), `L-08b`, `L-18`, `L-03`, `L-06`, `L-32`, `L-15`, `L-09`,
@@ -76,8 +76,8 @@ tercero.
 
 | Estado | Cuántas |
 |---|---|
-| ✅ Construidas y cerradas | **9** |
-| 🔵 Construidas, sin desplegar | **6** |
+| ✅ Construidas y cerradas | **14** |
+| 🔵 Construidas, sin desplegar o sin ver | **1** |
 | 🟢 Se puede ya, sin planificar | **0** |
 | 🟡 Espera una decisión | **13** |
 | ◇ Descartada por ahora | **6** |
@@ -92,26 +92,26 @@ tercero.
 | **L-04** | «No es porcentaje de copropiedad: es coeficiente» | 2 | ✅ | Fase 5: `country: CO` y `currency: COP` en Santa María |
 | **L-05** | Exención de bloqueo por deuda, también en parqueadero | 2 | ◇ | Depende de `A8`; 3,75 h y 0,76 de puntuación |
 | **L-06** | Tres figuras: propietario, residente y administrador del apartamento | 3 | 🟡 | ¿Recibe cobros, avisos o acceso? |
-| **L-07** | Ver las unidades de un mismo dueño | 4 | 🔵 | Fase 6 bloque 2: «Dueños con varias unidades», de solo lectura. **Sin desplegar** |
+| **L-07** | Ver las unidades de un mismo dueño | 4 | ✅ | Fase 6 bloque 2 (`db9ede9`) y su arreglo (`4c178a4`): visto en producción el 17 sep; el primer panel afirmaba un dueño que eran dos personas con el documento de relleno `65465465` |
 | **L-08a** | Registrar la salida del visitante frecuente *(defecto)* | 4 | ✅ | Fase 4 (`eda51ad`), con la vigencia comprobada en la regla |
 | **L-08b** | Que el residente cree su propio visitante frecuente | 4 | 🟡 | ¿Puede hacerlo él solo? |
 | **L-09** | Foto del visitante para que el dueño apruebe | 4 | 🟡 | Cómo la lee el residente y cuánto se guarda |
 | **L-10** | Personal de servicios por categoría, con horarios | 4 | 🟡 | ¿Catálogo del conjunto o personal por unidad? |
 | **L-11** | Dos perfiles: administración y equipo de seguridad | 4, 7, 8 | ✅ | Fase 3: «la portería tiene su propio panel», en tres pantallas |
 | **L-12** | La fecha que pone la plataforma al publicar | 4 | ✅ | Fase 3: columna «Publicado» en Comunicaciones |
-| **L-13** | Cuántas personas vieron un comunicado | 5 | 🔵 | Fase 6 bloque 3: `communicationReads`, con «Sin registro» para los 40 de antes. **Sin desplegar** |
+| **L-13** | Cuántas personas vieron un comunicado | 5 | 🔵 | Fase 6 bloque 3 (`d102f2e`): **en producción y la anotación validada**; falta ver el número, que pide un comunicado publicado desde el 18 sep |
 | **L-14** | Dejar registro si borran un comunicado | 5 | 🟡 | Qué se conserva (choca con protección de datos) |
 | **L-15** | Clase de comunicado: noticia, general, cartera | 5 | 🟡 | La taxonomía |
 | **L-16** | Servicios como clasificados, con la unidad en arriendo o venta | 5 | 🟡 | El nombre y quién publica |
 | **L-17** | Un nombre más cercano para Encuestas | 6 | 🟡 | **El más barato: media hora en cuanto elijas el nombre** |
 | **L-18** | «En propiedad horizontal nadie firma esos documentos» | 7 | 🟡 | El valor por defecto por país, y qué pasa con los acuerdos |
 | **L-19** | Reservas con valor, depósito, aforo y protocolo | 7 | 🟡 | ¿El valor informa o genera un cargo? |
-| **L-20** | Paquetería: quién lo trajo, en qué estado y el protocolo | 8 | 🔵 | Fase 6 bloque 2: empresa, estado de llegada y la entrega a la vista. **El protocolo, no** (pide otra carpeta del sistema). **Sin desplegar** |
-| **L-21** | PQRS: evidencia de la solución y descargar en Excel | 9 | 🔵 | Fase 6 bloque 3: evidencia en carpeta solo-administración y Excel de lo filtrado. **Sin desplegar** |
+| **L-20** | Paquetería: quién lo trajo, en qué estado y el protocolo | 8 | ✅ | Fase 6 bloque 2 (`db9ede9`): visto en producción el 17 sep — «Servientrega · Dañado» en la tabla. **El protocolo, no** (pide otra carpeta del sistema) |
+| **L-21** | PQRS: evidencia de la solución y descargar en Excel | 9 | ✅ | Fase 6 bloque 3 (`d102f2e`): evidencia subida y enseñada, y el Excel real leído, en producción el 17 sep |
 | **L-21d** | PQRS enseña un id crudo y «Residente» *(defecto)* | 9 | ✅ | Fase 4 (`eda51ad`); en producción salen «T1-403» y los nombres |
-| **L-22** | Subir el informe del contador sobre la cartera | 9 | 🔵 | Fase 6 bloque 1 (`3ed097a`). **Sin desplegar**: pide reglas de Storage y una function |
+| **L-22** | Subir el informe del contador sobre la cartera | 9 | ✅ | Fase 6 bloque 1 (`3ed097a`): visto en producción el 17 sep, documento en «Informes del contador» con categoría `financiero` |
 | **L-23** | Correo de cobro a todos los deudores | 9 | 🟡 | **Reclasificada el 17 sep:** su defecto `D-1` ya está, pero el canal de correo está cerrado por decisión y en Santa María **12 de 14 direcciones no reciben** |
-| **L-24** | Tendencia de cartera mensual y acumulada | 9 | 🔵 | Fase 6 bloque 1 (`3ed097a`): **la mensual ya existía**; se añadió la acumulada. **Sin desplegar** |
+| **L-24** | Tendencia de cartera mensual y acumulada | 9 | ✅ | Fase 6 bloque 1 (`3ed097a`): **la mensual ya existía**; la acumulada, vista en producción el 17 sep |
 | **L-25** | Consumo de zonas comunes con tendencia | 9–10 | ◇ | 2,0 h y 1,05 de puntuación |
 | **L-26** | Matriz de mantenimientos para el consejo | 10 | ◇ | 2,6 h y 1,3 |
 | **L-27** | Presupuesto del año, privado del administrador | 11 | ✅ | Fase 5: encendido en Santa María y visto abriendo |

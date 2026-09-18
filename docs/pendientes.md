@@ -4,53 +4,66 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — corte del 17 de septiembre de 2026 (23:40 UTC)
+## LO PRIMERO AL ABRIR SESIÓN — corte del 18 de septiembre de 2026 (04:30 UTC; noche del 17 en Bogotá)
 
-> # EL LOTE «ANÁLISIS DE LA PLATAFORMA» ESTÁ ENTERO EN PRODUCCIÓN: LAS CINCO FASES, VISTAS EN PANTALLA.
+> # EL GRUPO A DEL LOTE «ANÁLISIS DE LA PLATAFORMA» ESTÁ CONSTRUIDO ENTERO Y EN PRODUCCIÓN.
 >
-> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú, agrupado por qué
-> lo frena, está en «LO QUE SIGUE», justo debajo.
+> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú está en «LO QUE
+> SIGUE», justo debajo. Lo que queda del lote **ya no es código: son decisiones de David** (13).
 >
-> **Qué se construyó, por fases.** El detalle, con la falsación de cada una, está en
-> `docs/plan-lote-analisis-plataforma.md`; la valoración una a una, en
-> `docs/valoraciones/lote-2026-09-15-analisis-plataforma.md`.
-> - **Fase 2 · lo obligatorio** (`9e4a052`): **D-2b** —cualquier residente leía un comunicado dirigido a
->   otra unidad—, **D-2** (su aviso llegaba a todos), **D-1** (el aviso de mora de Cartera se publicaba a
->   todo el conjunto), **D-3** (la categoría de un documento nacía en «otro», que leen los residentes) y
->   **D-2c**, que apareció construyendo: el adjunto de un comunicado dirigido se registraba en Documentos
->   con una categoría que ve cualquier residente.
->   - **Relleno de audiencia:** 26 comunicados en producción y 16 en staging; hoy **0 sin audiencia** en
->     los dos (`functions/scripts/rellenar-audiencia-de-comunicados.mjs`).
->   - Orden que se usó, y que se repite: **relleno → functions → front → regla**.
-> - **Fase 3 · la puerta XS** (`5aac90f`, `4948fd9`): menta y violeta; las plantillas de carga masiva en
->   **Excel y CSV**, con parqueadero y bodega; «la portería tiene su propio panel» en Visitantes, Reservas
->   y Paquetería; la fecha de publicación a la vista del administrador; dos tildes; y los estados que
->   salían en inglés («Archived», «Scheduled») — esto último lo sumó David al verlo.
-> - **Fase 4 · los defectos construibles** (`eda51ad`, `4fc35ca`): **L-21d** (PQRS enseñaba la unidad como
->   un id crudo: 6 de 54 tickets en producción), **L-08a** (la portería no podía registrar la salida de un
->   visitante frecuente) y **L-29** (la puerta no guardaba autor: 309 ingresos y 301 salidas sin él).
-> - **Fase 5 · datos de producción**, desde la consola de superadmin y no por script: Santa María con
->   `country: CO` y `currency: COP`, y **el presupuesto encendido** por override del conjunto.
+> **Tablero de las 36** (`docs/valoraciones/lote-2026-09-15-analisis-plataforma.md` §0.1, recontado sobre
+> las filas): **14 ✅ · 1 🔵 · 0 🟢 · 13 🟡 · 6 ◇ · 2 ⏸**. El único 🔵 es `L-13`, y le falta **un** paso
+> (ver abajo).
 >
-> **Las dos lecciones de la jornada, que valen más que las entregas:**
-> - **Un campo puede escribirse bien y no llegar a la pantalla.** `normalizeVisitorPass` arma el pase
->   campo por campo, así que `checkInBy` se guardaba y el detalle del pase no decía nada. Los guardianes
->   vigilaban la pantalla y la regla, **no el camino del dato** (`4fc35ca`, con dos pruebas nuevas).
-> - **«SUCCEEDED» no es «sirviendo», ni al instante.** La primera comprobación en staging dijo «no
->   aparece» porque el tráfico aún no había cambiado de build.
+> **La fase 6 — las siete «se puede ya», en tres bloques.** El detalle, con la falsación de cada uno, en
+> `docs/plan-lote-analisis-plataforma.md`.
+> - **Bloque 1 · Cartera** (`3ed097a`): `L-24` la lectura acumulada del año (la mensual ya existía) y
+>   `L-22` «Subir informe del contador», a una carpeta del sistema nueva y solo-administración.
+> - **Bloque 2 · Operación diaria** (`db9ede9`): `L-20` empresa y estado de llegada del paquete, y la
+>   entrega a la vista (ya se guardaba y no se veía); `L-07` «Dueños con varias unidades», **de solo
+>   lectura** porque fusionar esos registros le quitaría unidades al dueño.
+> - **Bloque 3 · PQRS y comunicados** (`d102f2e`): `L-21` evidencia de la solución (carpeta
+>   solo-administración) y Excel de lo filtrado; `L-13` quién vio un comunicado (`communicationReads`,
+>   un documento por persona y comunicado, con el id exigido por la regla).
+> - **`L-23` se reclasificó** a decisión: su defecto (`D-1`) ya estaba; lo que falta es el canal de
+>   correo, cerrado por decisión, y en Santa María 12 de 14 direcciones no reciben.
 >
-> **Lo que sirve cada ambiente (medido a las 23:37 UTC del 17):**
-> - **`master` en `4fc35ca`** (la app del lote) y **`develop` en `b3c2abd`**; detrás de `4fc35ca` solo
->   vienen notas, y su despliegue no cambia la app.
-> - **Producción:** `build-2026-09-17-002`, desde `4fc35ca`.
-> - **Staging:** `build-2026-09-17-004`, desde `7adfb66`; el de `b3c2abd` viene detrás y tampoco cambia la app.
-> - **Reglas:** `c8189e65` en producción (22:43 UTC) y `d246465c` en staging (21:53 UTC), **las dos
->   «idéntico al repo: SÍ»**.
-> - **Functions:** solo `onCommunicationCreated`, desplegada en los dos (revisiones `-00035` en producción
->   y `-00028` en staging, las dos `ACTIVE`).
-> - **Credenciales:** el CLI de firebase caducó **tres veces** en la jornada y la ADC una; las renueva
->   David. La escritura de datos en producción **la corre David**: el clasificador del modo automático la
->   bloquea.
+> **VALIDADO EN PANTALLA EN PRODUCCIÓN (noche del 17), con las sesiones de David:** `L-21` (evidencia
+> subida, guardada y enseñada; el Excel **real** capturado y leído: 14 columnas, sin ids crudos),
+> `L-24`, `L-22` (documento en «Informes del contador» con categoría `financiero`), `L-20` (formulario de
+> portería y tabla: «Servientrega · Dañado») y `L-07`. **De `L-13` se validó la anotación** —un documento
+> por persona, y una segunda visita no cuenta dos veces—; **falta ver el NÚMERO** en «Vistos», que pide
+> un comunicado publicado **a partir del 18 sep** (los anteriores dicen «Sin registro», a propósito).
+> Propuesta: uno dirigido solo a T2-503, con el sí de David.
+>
+> **Lo que dejó la validación, y es lo que hay que llevarse:**
+> - **Mirar la pantalla cazó un defecto de `L-07` con 17 pruebas en verde.** El panel afirmó «David
+>   Cancelo, 2 unidades» y eran David Cancelo y **Luis Otero**, que comparten el documento de relleno
+>   `65465465` — el caso que `duplicados.ts` y este repositorio ya documentaban. Arreglado en `4c178a4`:
+>   un documento solo es «un dueño» si los nombres también coinciden; si no, sale aparte como «Mismo
+>   documento, nombres distintos». **Falsar el arreglo cazó otra ceguera** (un dueño limpio podía salir
+>   dos veces sin que ninguna prueba lo dijera).
+> - **En dos rondas de falsación el respaldo no se hizo** —zsh no parte una variable sin comillas, y un
+>   `ls -d` con comodín devolvió quince carpetas— y los cambios rotos se acumularon. Se deshicieron a mano
+>   y se comprobó contra el commit (`firestore.rules` +33/−0). **Desde entonces, la carpeta del respaldo
+>   con ruta fija y un `ls` del respaldo antes de romper nada.**
+> - **Registré un paquete de prueba con la descripción duplicada** (tecleé dos veces): error mío, no
+>   del producto. Paquete `onm1l0vamti7mYACVlpZ` en T2-503; corregirlo es una escritura en producción y
+>   espera el sí de David.
+>
+> **Lo que sirve cada ambiente (medido la noche del 17):**
+> - **`master` y `develop` en `4c178a4`** (más las notas que vengan detrás en `develop`).
+> - **Front:** producción `build-2026-09-18-003`, staging `build-2026-09-18-004`, los dos desde `4c178a4`
+>   (comprobado por `traffic.current`).
+> - **Reglas de Firestore:** `7f8f4870` en producción, `1779f333` en staging. **De Storage:** `b2d70972` en
+>   producción, `2a907817` en staging. **Las cuatro «idéntico al repo: SÍ».** El script del repositorio
+>   solo mira Firestore; el de Storage se hizo en el scratchpad y **falta traerlo al repositorio**.
+> - **Functions:** `ensureSystemFolder` revisión `-00027`, `ACTIVE`, en los dos.
+> - **IAM:** al desplegar Storage en producción, el CLI ofreció conceder un rol para reglas entre servicios
+>   (lo dispara un **comentario** que menciona `firestore.exists`). **Se contestó que no**: nuestras reglas
+>   no lo usan.
+> - **El clasificador del modo automático bloqueó `firebase deploy` a producción** y dejó pasar el push a
+>   `master`: las reglas de producción las corrió David, desde `vivaru/`.
 >
 > ```bash
 > git ls-remote origin refs/heads/master refs/heads/develop
@@ -60,77 +73,69 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
 > ```
 >
-> **Bancos (contados el 17):** `npm test` **2144** · functions **1084** · reglas **616** (con solo
-> Firestore, así que `storage.rules.test.ts` va aparte). **El del emulador de functions hay que
-> contarlo**: `functions/src` cambió en la fase 2 y la última cifra (**379 de 381**, con `CA12` y `D-B`
-> preexistentes) es de `ba98abe`. El fichero de D-2 sí se corrió: 5 de 5.
+> **Bancos (contados la noche del 17):** `npm test` **2216** · functions **1084** · reglas **685** (con
+> Firestore **y** Storage levantados) · emulador de functions **384 de 386**, y los dos rojos son **los
+> preexistentes `CA12` y `D-B`, confirmados por nombre**.
 >
-> **Aparte del lote, hecho hoy:**
-> - **Sayil Briones es administradora de Lomas de Sayilbedra en producción**, creada desde Usuarios. Para
->   que la puerta de buzones la admitiera, su dirección se añadió a `config/correosDelEquipo`, que es
->   **global a los ocho conjuntos demo**; se quita igual que se puso.
-> - **Los alias con `+` de Hotmail NO reciben correo** —solo Gmail los soporta—, así que las cuatro
->   cuentas demo de Lomas **no se recuperan por correo**: hay que generar el enlace para poner contraseña
->   (runbook §3). Hoy se hizo con la portería del ensayo de staging.
-> - **Reporte del lote para socios**, medido: <https://claude.ai/artifact/12ijbQ3UTBTJvmiZD4vg2P>.
+> **Notion:** la bitácora lleva **tres filas nuevas**, una por bloque de la fase 6, con su commit.
+>
+> **Datos de prueba que quedaron en producción (Santa María, demo), todos de la validación:** el ticket
+> «fuga en el techo de la torre 2» respondido y en `resolved` con una imagen de franjas; un «Informe del
+> contador» de prueba (PDF de una página); el paquete de prueba de T2-503; y una lectura de comunicado.
 >
 > ## LO QUE SIGUE — el menú
 >
-> **A · Construible ya** — nada de esto pide antes una decisión.
-> 1. **Las siete del grupo A del lote, sin planificar:** `L-22` (informe del contador a Cartera), `L-23`
->    (correo de cobro a los deudores), `L-24` (tendencia de cartera), `L-07` (unidades de un mismo dueño),
->    `L-20` (paquetería: quién lo trajo y en qué estado), `L-21` (evidencia y Excel en PQRS) y `L-13`
->    (cuántos vieron un comunicado).
+> **A · Construible ya**
+> 1. **Cerrar `L-13`:** publicar un comunicado **desde el 18 sep**, dirigido a T2-503, y ver «Vistos»
+>    contar (pide el sí de David, porque avisa a esa unidad).
 > 2. **Los nueve defectos que se vieron al valorar y NO entraron al lote** (§4 de la valoración): la
 >    moneda que le falta a 6 de 10 conjuntos; `createTicket`/`createPackage` fabricando `unit-<slug>`; la
 >    fecha de un comunicado programado; el reglamento que cuenta las firmas de una forma y las enseña de
 >    otra; `billingResponsiblePersonId` sin quien lo escriba; los dos vocabularios de ocupación; la
 >    invitación de varios días que crea un pase de un día; la retención que no cubre las fotos de
 >    portería; y una PRD de `FEAT-009` obsoleta desde el 11 sep.
-> 3. **Contar el banco del emulador de functions** (ver arriba).
-> 4. **Dos desfases de documentación:** los cuatro bancos de `CLAUDE.md` (dice 2087 y 591; son 2144 y
->    616) y la fila ejecutiva de «Propiedad horizontal», que el roadmap de este repositorio sigue sin
->    listar.
+> 3. **Traer al repositorio el verificador de reglas de Storage** (hoy vive en el scratchpad de la sesión).
+> 4. **El protocolo de paquetería** (la cuarta cosa de `L-20`): otra carpeta del sistema y dos despliegues.
 > 5. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree (`.claude/worktrees/great-bohr-ec49d3`);
 >    mirar `c92ef13` antes de retirarlos.
 >
 > **B · Espera una decisión de David**
-> 1. **Las doce decisiones del grupo B del lote** — es el freno que más pesa. La más barata: **`L-17`**,
->    el nombre de Encuestas (media hora en cuanto lo elija). Y las **seis «no ahora»** (`L-26`, `L-30`,
->    `L-25`, `L-28`, `L-05`, `L-01b`), que se revisan si cambia una prueba.
-> 2. **La moneda de Privada Las Palmas:** es de México, no tiene `currency` y el formateador cae a COP, así
+> 1. **Las trece decisiones del lote** — el freno que más pesa. La más barata: **`L-17`**, el nombre de
+>    Encuestas (media hora en cuanto lo elija). `L-23` entró aquí el 17: el canal de correo. Y las **seis
+>    «no ahora»** (`L-26`, `L-30`, `L-25`, `L-28`, `L-05`, `L-01b`), que se revisan si cambia una prueba.
+> 2. **La descripción duplicada del paquete de prueba** (arriba): ¿se corrige?
+> 3. **La moneda de Privada Las Palmas:** es de México, no tiene `currency` y el formateador cae a COP, así
 >    que **muestra pesos colombianos**. Dato de producción, un campo.
-> 3. **El `country` de tres conjuntos** —Bromelias, Privada Las Playas y Tenant E2E—: sin él, sus reservas
+> 4. **El `country` de tres conjuntos** —Bromelias, Privada Las Playas y Tenant E2E—: sin él, sus reservas
 >    se leen en hora de México. Santa María ya lo tiene.
-> 4. **El límite conocido de D-2c:** si un comunicado general se edita para dirigirlo, los adjuntos ya
+> 5. **El límite conocido de D-2c:** si un comunicado general se edita para dirigirlo, los adjuntos ya
 >    registrados conservan la categoría «comunicado». Hoy no hay ninguno dirigido en producción.
-> 5. **Las rarezas del producto, sin decidir** (contrato de la semilla, §H): H.21–H.38 salvo H.31 y H.37,
+> 6. **Las rarezas del producto, sin decidir** (contrato de la semilla, §H): H.21–H.38 salvo H.31 y H.37,
 >    H.39 y H.40–H.50. Las que más se verían en una demo: **H.28** («Enviar acceso a 95», a un clic),
 >    **H.32**/**H.36** («Próxima reserva» un día antes), **H.38** (reservas de portería desde junio),
 >    **H.41** (el logo no llega al informe ni a los correos), **H.40** (dinero en formato colombiano en los
 >    PDF) y **H.50** (el residente ve el adjunto de un comunicado programado).
-> 6. **El cabo de T3.5 de la semilla:** la prueba de la puerta por pantalla tropieza con H.39.
-> 7. **App Check** (`D-CONSOLA`): lo único que le falta a `FIX-005`.
-> 8. **Las fechas de las reglas de visitas** (`pad2` y compañía, por `'' + int`).
-> 9. **El «vencido» del servidor en UTC**: esperar a un cliente real o derivar la zona del `country`.
-> 10. **La puerta de buzones en Privada Las Playas**: falta identificar su cuenta de portería.
-> 11. **`CA1` de `PLAT-002`** (qué cuenta simular) y **`CA3`/`CA5` de `PLAT-004`**.
-> 12. **El TXT `fah-claim`** en Squarespace Domains, para el dominio sin `www`.
-> 13. **La reserva de prueba de staging `4Mk1AvAePP9bqGZafbH2`**: cancelarla sin borrar.
-> 14. **`UX-005`** (tableros configurables): falta decidir si la preferencia es por usuario o por conjunto.
-> 15. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** (`accountCode` → `2.3`), **las dos categorías de
+> 7. **El cabo de T3.5 de la semilla:** la prueba de la puerta por pantalla tropieza con H.39.
+> 8. **App Check** (`D-CONSOLA`): lo único que le falta a `FIX-005`.
+> 9. **Las fechas de las reglas de visitas** (`pad2` y compañía, por `'' + int`).
+> 10. **El «vencido» del servidor en UTC**: esperar a un cliente real o derivar la zona del `country`.
+> 11. **La puerta de buzones en Privada Las Playas**: falta identificar su cuenta de portería.
+> 12. **`CA1` de `PLAT-002`** (qué cuenta simular) y **`CA3`/`CA5` de `PLAT-004`**.
+> 13. **El TXT `fah-claim`** en Squarespace Domains, para el dominio sin `www`.
+> 14. **La reserva de prueba de staging `4Mk1AvAePP9bqGZafbH2`**: cancelarla sin borrar.
+> 15. **`UX-005`** (tableros configurables): falta decidir si la preferencia es por usuario o por conjunto.
+> 16. **El asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`** (`accountCode` → `2.3`), **las dos categorías de
 >     egreso fuera del tipo** y **el tope de gasto de la IA**, en la consola.
-> 16. **Dos detalles de la semilla y dos cabos de la demo:** la reserva de la palapa que la regla de
+> 17. **Dos detalles de la semilla y dos cabos de la demo:** la reserva de la palapa que la regla de
 >     anticipación siempre rechaza; el orden de las líneas del mismo día en las relaciones bancarias;
->     **D3** (notas de portería con foto); y las cuentas demo de staging sin contraseña —la de portería ya
->     la tiene desde hoy—.
+>     **D3** (notas de portería con foto); y las cuentas demo de staging sin contraseña.
 >
 > **C · Espera a un tercero o a un dato**
-> 17. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
-> 18. **Albert** — el contrato de `vivaruWonSignals`.
-> 19. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos a la vez).
-> 20. **Habitanto**: quedan **32 P1, 38 P2 y 12 P3** sin ficha (recontados el 15 sep).
-> 21. **Del lote:** `L-31` (la calificación unida a Google, que pide la ficha de cada edificio y sus
+> 18. **El abogado ecuatoriano** — `FLOW-006`, y la entrega 3 de `FLOW-007` y de `PLAT-004`.
+> 19. **Albert** — el contrato de `vivaruWonSignals`.
+> 20. **Fase 2 de `FEAT-009`** (`TBD-A`, `TBD-B`, `TBD-D`) y **`PH-003` `CA4`** (dos teléfonos a la vez).
+> 21. **Habitanto**: quedan **32 P1, 38 P2 y 12 P3** sin ficha (recontados el 15 sep).
+> 22. **Del lote:** `L-31` (la calificación unida a Google, que pide la ficha de cada edificio y sus
 >     términos) y `L-32b` (el chatbot 24/7, que pide corpus y tope de gasto, y **se parte antes de
 >     valorarlo**).
 >
