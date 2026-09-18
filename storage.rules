@@ -132,6 +132,21 @@ service firebase.storage {
       allow write: if (admin(tenantId) || porteria(tenantId)) && tamanoOk();
     }
 
+    // `L-21` (17 sep 2026) · Evidencia de la SOLUCIÓN de un PQRS del conjunto. **Solo
+    // administración, y no es un olvido**: la ruta no lleva la unidad, así que no se puede acotar
+    // aquí a «su» residente, y en Storage `read` incluye LISTAR — abrirla a `miembro` habría dejado
+    // a cualquier residente listar la evidencia de los PQRS de todos sus vecinos. El residente la
+    // ve por la URL con token que queda en su ticket, y quién puede leer ese ticket lo decide
+    // `firestore.rules` (`residentOwnUnit`): mismo mecanismo que la foto del medidor, y la palanca
+    // real está en el otro fichero.
+    //
+    // OJO: esto NO es la carpeta `support/`, que es el canal de soporte a Vivaru (`supportTickets`),
+    // otra colección y otro alcance.
+    match /tenants/{tenantId}/pqrs-evidence/{resto=**} {
+      allow read: if admin(tenantId);
+      allow write: if admin(tenantId) && tamanoOk();
+    }
+
     // Evidencia de tickets de soporte, segmentada por quien la sube. El que
     // adjunta lee lo suyo —getDownloadURL tras subir pasa por `allow read`— y
     // la administración lo lee todo: es quien abre y responde los tickets del

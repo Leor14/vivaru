@@ -5,7 +5,7 @@ import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
-import type { Ticket } from "@/types/domain";
+import type { Ticket, TicketResolutionAttachment } from "@/types/domain";
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : "";
@@ -203,6 +203,8 @@ export async function respondTicket(input: {
   adminUserId: string;
   adminUserName?: string;
   previousHistory?: Ticket["responseHistory"];
+  /** `L-21`: la evidencia de la solución. Se guarda en el ticket y en la entrada del historial. */
+  attachments?: TicketResolutionAttachment[];
 }) {
   if (!db) {
     throw new Error("Firebase no esta configurado.");
@@ -212,10 +214,16 @@ export async function respondTicket(input: {
   const nowIso = new Date().toISOString();
   const currentHistory = input.previousHistory ?? [];
 
+  const evidencias = input.attachments ?? [];
+
   await updateDoc(doc(db, "tickets", input.ticketId), {
     tenantId: input.tenantId,
     response: cleanResponse,
     status: input.status,
+    // `L-21`: solo se escribe si esta respuesta trae evidencia. Una respuesta sin archivos **no
+    // borra** la evidencia de la anterior: es la misma conducta que `response`, que tampoco
+    // reescribe el historial.
+    ...(evidencias.length ? { resolutionAttachments: evidencias } : {}),
     respondedBy: input.adminUserId,
     respondedByName: input.adminUserName || "Administrador",
     respondedAt: serverTimestamp(),
@@ -230,6 +238,7 @@ export async function respondTicket(input: {
         createdAt: nowIso,
         createdBy: input.adminUserId,
         createdByName: input.adminUserName || "Administrador",
+        ...(evidencias.length ? { attachments: evidencias } : {}),
       },
     ],
   });

@@ -296,8 +296,25 @@ export interface Ticket {
     createdAt: string;
     createdBy: string;
     createdByName?: string;
+    /** `L-21`: la evidencia que acompañó a ESTA respuesta. */
+    attachments?: TicketResolutionAttachment[];
   }>;
+  /**
+   * `L-21`: la evidencia de la solución, la de la ÚLTIMA respuesta. Conviven con `responseHistory`
+   * igual que `response` convive con el historial: el campo tiene lo vigente y el historial, la
+   * historia. No confundir con `attachments`/`attachmentUrl`, que en PQRS nunca se han escrito.
+   */
+  resolutionAttachments?: TicketResolutionAttachment[];
   createdBy?: string;
+}
+
+/** Ver `features/pqrs/evidencia-de-la-solucion.ts`, que es quien la valida y la escribe. */
+export type TicketResolutionAttachment = {
+  name: string;
+  path: string;
+  url: string;
+  size: number;
+  contentType: string;
 }
 
 export interface PackageItem {

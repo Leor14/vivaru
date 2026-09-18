@@ -1,5 +1,7 @@
 "use client";
 
+import { Paperclip } from "lucide-react";
+
 import { Tabs } from "@/components/ui/tabs";
 import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { useState } from "react";
@@ -14,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { createTicket, useTickets } from "@/features/pqrs/use-tickets";
+import { evidenciasDeLaSolucion } from "@/features/pqrs/evidencia-de-la-solucion";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { getTicketTypeLabel, TICKET_TYPE_LABELS } from "@/features/pqrs/ticket-status";
 import type { Ticket } from "@/types/domain";
@@ -93,6 +96,21 @@ function TicketRow({ ticket, simple = false }: { ticket: Ticket; simple?: boolea
           {ticket.respondedAt && (
             <p className="mt-1 text-[10px] text-[var(--slate-400)]">{formatDate(ticket.respondedAt)}</p>
           )}
+          {/* `L-21`: la evidencia que adjuntó la administración. La abre por su URL con token —la
+              carpeta de Storage es solo-administración—, y quién puede leer este ticket lo decide
+              `firestore.rules`, que lo acota a su unidad. */}
+          {evidenciasDeLaSolucion(ticket).map((evidencia) => (
+            <a
+              key={evidencia.path || evidencia.url}
+              href={evidencia.url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 flex items-center gap-1 text-[11px] text-[var(--brand-700)] underline"
+            >
+              <Paperclip className="h-3 w-3" aria-hidden="true" />
+              {evidencia.name}
+            </a>
+          ))}
         </div>
       )}
     </div>

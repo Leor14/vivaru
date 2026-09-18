@@ -39,6 +39,7 @@ export default defineConfig({
       "tests/comunicados-audiencia.rules.test.ts",
       "tests/visitante-frecuente.rules.test.ts",
       "tests/autor-de-la-puerta.rules.test.ts",
+      "tests/lectura-del-comunicado.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.

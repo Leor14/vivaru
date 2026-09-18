@@ -404,7 +404,7 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   decisión, y en Santa María **12 de 14 direcciones no reciben**. Construir el correo sin decidir eso
   sería poner un botón que manda rebotes. **Pasa a esperar una decisión de David.**
 
-**Bloque 1 · Cartera — en `develop` (`3ed097a`), SIN desplegar:**
+**Bloque 1 · Cartera — EN PRODUCCIÓN (`3ed097a`, dentro de `db9ede9`), sin mirar en pantalla:**
 - **`L-24`:** `acumularTendencia` y `acumuladoDelAnio` viven junto a `buildBillingTrend` —si cambia
   cómo se suma un período, cambian las dos lecturas a la vez—. La pantalla tiene un selector
   «Mes a mes / Acumulada» y tres tarjetas del año en curso, con su propio rango (enero a diciembre),
@@ -419,9 +419,13 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   en la jornada: se levantó el emulador de Storage, que es lo que dejaba rojo `storage.rules.test.ts`—,
   typechecks en 0 y `functions/lib` recompilado.
 - **Orden de despliegue: reglas de Storage → functions → front.** Las tres piezas amplían, y el botón
-  no funciona hasta que están las dos primeras. **Sigue pendiente**: espera el sí de David.
+  no funciona hasta que están las dos primeras. **Ejecutado el 18 sep (00:24–00:33 UTC)** en los dos
+  ambientes, en ese orden y midiendo cada pieza: ruleset de Storage `4f697a59` en producción y
+  `61316786` en staging (idénticos al repositorio, con `cartera-reports` dentro),
+  `ensureSystemFolder` revisión `-00027` y `ACTIVE` en los dos, y el front sirviendo `db9ede9`
+  (`build-2026-09-18-001` en producción, `-002` en staging), comprobado por `traffic.current`.
 
-**Bloque 2 · Operación diaria (`L-20`, `L-07`) — hecho en local, sin commit:**
+**Bloque 2 · Operación diaria (`L-20`, `L-07`) — EN PRODUCCIÓN (`db9ede9`), sin mirar en pantalla:**
 
 *Lo que salió al medir, y otra vez cambia el alcance:*
 - **`L-20` estaba a medias en el dato, no en la pantalla.** De las cuatro cosas que pide la pág. 8, los
@@ -452,9 +456,55 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   ser obligatorio, el `colSpan` viejo, el nombre ganándole al documento, el filtro de dos unidades y
   un botón en el panel—: en cada una enrojece solo lo suyo, y los cinco ficheros vuelven con el mismo
   `shasum`.
-- **Orden de despliegue: solo front.** No hay reglas ni functions en este bloque.
+- **Orden de despliegue: solo front.** No hay reglas ni functions en este bloque. **Desplegado con
+  el bloque 1 el 18 sep**: `master` = `db9ede9`.
 - **Lo que no puede ver una suite:** el estado de llegada pide una sesión de portería, y la columna
   nueva, mirar la tabla con paquetes entregados.
+
+**Bloque 3 · PQRS y comunicados (`L-21`, `L-13`) — hecho en local, sin commit:**
+
+*Lo que salió al medir, y descarta un atajo:*
+- **`L-21` tenía campos muertos que parecían la funcionalidad.** El tipo `Ticket` declara
+  `attachmentUrl` y `attachments` desde antes, y **en PQRS nadie los escribe ni los lee**: son de
+  Servicios y de Comunicaciones. Medido en producción: **54 tickets, 39 respondidos y CERO con
+  adjunto**. Enseñarlos como «evidencia de la solución» habría puesto el rótulo más comprometido
+  que hay sobre el archivo de otra cosa.
+- **`L-13` no se podía sacar de las notificaciones, que era el camino gratis.** Los **156** avisos
+  de comunicado sí llevan `read` (54 leídos), pero **su `link` es `/resident/communications` en los
+  156**: no dice de qué comunicado es. Contar por ahí habría dado un número con forma correcta y
+  sin significado.
+
+*Lo construido:*
+- **`L-21` · la evidencia:** la sube la **administración** al responder (es quien ejecuta la
+  solución), a `tenants/{id}/pqrs-evidence/{ticketId}/…`, carpeta nueva de `storage.rules`
+  **solo-administración** — abrirla a «miembro» habría dejado a un residente **listar** la evidencia
+  de los PQRS de sus vecinos, porque en Storage `read` incluye listar—. El residente la ve por la
+  URL con token de su ticket, y **quién puede leer ese ticket lo decide `firestore.rules`**: mismo
+  mecanismo que la foto del medidor. `tickets` no necesitó regla nueva (su `update` no tiene
+  `hasOnly`, comprobado).
+- **`L-21` · el Excel:** baja **lo que está viendo**, la lista ya filtrada, y resuelve unidad y
+  persona con **las mismas funciones que la pantalla** (`L-21d`), para que el id crudo y «Residente»
+  no vuelvan por la puerta de atrás. El escritor de hojas salió a `lib/export/hoja-de-calculo.ts`
+  —lo compartía con las plantillas de `L-02`— y **el CSV ahora entrecomilla de verdad**: una
+  respuesta con comas y saltos de línea corría las columnas sin dar ningún error.
+- **`L-13` · quién lo vio:** colección nueva `communicationReads`, **un documento por (comunicado,
+  persona)** con el id `{communicationId}_{uid}`; esa forma es lo que sostiene el conteo y **la
+  regla la exige**, así que nadie puede anotar la lectura de otro ni inflarla con ids distintos.
+  Nadie borra, tampoco el administrador: un contador que se puede limpiar no se puede citar. Se
+  anota **cuando la tarjeta entra de verdad en la pantalla** (60% visible), no al cargar la lista:
+  abrir Comunicados no es haber visto los cuarenta. Y los **40 comunicados publicados antes del 18
+  de septiembre dicen «Sin registro», no cero**: un cero se leería como un fracaso de la
+  administración cuando lo que pasa es que nadie lo estaba anotando.
+- **Bancos:** app **2211**, reglas **685** (11 casos nuevos de `communicationReads` y 2 de la
+  carpeta de evidencia), typechecks en 0. Functions no se tocó.
+  **Falsación en nueve variantes** —la evidencia mirando `attachments`, el CSV sin entrecomillar, la
+  fecha en UTC, el Excel bajando la colección entera, `respondTicket` sin escribir la evidencia, la
+  carpeta de Storage abierta a «miembro», la regla sin la forma del id, sin el dueño y con borrado,
+  más el conteo por escrituras y el aviso al cargar la lista—: en cada una enrojece lo suyo.
+- **Orden de despliegue: reglas (Firestore y Storage) → front.** Las dos amplían, y sin ellas el
+  botón de evidencia y la anotación de lecturas fallarían con permiso denegado.
+- **Lo que no puede ver una suite:** la evidencia pide subir un archivo de verdad con una sesión de
+  administración, y el conteo pide **dos sesiones** —publicar y luego mirar como residente—.
 
 ### Fase 5 · Datos de producción *(cada paso con su permiso; ~1 h)*
 

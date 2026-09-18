@@ -25,6 +25,8 @@ import { AsistenteBorrador } from "@/features/communications/asistente-borrador"
 import { useFeedbackBorrador } from "@/features/communications/use-feedback-borrador";
 import { categoriaDelAdjuntoDeComunicado } from "@/features/communications/adjunto-de-comunicado";
 import { fechaDePublicacion } from "@/features/communications/fecha-de-publicacion";
+import { anteriorAlRegistro, textoDeVistos } from "@/features/communications/lectura-del-comunicado";
+import { useLecturasDeComunicados } from "@/features/communications/use-lecturas";
 import {
   createCommunication,
   createDocumentRecord,
@@ -89,6 +91,10 @@ export default function AdminCommunicationsPage() {
       attachmentName: "",
     },
   });
+
+  // `L-13`: las lecturas del conjunto, en vivo. Si la suscripción falla, la columna dice «Nadie
+  // todavía» y Comunicaciones sigue funcionando: un contador no puede tumbar la pantalla.
+  const lecturas = useLecturasDeComunicados(user?.tenantId);
 
   useEffect(() => {
     if (!user?.tenantId) {
@@ -434,6 +440,30 @@ export default function AdminCommunicationsPage() {
                 ? "expired"
                 : "published";
         return <StatusBadge status={effectiveStatus} context="communication" />;
+      },
+    },
+    {
+      /**
+       * `L-13` — cuántas personas lo vieron. **Un cero de antes del 18 de septiembre de 2026 no es
+       * «nadie lo vio»: es que nadie lo estaba anotando**, así que esos comunicados dicen «sin
+       * registro» y no un número que se leería como un fracaso de la administración.
+       */
+      key: "vistos",
+      header: "Vistos",
+      render: (item) => {
+        if (anteriorAlRegistro(item.publishedAt ?? item.createdAt)) {
+          return <span className="whitespace-nowrap text-xs text-[var(--slate-500)]">Sin registro</span>;
+        }
+        const vistos = lecturas.get(item.id);
+        const total = vistos?.total ?? 0;
+        return (
+          <span
+            className="whitespace-nowrap text-[var(--slate-700)]"
+            title={vistos?.nombres.length ? vistos.nombres.join(", ") : undefined}
+          >
+            {textoDeVistos(total)}
+          </span>
+        );
       },
     },
     {

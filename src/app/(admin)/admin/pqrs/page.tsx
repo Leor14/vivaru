@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Eye, MessageSquareReply } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Download, Eye, MessageSquareReply, Paperclip, X } from "lucide-react";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
@@ -29,8 +30,16 @@ import { formatTicketDate, getTicketSla } from "@/features/pqrs/sla";
 import { getTicketTypeLabel } from "@/features/pqrs/ticket-status";
 import { useFeedbackAsistencia } from "@/features/pqrs/use-feedback-asistencia";
 import { respondTicket, updateTicketClassification, useTickets } from "@/features/pqrs/use-tickets";
+import {
+  evidenciaInadmisible,
+  evidenciasDeLaSolucion,
+  rutaDeEvidencia,
+  TIPOS_DE_EVIDENCIA,
+} from "@/features/pqrs/evidencia-de-la-solucion";
+import { descargarPqrs } from "@/features/pqrs/exportar-pqrs";
+import { storage } from "@/lib/firebase/client";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
-import type { Ticket } from "@/types/domain";
+import type { Ticket, TicketResolutionAttachment } from "@/types/domain";
 import { getStatusLabel } from "@/utils/statusMapper";
 
 type AlertFilter = "all" | "green" | "yellow" | "red";
@@ -126,6 +135,10 @@ export default function AdminPqrsPage() {
   // busca por el uid de quien abrió el ticket. Las dos suscripciones son del propio conjunto.
   const [unidades, setUnidades] = useState<UnitItem[]>([]);
   const nombrePorUid = useNombresPorUid(user?.tenantId);
+  // `L-21`: la evidencia de la solución, en cola hasta que se pulse «Responder».
+  const [evidencias, setEvidencias] = useState<TicketResolutionAttachment[]>([]);
+  const [subiendoEvidencia, setSubiendoEvidencia] = useState(false);
+  const evidenciaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const tenantId = user?.tenantId;
@@ -189,6 +202,9 @@ export default function AdminPqrsPage() {
     // el selector arranca en «Sin prioridad» y guardar así no escribe el campo.
     // Arrancar en «medium» era la trampa medida en la sesión de F3 — un default
     // con apariencia de decisión, la misma familia que el `type: "petition"`.
+    // La cola de evidencia es de ESTE ticket: cambiar de ticket la vacía, o se adjuntaría la foto
+    // de un caso a la respuesta de otro.
+    setEvidencias([]);
     setClasCategory(selectedTicket.category ?? "pqrs");
     setClasType(selectedTicket.type ?? "other");
     setClasPriority(selectedTicket.priority ?? "");
@@ -317,6 +333,52 @@ export default function AdminPqrsPage() {
     }
   }
 
+  /**
+   * `L-21` — sube la evidencia y la deja en cola. **Se sube antes de guardar la respuesta** porque
+   * la URL de descarga solo existe después de subir; si al final nadie pulsa «Responder», el
+   * archivo queda huérfano en Storage, y eso es preferible a pedirle a la administración que
+   * adivine el orden.
+   */
+  async function handleAdjuntarEvidencia(archivos: FileList | null) {
+    const ticketId = selectedTicket?.id;
+    const tid = user?.tenantId;
+    if (!archivos?.length || !ticketId || !tid) return;
+    if (!storage) {
+      toast.error("Firebase Storage no esta configurado en este entorno.");
+      return;
+    }
+    setSubiendoEvidencia(true);
+    try {
+      const subidas: TicketResolutionAttachment[] = [];
+      for (const archivo of Array.from(archivos)) {
+        const problema = evidenciaInadmisible(archivo);
+        if (problema) {
+          toast.error(`${archivo.name}: ${problema}`);
+          continue;
+        }
+        const path = rutaDeEvidencia({ tenantId: tid, ticketId, nombre: archivo.name });
+        const sref = storageRef(storage, path);
+        await uploadBytes(sref, archivo);
+        subidas.push({
+          name: archivo.name,
+          path,
+          url: await getDownloadURL(sref),
+          size: archivo.size,
+          contentType: archivo.type,
+        });
+      }
+      if (subidas.length) {
+        setEvidencias((previas) => [...previas, ...subidas]);
+        toast.success(subidas.length === 1 ? "Evidencia adjuntada." : `${subidas.length} evidencias adjuntadas.`);
+      }
+    } catch (uploadError) {
+      toastFirebaseError(uploadError);
+    } finally {
+      setSubiendoEvidencia(false);
+      if (evidenciaInputRef.current) evidenciaInputRef.current.value = "";
+    }
+  }
+
   async function handleRespondTicket() {
     if (!selectedTicket || !user?.tenantId || !user?.uid) return;
     if (!responseText.trim()) {
@@ -334,11 +396,13 @@ export default function AdminPqrsPage() {
         adminUserId: user.uid,
         adminUserName: user.fullName,
         previousHistory: selectedTicket.responseHistory,
+        attachments: evidencias,
       });
       // Con el texto ANTES de limpiarlo: es lo que hay que comparar con el
       // borrador que propuso el modelo para saber cuánto se cambió.
       feedbackIa.anotarRespuestaGuardada(responseText);
       setResponseText("");
+      setEvidencias([]);
       toast.success("Respuesta registrada correctamente.");
     } catch (responseError) {
       toastFirebaseError(responseError);
@@ -356,6 +420,20 @@ export default function AdminPqrsPage() {
             ? "Recibe y responde los mensajes de los residentes."
             : "Recibe, responde y haz seguimiento a las solicitudes de los residentes, dentro del plazo de 15 días hábiles."}
         </CardDescription>
+
+        {/* `L-21`: baja lo que está viendo —la lista YA filtrada—, no la colección entera. */}
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={filteredItems.length === 0}
+            onClick={() => descargarPqrs(filteredItems, indiceDeUnidades, nombrePorUid)}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Descargar en Excel ({filteredItems.length})
+          </Button>
+        </div>
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
 
@@ -592,6 +670,44 @@ export default function AdminPqrsPage() {
                 placeholder="Escribe la respuesta administrativa"
                 rows={3}
               />
+              {/* `L-21`: adjuntar la evidencia de la solución. Se sube al elegir el archivo y se
+                  guarda con la respuesta; quitar una de la cola no borra el archivo subido. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={evidenciaInputRef}
+                  type="file"
+                  multiple
+                  accept={TIPOS_DE_EVIDENCIA.join(",")}
+                  className="hidden"
+                  onChange={(event) => void handleAdjuntarEvidencia(event.target.files)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={subiendoEvidencia}
+                  onClick={() => evidenciaInputRef.current?.click()}
+                >
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  {subiendoEvidencia ? "Subiendo..." : "Adjuntar evidencia"}
+                </Button>
+                {evidencias.map((evidencia) => (
+                  <span
+                    key={evidencia.path}
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--slate-100)] px-2 py-0.5 text-[11px] text-[var(--slate-700)]"
+                  >
+                    {evidencia.name}
+                    <button
+                      type="button"
+                      aria-label={`Quitar ${evidencia.name}`}
+                      onClick={() => setEvidencias((previas) => previas.filter((e) => e.path !== evidencia.path))}
+                    >
+                      <X className="h-3 w-3" aria-hidden="true" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="flex-1 text-xs text-[var(--slate-700)]">
                   Estado
@@ -750,6 +866,28 @@ export default function AdminPqrsPage() {
               <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Descripción</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-700)]">{selectedTicket.message || selectedTicket.subject}</p>
             </div>
+
+            {/* `L-21`: la evidencia de la solución, la de la última respuesta. */}
+            {evidenciasDeLaSolucion(selectedTicket).length > 0 ? (
+              <div className="border-t border-[var(--slate-200)] pt-3">
+                <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Evidencia de la solución</p>
+                <ul className="mt-2 grid gap-1">
+                  {evidenciasDeLaSolucion(selectedTicket).map((evidencia) => (
+                    <li key={evidencia.path || evidencia.url}>
+                      <a
+                        href={evidencia.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[12px] text-[var(--brand-700)] underline"
+                      >
+                        <Paperclip className="h-3 w-3" aria-hidden="true" />
+                        {evidencia.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             {(selectedTicket.responseHistory ?? []).length > 0 ? (
               <div className="border-t border-[var(--slate-200)] pt-3">

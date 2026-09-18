@@ -1,5 +1,4 @@
-import * as XLSX from "xlsx";
-
+import { descargarFilas, filasEnCsv, filasEnExcel, type FormatoDeHoja } from "@/lib/export/hoja-de-calculo";
 import { ETIQUETA_DE_TIPO, TIPOS_DE_UNIDAD } from "@/lib/units/tipos";
 
 /**
@@ -38,29 +37,13 @@ export const TIPOS_PARA_LA_PLANTILLA = TIPOS_DE_UNIDAD.map((clave) => ({
   etiqueta: ETIQUETA_DE_TIPO[clave],
 }));
 
-export function plantillaEnCsv(filas: FilasDePlantilla): string {
-  return filas.map((fila) => fila.join(",")).join("\r\n");
-}
+// Las tres delegan en `lib/export/hoja-de-calculo.ts` desde `L-21`: el escritor de Excel vive en un
+// solo sitio, y los nombres de aquí se conservan porque son los que usan los dos asistentes.
+export const plantillaEnCsv = filasEnCsv;
+export const plantillaEnExcel = filasEnExcel;
 
-export function plantillaEnExcel(filas: FilasDePlantilla, hoja: string): ArrayBuffer {
-  const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet(filas.map((fila) => [...fila])), hoja);
-  return XLSX.write(libro, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-}
-
-export type FormatoDePlantilla = "xlsx" | "csv";
+export type FormatoDePlantilla = FormatoDeHoja;
 
 export function descargarPlantilla(filas: FilasDePlantilla, nombreBase: string, formato: FormatoDePlantilla) {
-  const blob =
-    formato === "xlsx"
-      ? new Blob([plantillaEnExcel(filas, "Plantilla")], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        })
-      : new Blob([plantillaEnCsv(filas)], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${nombreBase}.${formato}`;
-  a.click();
-  URL.revokeObjectURL(url);
+  descargarFilas(filas, nombreBase, formato, "Plantilla");
 }

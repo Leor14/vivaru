@@ -7,6 +7,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useCommunications } from "@/features/communications/use-communications";
+import { useAnotarLecturas } from "@/features/communications/use-lecturas";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 
 const PREVIEW_LINES = 5;
@@ -81,6 +82,7 @@ export default function ResidentCommunicationsPage() {
   const { user } = useAuth();
   // Modo residente: solo lee los generales y los dirigidos a su unidad (`D-2b`).
   const { items, loading, error } = useCommunications(user?.tenantId, { residente: { unitId: user?.unitId } });
+  const refDeLectura = useAnotarLecturas({ tenantId: user?.tenantId, uid: user?.uid, nombre: user?.fullName });
   const isSimpleMode = useModuleVariant(user?.tenantId, "communications") === "tablon_simple";
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
 
@@ -165,6 +167,9 @@ export default function ResidentCommunicationsPage() {
           return (
             <article
               key={item.id}
+              /* `L-13`: se anota cuando la tarjeta entra de verdad en la pantalla, no al cargar la
+                 lista — abrir Comunicados no es haber visto los cuarenta. */
+              ref={refDeLectura(item.id)}
               className="group relative rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[var(--sombra-plana-1)] premium-card-hover sm:p-5"
             >
               {index < feedItems.length - 1 ? (

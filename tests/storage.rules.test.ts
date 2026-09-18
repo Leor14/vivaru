@@ -224,6 +224,29 @@ describe("FIN-000 · documentos financieros: solo administración", () => {
     );
   });
 
+  /**
+   * **`L-21` (17 sep 2026) — la evidencia de la solución de un PQRS.** Solo administración, y el
+   * residente la ve por la URL con token que queda en su ticket: lo que le da o le quita acceso es
+   * `firestore.rules` sobre `tickets`, no esto. Aquí se prueba justo lo contrario de lo cómodo —que
+   * el residente NO puede leer por el SDK—, porque abrir la carpeta a «miembro» le habría dejado
+   * LISTAR la evidencia de los PQRS de sus vecinos.
+   */
+  it("L-21: el admin sube y lee la evidencia del PQRS; el residente no la lee por el SDK", async () => {
+    const evidencia = "tenants/tenant-a/pqrs-evidence/tk-1/1700000003-acta.pdf";
+    await assertSucceeds(uploadString(ref(admin().storage(), evidencia), "acta de la reparación"));
+    await assertSucceeds(getBytes(ref(admin().storage(), evidencia)));
+    await assertFails(getBytes(ref(residente().storage(), evidencia)));
+    await assertFails(
+      uploadString(ref(residente().storage(), "tenants/tenant-a/pqrs-evidence/tk-1/colada.pdf"), "colada"),
+    );
+  });
+
+  it("L-21: la evidencia de OTRO conjunto no se alcanza ni siendo admin del propio", async () => {
+    await assertFails(
+      getBytes(ref(admin().storage(), "tenants/tenant-b/pqrs-evidence/tk-9/1700000004-acta.pdf")),
+    );
+  });
+
   // Alias antiguos: si la regla solo mirase el nombre nuevo, estos dos se
   // quedarían fuera de sus propios documentos.
   it("un admin con el claim antiguo `admin_tenant` sigue leyendo los financieros", async () => {

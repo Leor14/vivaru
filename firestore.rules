@@ -591,6 +591,39 @@ service cloud.firestore {
         && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    // ── `L-13` · quién vio un comunicado (17 sep 2026) ───────────────────────
+    //
+    // Un documento por (comunicado, persona), con el id `{communicationId}_{uid}`: **esa forma es
+    // lo que sostiene el conteo**, porque la segunda vez cae sobre el mismo documento y nadie
+    // puede contar dos veces. Y la regla la EXIGE, así que tampoco se puede anotar la lectura de
+    // otro: sin esa comprobación, un residente podría fabricar cien lecturas ajenas y el número
+    // que la administración lee dejaría de significar nada.
+    //
+    // Lo escribe el residente —es el único que puede decir que lo vio— y lo lee la administración
+    // para contar, además del propio dueño. **No se borra ni por el administrador**: un contador
+    // de lecturas que se puede limpiar es un contador que no se puede citar.
+    //
+    // `hasOnly` cierra los campos: sin él, la lectura podría traer cualquier cosa dentro y esto es
+    // una colección que escribe el cliente.
+    match /communicationReads/{docId} {
+      allow read: if signedIn() && resource.data.tenantId is string && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        resource.data.uid == request.auth.uid
+      );
+
+      allow create, update: if signedIn() && request.resource.data.tenantId is string
+        && tenantOperable(request.resource.data.tenantId)
+        && sameTenant(request.resource.data.tenantId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.communicationId is string
+        && docId == request.resource.data.communicationId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['tenantId', 'communicationId', 'uid', 'name', 'seenAt'])
+        // CF9: ni el conjunto ni el dueño se mudan en una segunda pasada.
+        && (resource == null || (resource.data.tenantId == request.resource.data.tenantId && resource.data.uid == request.auth.uid));
+
+      allow delete: if false;
+    }
+
     // Shared tenant-scoped collections.
     match /{collection}/{docId} {
       allow read: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && sameTenant(resource.data.tenantId);
