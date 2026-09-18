@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -19,6 +20,13 @@ import { db } from "@/lib/firebase/client";
 import { createTenantDocument } from "@/lib/firebase/realtime-helpers";
 import { isDateTimeValid, toDateInputValue } from "@/utils/datetimeValidation";
 import type { VisitorInvitation, VisitorInvitationStatus } from "features/visitors/types";
+import {
+  MESES_MAXIMOS_DEL_FRECUENTE_DEL_RESIDENTE,
+  esCategoriaDeVisitante,
+  normalizarHorario,
+  ultimoDiaPermitidoDelResidente,
+  type HorarioDeIngreso,
+} from "@/features/visitors/frecuente";
 
 export type CreateInvitationInput = {
   tenantId: string;
@@ -35,6 +43,15 @@ export type CreateInvitationInput = {
   allowedUses: number;
   startAt: Date;
   endAt: Date;
+  /**
+   * `L-08b` (18 sep 2026): **el residente crea su propio frecuente.** Sin esto es una visita de UN
+   * día; con esto, un pase `larga_duracion` que vale de `startAt` a `endAt` (días enteros, tope de
+   * 12 meses) en los días y la franja del horario.
+   */
+  frecuente?: {
+    categoria: "familiar" | "servicio" | "otro";
+    horario?: HorarioDeIngreso;
+  };
 };
 
 const VALID_STATUSES: VisitorInvitationStatus[] = ["active", "cancelled", "expired", "used_up"];
@@ -110,6 +127,11 @@ function mapInvitation(snapshot: QueryDocumentSnapshot<DocumentData> | { id: str
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
     cancelledAt: data.cancelledAt ? asDate(data.cancelledAt) : undefined,
+    // `L-08b`: este normalizador arma la invitación campo por campo; lo que no se nombra aquí no
+    // llega a la pantalla aunque esté guardado.
+    tipo: data.tipo === "frecuente" ? "frecuente" : "visita",
+    visitorCategory: esCategoriaDeVisitante(data.visitorCategory) ? data.visitorCategory : undefined,
+    horario: normalizarHorario(data.horario),
   };
 }
 
@@ -163,6 +185,18 @@ export async function createResidentInvitation(input: CreateInvitationInput) {
     throw new Error("La fecha y hora de fin debe ser posterior al inicio.");
   }
 
+  const diaDeInicio = toDateInputValue(input.startAt);
+  const diaDeFin = toDateInputValue(input.endAt);
+  // `L-08b`: una visita es de UN día. La invitación de varios días creaba un pase que solo valía el
+  // primero, así que se prohíbe por construcción: lo de varios días es un frecuente.
+  if (!input.frecuente && diaDeFin !== diaDeInicio) {
+    throw new Error("Una visita es de un solo día. Para varios días, crea un visitante frecuente.");
+  }
+  if (input.frecuente && diaDeFin > ultimoDiaPermitidoDelResidente(diaDeInicio)) {
+    throw new Error(`Un visitante frecuente puede autorizarse hasta por ${MESES_MAXIMOS_DEL_FRECUENTE_DEL_RESIDENTE} meses.`);
+  }
+  const horario = input.frecuente ? normalizarHorario(input.frecuente.horario) : undefined;
+
   try {
     const invitationCode = Math.random().toString(36).slice(2, 8).toUpperCase();
     const qrToken = crypto.randomUUID();
@@ -184,6 +218,9 @@ export async function createResidentInvitation(input: CreateInvitationInput) {
       status: "active",
       qrToken,
       invitationCode,
+      tipo: input.frecuente ? "frecuente" : "visita",
+      ...(input.frecuente ? { visitorCategory: input.frecuente.categoria } : {}),
+      ...(horario ? { horario } : {}),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -202,10 +239,16 @@ export async function createResidentInvitation(input: CreateInvitationInput) {
       // El día LOCAL de la visita, como el resto de escritores de `visitorPasses`. Salía de
       // `toISOString()`, que es el de UTC: una visita a las 19:30 en México quedaba guardada
       // al día siguiente, y la lista de hoy de la portería y el panel la ponían en mañana.
-      date: toDateInputValue(input.startAt),
-      eventDate: toDateInputValue(input.startAt),
+      date: diaDeInicio,
+      eventDate: diaDeInicio,
       scheduledTime: input.startAt.toISOString(),
       status: "scheduled",
+      // `L-08b`: la portería solo recibía el primer día. Ahora el pase lleva su vigencia entera.
+      authorizationType: input.frecuente ? "larga_duracion" : "puntual",
+      validFrom: diaDeInicio,
+      validUntil: input.frecuente ? diaDeFin : diaDeInicio,
+      ...(input.frecuente ? { visitorCategory: input.frecuente.categoria } : {}),
+      ...(horario ? { horario } : {}),
       checkInAt: null,
       checkOutAt: null,
       residentName: input.authorizedByName,
@@ -233,15 +276,52 @@ export async function getResidentInvitationById(id: string) {
   return mapInvitation(snapshot);
 }
 
-export async function cancelResidentInvitation(id: string) {
+/**
+ * Cancela la invitación **y revoca su pase** (`L-08b`, 18 sep 2026).
+ *
+ * Antes solo escribía la invitación: la portería lee `visitorPasses`, así que el visitante
+ * cancelado seguía entrando. Con un frecuente eso es dejar pasar durante meses a alguien revocado.
+ *
+ * El pase se encuentra por su QR (`qrCodeValue == qrToken`), que ya enlazaba los dos documentos
+ * desde siempre: sirve también para los pases anteriores a esta fecha. Un pase que está DENTRO no
+ * cambia de estado —la persona está en el conjunto y la portería tiene que poder registrar su
+ * salida—, pero queda marcado con `cancelledAt` y **al salir ya no vuelve a quedar habilitado**.
+ */
+export async function cancelResidentInvitation(id: string, cancelledBy?: string) {
   if (!db) {
     throw new Error("Firestore no esta inicializado.");
   }
 
   const invitationRef = doc(db, "visitorInvitations", id);
+  const snapshot = await getDoc(invitationRef);
   await updateDoc(invitationRef, {
     status: "cancelled",
     cancelledAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
+  const data = snapshot.exists() ? snapshot.data() : null;
+  const qrToken = asString(data?.qrToken);
+  if (!data || !qrToken) return;
+
+  const pases = await getDocs(
+    query(
+      collection(db, "visitorPasses"),
+      where("tenantId", "==", asString(data.tenantId)),
+      where("unitId", "==", asString(data.unitId)),
+      where("qrCodeValue", "==", qrToken),
+    ),
+  );
+  await Promise.all(
+    pases.docs
+      .filter((pase) => pase.data().status !== "completed" && pase.data().status !== "cancelled")
+      .map((pase) =>
+        updateDoc(pase.ref, {
+          ...(pase.data().status === "inside" ? {} : { status: "cancelled" }),
+          cancelledAt: serverTimestamp(),
+          ...(cancelledBy ? { cancelledBy } : {}),
+          updatedAt: serverTimestamp(),
+        }),
+      ),
+  );
 }

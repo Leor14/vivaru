@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { cancelResidentInvitation, subscribeResidentInvitations } from "@/features/visitors/invitations";
+import { describirHorario, etiquetaDeCategoria } from "@/features/visitors/frecuente";
 import { PendingVisitAuthorizations } from "@/components/features/resident/PendingVisitAuthorizations";
 import { PorterVisitHistory } from "@/components/features/resident/PorterVisitHistory";
 import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
@@ -80,7 +81,7 @@ export default function ResidentVisitorsPage() {
   async function handleCancelInvitation(id: string) {
     setCancellingId(id);
     try {
-      await cancelResidentInvitation(id);
+      await cancelResidentInvitation(id, user?.uid);
       toast.success("Invitación cancelada correctamente.");
     } catch (cancelError) {
       toastFirebaseError(cancelError);
@@ -177,6 +178,13 @@ export default function ResidentVisitorsPage() {
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold text-[var(--slate-900)]">{item.visitorName}</h3>
                     <p className="text-sm text-[var(--slate-700)]">Documento: {item.visitorIdentification}</p>
+                    {item.tipo === "frecuente" ? (
+                      <p className="text-sm font-medium text-[var(--brand-700)]">
+                        {["Visitante frecuente", etiquetaDeCategoria(item.visitorCategory), describirHorario(item.horario)]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    ) : null}
                     <p className="text-sm text-[var(--slate-600)]">Desde: {formatDateTime(item.startAt)}</p>
                     <p className="text-sm text-[var(--slate-600)]">Hasta: {formatDateTime(item.endAt)}</p>
                   </div>

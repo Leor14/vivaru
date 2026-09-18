@@ -5,6 +5,7 @@ import { FilterX, PenSquare, Plus, QrCode, Trash2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import type { z } from "zod";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
@@ -25,6 +26,7 @@ import { visitorSchema, type VisitorInput } from "@/features/admin/schemas";
 import {
   createVisitor,
   deleteVisitor,
+  revocarPase,
   updateVisitor,
   watchUnits,
   watchVisitors,
@@ -54,6 +56,17 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
+import { resolverEstadoOperativo } from "@/features/visitors/estado-operativo";
+import {
+  CATEGORIAS_DE_UNIDAD,
+  CATEGORIAS_DEL_CONJUNTO,
+  DIAS_DE_LA_SEMANA,
+  describirHorario,
+  etiquetaDeCategoria,
+  normalizarHorario,
+  type CategoriaDeVisitante,
+  type DiaDeLaSemana,
+} from "@/features/visitors/frecuente";
 import { resolveIdentityCell } from "@/lib/utils/identity";
 import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import type { VisitorPass } from "@/types/domain";
@@ -64,6 +77,8 @@ export default function AdminVisitorsPage() {
   const isSimpleMode = visitorsVariant === "registro_simple";
   // En modo registro simple no hay autorizaciones/QR del residente: solo registros operativos.
   const canEdit = user?.role === "tenant_admin" && !isSimpleMode;
+  // `L-08b`: revocar un pase es de la administración también en modo registro simple.
+  const canRevoke = user?.role === "tenant_admin";
   const [items, setItems] = useState<VisitorItem[]>([]);
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,13 +101,14 @@ export default function AdminVisitorsPage() {
   const [qrTarget, setQrTarget] = useState<VisitorItem | null>(null);
   const qrRef = useRef<HTMLDivElement | null>(null);
 
-  const form = useForm<VisitorInput>({
+  const form = useForm<z.input<typeof visitorSchema>, undefined, VisitorInput>({
     resolver: zodResolver(visitorSchema),
     defaultValues: {
       visitorName: "",
       visitorDocument: "",
       qrCode: `QR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       authorizationType: "puntual",
+      alcance: "unidad",
       visitorCategory: "familiar",
       unitId: "",
       authorizedBy: user?.fullName ?? "",
@@ -102,8 +118,19 @@ export default function AdminVisitorsPage() {
       endTime: "",
       notes: "",
       status: "active",
+      dias: [],
+      franjaDesde: "",
+      franjaHasta: "",
     },
   });
+  const alcance = form.watch("alcance");
+  const diasMarcados = form.watch("dias") ?? [];
+  function alternarDia(dia: DiaDeLaSemana) {
+    const actuales = form.getValues("dias") ?? [];
+    form.setValue("dias", actuales.includes(dia) ? actuales.filter((d) => d !== dia) : [...actuales, dia], {
+      shouldDirty: true,
+    });
+  }
 
   const authorizationType = form.watch("authorizationType");
   const selectedStartDate = form.watch("startDate");
@@ -200,6 +227,9 @@ export default function AdminVisitorsPage() {
       key: "unit",
       header: "Unidad / Residente",
       render: (item) => {
+        if (item.alcance === "conjunto") {
+          return <span className="block text-[var(--slate-900)]">Personal del conjunto</span>;
+        }
         const identity = resolveIdentityCell({ unitLabel: item.unitLabel, personName: item.authorizedBy });
         return (
           <span>
@@ -238,8 +268,16 @@ export default function AdminVisitorsPage() {
       key: "category",
       header: "Categoría",
       render: (item) => {
-        const map: Record<string, string> = { familiar: "Familiar", servicio: "Servicio", otro: "Otro" };
-        return map[item.visitorCategory] ?? item.visitorCategory;
+        const categoria = etiquetaDeCategoria(item.visitorCategory) ?? item.visitorCategory;
+        const horario = describirHorario(item.horario);
+        return horario ? (
+          <span>
+            <span className="block">{categoria}</span>
+            <span className="block text-[11px] text-[var(--slate-500)]">{horario}</span>
+          </span>
+        ) : (
+          categoria
+        );
       },
       mobileHidden: true,
     },
@@ -269,6 +307,7 @@ export default function AdminVisitorsPage() {
       visitorDocument: "",
       qrCode: `QR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       authorizationType: "puntual",
+      alcance: "unidad",
       visitorCategory: "familiar",
       unitId: units[0]?.id ?? "",
       authorizedBy: user?.fullName ?? "",
@@ -278,6 +317,9 @@ export default function AdminVisitorsPage() {
       endTime: "",
       notes: "",
       status: "active",
+      dias: [],
+      franjaDesde: "",
+      franjaHasta: "",
     });
     setOpenModal(true);
   }
@@ -289,6 +331,7 @@ export default function AdminVisitorsPage() {
       visitorDocument: item.visitorDocument,
       qrCode: item.qrCode,
       authorizationType: item.authorizationType,
+      alcance: item.alcance === "conjunto" ? "conjunto" : "unidad",
       visitorCategory: item.visitorCategory,
       unitId: item.unitId,
       authorizedBy: item.authorizedBy,
@@ -298,6 +341,9 @@ export default function AdminVisitorsPage() {
       endTime: item.endTime ?? "",
       notes: item.notes ?? "",
       status: item.status,
+      dias: item.horario?.dias ?? [],
+      franjaDesde: item.horario?.desde ?? "",
+      franjaHasta: item.horario?.hasta ?? "",
     });
     setOpenModal(true);
   }
@@ -313,12 +359,31 @@ export default function AdminVisitorsPage() {
 
     setSaving(true);
     try {
-      const payload: VisitorInput = {
-        ...values,
-        endDate: values.authorizationType === "puntual" ? values.startDate : values.endDate,
+      const delConjunto = values.alcance === "conjunto";
+      const larga = values.authorizationType === "larga_duracion";
+      const horario = larga
+        ? normalizarHorario({ dias: values.dias, desde: values.franjaDesde, hasta: values.franjaHasta })
+        : undefined;
+      const payload: Omit<VisitorItem, "id" | "tenantId" | "createdAt"> = {
+        visitorName: values.visitorName,
+        visitorDocument: values.visitorDocument,
+        qrCode: values.qrCode,
+        authorizationType: values.authorizationType,
+        visitorCategory: values.visitorCategory as CategoriaDeVisitante,
+        unitId: delConjunto ? "" : values.unitId,
+        alcance: delConjunto ? "conjunto" : undefined,
+        horario,
+        authorizedBy: values.authorizedBy,
+        startDate: values.startDate,
+        startTime: values.startTime,
+        endDate: larga ? values.endDate : values.startDate,
+        // La hora final de un frecuente es la de cierre de su franja, o el final del día.
+        endTime: larga ? values.franjaHasta || "23:59" : values.endTime,
+        notes: values.notes,
+        status: values.status,
       };
 
-      const selectedUnit = units.find((u) => u.id === payload.unitId);
+      const selectedUnit = delConjunto ? undefined : units.find((u) => u.id === payload.unitId);
       const unitInfo = selectedUnit
         ? { unitLabel: selectedUnit.displayName, tower: selectedUnit.tower, unit: selectedUnit.unitId }
         : undefined;
@@ -384,7 +449,7 @@ export default function AdminVisitorsPage() {
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
-      await deleteVisitor(deleteTarget.id);
+      await deleteVisitor(deleteTarget.id, user?.uid ?? "");
       toast.success("Autorización eliminada.");
     } catch (error) {
       toastFirebaseError(error);
@@ -393,23 +458,38 @@ export default function AdminVisitorsPage() {
     }
   }
 
+  /**
+   * `L-08b` (18 sep 2026): **una sola regla con la portería.** Aquí vivía una copia que daba por
+   * expirado un frecuente al pasar su PRIMER día —la portería lo seguía dejando entrar— y no conocía
+   * «revocado». Ahora lee `resolverEstadoOperativo`, como la píldora de la puerta.
+   */
   function resolvePassStatus(pass: VisitorPass): string {
-    if (pass.status === "inside") return "Dentro";
-    if (pass.status === "completed") return "Finalizado";
-    if (pass.status === "scheduled") {
-      const dt = pass.date && pass.scheduledTime
-        ? new Date(`${pass.date}T${pass.scheduledTime}`)
-        : null;
-      if (dt && dt.getTime() < Date.now()) return "Expirado";
-      return "Programado";
+    const estado = resolverEstadoOperativo(pass, Date.now());
+    if (estado === "inside") return "Dentro";
+    if (estado === "completed") return "Finalizado";
+    if (estado === "expired") return "Expirado";
+    if (estado === "cancelled") return "Revocado";
+    return "Programado";
+  }
+
+  const [revocandoId, setRevocandoId] = useState<string | null>(null);
+  async function handleRevocar(pass: VisitorPass) {
+    if (!user?.uid) return;
+    setRevocandoId(pass.id);
+    try {
+      await revocarPase(pass.id, pass.status, user.uid);
+      toast.success(pass.status === "inside" ? "Revocado: al salir ya no podrá volver a entrar." : "Pase revocado.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setRevocandoId(null);
     }
-    return pass.status;
   }
 
   function resolvePassStatusClass(label: string): string {
     if (label === "Dentro") return "bg-[var(--info-100)] text-[var(--info-700)]";
     if (label === "Finalizado") return "bg-[var(--slate-100)] text-[var(--slate-700)]";
-    if (label === "Expirado") return "bg-[var(--danger-100)] text-[var(--danger-700)]";
+    if (label === "Expirado" || label === "Revocado") return "bg-[var(--danger-100)] text-[var(--danger-700)]";
     return "bg-[var(--amber-100)] text-[var(--amber-800)]";
   }
 
@@ -598,7 +678,18 @@ export default function AdminVisitorsPage() {
                             {pass.documentNumber || "-"}
                           </td>
                           <td className="px-4 py-3 text-[var(--slate-600)]">
-                            {pass.unitLabel ? resolveUnitName(pass.unitLabel, unitIndex) : "-"}
+                            {pass.alcance === "conjunto"
+                              ? "Personal del conjunto"
+                              : pass.unitLabel
+                                ? resolveUnitName(pass.unitLabel, unitIndex)
+                                : "-"}
+                            {pass.authorizationType === "larga_duracion" ? (
+                              <span className="block text-[11px] text-[var(--slate-500)]">
+                                {["Frecuente", etiquetaDeCategoria(pass.visitorCategory), describirHorario(pass.horario)]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </span>
+                            ) : null}
                           </td>
                           <td className="px-4 py-3 text-[var(--slate-600)]">
                             {pass.date || "-"}
@@ -627,13 +718,26 @@ export default function AdminVisitorsPage() {
                               : "-"}
                           </td>
                           <td className="px-4 py-3">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedPass(pass)}
-                            >
-                              Ver detalle
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedPass(pass)}
+                              >
+                                Ver detalle
+                              </Button>
+                              {canRevoke && (pass.status === "scheduled" || (pass.status === "inside" && !pass.cancelledAt)) &&
+                              statusLabel !== "Expirado" ? (
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  disabled={revocandoId === pass.id}
+                                  onClick={() => void handleRevocar(pass)}
+                                >
+                                  {revocandoId === pass.id ? "Revocando..." : "Revocar"}
+                                </Button>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -799,7 +903,41 @@ export default function AdminVisitorsPage() {
               <Input {...form.register("qrCode")} />
             </label>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[var(--slate-700)]">
+              Para
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                {...form.register("alcance", {
+                  // Las categorías cambian con el destino: la que había puede no existir en el otro.
+                  onChange: (event) =>
+                    form.setValue("visitorCategory", event.target.value === "conjunto" ? "aseo" : "familiar"),
+                })}
+              >
+                <option value="unidad">Una unidad</option>
+                <option value="conjunto">Personal del conjunto</option>
+              </select>
+            </label>
+            {alcance === "conjunto" ? (
+              <p className="self-end pb-2 text-xs text-[var(--slate-500)]">
+                Aseo, jardinería, mantenimiento… No va a ninguna unidad: la portería lo ve como personal del conjunto.
+              </p>
+            ) : (
+              <label className="text-sm text-[var(--slate-700)]">
+                Unidad
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("unitId")}>
+                  <option value="">Selecciona</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>{unit.displayName}</option>
+                  ))}
+                </select>
+                {form.formState.errors.unitId ? (
+                  <span className="mt-1 block text-xs text-[var(--danger-700)]">{form.formState.errors.unitId.message}</span>
+                ) : null}
+              </label>
+            )}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Tipo autorización
               <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("authorizationType")}>
@@ -810,17 +948,8 @@ export default function AdminVisitorsPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Categoría
               <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("visitorCategory")}>
-                <option value="familiar">Familiar</option>
-                <option value="servicio">Servicio</option>
-                <option value="otro">Otro</option>
-              </select>
-            </label>
-            <label className="text-sm text-[var(--slate-700)]">
-              Unidad
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("unitId")}>
-                <option value="">Selecciona</option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>{unit.displayName}</option>
+                {(alcance === "conjunto" ? CATEGORIAS_DEL_CONJUNTO : CATEGORIAS_DE_UNIDAD).map((c) => (
+                  <option key={c.valor} value={c.valor}>{c.etiqueta}</option>
                 ))}
               </select>
             </label>
@@ -849,22 +978,59 @@ export default function AdminVisitorsPage() {
               <Input type="time" min={minStartTimeValue} {...form.register("startTime")} />
             </label>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {authorizationType === "larga_duracion" ? (
-              <>
+          {authorizationType === "larga_duracion" ? (
+            <div className="space-y-3">
+              <label className="block text-sm text-[var(--slate-700)]">
+                Fecha fin
+                <Input type="date" min={selectedStartDate || minDateValue} {...form.register("endDate")} />
+                {form.formState.errors.endDate ? (
+                  <span className="mt-1 block text-xs text-[var(--danger-700)]">{form.formState.errors.endDate.message}</span>
+                ) : null}
+              </label>
+              <fieldset>
+                <legend className="text-sm text-[var(--slate-700)]">Días de ingreso</legend>
+                <p className="mb-2 text-xs text-[var(--slate-500)]">Si no marcas ninguno, puede entrar todos los días.</p>
+                <div className="flex flex-wrap gap-2">
+                  {DIAS_DE_LA_SEMANA.map((dia) => {
+                    const marcado = diasMarcados.includes(dia.valor);
+                    return (
+                      <button
+                        key={dia.valor}
+                        type="button"
+                        aria-pressed={marcado}
+                        onClick={() => alternarDia(dia.valor)}
+                        className={`h-9 min-w-12 rounded-full border px-3 text-sm ${
+                          marcado
+                            ? "border-[var(--brand-600)] bg-[var(--brand-50)] font-medium text-[var(--brand-900)]"
+                            : "border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-700)]"
+                        }`}
+                      >
+                        {dia.corto}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+              <div className="grid gap-3 md:grid-cols-2">
                 <label className="text-sm text-[var(--slate-700)]">
-                  Fecha fin
-                  <Input type="date" min={selectedStartDate || minDateValue} {...form.register("endDate")} />
+                  Horario de ingreso desde (opcional)
+                  <Input type="time" {...form.register("franjaDesde")} />
                 </label>
                 <label className="text-sm text-[var(--slate-700)]">
-                  Hora fin
-                  <Input type="time" {...form.register("endTime")} />
+                  Hasta (opcional)
+                  <Input type="time" {...form.register("franjaHasta")} />
+                  {form.formState.errors.franjaHasta ? (
+                    <span className="mt-1 block text-xs text-[var(--danger-700)]">{form.formState.errors.franjaHasta.message}</span>
+                  ) : null}
                 </label>
-              </>
-            ) : (
-              <div className="text-xs text-[var(--slate-500)]">Para autorización puntual se usa la misma fecha y hora de inicio.</div>
-            )}
-          </div>
+              </div>
+              <p className="text-xs text-[var(--slate-500)]">
+                La portería ve los días y el horario, y un aviso si llega fuera de ellos. No bloquea: decide la portería.
+              </p>
+            </div>
+          ) : (
+            <div className="text-xs text-[var(--slate-500)]">Para autorización puntual se usa la misma fecha y hora de inicio.</div>
+          )}
           <label className="text-sm text-[var(--slate-700)]">
             Notas
             <Input {...form.register("notes")} />

@@ -202,9 +202,16 @@ describe("BLOQUE 3 — visitors/new/page.tsx: verificación estática", () => {
     expect(src).not.toMatch(/type="time"/);
   });
 
-  it("existen exactamente 2 usos de <TimeSelect", () => {
+  // Eran 2 (inicio y fin). Desde `L-08b` (18 sep 2026) son 4: la visita lleva llegada y salida, y
+  // el visitante frecuente su franja de entrada, desde y hasta. Ninguno es `<Input type="time">`.
+  it("existen exactamente 4 usos de <TimeSelect", () => {
     const matches = src.match(/<TimeSelect\b/g);
-    expect(matches).toHaveLength(2);
+    expect(matches).toHaveLength(4);
+  });
+
+  it('la franja del frecuente también es <TimeSelect (register("franjaDesde") y register("franjaHasta"))', () => {
+    expect(src).toMatch(/<TimeSelect[^>]*register\("franjaDesde"\)/);
+    expect(src).toMatch(/<TimeSelect[^>]*register\("franjaHasta"\)/);
   });
 
   it('un <TimeSelect tiene register("startTime")', () => {

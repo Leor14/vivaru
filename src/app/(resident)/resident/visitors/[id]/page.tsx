@@ -61,7 +61,7 @@ export default function ResidentVisitorsDetailPage() {
 
     setCancelling(true);
     try {
-      await cancelResidentInvitation(invitation.id);
+      await cancelResidentInvitation(invitation.id, user?.uid);
       setInvitation({ ...invitation, status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() });
       toast.success("Invitación cancelada correctamente.");
     } catch (cancelError) {

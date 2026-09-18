@@ -40,6 +40,8 @@ export default defineConfig({
       "tests/visitante-frecuente.rules.test.ts",
       "tests/autor-de-la-puerta.rules.test.ts",
       "tests/lectura-del-comunicado.rules.test.ts",
+      // Fase 7 (18 sep 2026): `L-08b`, el frecuente del residente.
+      "tests/frecuente-del-residente.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.

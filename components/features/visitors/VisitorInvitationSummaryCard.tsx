@@ -5,6 +5,7 @@ import { VisitorInvitation } from 'features/visitors/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from 'features/visitors/utils/formatDateTime';
+import { describirHorario, etiquetaDeCategoria } from '@/features/visitors/frecuente';
 
 interface Props {
   invitation: VisitorInvitation;
@@ -61,14 +62,26 @@ export function VisitorInvitationSummaryCard({ invitation, showQR, onShowQR, onC
           <dt className="text-[var(--slate-500)]">Cantidad de personas</dt>
           <dd className="font-medium text-[var(--slate-900)]">{invitation.adultsCount} adultos, {invitation.childrenCount} ninos</dd>
         </div>
-        <div>
-          <dt className="text-[var(--slate-500)]">Usos permitidos</dt>
-          <dd className="font-medium text-[var(--slate-900)]">{invitation.allowedUses}</dd>
-        </div>
+        {invitation.tipo === 'frecuente' ? null : (
+          <div>
+            <dt className="text-[var(--slate-500)]">Usos permitidos</dt>
+            <dd className="font-medium text-[var(--slate-900)]">{invitation.allowedUses}</dd>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <dt className="text-[var(--slate-500)]">Observaciones</dt>
           <dd className="font-medium text-[var(--slate-900)]">{invitation.visitReason}</dd>
         </div>
+        {invitation.tipo === 'frecuente' ? (
+          <div className="sm:col-span-2">
+            <dt className="text-[var(--slate-500)]">Visitante frecuente</dt>
+            <dd className="font-medium text-[var(--slate-900)]">
+              {[etiquetaDeCategoria(invitation.visitorCategory), describirHorario(invitation.horario) ?? 'Todos los días']
+                .filter(Boolean)
+                .join(' · ')}
+            </dd>
+          </div>
+        ) : null}
         <div className="sm:col-span-2">
           <dt className="text-[var(--slate-500)]">Vigencia</dt>
           <dd className="font-medium text-[var(--slate-900)]">{formatDateTime(invitation.startAt)} - {formatDateTime(invitation.endAt)}</dd>

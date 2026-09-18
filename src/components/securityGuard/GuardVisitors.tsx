@@ -29,6 +29,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import {
   normalizeQrPayload,
   resolveVisitorFromQr,
+  type OperationalStatus,
   type ScanResultState,
   type VisitorCardItem,
 } from "@/features/visitors/guard-qr-validation";
@@ -37,8 +38,8 @@ import { db, storage } from "@/lib/firebase/client";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { combineLocalDateTime, formatDateSafe, formatDateTimeSafe, toLocalDate } from "@/utils/date";
 import { getStatusLabel as mapStatusLabel } from "@/utils/statusMapper";
+import { dentroDeHorario, describirHorario, etiquetaDeCategoria } from "@/features/visitors/frecuente";
 
-type OperationalStatus = "scheduled" | "inside" | "completed" | "expired";
 
 type CameraState = "idle" | "starting" | "active" | "unsupported" | "denied" | "error";
 
@@ -97,13 +98,14 @@ function getStatusLabel(status: OperationalStatus) {
   if (status === "inside") return mapStatusLabel("inside");
   if (status === "completed") return mapStatusLabel("completed");
   if (status === "expired") return mapStatusLabel("expired");
+  if (status === "cancelled") return mapStatusLabel("cancelled");
   return mapStatusLabel("scheduled");
 }
 
 function getStatusClass(status: OperationalStatus) {
   if (status === "inside") return "bg-sky-100 text-sky-700";
   if (status === "completed") return "bg-[var(--slate-200)] text-[var(--slate-700)]";
-  if (status === "expired") return "bg-rose-100 text-rose-700";
+  if (status === "expired" || status === "cancelled") return "bg-rose-100 text-rose-700";
   return "bg-amber-100 text-amber-700";
 }
 
@@ -294,7 +296,9 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
 
     setUpdatingId(item.id);
     try {
-      const reentrable = item.authorizationType === "larga_duracion" && dentroDeVigencia(item, Date.now());
+      // `L-08b`: un frecuente revocado mientras estaba dentro sale y NO vuelve a quedar habilitado.
+      const reentrable =
+        item.authorizationType === "larga_duracion" && !item.cancelledAt && dentroDeVigencia(item, Date.now());
       await markVisitorAsCompleted({
         visitorId: item.id,
         tenantId,
@@ -637,6 +641,14 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
       logs.push("Invitacion expirada por tiempo operativo sin ingreso.");
     }
 
+    if (selectedVisitor.operationalStatus === "cancelled") {
+      logs.push(
+        selectedVisitor.cancelledAt
+          ? `Autorización revocada: ${formatDateTime(selectedVisitor.cancelledAt)}. No puede entrar.`
+          : "Autorización revocada. No puede entrar.",
+      );
+    }
+
     return logs;
   }, [selectedVisitor]);
 
@@ -808,12 +820,30 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                           Vigente hasta {formatDate(item.validUntil)}
                         </span>
                       ) : null}
+                      {/* `L-08b`/`L-10`: el horario AVISA, no bloquea — la portería decide. */}
+                      {item.operationalStatus === "scheduled" && dentroDeHorario(item, new Date(ahoraMs)) === false ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                          Fuera de horario
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
+                  {etiquetaDeCategoria(item.visitorCategory) || item.horario ? (
+                    <p className="mt-2 text-xs text-[var(--slate-600)]">
+                      {[etiquetaDeCategoria(item.visitorCategory), describirHorario(item.horario)].filter(Boolean).join(" · ")}
+                    </p>
+                  ) : null}
+
                   <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                    <p className="text-[var(--slate-700)]">Visita a: <span className="font-medium">{item.hostResidentName}</span></p>
-                    <p className="text-[var(--slate-700)]">Torre / Unidad: <span className="font-medium">{item.tower} / {item.unit}</span></p>
+                    {item.alcance === "conjunto" ? (
+                      <p className="text-[var(--slate-700)] sm:col-span-2"><span className="font-medium">Personal del conjunto</span></p>
+                    ) : (
+                      <>
+                        <p className="text-[var(--slate-700)]">Visita a: <span className="font-medium">{item.hostResidentName}</span></p>
+                        <p className="text-[var(--slate-700)]">Torre / Unidad: <span className="font-medium">{item.tower} / {item.unit}</span></p>
+                      </>
+                    )}
                     <p className="text-[var(--slate-700)]">Fecha: <span className="font-medium">{formatDate(item.date)}</span></p>
                     <p className="text-[var(--slate-700)]">Hora: <span className="font-medium">{formatTime(item.scheduledTime)}</span></p>
                   </div>

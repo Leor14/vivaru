@@ -1,3 +1,5 @@
+import type { CategoriaDeVisitante, HorarioDeIngreso } from '@/features/visitors/frecuente';
+
 // Modelo de invitación de visitante para flujo residente
 // FASE 1 — visitor invitation model
 
@@ -29,4 +31,8 @@ export interface VisitorInvitation {
   createdAt: Date;
   updatedAt: Date;
   cancelledAt?: Date;
+  /** `L-08b` (18 sep 2026). Ausente en las anteriores: son visitas. */
+  tipo?: 'visita' | 'frecuente';
+  visitorCategory?: CategoriaDeVisitante;
+  horario?: HorarioDeIngreso;
 }

@@ -153,8 +153,9 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
   // tipo `audience` de `CommunicationItem` y seis de la categoría `comunicado_dirigido`
   // (`D-2c`). Misma comprobación: la 736 de `a69701e` y la 744 de ahora son idénticas
   // carácter a carácter. Y a la 745 el 16 sep, por `publishedAt` en `CommunicationItem`
-  // (`L-12`), comprobada igual contra `b30fa6d`.
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:745"]);
+  // (`L-12`), comprobada igual contra `b30fa6d`. Y a la 751 el 18 sep, por los campos de
+  // `L-08b`/`L-10` en `VisitorItem` y un import: la 745 de `2dddfc2` y la 751 de ahora, idénticas.
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:751"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);

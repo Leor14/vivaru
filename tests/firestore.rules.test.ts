@@ -665,17 +665,26 @@ describe("Firestore Rules - HOGARU", () => {
     );
   });
 
-  it("permite update de visitante al creador de la misma unidad", async () => {
+  // **`L-08b` (18 sep 2026): esta prueba afirmaba lo contrario, y era el agujero.** Decía
+  // «permite update de visitante al creador» con un `status: "checked_in"`: el residente se marcaba
+  // dentro a sí mismo. Nadie lo hacía —el front del residente no escribía pases—, pero la regla lo
+  // dejaba. Ahora el creador solo REVOCA; el resto de la regla, en
+  // `tests/frecuente-del-residente.rules.test.ts`.
+  it("NO deja al creador marcar su visitante dentro", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(resident.firestore(), "visitorPasses", "vis-1"), {
+        status: "checked_in",
+      }),
+    );
+  });
+
+  it("permite al creador de la misma unidad revocar su visitante", async () => {
     const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
     await assertSucceeds(
       updateDoc(doc(resident.firestore(), "visitorPasses", "vis-1"), {
-        tenantId: "tenant-a",
-        unitId: "unit-t2-503",
-        unitLabel: "T2-503",
-        visitorName: "Camila Suarez",
-        visitDate: "2026-03-12",
-        status: "checked_in",
-        createdBy: "resident-1",
+        status: "cancelled",
+        cancelledAt: Timestamp.now(),
       }),
     );
   });

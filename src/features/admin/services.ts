@@ -33,6 +33,7 @@ import { normalizeTower } from "@/utils/tower";
 import { combineDateAndTime, isDateTimeValid, toDateInputValue } from "@/utils/datetimeValidation";
 import type { FiscalProfile } from "@/types/domain";
 import type { ModuleVariants } from "@/lib/config/module-variants";
+import type { CategoriaDeVisitante, HorarioDeIngreso } from "@/features/visitors/frecuente";
 
 export type UnitItem = {
   id: string;
@@ -233,8 +234,13 @@ export type VisitorItem = {
   visitorDocument: string;
   qrCode: string;
   authorizationType: "puntual" | "larga_duracion";
-  visitorCategory: "familiar" | "servicio" | "otro";
+  visitorCategory: CategoriaDeVisitante;
+  /** `L-10`: vacío cuando `alcance` es `"conjunto"`. */
   unitId: string;
+  /** `L-10` (18 sep 2026): personal del conjunto, sin unidad. Ausente = de una unidad. */
+  alcance?: "conjunto";
+  /** `L-08b`/`L-10`: días y franja de un frecuente. */
+  horario?: HorarioDeIngreso;
   authorizedBy: string;
   startDate: string;
   startTime: string;
@@ -1428,24 +1434,32 @@ export async function createVisitor(
       updatedAt: serverTimestamp(),
     });
 
-    // Label/torre/unidad reales de la unidad (no derivados del doc id).
-    const unitLabel = unitInfo?.unitLabel || payload.unitId;
+    // Label/torre/unidad reales de la unidad (no derivados del doc id). **El personal del conjunto
+    // no tiene unidad** (`L-10`): `unitId` vacío, que la migración de claves trata como «sin clave»
+    // (`planificarDocumento`), y nada de fabricar una etiqueta.
+    const delConjunto = payload.alcance === "conjunto";
+    const unitLabel = delConjunto ? "" : unitInfo?.unitLabel || payload.unitId;
     await addDoc(collection(firestore, "visitorPasses"), {
       tenantId,
-      unitId: payload.unitId,
+      unitId: delConjunto ? "" : payload.unitId,
       unitLabel,
       visitorName: payload.visitorName,
       documentNumber: payload.visitorDocument,
       qrCodeValue: payload.qrCode,
       hostResidentName: payload.authorizedBy,
-      tower: unitInfo?.tower || "-",
-      unit: unitInfo?.unit || unitLabel,
+      tower: delConjunto ? "-" : unitInfo?.tower || "-",
+      unit: delConjunto ? "-" : unitInfo?.unit || unitLabel,
       date: payload.startDate,
       scheduledTime: `${payload.startDate}T${payload.startTime}:00`,
       status: "scheduled",
       authorizationType: payload.authorizationType,
       validFrom: payload.startDate,
       validUntil: payload.authorizationType === "larga_duracion" ? payload.endDate || payload.startDate : payload.startDate,
+      // `L-10`: la categoría y el horario se guardaban en la autorización y NO llegaban al pase,
+      // que es lo único que lee la portería.
+      visitorCategory: payload.visitorCategory,
+      ...(payload.horario ? { horario: payload.horario } : {}),
+      ...(delConjunto ? { alcance: "conjunto" } : {}),
       checkInAt: null,
       checkOutAt: null,
       sourceAuthorizationId: createdAuthorization.id,
@@ -1469,6 +1483,10 @@ export async function updateVisitor(
   const firestore = assertDb();
   await updateDoc(doc(firestore, "visitorAuthorizations", id), {
     ...stripUndefined(payload),
+    // `stripUndefined` quitaría estos dos, y pasar de «conjunto» a «unidad» o quitar el horario
+    // dejaría el valor viejo en la autorización.
+    ...("horario" in payload ? { horario: payload.horario ?? deleteField() } : {}),
+    ...("alcance" in payload ? { alcance: payload.alcance ?? deleteField() } : {}),
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });
@@ -1490,7 +1508,22 @@ export async function updateVisitor(
     passUpdate.createdByName = payload.authorizedBy;
   }
   if (payload.unitId !== undefined) passUpdate.unitId = payload.unitId;
-  if (unitInfo) {
+  // `L-10`: los tres campos nuevos del pase se resincronizan como los demás.
+  if (payload.visitorCategory !== undefined) passUpdate.visitorCategory = payload.visitorCategory;
+  if ("horario" in payload) passUpdate.horario = payload.horario ?? deleteField();
+  if ("alcance" in payload) {
+    passUpdate.alcance = payload.alcance ?? deleteField();
+    if (payload.alcance === "conjunto") {
+      passUpdate.unitId = "";
+      passUpdate.unitLabel = "";
+      passUpdate.tower = "-";
+      passUpdate.unit = "-";
+    }
+  }
+  // `L-08b`: cancelar la autorización revoca el pase. Antes el estado de la autorización no bajaba
+  // al pase, y la portería seguía dejando entrar a quien la administración había cancelado.
+  const revocar = payload.status === "cancelled";
+  if (unitInfo && payload.alcance !== "conjunto") {
     passUpdate.unitLabel = unitInfo.unitLabel;
     passUpdate.tower = unitInfo.tower;
     passUpdate.unit = unitInfo.unit;
@@ -1510,11 +1543,49 @@ export async function updateVisitor(
     }
   }
 
-  await Promise.all(passesSnap.docs.map((d) => updateDoc(d.ref, passUpdate)));
+  await Promise.all(
+    passesSnap.docs.map((d) => updateDoc(d.ref, revocar ? { ...passUpdate, ...camposDeRevocacion(d.data().status, userId) } : passUpdate)),
+  );
 }
 
-export async function deleteVisitor(id: string) {
+/**
+ * Lo que se escribe en un pase al revocarlo (`L-08b`, 18 sep 2026). Si la persona está DENTRO no
+ * cambia de estado —la portería tiene que poder registrar su salida—, pero queda `cancelledAt` y
+ * al salir ya no vuelve a quedar habilitado. Uno terminado o ya revocado no se toca.
+ */
+function camposDeRevocacion(estadoActual: unknown, userId: string): Record<string, unknown> {
+  if (estadoActual === "completed" || estadoActual === "cancelled") return {};
+  return {
+    ...(estadoActual === "inside" ? {} : { status: "cancelled" }),
+    cancelledAt: serverTimestamp(),
+    cancelledBy: userId,
+  };
+}
+
+/** `L-08b`: la administración revoca un pase —el de un frecuente del residente, p. ej.— sin borrarlo. */
+export async function revocarPase(passId: string, estadoActual: string, userId: string) {
+  const campos = camposDeRevocacion(estadoActual, userId);
+  if (Object.keys(campos).length === 0) return;
   const firestore = assertDb();
+  await updateDoc(doc(firestore, "visitorPasses", passId), { ...campos, updatedAt: serverTimestamp() });
+}
+
+/**
+ * Borra la autorización **y revoca sus pases** (`L-08b`, 18 sep 2026). Solo borraba la
+ * autorización, y la portería —que lee `visitorPasses`— seguía dejando entrar al visitante. El pase
+ * se conserva revocado: es el registro de que existió.
+ */
+export async function deleteVisitor(id: string, userId: string) {
+  const firestore = assertDb();
+  const passesSnap = await getDocs(
+    query(collection(firestore, "visitorPasses"), where("sourceAuthorizationId", "==", id)),
+  );
+  await Promise.all(
+    passesSnap.docs.map((d) => {
+      const campos = camposDeRevocacion(d.data().status, userId);
+      return Object.keys(campos).length ? updateDoc(d.ref, { ...campos, updatedAt: serverTimestamp() }) : null;
+    }),
+  );
   await deleteDoc(doc(firestore, "visitorAuthorizations", id));
 }
 

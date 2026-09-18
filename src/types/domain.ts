@@ -1,5 +1,6 @@
 import type { AppRole } from "@/lib/constants/roles";
 import type { AppCurrency } from "@/lib/currency";
+import type { CategoriaDeVisitante, HorarioDeIngreso } from "@/features/visitors/frecuente";
 
 /**
  * Estado del ambiente habitacional.
@@ -366,12 +367,27 @@ export interface VisitorPass {
   /** Fecha canónica del evento (YYYY-MM-DD) para reportes/consultas por rango. Ver utils/event-date.ts */
   eventDate?: string;
   scheduledTime: string;
-  status: "scheduled" | "inside" | "completed";
+  /**
+   * `cancelled` (`L-08b`, 18 sep 2026): lo revocó el residente al cancelar su invitación, o la
+   * administración. Antes no existía y cancelar una invitación dejaba su pase vigente en portería.
+   */
+  status: "scheduled" | "inside" | "completed" | "cancelled";
   /** Tipo de autorización de origen (puntual = un día; larga_duracion = ventana). */
   authorizationType?: "puntual" | "larga_duracion";
   /** Ventana de vigencia (YYYY-MM-DD). validUntil ausente ⇒ se asume `date`. */
   validFrom?: string;
   validUntil?: string;
+  /** `L-10`: familiar/servicio/otro para una unidad; aseo, jardinería… para el conjunto. */
+  visitorCategory?: CategoriaDeVisitante;
+  /** `L-08b`/`L-10`: días y franja de un frecuente. Ausente = sin horario. Ver `frecuente.ts`. */
+  horario?: HorarioDeIngreso;
+  /**
+   * `L-10`: `"conjunto"` es personal del conjunto, **sin unidad** (`unitId` vacío). Ausente = el
+   * pase es de una unidad, como todos los anteriores al 18 sep 2026.
+   */
+  alcance?: "conjunto";
+  cancelledAt?: string;
+  cancelledBy?: string;
   checkInAt?: string;
   checkOutAt?: string;
   /**

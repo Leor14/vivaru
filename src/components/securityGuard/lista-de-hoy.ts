@@ -1,3 +1,4 @@
+import { frecuenteLeTocaElDia } from "@/features/visitors/frecuente";
 import { toDateInputValue } from "@/utils/datetimeValidation";
 
 /**
@@ -20,11 +21,20 @@ export function esDeHoy(fecha: string | undefined, ahora: Date = new Date()) {
   return fecha.slice(0, 10) === toDateInputValue(ahora);
 }
 
-export function visitasEsperadasHoy<T extends { date?: string; visitDate?: string; status: string }>(
-  visitas: T[],
-  ahora: Date = new Date(),
-) {
-  return visitas.filter((visita) => esDeHoy(visita.date || visita.visitDate, ahora) && visita.status !== "completed");
+/**
+ * **Un frecuente sale cada día que le toca, no solo el primero** (`L-08b`, 18 sep 2026). Comparaba
+ * solo `date`, que en un frecuente es el día de inicio: el de la administración salía en la lista
+ * de hoy una vez y luego nunca más. Un revocado no sale nunca.
+ */
+export function visitasEsperadasHoy<
+  T extends Parameters<typeof frecuenteLeTocaElDia>[0] & { visitDate?: string; status: string },
+>(visitas: T[], ahora: Date = new Date()) {
+  const hoy = toDateInputValue(ahora);
+  return visitas.filter((visita) => {
+    if (visita.status === "completed" || visita.status === "cancelled") return false;
+    if (visita.authorizationType === "larga_duracion") return frecuenteLeTocaElDia(visita, hoy);
+    return esDeHoy(visita.date || visita.visitDate, ahora);
+  });
 }
 
 export function reservasActivasHoy<T extends { date?: string; status?: string }>(

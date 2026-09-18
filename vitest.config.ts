@@ -46,6 +46,8 @@ export default defineConfig({
       "**/visitante-frecuente.rules.test.ts",
       "**/autor-de-la-puerta.rules.test.ts",
       "**/lectura-del-comunicado.rules.test.ts",
+      // Fase 7 (18 sep 2026): `L-08b`, el frecuente del residente. En las DOS listas.
+      "**/frecuente-del-residente.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

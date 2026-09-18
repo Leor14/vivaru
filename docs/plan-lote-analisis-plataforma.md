@@ -554,6 +554,103 @@ formateadores? Si faltan de verdad, es la trampa de `CLAUDE.md` y va antes que T
 >   ejecutado por cuenta y «aún no hay presupuesto para 2026», que es lo correcto: la bandera abre la
 >   pantalla, no inventa datos—. **Con esto la fase 5 queda cerrada.**
 
+### Fase 7 · Las siete que eligió David el 18 sep *(abierta el 18 sep)*
+
+**David eligió siete frentes, y son los únicos** (18 sep 2026). De las 13 🟡, las otras seis
+(`L-17`, `L-18`, `L-03`, `L-09`, `L-15`, `L-16`, `L-19`) quedan fuera de esta fase. Lo que decidió:
+
+| Id | Decisión de David (18 sep) | Qué pasa |
+|---|---|---|
+| `L-08b` | **El residente crea su propio frecuente**, sin aprobación | Bloque 1 |
+| `L-10` | **El personal de servicio es un catálogo DEL CONJUNTO**, no personal por unidad | Bloque 1 |
+| `L-32` | **Los números de emergencia son del conjunto** | Bloque 2 |
+| `L-14` | **De un comunicado borrado se conserva TODO** | Bloque 3 |
+| `L-23` | **Ya existe («Recordar a todos» en Cartera): no se hace nada** | Pasa a ✅ sin código |
+| `L-06` | Fuera de momento | Queda 🟡 |
+| `L-30` | Fuera de momento | Sigue ◇ |
+
+**Lo que midió el código antes de planificar (18 sep), y cambia el alcance:**
+- **`L-08b` NO estaba cubierto**, al revés de lo que se creía. «Larga duración» solo existe en
+  `/admin/visitors` y solo para `tenant_admin`. El residente tiene «Crear invitación» con inicio y fin,
+  **y su pase guarda solo el primer día** (`createResidentInvitation`: `date: toDateInputValue(startAt)`,
+  sin `authorizationType` ni `validUntil`): una invitación de tres días le sirve al visitante uno.
+- **`visitasEsperadasHoy` compara solo `date`**, así que un frecuente —también el del administrador—
+  sale en la lista de hoy de la portería **solo su primer día**.
+- **Cancelar una invitación no toca su pase** (`cancelResidentInvitation` solo escribe la invitación):
+  la portería sigue viendo vigente a un visitante que el residente canceló. Con frecuentes, eso es
+  dejar entrar durante meses a alguien revocado. **Es un defecto de acceso y entra obligatorio.**
+- **La regla de `visitorPasses` no valida los campos del residente**: exige unidad propia y
+  `createdBy`, nada más. Hoy nadie escribe un frecuente desde el residente; con el bloque 1, sí.
+- **`L-10` existe a medias**: `createVisitor` guarda categoría y hora de fin en
+  `visitorAuthorizations` y **no las copia al pase**, así que la portería no ve ni una ni otra. La
+  vigencia se mide por día entero; no hay días de la semana ni franja horaria. Y el formulario **exige
+  una unidad**: el personal del conjunto no tiene dónde entrar.
+- **`L-14`**: el borrado es físico (`deleteCommunication` → `deleteDoc`), y **el estado `archived` ya
+  existe** en los comunicados, con su filtro en la pantalla.
+- **`L-32`**: no hay nada; la regla de `tenantSettings` ya deja leer a todos los miembros del
+  conjunto, portería incluida, y escribir solo a la administración.
+
+**Bloque 1 · Visitantes (`L-08b` + `L-10`)** — un frecuente es el mismo objeto venga de quien venga.
+- **El pase gana tres cosas:** `visitorCategory`, un **horario** opcional (días de la semana y franja
+  desde–hasta) y, para el personal del conjunto, `alcance: "conjunto"` con `unitId: null` (la
+  migración de claves ya trata un `unitId` vacío como «sin clave», `planificarDocumento`).
+- **Residente:** «Crear invitación» elige entre **visita** (un solo día: se arregla el pase de un día
+  por construcción) y **visitante frecuente** (vigencia desde–hasta, días y franja). El pase nace
+  `larga_duracion` con `validFrom`/`validUntil`.
+- **Cancelar la invitación cancela su pase** (se encuentra por `qrCodeValue == qrToken`, que sirve
+  también para los pases viejos), y la portería pinta «Cancelado» y no deja entrar.
+- **Administración:** en el formulario, «Personal del conjunto» como destino (sin unidad), categoría
+  del conjunto, y días y franja para larga duración. `createVisitor` y `updateVisitor` copian
+  categoría y horario al pase. En «Registros operativos», **revocar** un pase vigente.
+- **Portería:** la lista de hoy incluye los frecuentes vigentes cuyo día toca; la tarjeta enseña la
+  categoría, el horario y «Personal del conjunto» en vez de torre y unidad.
+- **Regla:** el `create` del residente valida la forma (estado inicial, sin entrada ni salida, tipo
+  y fechas bien formadas, sin `alcance`). **Va antes que el front** si restringe algo que el front
+  viejo escribe — medir primero.
+
+**Lo que decido yo, a falta de que David diga otra cosa (se cambia en una línea):**
+1. **El horario AVISA, no bloquea**: fuera de franja la portería ve «Fuera de horario» y decide. Una
+   regla de Firestore no sabe la hora local del conjunto, y bloquear en el cliente sería decorativo.
+2. **Categorías del personal del conjunto:** Aseo, Jardinería, Mantenimiento, Seguridad, Otro.
+3. **Tope de vigencia del frecuente del residente: 12 meses.** Sin tope, un QR vale para siempre.
+4. **Una «visita» del residente dura un día.** Lo de varios días es un frecuente.
+
+> **Estado del bloque 1 (18 sep, mediodía): CONSTRUIDO EN LOCAL, sin commit ni despliegue.**
+> - **Lo que salió construyendo, y entra en el bloque porque es del mismo agujero:** borrar una
+>   autorización de la administración (`deleteVisitor`) y cancelarla desde el formulario
+>   (`updateVisitor` con `status: "cancelled"`) **tampoco tocaban el pase**. Los dos revocan ahora, y
+>   el pase se conserva revocado. Y la pestaña «Registros operativos» tenía **su propia copia** del
+>   estado del pase, que daba por expirado un frecuente al pasar su primer día: ahora lee
+>   `resolverEstadoOperativo`, como la portería. Había una tercera copia del tipo de estado en
+>   `guard-qr-validation.ts`, sin `cancelled`: ahora es un alias del de `estado-operativo.ts`.
+> - **La regla también restringe el `update` del residente**: le dejaba reescribir cualquier campo
+>   de su pase salvo la unidad. Dos pruebas viejas afirmaban ese permiso —una, que el residente podía
+>   ponerse `checked_in`— y se reescribieron al contrato nuevo. **Ningún front desplegado lo usa**:
+>   hasta hoy el residente no escribía en `visitorPasses` después de crear.
+> - **Pruebas:** `tests/frecuente-bloque-1.test.ts` (27) y `tests/frecuente-del-residente.rules.test.ts`
+>   (20), en las dos listas. **Falsadas**: cinco roturas de la app y tres de la regla, cada una
+>   enrojece solo lo suyo. Falsar cazó dos defectos DE LAS PRUEBAS: dos casos compartían documento
+>   (un rojo arrastraba otro) y `mockClear` no vacía `mockResolvedValueOnce`.
+> - **Una rareza medida y no resuelta:** las denegaciones del `update` de `visitorPasses` llegan ahora
+>   al tope de 1000 expresiones del emulador (antes eran «error de evaluación»). Deniegan igual, y
+>   dos controles comprueban que las escrituras legítimas más largas —la entrada y la nota del
+>   guardia, que es la última rama— pasan.
+> - **Bancos:** app **2247**, reglas **706** (17 ficheros, los dos emuladores), typecheck en 0,
+>   lint sin errores. Functions sin tocar.
+> - **Orden de despliegue: reglas → front, y da igual al revés.** La regla nueva acepta lo que
+>   escribe el front de producción (una visita sin tipo pasa como `puntual`), y el front nuevo
+>   funciona con la regla vieja, que no validaba nada.
+
+**Bloque 2 · `L-32` números de emergencia:** una lista en `tenantSettings` (nombre y teléfono), editada
+en Ajustes por la administración; el residente la ve en su inicio y la portería en su panel.
+
+**Bloque 3 · `L-14` conservar el comunicado:** «Eliminar» pasa a **archivar** con `archivedAt` y
+`archivedBy`; la regla quita el `delete` a la administración (queda el superadmin); el archivado sale
+del residente y queda en el filtro «Archivado» con quién y cuándo.
+
+**Control de cada bloque:** pruebas y su falsación, los cuatro bancos, despliegue con el sí de David
+y **verlo en pantalla en producción** antes de marcar ✅.
+
 ---
 
 ## 5. Riesgos

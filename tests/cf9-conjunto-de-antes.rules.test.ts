@@ -164,7 +164,9 @@ const EMPUJES: Empuje[] = [
     coleccion: "visitorPasses",
     documento: { unitId: UNIDAD_B, createdBy: "residente-b", status: "scheduled", visitorName: "Luis" },
     edicionAdmin: { visitorName: "Luis Pérez" },
-    edicionResidente: { visitorName: "Luis P." },
+    // Desde `L-08b` (18 sep 2026) lo único que el residente edita en su pase es la REVOCACIÓN
+    // (`tests/frecuente-del-residente.rules.test.ts`); antes podía reescribir cualquier campo.
+    edicionResidente: { status: "cancelled", cancelledAt: new Date() },
     residenteEmpuja: true,
     conBorrado: false,
   },

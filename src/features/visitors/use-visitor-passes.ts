@@ -19,6 +19,7 @@ import { db } from "@/lib/firebase/client";
 import { createTenantDocument } from "@/lib/firebase/realtime-helpers";
 import type { VisitorPass } from "@/types/domain";
 import { getVisitorSortTimestamp } from "@/features/visitors/guard-qr-validation";
+import { esCategoriaDeVisitante, normalizarHorario } from "@/features/visitors/frecuente";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import { toDateKeyLocal } from "@/utils/date";
 
@@ -66,6 +67,11 @@ function asStatus(value: unknown): VisitorPass["status"] {
     return "completed";
   }
 
+  // `L-08b` (18 sep 2026): antes caía abajo, a `scheduled`, y un pase revocado se pintaba vigente.
+  if (["cancelled", "cancelado", "cancelada", "revocado", "revocada"].includes(normalized)) {
+    return "cancelled";
+  }
+
   if (["scheduled", "programado", "programada", "pending", "activo", "activa"].includes(normalized)) {
     return "scheduled";
   }
@@ -104,6 +110,13 @@ export function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass
     authorizationType: raw.authorizationType === "larga_duracion" ? "larga_duracion" : raw.authorizationType === "puntual" ? "puntual" : undefined,
     validFrom: asString(raw.validFrom) || undefined,
     validUntil: asString(raw.validUntil) || undefined,
+    // `L-08b`/`L-10` (18 sep 2026). Mismo aviso que `checkInBy` más abajo: si no se nombran aquí, se
+    // guardan y la portería no los ve.
+    visitorCategory: esCategoriaDeVisitante(raw.visitorCategory) ? raw.visitorCategory : undefined,
+    horario: normalizarHorario(raw.horario),
+    alcance: raw.alcance === "conjunto" ? "conjunto" : undefined,
+    cancelledAt: asTimestampIso(raw.cancelledAt) || undefined,
+    cancelledBy: asString(raw.cancelledBy) || undefined,
     checkInAt: asTimestampIso(raw.checkInAt) || undefined,
     checkOutAt: asTimestampIso(raw.checkOutAt) || undefined,
     // `L-29`. **Este normalizador arma el pase campo por campo**, así que un campo que no se

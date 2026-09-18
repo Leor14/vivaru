@@ -17,7 +17,7 @@ import type { VisitorPass } from "@/types/domain";
  * condición cierta que significa lo contrario en el caso nuevo.
  */
 
-export type EstadoOperativo = "scheduled" | "inside" | "completed" | "expired";
+export type EstadoOperativo = "scheduled" | "inside" | "completed" | "expired" | "cancelled";
 
 /**
  * Una autorización de larga duración está vigente hasta el fin del día de `validUntil`.
@@ -34,6 +34,9 @@ export function dentroDeVigencia(item: Pick<VisitorPass, "validUntil">, ahoraMs:
 export function resolverEstadoOperativo(item: VisitorPass, ahoraMs: number): EstadoOperativo {
   if (item.status === "inside") return "inside";
   if (item.status === "completed") return "completed";
+  // `L-08b`: revocado por el residente o la administración. Va antes que todo lo demás: un pase
+  // revocado no revive por estar dentro de su vigencia.
+  if (item.status === "cancelled") return "cancelled";
 
   /**
    * **Las visitas de portería NO tienen cita**, así que la regla de la hora no les aplica. Su

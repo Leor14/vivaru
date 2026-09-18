@@ -5,6 +5,7 @@ import {
   isDateTimeValid,
 } from "@/utils/datetimeValidation";
 import { TIPOS_DE_UNIDAD } from "@/lib/units/tipos";
+import { esCategoriaDeVisitante } from "@/features/visitors/frecuente";
 import { normalizeTower } from "@/utils/tower";
 
 const requiredText = (label: string, min = 2) => z.string().trim().min(min, `${label} es obligatorio`);
@@ -137,8 +138,10 @@ export const visitorSchema = z
     visitorDocument: requiredText("Numero de Identificacion", 5),
     qrCode: requiredText("Codigo QR", 5),
     authorizationType: z.enum(["puntual", "larga_duracion"]),
-    visitorCategory: z.enum(["familiar", "servicio", "otro"]),
-    unitId: z.string().trim().min(1, "Selecciona una unidad"),
+    // `L-10` (18 sep 2026): el personal DEL CONJUNTO no tiene unidad, y su categoría es otra.
+    alcance: z.enum(["unidad", "conjunto"]),
+    visitorCategory: z.string().refine(esCategoriaDeVisitante, "Selecciona una categoría"),
+    unitId: z.string().trim(),
     authorizedBy: requiredText("Autorizado por", 3),
     startDate: z.string().trim().min(1, "Fecha inicial obligatoria"),
     startTime: z.string().trim().min(1, "Hora inicial obligatoria"),
@@ -146,8 +149,29 @@ export const visitorSchema = z
     endTime: z.string().trim().optional(),
     notes: z.string().trim().optional(),
     status: z.enum(["active", "expired", "cancelled"]),
+    // `L-08b`/`L-10`: horario de un frecuente. Días vacíos = todos; franja opcional.
+    dias: z.array(z.number().int().min(0).max(6)),
+    franjaDesde: z.string().trim().optional(),
+    franjaHasta: z.string().trim().optional(),
   })
   .superRefine((value, ctx) => {
+    if (value.alcance === "unidad" && !value.unitId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Selecciona una unidad", path: ["unitId"] });
+    }
+    if (Boolean(value.franjaDesde) !== Boolean(value.franjaHasta)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Indica la hora de entrada y la de salida, o ninguna.",
+        path: ["franjaHasta"],
+      });
+    } else if (value.franjaDesde && value.franjaHasta && value.franjaHasta <= value.franjaDesde) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La hora de salida debe ser posterior a la de entrada.",
+        path: ["franjaHasta"],
+      });
+    }
+
     const startDateTime = combineDateAndTime(value.startDate, value.startTime);
     if (!startDateTime) {
       ctx.addIssue({
@@ -175,16 +199,10 @@ export const visitorSchema = z
         });
       }
 
-      if (!value.endTime?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "La hora final es obligatoria para autorizaciones de larga duracion.",
-          path: ["endTime"],
-        });
-      }
-
-      if (value.endDate?.trim() && value.endTime?.trim()) {
-        const endDateTime = combineDateAndTime(value.endDate, value.endTime);
+      // La hora final de un frecuente es la de cierre de su franja, o el final del día: la vigencia
+      // se mide por días enteros (`dentroDeVigencia`), así que pedirla aparte no restringía nada.
+      if (value.endDate?.trim()) {
+        const endDateTime = combineDateAndTime(value.endDate, value.endTime?.trim() || value.franjaHasta || "23:59");
         if (!endDateTime || endDateTime.getTime() <= startDateTime.getTime()) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

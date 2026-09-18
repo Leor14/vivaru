@@ -1,7 +1,10 @@
 import type { VisitorPass } from "@/types/domain";
 import { combineLocalDateTime, toLocalDate } from "@/utils/date";
 
-export type OperationalStatus = "scheduled" | "inside" | "completed" | "expired";
+import type { EstadoOperativo } from "@/features/visitors/estado-operativo";
+
+/** Un solo catálogo de estados: el de `estado-operativo.ts` (aquí vivía una copia sin `cancelled`). */
+export type OperationalStatus = EstadoOperativo;
 export type VisitorCardItem = VisitorPass & { operationalStatus: OperationalStatus };
 
 export type ScanResultState =

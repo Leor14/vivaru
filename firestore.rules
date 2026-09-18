@@ -310,6 +310,35 @@ service cloud.firestore {
         (!('minAdvanceMinutes' in data) || (data.minAdvanceMinutes is int && data.minAdvanceMinutes >= 0 && data.minAdvanceMinutes <= 10080));
     }
 
+    // **`L-08b` · el pase que crea un residente** (lote «Análisis de la plataforma», 18 sep 2026).
+    //
+    // Hasta hoy la regla solo exigía unidad propia y `createdBy`, y nadie escribía un frecuente desde
+    // el residente. Desde el 18 sí (`createResidentInvitation`), así que la forma se comprueba aquí:
+    // nace programado y sin entrada, sin nada que solo escriben la portería o el servidor, y un
+    // frecuente dura como mucho un año (366 días: el tope del front son 12 meses).
+    //
+    // **Todo lo que valida es opcional o ya lo escribía el front anterior** —`status: "scheduled"`,
+    // `checkInAt` y `checkOutAt` nulos—, así que esta regla puede ir antes que el front nuevo.
+    function paseDelResidenteBienFormado(d) {
+      return d.get("status", "") == "scheduled" &&
+        d.get("checkInAt", null) == null &&
+        d.get("checkOutAt", null) == null &&
+        !d.keys().hasAny(["checkInBy", "checkOutBy", "alcance", "authorizationStatus", "authorizedBy",
+          "authorizationMedium", "cancelledAt", "cancelledBy", "origen", "registeredByGuard", "guardNotes"]) &&
+        d.get("authorizationType", "puntual") in ["puntual", "larga_duracion"] &&
+        (
+          d.get("authorizationType", "puntual") == "puntual" ||
+          (
+            d.get("validFrom", null) is string && d.validFrom.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$") &&
+            d.get("validUntil", null) is string && d.validUntil.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$") &&
+            d.validFrom <= d.validUntil &&
+            timestamp.date(int(d.validUntil.split("-")[0]), int(d.validUntil.split("-")[1]), int(d.validUntil.split("-")[2])) <=
+              timestamp.date(int(d.validFrom.split("-")[0]), int(d.validFrom.split("-")[1]), int(d.validFrom.split("-")[2])) +
+              duration.value(366, 'd')
+          )
+        );
+    }
+
     function isValidInvitationWindow(startAt, endAt) {
       return startAt is timestamp &&
         endAt is timestamp &&
@@ -683,15 +712,28 @@ service cloud.firestore {
         tenantAdminOrSuper(request.resource.data.tenantId) ||
         (
           residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
-          request.resource.data.createdBy == request.auth.uid
+          request.resource.data.createdBy == request.auth.uid &&
+          paseDelResidenteBienFormado(request.resource.data)
         )
       ));
       allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && sameTenant(resource.data.tenantId) && (
         tenantAdminOrSuper(resource.data.tenantId) ||
+        // **`L-08b` · el residente solo REVOCA lo suyo** (18 sep 2026). Esta rama le dejaba
+        // reescribir cualquier campo de su pase salvo la unidad —la vigencia, el estado, la entrada—,
+        // y con frecuentes creados por él eso es alargar un acceso sin tope o marcarse «dentro». Lo
+        // único que el front del residente escribe en un pase es la revocación al cancelar su
+        // invitación (`cancelResidentInvitation`); antes de hoy no escribía nada, así que esta regla
+        // RESTRINGE sin romper ningún front desplegado.
         (
           residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
           resource.data.createdBy == request.auth.uid &&
-          request.resource.data.unitId == resource.data.unitId
+          request.resource.data.unitId == resource.data.unitId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "cancelledAt", "cancelledBy", "updatedAt"]) &&
+          request.resource.data.cancelledAt != null &&
+          (
+            request.resource.data.status == resource.data.status ||
+            (resource.data.status == "scheduled" && request.resource.data.status == "cancelled")
+          )
         ) ||
         (
           securityGuardRole(resource.data.tenantId) &&
@@ -749,6 +791,8 @@ service cloud.firestore {
               request.resource.data.checkOutAt != null &&
               request.resource.data.checkOutBy == request.auth.uid &&
               resource.data.get("authorizationType", "") == "larga_duracion" &&
+              // `L-08b`: un frecuente revocado mientras estaba dentro sale y NO se reabre.
+              resource.data.get("cancelledAt", null) == null &&
               (
                 !("validUntil" in resource.data) ||
                 resource.data.validUntil == null ||
