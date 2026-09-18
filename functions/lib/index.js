@@ -1773,6 +1773,9 @@ const SYSTEM_FOLDERS = {
     billing_closures: { name: "Cierres de cartera", description: "Reportes de cierre de períodos de cartera. Carpeta del sistema." },
     committee_reports: { name: "Reportes de comité", description: "Reportes de comité generados por período. Carpeta del sistema." },
     cartera_history: { name: "Histórico de cartera", description: "Histórico de recaudo (esperado vs cobrado) y morosos. Carpeta del sistema." },
+    // `L-22`: lo que SUBE la administración, no lo que genera el producto. Su gemelo en `storage.rules`
+    // es la carpeta `cartera-reports`, dentro de las financieras: si cambia una, cambia la otra.
+    cartera_reports: { name: "Informes del contador", description: "Informes del contador sobre la cartera, subidos por la administración. Carpeta del sistema." },
     monthly_reports: { name: "Informes mensuales", description: "Informes económicos mensuales emitidos y firmados. Carpeta del sistema." },
     ledger_history: { name: "Histórico del libro", description: "Movimientos del libro guardados por período. Carpeta del sistema." },
 };

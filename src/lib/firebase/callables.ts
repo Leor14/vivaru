@@ -671,7 +671,10 @@ export async function ensureCommunicationsFolderCallable(input: { tenantId: stri
 
 export async function ensureSystemFolderCallable(input: {
   tenantId: string;
-  systemKey: "communications" | "regulations" | "committee_agreements" | "payment_receipts" | "billing_closures" | "committee_reports" | "cartera_history" | "ledger_history";
+  // `L-22`: `cartera_reports` es el informe del contador, que SUBE la administración. La lista de
+  // verdad vive en `SYSTEM_FOLDERS` (`functions/src/index.ts`) y su gemelo de Storage es la carpeta
+  // `cartera-reports` de `carpetasFinancieras()`: son tres sitios y cambian juntos.
+  systemKey: "communications" | "regulations" | "committee_agreements" | "payment_receipts" | "billing_closures" | "committee_reports" | "cartera_history" | "cartera_reports" | "ledger_history";
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { folderId: string }>(functions, "ensureSystemFolder");

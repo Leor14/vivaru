@@ -389,6 +389,38 @@ reentrables. La regla **amplía**, así que el orden es el normal.
 > - **Lo que no se puede ver en staging:** los 6 tickets sucios están solo en producción, así que
 >   L-21d se comprueba allí. L-08a y L-29 piden una sesión de portería.
 
+
+### Fase 6 · Las siete «se puede ya», por bloques de pantalla *(en curso desde el 17 sep)*
+
+Se agrupan por pantalla para no abrir siete frentes: **Cartera** (`L-22`, `L-24`, `L-23`), **operación
+diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit por bloque.
+
+**Lo primero que salió al medir, y cambia el alcance:**
+- **`L-24` ya existía a medias.** Cartera tenía el gráfico mes a mes con cobrado, recaudado, brecha y
+  % de recaudo, con filtros de unidad y rango. Lo que faltaba era **la acumulada del año**, que es la
+  otra mitad de su frase. Clase «existe y no se ve».
+- **`L-23` NO es «se puede ya», y hay que reclasificarla.** El recordatorio de cobranza existe y
+  programa envíos (`createReminderJob`); lo que falta es **el canal de correo**, que está cerrado por
+  decisión, y en Santa María **12 de 14 direcciones no reciben**. Construir el correo sin decidir eso
+  sería poner un botón que manda rebotes. **Pasa a esperar una decisión de David.**
+
+**Bloque 1 · Cartera — hecho en local, sin commit ni despliegue:**
+- **`L-24`:** `acumularTendencia` y `acumuladoDelAnio` viven junto a `buildBillingTrend` —si cambia
+  cómo se suma un período, cambian las dos lecturas a la vez—. La pantalla tiene un selector
+  «Mes a mes / Acumulada» y tres tarjetas del año en curso, con su propio rango (enero a diciembre),
+  que no depende del rango del gráfico. El año sale de la fecha local, no de `toISOString()`.
+  Si el año no tiene períodos, se dice en vez de pintar tres ceros. **9 pruebas.**
+- **`L-22`:** «Subir informe del contador» en el cierre de Cartera. Queda en Documentos →
+  «Informes del contador» con la categoría **forzada** a `financiero`, que los residentes no leen.
+  **La carpeta nueva vive en TRES sitios** y su guardián lo vigila: `carpetasFinancieras()` de
+  `storage.rules`, `SYSTEM_FOLDERS` de `functions/src/index.ts` y el tipo de la callable. **7 pruebas**
+  más dos casos del banco de Storage, falsados quitando la carpeta de la regla.
+- **Bancos:** app **2160**, reglas **672 y los 15 ficheros en verde** —el banco entero por primera vez
+  en la jornada: se levantó el emulador de Storage, que es lo que dejaba rojo `storage.rules.test.ts`—,
+  typechecks en 0 y `functions/lib` recompilado.
+- **Orden de despliegue: reglas de Storage → functions → front.** Las tres piezas amplían, y el botón
+  no funciona hasta que están las dos primeras.
+
 ### Fase 5 · Datos de producción *(cada paso con su permiso; ~1 h)*
 
 **T5.0 · Confirmar la falta de moneda** (solo lectura): ¿`leer-monedas.mjs` lee el campo que usan los

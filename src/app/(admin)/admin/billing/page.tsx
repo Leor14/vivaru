@@ -64,7 +64,13 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
-import { buildBillingTrend, getBillingPeriods, type BillingTrendPoint } from "@/features/billing/billing-trend";
+import {
+  acumularTendencia,
+  acumuladoDelAnio,
+  buildBillingTrend,
+  getBillingPeriods,
+  type BillingTrendPoint,
+} from "@/features/billing/billing-trend";
 import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, cancelReminderJob, createBillingCampaign, createBillingSchedule, createBillingStatement, createReminderJob, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements, useReminderJobs } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
@@ -543,14 +549,27 @@ function AdminBillingPageContent() {
     [trendSummary.collectionRate, trendSummary.totalCharged, ventanaDeCartera],
   );
 
-  const chartData = useMemo(
-    () =>
-      chartTrend.map((item) => ({
-        ...item,
-        collectionRate: item.totalCharged > 0 ? (item.totalSettled / item.totalCharged) * 100 : 0,
-      })),
-    [chartTrend],
-  );
+  // `L-24`: la misma tendencia, leída de dos formas. «Mes a mes» era la única que había.
+  const [lecturaTendencia, setLecturaTendencia] = useState<"mensual" | "acumulada">("mensual");
+
+  const chartData = useMemo(() => {
+    const puntos = lecturaTendencia === "acumulada" ? acumularTendencia(chartTrend) : chartTrend;
+    return puntos.map((item) => ({
+      ...item,
+      collectionRate: item.totalCharged > 0 ? (item.totalSettled / item.totalCharged) * 100 : 0,
+    }));
+  }, [chartTrend, lecturaTendencia]);
+
+  /**
+   * `L-24`: el acumulado del AÑO NATURAL, que es la otra pregunta de su documento —«desde el primer
+   * mes del año hasta el mes en curso»— y no depende del rango que tenga puesto el gráfico. El año
+   * sale de la fecha local, no de `toISOString()`: en México, desde las 18:00, ya sería el siguiente.
+   */
+  const acumuladoDelAnioEnCurso = useMemo(() => {
+    const anio = toDateInputValue(new Date()).slice(0, 4);
+    // Su propio rango, enero a diciembre: el del gráfico no manda aquí.
+    return acumuladoDelAnio(buildBillingTrend(normalizedRows, chartUnitFilter, `${anio}-01`, `${anio}-12`), anio);
+  }, [normalizedRows, chartUnitFilter]);
 
   const cuotaIncome = useMemo(
     () => items.reduce((sum, item) => sum + (item.paymentAmount ?? 0), 0),
@@ -841,6 +860,52 @@ function AdminBillingPageContent() {
   }
 
   const [savingHistory, setSavingHistory] = useState(false);
+  // `L-22`: el informe del contador sobre la cartera, que ella pide subir desde aquí (pág. 9).
+  const [subiendoInforme, setSubiendoInforme] = useState(false);
+  const informeInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleSubirInformeDelContador(archivo: File) {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid) return;
+    if (!storage) {
+      toast.error("Firebase Storage no esta configurado en este entorno.");
+      return;
+    }
+    setSubiendoInforme(true);
+    try {
+      // La fecha, de la zona de quien usa la app: `toISOString()` ya sería mañana desde las 18:00 de México.
+      const stamp = toDateInputValue(new Date());
+      const path = `tenants/${tid}/cartera-reports/${stamp}-${Date.now()}-${archivo.name}`;
+      const sref = storageRef(storage, path);
+      await uploadBytes(sref, archivo);
+      const fileUrl = await getDownloadURL(sref);
+      const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "cartera_reports" });
+      await createDocumentRecord({
+        tenantId: tid,
+        userId: uid,
+        userName: user?.fullName,
+        fileName: archivo.name,
+        fileUrl,
+        storagePath: path,
+        fileSize: archivo.size,
+        contentType: archivo.type,
+        // **Forzada, y no elegible**: el informe del contador lleva detalle por unidad, así que va a una
+        // categoría que los residentes NO leen. Es lo mismo que hace el histórico de esta pantalla.
+        category: "financiero",
+        description: `Informe del contador sobre la cartera — ${stamp}`,
+        source: "cartera_report",
+        sourceId: stamp,
+        folderId,
+      });
+      toast.success("Informe guardado en Documentos → “Informes del contador”.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSubiendoInforme(false);
+      if (informeInputRef.current) informeInputRef.current.value = "";
+    }
+  }
   async function handleSaveCarteraHistory() {
     const tid = user?.tenantId;
     const uid = user?.uid;
@@ -1323,7 +1388,7 @@ function AdminBillingPageContent() {
                   ))}
               </select>
             </label>
-            <label className="text-sm text-[var(--slate-700)] sm:col-span-2 lg:col-span-2">
+            <label className="text-sm text-[var(--slate-700)]">
               Rango
               <div className="mt-1">
                 <RangePicker
@@ -1334,6 +1399,18 @@ function AdminBillingPageContent() {
                   placeholder="Seleccionar rango"
                 />
               </div>
+            </label>
+            {/* `L-24`: la misma tendencia, mes a mes o acumulada. Lo pidió en la pág. 9. */}
+            <label className="text-sm text-[var(--slate-700)]">
+              Lectura
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
+                value={lecturaTendencia}
+                onChange={(event) => setLecturaTendencia(event.target.value as "mensual" | "acumulada")}
+              >
+                <option value="mensual">Mes a mes</option>
+                <option value="acumulada">Acumulada</option>
+              </select>
             </label>
           </div>
         }
@@ -1354,6 +1431,37 @@ function AdminBillingPageContent() {
             scope={lecturaDeCartera.ventana}
             value={lecturaDeCartera.valor}
           />
+        </div>
+
+        {/* `L-24`: el acumulado del AÑO, que no depende del rango de arriba. Si el año no tiene
+            todavía ningún período con datos, se dice en vez de pintar tres ceros. */}
+        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {acumuladoDelAnioEnCurso.periodos.length === 0 ? (
+            <p className="col-span-2 text-xs text-[var(--slate-500)] lg:col-span-4">
+              Acumulado {acumuladoDelAnioEnCurso.anio}: todavía sin períodos con cobros.
+            </p>
+          ) : (
+            <>
+              <StatTile
+                tone="blue"
+                label="Cobrado acumulado"
+                scope={`${acumuladoDelAnioEnCurso.anio} · ${acumuladoDelAnioEnCurso.periodos.length} período${acumuladoDelAnioEnCurso.periodos.length === 1 ? "" : "s"}`}
+                value={formatAmount(acumuladoDelAnioEnCurso.cobrado)}
+              />
+              <StatTile
+                tone="green"
+                label="Recaudado acumulado"
+                scope={acumuladoDelAnioEnCurso.anio}
+                value={formatAmount(acumuladoDelAnioEnCurso.recaudado)}
+              />
+              <StatTile
+                tone="amber"
+                label="Pendiente acumulado"
+                scope={acumuladoDelAnioEnCurso.anio}
+                value={formatAmount(acumuladoDelAnioEnCurso.pendiente)}
+              />
+            </>
+          )}
         </div>
 
         {chartData.length === 0 ? (
@@ -2293,6 +2401,34 @@ function AdminBillingPageContent() {
           </Button>
           <span className="text-xs text-[var(--slate-500)]">
             El corte (recaudo y morosos) se archiva automáticamente el día 1 de cada mes; usa esto solo si quieres guardarlo ahora.
+          </span>
+        </div>
+        {/* `L-22`: subir el informe del contador. Va junto al corte porque es la misma conversación
+            —lo que se guarda de la cartera— y queda en Documentos, no en un adjunto suelto. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+          <input
+            ref={informeInputRef}
+            id="informe-del-contador"
+            type="file"
+            accept=".pdf,.xlsx,.xls,.csv,image/jpeg,image/png"
+            className="hidden"
+            onChange={(event) => {
+              const archivo = event.target.files?.[0];
+              if (archivo) void handleSubirInformeDelContador(archivo);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={subiendoInforme}
+            onClick={() => informeInputRef.current?.click()}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {subiendoInforme ? "Subiendo..." : "Subir informe del contador"}
+          </Button>
+          <span className="text-xs text-[var(--slate-500)]">
+            Queda en Documentos → “Informes del contador”, y solo lo ve la administración: lleva detalle por unidad.
           </span>
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

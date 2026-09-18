@@ -202,6 +202,28 @@ describe("FIN-000 · documentos financieros: solo administración", () => {
     );
   });
 
+  /**
+   * **`L-22` (17 sep 2026) — la carpeta del informe del contador.** La sube la administración desde
+   * Cartera, y lleva detalle por unidad, así que va entre las financieras y no entre las
+   * compartidas. La carpeta es nueva: sin nombrarla en `carpetasFinancieras()` la subida se niega,
+   * que es la conducta por defecto de esa regla y por eso hay que probarla.
+   */
+  it("L-22: el admin sube el informe del contador, y el residente no lo lee ni lo sube", async () => {
+    const informe = "tenants/tenant-a/cartera-reports/2026-09-17-1700000002.pdf";
+    await assertSucceeds(uploadString(ref(admin().storage(), informe), "informe del contador"));
+    await assertSucceeds(getBytes(ref(admin().storage(), informe)));
+    await assertFails(getBytes(ref(residente().storage(), informe)));
+    await assertFails(
+      uploadString(ref(residente().storage(), "tenants/tenant-a/cartera-reports/colado.pdf"), "colado"),
+    );
+  });
+
+  it("L-22: la portería tampoco: es dinero, no operación de puerta", async () => {
+    await assertFails(
+      getBytes(ref(guarda().storage(), "tenants/tenant-a/cartera-reports/2026-09-17-1700000002.pdf")),
+    );
+  });
+
   // Alias antiguos: si la regla solo mirase el nombre nuevo, estos dos se
   // quedarían fuera de sus propios documentos.
   it("un admin con el claim antiguo `admin_tenant` sigue leyendo los financieros", async () => {

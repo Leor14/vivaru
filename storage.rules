@@ -74,7 +74,10 @@ service firebase.storage {
     // Dinero y gobierno del conjunto: cierres de facturación, histórico de
     // cartera, libro contable y reportes de comité. Solo administración.
     function carpetasFinancieras() {
-      return ['billing-closures', 'cartera-history', 'ledger-history', 'committee-reports'];
+      // `L-22` (17 sep 2026): `cartera-reports` es el informe del contador sobre la cartera, que
+      // SUBE la administración —las otras tres las genera el producto—. Va aquí y no en las
+      // compartidas porque lleva el detalle por unidad, como el histórico: solo administración.
+      return ['billing-closures', 'cartera-history', 'ledger-history', 'committee-reports', 'cartera-reports'];
     }
 
     // Documentación del conjunto: la publica la administración y la consulta
