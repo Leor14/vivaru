@@ -74,11 +74,16 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
 > ```
 >
-> **Bancos (contados la noche del 17):** `npm test` **2216** · functions **1084** · reglas **685** (con
+> **Bancos (contados la noche del 17 y la madrugada del 18):** `npm test` **2217** · functions **1084** · reglas **685** (con
 > Firestore **y** Storage levantados) · emulador de functions **384 de 386**, y los dos rojos son **los
 > preexistentes `CA12` y `D-B`, confirmados por nombre**.
 >
-> **Notion:** la bitácora lleva **tres filas nuevas**, una por bloque de la fase 6, con su commit.
+> **Notion:** la bitácora lleva **tres filas nuevas**, una por bloque de la fase 6, con su commit, y el
+> **tablero** («Roadmap de Producto Vivaru») está reescrito al 18 sep.
+>
+> **Reporte para socios, al día (versión 4, 18 sep):** <https://claude.ai/artifact/12ijbQ3UTBTJvmiZD4vg2P>
+> — las 36 con su etapa, la fase 6, los dos defectos que cazó mirar la pantalla y lo que sigue. Es privado:
+> para que lo vea otra persona, David lo comparte desde su menú.
 >
 > **Datos de prueba que quedaron en producción (Santa María, demo), todos de la validación:** el ticket
 > «fuga en el techo de la torre 2» respondido y en `resolved` con una imagen de franjas; un «Informe del
