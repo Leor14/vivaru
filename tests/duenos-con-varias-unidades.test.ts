@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   duenosConVariasUnidades,
+  mismoDocumentoNombresDistintos,
   type PersonaDelPadron,
 } from "@/features/residents/duenos-con-varias-unidades";
 
@@ -19,15 +20,64 @@ describe("L-07 · dueños con varias unidades", () => {
   it("junta por documento las tres unidades de un mismo propietario", () => {
     const grupos = duenosConVariasUnidades([
       persona({ id: "p1", fullName: "María Gómez", documentNumber: "111", unitId: "u-101", unitLabel: "APTO 101" }),
-      persona({ id: "p2", fullName: "María G.", documentNumber: "111", unitId: "u-p12", unitLabel: "PARQ 12" }),
-      persona({ id: "p3", fullName: "María Gómez Ríos", documentNumber: "111", unitId: "u-b3", unitLabel: "BODEGA 3" }),
+      persona({ id: "p2", fullName: "MARIA GOMEZ", documentNumber: "111", unitId: "u-p12", unitLabel: "PARQ 12" }),
+      persona({ id: "p3", fullName: "maría  gómez", documentNumber: "111", unitId: "u-b3", unitLabel: "BODEGA 3" }),
     ]);
     expect(grupos).toHaveLength(1);
     expect(grupos[0].por).toBe("documento");
-    // El nombre más largo es el que suele venir completo.
-    expect(grupos[0].nombre).toBe("María Gómez Ríos");
     expect(grupos[0].registros.map((r) => r.unidad)).toEqual(["APTO 101", "BODEGA 3", "PARQ 12"]);
     expect(grupos[0].registros.map((r) => r.personaId)).toEqual(["p1", "p3", "p2"]);
+  });
+
+  /**
+   * **El caso real que tumbó la primera versión** (visto en pantalla en producción el 17 sep 2026):
+   * el panel dijo «David Cancelo, 2 unidades» y eran David Cancelo y Luis Otero, que comparten el
+   * documento de relleno `65465465`.
+   */
+  it("un documento compartido por DOS NOMBRES no es un dueño: sale aparte, para revisar", () => {
+    const padron = [
+      persona({ id: "p-dc", fullName: "David Cancelo", documentNumber: "65465465", unitId: "u-102", unitLabel: "APARTAMENTO 102" }),
+      persona({ id: "p-lo", fullName: "Luis Otero", documentNumber: "65465465", unitId: "u-301", unitLabel: "APARTAMENTO 301" }),
+    ];
+    expect(duenosConVariasUnidades(padron)).toEqual([]);
+    const conflictos = mismoDocumentoNombresDistintos(padron);
+    expect(conflictos).toHaveLength(1);
+    expect(conflictos[0].documento).toBe("65465465");
+    expect(conflictos[0].nombres).toEqual(["David Cancelo", "Luis Otero"]);
+    expect(conflictos[0].registros.map((r) => r.unidad)).toEqual(["APARTAMENTO 102", "APARTAMENTO 301"]);
+  });
+
+  it("un nombre escrito de dos formas también va a revisar, no a «un dueño»: es el lado bueno del error", () => {
+    const padron = [
+      persona({ id: "p1", fullName: "María Gómez", documentNumber: "111", unitId: "u-101", unitLabel: "APTO 101" }),
+      persona({ id: "p2", fullName: "María G.", documentNumber: "111", unitId: "u-p12", unitLabel: "PARQ 12" }),
+    ];
+    expect(duenosConVariasUnidades(padron)).toEqual([]);
+    expect(mismoDocumentoNombresDistintos(padron)).toHaveLength(1);
+  });
+
+  it("un dueño limpio NO sale también entre los conflictos, ni por documento ni por nombre", () => {
+    // Nació de falsar: con la condición de conflicto rota, todos los dueños salían dos veces y
+    // ninguna prueba lo decía.
+    const porDocumento = [
+      persona({ id: "p1", fullName: "María Gómez", documentNumber: "111", unitId: "u-1", unitLabel: "APTO 1" }),
+      persona({ id: "p2", fullName: "MARIA GOMEZ", documentNumber: "111", unitId: "u-2", unitLabel: "APTO 2" }),
+    ];
+    const porNombre = [
+      persona({ id: "p3", fullName: "José Pérez", unitId: "u-3", unitLabel: "APTO 3" }),
+      persona({ id: "p4", fullName: "Jose Perez", unitId: "u-4", unitLabel: "APTO 4" }),
+    ];
+    expect(duenosConVariasUnidades([...porDocumento, ...porNombre])).toHaveLength(2);
+    expect(mismoDocumentoNombresDistintos([...porDocumento, ...porNombre])).toEqual([]);
+  });
+
+  it("un documento con nombres distintos en la MISMA unidad no es nada de esto", () => {
+    expect(
+      mismoDocumentoNombresDistintos([
+        persona({ id: "p1", fullName: "Ana", documentNumber: "7", unitId: "u-1", unitLabel: "APTO 1" }),
+        persona({ id: "p2", fullName: "Beto", documentNumber: "7", unitId: "u-1", unitLabel: "APTO 1" }),
+      ]),
+    ).toEqual([]);
   });
 
   it("sin documento agrupa por nombre normalizado: tildes y mayúsculas no separan", () => {
@@ -103,5 +153,10 @@ describe("L-07 · el panel no ofrece acciones", () => {
 
   it("avisa en pantalla de que fusionar pierde unidades", () => {
     expect(fuente).toContain("No los fusiones");
+  });
+
+  it("enseña aparte los documentos con nombres distintos, y no los cuenta como dueños", () => {
+    expect(fuente).toContain("mismoDocumentoNombresDistintos(comparables)");
+    expect(fuente).toContain("Mismo documento, nombres distintos");
   });
 });

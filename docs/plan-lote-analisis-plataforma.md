@@ -460,6 +460,15 @@ diaria** (`L-07`, `L-20`) y **PQRS y comunicados** (`L-21`, `L-13`). Un commit p
   el bloque 1 el 18 sep**: `master` = `db9ede9`.
 - **Lo que no puede ver una suite:** el estado de llegada pide una sesión de portería, y la columna
   nueva, mirar la tabla con paquetes entregados.
+- 🔴 **Y mirarlo en producción cazó un defecto de `L-07` (17 sep, noche).** El panel dijo «David
+  Cancelo, 2 unidades»: eran **David Cancelo y Luis Otero**, que comparten el documento de relleno
+  `65465465` —el caso que `duplicados.ts` y `CLAUDE.md` ya documentaban—. Lo construí suponiendo que
+  un documento identifica a una persona, y **el único grupo que enseñaba en producción era falso**,
+  con 17 pruebas en verde. Arreglado: un grupo por documento solo es «un dueño» si **los nombres
+  también coinciden**; si no, sale aparte como **«Mismo documento, nombres distintos»**, para revisar,
+  y no se cuenta. 14 pruebas, con el caso real dentro. **Falsarlo cazó otra ceguera:** con la
+  condición de conflicto rota, todos los dueños salían dos veces y ninguna prueba lo decía; la
+  prueba que falta se añadió y la falsación se repitió hasta que enrojeció.
 
 **Bloque 3 · PQRS y comunicados (`L-21`, `L-13`) — hecho en local, sin commit:**
 

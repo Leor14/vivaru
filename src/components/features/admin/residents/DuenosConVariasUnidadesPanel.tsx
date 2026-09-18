@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { Building2, Info } from "lucide-react";
+import { AlertTriangle, Building2, Info } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   duenosConVariasUnidades,
+  mismoDocumentoNombresDistintos,
   type PersonaDelPadron,
 } from "@/features/residents/duenos-con-varias-unidades";
 import { ETIQUETA_DE_TIPO } from "@/lib/units/tipos";
@@ -30,7 +31,7 @@ export function DuenosConVariasUnidadesPanel({ people, units }: { people: Person
     return mapa;
   }, [units]);
 
-  const duenos = useMemo(() => {
+  const { duenos, conflictos } = useMemo(() => {
     const comparables: PersonaDelPadron[] = people.map((persona) => ({
       id: persona.id,
       fullName: persona.fullName,
@@ -39,10 +40,13 @@ export function DuenosConVariasUnidadesPanel({ people, units }: { people: Person
       unitLabel: etiquetaPorUnidad.get(persona.unitId) ?? persona.unitId,
       fusionadaEn: persona.fusionadaEn,
     }));
-    return duenosConVariasUnidades(comparables);
+    return {
+      duenos: duenosConVariasUnidades(comparables),
+      conflictos: mismoDocumentoNombresDistintos(comparables),
+    };
   }, [people, etiquetaPorUnidad]);
 
-  if (duenos.length === 0) return null;
+  if (duenos.length === 0 && conflictos.length === 0) return null;
 
   return (
     <Card>
@@ -50,9 +54,11 @@ export function DuenosConVariasUnidadesPanel({ people, units }: { people: Person
         Dueños con varias unidades
       </CardTitle>
       <CardDescription className="mt-1">
-        {duenos.length === 1
-          ? "1 persona aparece en más de una unidad."
-          : `${duenos.length} personas aparecen en más de una unidad.`}
+        {duenos.length === 0
+          ? "Ninguna persona aparece con seguridad en más de una unidad."
+          : duenos.length === 1
+            ? "1 persona aparece en más de una unidad."
+            : `${duenos.length} personas aparecen en más de una unidad.`}
       </CardDescription>
 
       <div className="mt-3 flex items-start gap-2 rounded-xl bg-[var(--slate-100)] p-3 text-sm text-[var(--slate-700)]">
@@ -82,6 +88,31 @@ export function DuenosConVariasUnidadesPanel({ people, units }: { people: Person
           </li>
         ))}
       </ul>
+
+      {/* Un documento con nombres distintos NO es un dueño: la primera versión enseñó a David
+          Cancelo y a Luis Otero como una sola persona por compartir el documento `65465465`. */}
+      {conflictos.length > 0 ? (
+        <div className="mt-4">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-[var(--slate-900)]">
+            <AlertTriangle className="h-4 w-4 text-[var(--amber-600)]" aria-hidden="true" />
+            Mismo documento, nombres distintos
+          </p>
+          <p className="mt-0.5 text-xs text-[var(--slate-600)]">
+            No se cuentan como un dueño: puede ser un documento de relleno, un error de digitación o
+            un nombre escrito de dos formas. Revísalo en la ficha de cada persona.
+          </p>
+          <ul className="mt-2 grid gap-2">
+            {conflictos.map((conflicto) => (
+              <li key={conflicto.clave} className="rounded-xl border border-[var(--slate-200)] p-3 text-sm">
+                <p className="text-[var(--slate-900)]">{conflicto.nombres.join(" · ")}</p>
+                <p className="text-[11px] text-[var(--slate-500)]">
+                  Documento {conflicto.documento} · {conflicto.registros.map((r) => r.unidad).join(", ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </Card>
   );
 }

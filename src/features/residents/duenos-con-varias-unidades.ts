@@ -13,13 +13,22 @@
  * **no hay ninguna acción**: es una lista para mirar. Cuando el modelo tenga dueño de verdad, esto
  * se convierte en su pantalla; hasta entonces, avisar es lo único honesto.
  *
- * **Cómo se agrupa, y por qué el documento manda:** con documento, agrupa por documento —identifica—;
- * sin él, por nombre normalizado. Medido en producción el 17 de septiembre de 2026: de **202
- * personas, solo 47 traen documento**, así que la mayoría cae al nombre, y **dos homónimos de
- * unidades distintas se verán como un dueño con dos unidades**. Es exactamente por eso que la lista
- * es de revisión y no de acción: en Santa María hubo **siete** «David Carmona» que no eran la misma
- * persona. Una persona con documento y su homónimo sin documento caen en grupos distintos, a
- * propósito: el documento es la evidencia y no se descarta por un nombre que coincide.
+ * **Cómo se agrupa:** con documento, por documento; sin él, por nombre normalizado. Medido en
+ * producción el 17 de septiembre de 2026: de **202 personas, solo 47 traen documento**, así que la
+ * mayoría cae al nombre, y **dos homónimos de unidades distintas se verán como un dueño con dos
+ * unidades**. Es exactamente por eso que la lista es de revisión y no de acción: en Santa María hubo
+ * **siete** «David Carmona» que no eran la misma persona. Una persona con documento y su homónimo
+ * sin documento caen en grupos distintos, a propósito.
+ *
+ * 🔴 **Y un documento que coincide NO basta: los nombres también tienen que coincidir.** La primera
+ * versión suponía que el documento identifica a una persona, y **el único grupo que enseñó en
+ * producción era falso**: «David Cancelo, 2 unidades» eran David Cancelo y **Luis Otero**, que
+ * comparten el documento de relleno `65465465` —el mismo caso que `duplicados.ts` ya documentaba—.
+ * Visto en pantalla el 17 sep 2026, con 17 pruebas en verde. Desde entonces, un documento con
+ * nombres distintos **no es un dueño**: sale aparte, en `mismoDocumentoNombresDistintos`, como un
+ * dato que revisar. El precio es que un dueño escrito de dos formas («María G.» y «María Gómez»)
+ * también cae ahí y no como un solo dueño; es el lado bueno del error, porque la pantalla pasa a
+ * decir «revisa esto» en vez de afirmar algo de una persona.
  */
 
 import { normalizarTexto } from "./duplicados";
@@ -46,16 +55,23 @@ export type DuenoConVariasUnidades = {
   registros: { personaId: string; unidad: string }[];
 };
 
+type Entrada = { personaId: string; unidad: string };
+type Grupo = {
+  por: "documento" | "nombre";
+  valor: string;
+  nombres: string[];
+  /** Los nombres ya normalizados: si hay más de uno, el documento no es de UNA persona. */
+  nombresNormalizados: Set<string>;
+  porUnidad: Map<string, Entrada>;
+};
+
 /**
- * Los grupos con **dos unidades distintas o más**, de más unidades a menos y luego por nombre.
- * Dos registros de la misma persona en la MISMA unidad no son esto —son un duplicado, y de eso se
- * ocupa `duplicados.ts`—, así que cuentan como una.
+ * Agrupa y se queda con los grupos de **dos unidades distintas o más**. Dos registros de la misma
+ * persona en la MISMA unidad no son esto —son un duplicado, y de eso se ocupa `duplicados.ts`—, así
+ * que cuentan como una.
  */
-export function duenosConVariasUnidades(
-  personas: readonly PersonaDelPadron[],
-): DuenoConVariasUnidades[] {
-  type Entrada = { personaId: string; unidad: string };
-  const grupos = new Map<string, { por: "documento" | "nombre"; nombres: string[]; porUnidad: Map<string, Entrada> }>();
+function agruparPorUnidades(personas: readonly PersonaDelPadron[]): Map<string, Grupo> {
+  const grupos = new Map<string, Grupo>();
 
   for (const persona of personas) {
     if (persona.fusionadaEn) continue;
@@ -69,7 +85,10 @@ export function duenosConVariasUnidades(
     if (!valor) continue;
 
     const clave = `${por}:${valor}`;
-    const grupo = grupos.get(clave) ?? { por, nombres: [], porUnidad: new Map<string, Entrada>() };
+    const grupo =
+      grupos.get(clave) ??
+      { por, valor, nombres: [], nombresNormalizados: new Set<string>(), porUnidad: new Map<string, Entrada>() };
+    if (nombre) grupo.nombresNormalizados.add(nombre);
     const etiqueta = String(persona.unitLabel ?? "").trim() || unidadId;
     // La primera aparición de una unidad se queda: dos registros en la misma unidad son una unidad.
     if (!grupo.porUnidad.has(unidadId)) grupo.porUnidad.set(unidadId, { personaId: persona.id, unidad: etiqueta });
@@ -78,17 +97,59 @@ export function duenosConVariasUnidades(
     grupos.set(clave, grupo);
   }
 
-  const resultado: DuenoConVariasUnidades[] = [];
   for (const [clave, grupo] of grupos) {
-    if (grupo.porUnidad.size < 2) continue;
+    if (grupo.porUnidad.size < 2) grupos.delete(clave);
+  }
+  return grupos;
+}
+
+function registrosOrdenados(grupo: Grupo): Entrada[] {
+  return Array.from(grupo.porUnidad.values()).sort((a, b) =>
+    a.unidad.localeCompare(b.unidad, "es-CO", { numeric: true }),
+  );
+}
+
+/**
+ * Los dueños con **dos unidades distintas o más**, de más unidades a menos y luego por nombre. Un
+ * grupo por documento solo entra si **todos sus nombres coinciden** normalizados; los demás van a
+ * `mismoDocumentoNombresDistintos`.
+ */
+export function duenosConVariasUnidades(
+  personas: readonly PersonaDelPadron[],
+): DuenoConVariasUnidades[] {
+  const resultado: DuenoConVariasUnidades[] = [];
+  for (const [clave, grupo] of agruparPorUnidades(personas)) {
+    if (grupo.nombresNormalizados.size > 1) continue;
     const nombre = grupo.nombres.reduce((mejor, actual) => (actual.length > mejor.length ? actual : mejor), "");
-    const registros = Array.from(grupo.porUnidad.values()).sort((a, b) =>
-      a.unidad.localeCompare(b.unidad, "es-CO", { numeric: true }),
-    );
-    resultado.push({ clave, por: grupo.por, nombre: nombre || "Sin nombre", registros });
+    resultado.push({ clave, por: grupo.por, nombre: nombre || "Sin nombre", registros: registrosOrdenados(grupo) });
   }
 
   return resultado.sort(
     (a, b) => b.registros.length - a.registros.length || a.nombre.localeCompare(b.nombre, "es-CO"),
   );
+}
+
+export type DocumentoConNombresDistintos = {
+  clave: string;
+  documento: string;
+  /** Los nombres tal como están escritos, sin repetir y ordenados. */
+  nombres: string[];
+  registros: Entrada[];
+};
+
+/**
+ * Los documentos que aparecen en unidades distintas **con nombres distintos**. No es un dueño: es un
+ * documento de relleno, un error de digitación o un nombre escrito de dos formas, y quien lo sabe es
+ * la administración. En Santa María, el 17 sep 2026, era `65465465` en David Cancelo y Luis Otero.
+ */
+export function mismoDocumentoNombresDistintos(
+  personas: readonly PersonaDelPadron[],
+): DocumentoConNombresDistintos[] {
+  const resultado: DocumentoConNombresDistintos[] = [];
+  for (const [clave, grupo] of agruparPorUnidades(personas)) {
+    if (grupo.por !== "documento" || grupo.nombresNormalizados.size < 2) continue;
+    const nombres = [...new Set(grupo.nombres)].sort((a, b) => a.localeCompare(b, "es-CO"));
+    resultado.push({ clave, documento: grupo.valor, nombres, registros: registrosOrdenados(grupo) });
+  }
+  return resultado.sort((a, b) => a.documento.localeCompare(b.documento, "es-CO", { numeric: true }));
 }
