@@ -13,6 +13,9 @@
 // La zona se fija AQUÍ: en una máquina en UTC el día local y el UTC coinciden y nada distinguiría.
 process.env.TZ = "America/Mexico_City";
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const f = vi.hoisted(() => ({
@@ -60,6 +63,7 @@ import {
 import { visitasEsperadasHoy } from "@/components/securityGuard/lista-de-hoy";
 import { resolverEstadoOperativo } from "@/features/visitors/estado-operativo";
 import { cancelResidentInvitation, createResidentInvitation } from "@/features/visitors/invitations";
+import { ESTADOS_QUE_VE_LA_PORTERIA, laPorteriaVeElPase } from "@/features/visitors/use-visitor-passes";
 import { createVisitor, deleteVisitor, updateVisitor } from "@/features/admin/services";
 import type { VisitorPass } from "@/types/domain";
 
@@ -216,6 +220,41 @@ describe("el estado operativo de un pase revocado", () => {
 
   it("revocado: cancelled, aunque siga dentro de su vigencia", () => {
     expect(resolverEstadoOperativo({ ...base, status: "cancelled" } as VisitorPass, Date.now())).toBe("cancelled");
+  });
+});
+
+describe("lo que la portería VE (el filtro de la lista)", () => {
+  // **Este bloque nació de un defecto de la validación en staging del 20 sep.** `cancelled` se
+  // añadió el 18 y el filtro de la lista —anterior— no lo conocía, así que el pase revocado
+  // desaparecía de la portería y de la bitácora: la píldora «Cancelado» y el botón de entrada
+  // deshabilitado eran código que nada podía alcanzar. El banco lo daba por bueno porque probaba
+  // el estado, no la lista.
+  it("ve los cuatro estados del pase, el revocado incluido", () => {
+    expect(laPorteriaVeElPase("scheduled")).toBe(true);
+    expect(laPorteriaVeElPase("inside")).toBe(true);
+    expect(laPorteriaVeElPase("completed")).toBe(true);
+    expect(laPorteriaVeElPase("cancelled")).toBe(true);
+  });
+
+  it("y nada que no sea un estado del pase", () => {
+    expect(laPorteriaVeElPase("expired")).toBe(false);
+    expect(laPorteriaVeElPase("")).toBe(false);
+    expect(laPorteriaVeElPase(undefined)).toBe(false);
+  });
+
+  /**
+   * **El guardián que habría cazado el defecto.** Saca los estados del TIPO `VisitorPass` en
+   * `src/types/domain.ts` y exige que la lista de la portería los tenga todos. Un estado nuevo que
+   * nadie enseñe aquí desaparecería de las dos pantallas, en silencio.
+   */
+  it("la lista cubre todos los estados que declara el tipo VisitorPass", () => {
+    const domain = readFileSync(resolve("src/types/domain.ts"), "utf8");
+    const bloque = domain.slice(domain.indexOf("export interface VisitorPass"));
+    const linea = /status:\s*((?:"[a-z_]+"\s*\|\s*)*"[a-z_]+");/.exec(bloque);
+    expect(linea, "no se encontró el campo `status` de VisitorPass").not.toBeNull();
+    const delTipo = [...linea![1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort();
+    expect(delTipo.length).toBeGreaterThanOrEqual(4);
+    expect([...ESTADOS_QUE_VE_LA_PORTERIA].sort()).toEqual(delTipo);
   });
 });
 

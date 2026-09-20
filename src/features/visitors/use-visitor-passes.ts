@@ -79,6 +79,34 @@ function asStatus(value: unknown): VisitorPass["status"] {
   return "scheduled";
 }
 
+/**
+ * **Los estados de pase que ven la portería y la bitácora de la administración.**
+ *
+ * `cancelled` nació el 18 de septiembre de 2026 con `L-08b`, y este filtro —anterior— no lo
+ * conocía: un pase revocado **desaparecía de las dos pantallas**. Con eso, la píldora «Cancelado» y
+ * el botón de entrada deshabilitado no se podían ver NUNCA, y la bitácora perdía el rastro de lo
+ * que la administración acababa de revocar. El acceso sí quedaba cerrado —no estaba en la lista, no
+ * se podía registrar su ingreso—, pero al escanear el QR la portería leía «no encontrado» en vez de
+ * «revocado», que es peor información con la persona delante.
+ *
+ * **Lo cazó mirar la pantalla en staging, no el banco**: las pruebas ejercitaban la función que
+ * resuelve el estado, no la lista que la alimenta.
+ *
+ * La lista es EXHAUSTIVA a propósito: la portería lo ve todo y la pantalla decide qué puede hacer
+ * con cada estado. `tests/frecuente-bloque-1.test.ts` la compara contra el tipo `VisitorPass` y
+ * enrojece si nace un estado nuevo que nadie enseñó aquí.
+ */
+export const ESTADOS_QUE_VE_LA_PORTERIA: ReadonlyArray<VisitorPass["status"]> = [
+  "scheduled",
+  "inside",
+  "completed",
+  "cancelled",
+];
+
+export function laPorteriaVeElPase(status: unknown): boolean {
+  return ESTADOS_QUE_VE_LA_PORTERIA.includes(status as VisitorPass["status"]);
+}
+
 export function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
   const unitLabel = asString(raw.unitLabel);
   const parsedUnit = splitTowerUnit(unitLabel || "-");
@@ -216,9 +244,7 @@ export function useVisitorPasses(tenantId?: string, unitId?: string) {
           count: afterTenantFilter.length,
         });
 
-        const afterStatusFilter = afterTenantFilter.filter((item) =>
-          item.status === "scheduled" || item.status === "inside" || item.status === "completed",
-        );
+        const afterStatusFilter = afterTenantFilter.filter((item) => laPorteriaVeElPase(item.status));
         console.debug("[guard:visitors] visitors:afterStatusFilter", {
           tenantId,
           count: afterStatusFilter.length,
