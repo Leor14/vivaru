@@ -34,6 +34,11 @@ import { combineDateAndTime, isDateTimeValid, toDateInputValue } from "@/utils/d
 import type { FiscalProfile } from "@/types/domain";
 import type { ModuleVariants } from "@/lib/config/module-variants";
 import type { CategoriaDeVisitante, HorarioDeIngreso } from "@/features/visitors/frecuente";
+import {
+  contactosParaGuardar,
+  normalizarContactos,
+  type ContactoDeEmergencia,
+} from "@/features/tenant/contactos-de-emergencia";
 
 export type UnitItem = {
   id: string;
@@ -154,6 +159,9 @@ export type CommunicationItem = {
   createdBy: string;
   createdAt: string;
   publishedAt?: unknown; // `Timestamp` al leer (`mapDoc` no lo convierte); ver `fechaDePublicacion`.
+  /** `L-14`: quién lo archivó y cuándo. Ausente en los anteriores al 20 sep 2026. */
+  archivedAt?: unknown;
+  archivedBy?: string;
   updatedAt: string;
 };
 
@@ -369,6 +377,8 @@ export type TenantSettingsItem = {
     fullName: string;
     avatarId: "avatar-a" | "avatar-b" | "avatar-c" | "avatar-d";
   };
+  /** `L-32`: los números de emergencia del conjunto, que leen el residente y la portería. */
+  contactosDeEmergencia?: ContactoDeEmergencia[];
 };
 
 function assertDb() {
@@ -1034,9 +1044,29 @@ export async function updateCommunication(id: string, userId: string, payload: P
   });
 }
 
-export async function deleteCommunication(id: string) {
+/**
+ * **Archiva un comunicado: ya no se borra** (`L-14`, decisión de David del 18 sep 2026 — «se
+ * conserva todo»).
+ *
+ * La administradora pidió que quede registro de lo que se retira. Antes esto era un `deleteDoc`:
+ * el comunicado desaparecía con sus adjuntos, sus lecturas (`communicationReads`) quedaban
+ * huérfanas y **no quedaba rastro de que hubiera existido** — ni en la pantalla ni en ningún
+ * registro que la administración pueda leer.
+ *
+ * Archivado, el residente deja de verlo (`isStatusVisible` ya excluye `archived`) y la
+ * administración conserva el texto, los adjuntos, las lecturas y **quién lo archivó y cuándo**.
+ * La regla de Firestore le quitó el `delete` a la administración el mismo día: el único borrado
+ * posible es el del superadministrador.
+ */
+export async function archiveCommunication(id: string, userId: string) {
   const firestore = assertDb();
-  await deleteDoc(doc(firestore, "communications", id));
+  await updateDoc(doc(firestore, "communications", id), {
+    status: "archived",
+    archivedAt: serverTimestamp(),
+    archivedBy: userId,
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function uploadCommunicationAttachment(input: { tenantId: string; file: File }) {
@@ -1764,6 +1794,9 @@ export function watchTenantSettings(
               regulations: rawModules.regulations !== false,
             }
           : undefined,
+        // `L-32`. **Este normalizador arma el objeto campo por campo**, como el de los pases: un
+        // campo que no se nombre aquí se guarda en la base y NO llega a ninguna pantalla.
+        contactosDeEmergencia: normalizarContactos(data.contactosDeEmergencia),
         agrupaciones: Array.isArray(data.agrupaciones)
           ? (data.agrupaciones as unknown[]).filter((v): v is string => typeof v === "string" && v.trim().length > 0)
           : undefined,
@@ -1854,6 +1887,31 @@ export async function saveTenantSettings(
       updatedBy: userId,
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Guarda los números de emergencia del conjunto (`L-32`).
+ *
+ * Merge, como los demás escritores de `tenantSettings`, y **con `tenantId` dentro**: la regla exige
+ * que el documento resultante lo lleve. La lista llega ya validada de la pantalla; aquí solo se
+ * limpia lo que quedó a medias (`contactosParaGuardar`).
+ */
+export async function saveContactosDeEmergencia(
+  tenantId: string,
+  userId: string,
+  contactos: ReadonlyArray<Partial<ContactoDeEmergencia>>,
+) {
+  const firestore = assertDb();
+  await setDoc(
+    doc(firestore, "tenantSettings", tenantId),
+    {
+      tenantId,
+      contactosDeEmergencia: contactosParaGuardar(contactos),
+      updatedBy: userId,
+      updatedAt: serverTimestamp(),
     },
     { merge: true },
   );

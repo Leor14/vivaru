@@ -26,6 +26,7 @@ import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { auth } from "@/lib/firebase/client";
 import { TenantBrandingCard } from "@/features/admin/components/tenant-branding-card";
 import { TowersCard } from "@/features/admin/components/towers-card";
+import { EmergencyContactsCard } from "@/features/admin/components/emergency-contacts-card";
 import { DemoAccountsCard } from "@/features/admin/components/demo-accounts-card";
 import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
 import { ModuleVariantsCard } from "@/features/admin/components/module-variants-card";
@@ -286,6 +287,10 @@ export default function AdminSettingsPage() {
           </div>
           <div id="guia-agrupaciones" className="scroll-mt-24">
             <TowersCard />
+          </div>
+          {/* `L-32`: los números de emergencia son DEL CONJUNTO, así que viven con lo del conjunto. */}
+          <div id="guia-emergencias" className="scroll-mt-24">
+            <EmergencyContactsCard />
           </div>
           <FiscalProfileCard />
         </>

@@ -25,12 +25,13 @@ import { AsistenteBorrador } from "@/features/communications/asistente-borrador"
 import { useFeedbackBorrador } from "@/features/communications/use-feedback-borrador";
 import { categoriaDelAdjuntoDeComunicado } from "@/features/communications/adjunto-de-comunicado";
 import { fechaDePublicacion } from "@/features/communications/fecha-de-publicacion";
+import { useNombresPorUid } from "@/features/admin/use-nombres-por-uid";
 import { anteriorAlRegistro, textoDeVistos } from "@/features/communications/lectura-del-comunicado";
 import { useLecturasDeComunicados } from "@/features/communications/use-lecturas";
 import {
   createCommunication,
   createDocumentRecord,
-  deleteCommunication,
+  archiveCommunication,
   listCommunicationsOnce,
   uploadCommunicationAttachment,
   updateCommunication,
@@ -71,6 +72,9 @@ export default function AdminCommunicationsPage() {
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<CommunicationAttachment[]>([]);
   const [pendingDeletion, setPendingDeletion] = useState<CommunicationItem | null>(null);
+  // `L-14`: para decir QUIÉN archivó, y no un uid crudo — el defecto que `L-21d` corrigió en PQRS.
+  const nombresPorUid = useNombresPorUid(user?.tenantId);
+  const nombrePorUid = (uid: string) => nombresPorUid.get(uid);
   const [deleting, setDeleting] = useState(false);
   // Audiencia (VIV-401): "all" o segmentado por torres canónicas.
   const [units, setUnits] = useState<UnitItem[]>([]);
@@ -363,15 +367,15 @@ export default function AdminCommunicationsPage() {
     setDeleting(true);
     setErrorMessage(null);
     try {
-      await deleteCommunication(target.id);
+      await archiveCommunication(target.id, user?.uid ?? "");
       if (user?.tenantId) {
         const refreshed = await listCommunicationsOnce(user.tenantId);
         setItems(refreshed);
       }
-      toast.success("Comunicado eliminado.");
+      toast.success("Comunicado archivado. Deja de verse en el portal del residente.");
       setPendingDeletion(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "No fue posible eliminar.");
+      setErrorMessage(error instanceof Error ? error.message : "No fue posible archivar.");
       toastFirebaseError(error);
     } finally {
       setDeleting(false);
@@ -595,6 +599,7 @@ export default function AdminCommunicationsPage() {
                 onView={() => openEdit(item)}
                 onEdit={() => openEdit(item)}
                 onDelete={() => setPendingDeletion(item)}
+                deleteLabel="Archivar"
               />
             </div>
           )}
@@ -769,9 +774,11 @@ export default function AdminCommunicationsPage() {
       <ConfirmDeleteDialog
         open={Boolean(pendingDeletion)}
         name={pendingDeletion?.title ?? ""}
+        title={pendingDeletion ? `Archivar ${pendingDeletion.title}` : undefined}
+        confirmLabel="Sí, archivar"
         description={
           pendingDeletion
-            ? `Esta acción eliminará el comunicado y dejará de mostrarse a los residentes. No se puede deshacer.`
+            ? `El comunicado dejará de mostrarse a los residentes y quedará archivado, con su texto, sus adjuntos y quién lo archivó. No se borra.`
             : null
         }
         loading={deleting}
@@ -835,6 +842,19 @@ export default function AdminCommunicationsPage() {
                 </div>
               </div>
             )}
+            {/* `L-14`: lo archivado deja rastro — quién lo retiró y cuándo. */}
+            {detailItem.status === "archived" ? (
+              <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Archivado</p>
+                <p className="mt-0.5 text-[var(--slate-900)]">
+                  {fechaDePublicacion(detailItem.archivedAt) ?? "Sin fecha registrada"}
+                  {detailItem.archivedBy ? ` · por ${nombrePorUid(detailItem.archivedBy) ?? detailItem.archivedBy}` : ""}
+                </p>
+                <p className="mt-1 text-xs text-[var(--slate-500)]">
+                  Los residentes dejaron de verlo. El texto, los adjuntos y las lecturas se conservan.
+                </p>
+              </div>
+            ) : null}
             <div>
               <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Mensaje</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-800)]">{detailItem.message}</p>

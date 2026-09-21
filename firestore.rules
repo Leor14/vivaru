@@ -616,8 +616,18 @@ service cloud.firestore {
       allow update: if signedIn() && resource.data.tenantId is string && tenantOperable(resource.data.tenantId)
         && tenantAdminOrSuper(resource.data.tenantId)
         && request.resource.data.tenantId == resource.data.tenantId;
+      // **`L-14` · un comunicado no se borra: se archiva** (20 sep 2026, decisión de David: «se
+      // conserva todo»). La pantalla de Comunicaciones ya no borra —`archiveCommunication` escribe
+      // `status: "archived"` con su autor y su fecha—, y la regla lo sostiene: sin esto, el borrado
+      // seguiría a un `deleteDoc` de distancia y el registro sería una costumbre, no un invariante.
+      //
+      // Lo que se pierde al borrar, y por eso importa: el texto, los adjuntos y las lecturas de
+      // `communicationReads`, que quedan huérfanas y sin forma de saber a qué comunicado eran.
+      //
+      // **El superadministrador conserva el borrado**: es quien atiende una petición de supresión
+      // de datos, y esa vía tiene que existir en algún sitio.
       allow delete: if signedIn() && resource.data.tenantId is string && tenantOperable(resource.data.tenantId)
-        && tenantAdminOrSuper(resource.data.tenantId);
+        && superadmin();
     }
 
     // ── `L-13` · quién vio un comunicado (17 sep 2026) ───────────────────────

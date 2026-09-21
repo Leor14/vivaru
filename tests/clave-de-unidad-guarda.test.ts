@@ -155,7 +155,14 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
   // carácter a carácter. Y a la 745 el 16 sep, por `publishedAt` en `CommunicationItem`
   // (`L-12`), comprobada igual contra `b30fa6d`. Y a la 751 el 18 sep, por los campos de
   // `L-08b`/`L-10` en `VisitorItem` y un import: la 745 de `2dddfc2` y la 751 de ahora, idénticas.
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:751"]);
+  // Y a la 758 el 20 sep, por `L-32` (los contactos de emergencia en `TenantSettingsItem` y su
+  // guardado): la 751 de `4b17b45` y la 758 de ahora, comprobadas idénticas carácter a carácter.
+  // Y a la 761 el mismo día, por `L-14` (`archiveCommunication` y los campos del archivado).
+  //
+  // **Van tres desplazamientos en tres días.** La excepción debería citar el SÍMBOLO —`updateUnit`—
+  // y no un número de línea, como ya se corrigió en las fichas del 12 de septiembre. Anotado en
+  // `docs/pendientes.md`: es trabajo de este guardián, no de quien edite `services.ts`.
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:761"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);

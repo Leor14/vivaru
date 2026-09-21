@@ -8,6 +8,7 @@ import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { splitTowerUnit } from "@/lib/utils/unit-display";
 import { reservasActivasHoy, visitasEsperadasHoy } from "@/components/securityGuard/lista-de-hoy";
+import { EmergencyContactsPanel } from "@/features/tenant/emergency-contacts-panel";
 
 function formatHourRange(start?: string, end?: string, fallback?: string) {
   if (start && end) return `${start} - ${end}`;
@@ -57,6 +58,9 @@ export function GuardDashboard({ tenantId }: { tenantId?: string }) {
           </CardDescription>
         </Card>
       </div>
+
+      {/* `L-32`: la portería es quien más llama, y hasta hoy el número estaba en un papel. */}
+      <EmergencyContactsPanel tenantId={tenantId} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

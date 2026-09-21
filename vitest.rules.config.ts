@@ -42,6 +42,8 @@ export default defineConfig({
       "tests/lectura-del-comunicado.rules.test.ts",
       // Fase 7 (18 sep 2026): `L-08b`, el frecuente del residente.
       "tests/frecuente-del-residente.rules.test.ts",
+      // `L-14` (20 sep 2026): el comunicado se archiva, no se borra.
+      "tests/comunicado-no-se-borra.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.

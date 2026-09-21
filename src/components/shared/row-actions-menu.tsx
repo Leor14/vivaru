@@ -22,6 +22,8 @@ export type RowActionsMenuProps = {
   onView?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Rótulo de la acción destructiva. `L-14`: en Comunicaciones se archiva, no se elimina. */
+  deleteLabel?: string;
   /** Additional fully-custom items inserted between Editar and Eliminar. */
   extraItems?: RowActionsMenuItem[];
   /** Override default items entirely. */
@@ -43,6 +45,7 @@ export function RowActionsMenu({
   onView,
   onEdit,
   onDelete,
+  deleteLabel = "Eliminar",
   extraItems,
   items,
   className,
@@ -120,7 +123,7 @@ export function RowActionsMenu({
       onDelete
         ? {
             key: "delete",
-            label: "Eliminar",
+            label: deleteLabel,
             icon: <Trash2 className="h-3.5 w-3.5" />,
             onSelect: onDelete,
             danger: true,

@@ -48,6 +48,8 @@ export default defineConfig({
       "**/lectura-del-comunicado.rules.test.ts",
       // Fase 7 (18 sep 2026): `L-08b`, el frecuente del residente. En las DOS listas.
       "**/frecuente-del-residente.rules.test.ts",
+      // `L-14` (20 sep 2026): el comunicado se archiva, no se borra. En las DOS listas.
+      "**/comunicado-no-se-borra.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

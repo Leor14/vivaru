@@ -7,6 +7,7 @@ import { MetricCard } from "@/components/shared/metric-card";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
+import { EmergencyContactsPanel } from "@/features/tenant/emergency-contacts-panel";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { useCommunications } from "@/features/communications/use-communications";
 import { usePackages } from "@/features/packages/use-packages";
@@ -261,6 +262,9 @@ export default function ResidentHomePage() {
           </Link>
         </div>
       </Card>
+
+      {/* `L-32` — a quién llamar cuando pasa algo. Solo aparece si la administración los escribió. */}
+      <EmergencyContactsPanel tenantId={user?.tenantId} />
 
       {/* ── Comunicados recientes ── */}
       <Card>
