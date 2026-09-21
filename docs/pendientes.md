@@ -79,9 +79,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > facturado a la administración, **sin prueba**. Se le debe una **carta de presentación la semana del 22
 > sep**: está escrita en el doc «Vivaru para Torre Tejerez — carta y láminas para Patricia Gordillo»
 > (<https://claude.ai/code/artifact/6edcc529-4215-4eaf-9e6e-36aebb5c465b>). El deck lo rehará ChatGPT con
-> cuatro archivos markdown que están en el scratchpad de la sesión del 20 sep (contexto, reestructura,
-> contenido y prompts). **En la copia del deck de Google quedan dos láminas que hizo Claude (17 y 18) que
-> David va a borrar.**
+> cuatro archivos markdown (contexto, reestructura, contenido y prompts), copiados el 21 sep a la carpeta
+> de documentos: `Hogaru/enfoque comercial/Patricia Gordillo - Ecuador/`. **En la copia del deck de Google
+> quedan dos láminas que hizo Claude (17 y 18) que David va a borrar.**
+>
+> **Cerrado también el 21 sep, fuera del código:** el tablero de Notion reescrito con la fase 7 (y la
+> moneda corregida a 5 de 10 en sus dos menciones); la bitácora ya tenía sus tres filas. Y un PDF con la
+> tabla de las 20 mejoras construidas, para lectores de fuera:
+> `Hogaru/Producto/Vivaru_Mejoras_Construidas_2026-09-21.pdf`.
 >
 > ## LO QUE SIGUE — el menú
 >
@@ -135,7 +140,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >   gcloud. Se ve al usarlas, no antes.
 > - **`timeout` no existe en macOS.** Una comprobación de credenciales con `timeout` falla siempre y
 >   parece una credencial caducada: así se le hizo renovar a David una que quizá estaba viva.
-> - **El emulador quedó levantado** (Firestore y Storage) desde el 20 sep.
+> - **El emulador está APAGADO** desde el 21 sep (puertas 8080 y 9199 libres): para el banco de reglas hay
+>   que levantarlo con el comando de `CLAUDE.md`.
 > - **Chrome cambia de grupo de pestañas a ratos**: si una herramienta dice que la pestaña no está en el
 >   grupo, pedir el contexto y abrir otra; lo que se estaba escribiendo se pierde.
 > - **Las cuentas demo se confunden fácil**: en producción `+lomas-res1` es Raúl (Encinos 03) y Diego
