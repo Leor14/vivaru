@@ -4,7 +4,146 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — corte del 18 de septiembre de 2026 (04:30 UTC; noche del 17 en Bogotá)
+## LO PRIMERO AL ABRIR SESIÓN — corte del 21 de septiembre de 2026 (tarde en Ciudad de México)
+
+> # LA FASE 7 DEL LOTE ESTÁ EN PRODUCCIÓN Y VISTA: `L-08b`, `L-10`, `L-32` Y `L-14`. `L-23`, CERRADA SIN CÓDIGO.
+>
+> **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú está en «LO QUE
+> SIGUE», justo debajo.
+>
+> **Tablero de las 36** (`docs/valoraciones/lote-2026-09-15-analisis-plataforma.md` §0.1, recontado sobre
+> las filas el 21 sep): **20 ✅ · 0 🔵 · 0 🟢 · 8 🟡 · 6 ◇ · 2 ⏸**.
+>
+> **Lo que decidió David el 18 sep, y es lo que se construyó.** De sus 13 decisiones eligió siete frentes
+> y dijo que eran los únicos: `L-08b` **el residente crea su frecuente**, `L-10` **personal del conjunto
+> (catálogo del conjunto)**, `L-32` **números del conjunto**, `L-14` **se conserva todo**, `L-23` **ya
+> existe, no se hace nada**; `L-06` y `L-30`, **fuera de momento**. El detalle, en
+> `docs/plan-lote-analisis-plataforma.md`, «Fase 7».
+>
+> | Bloque | Qué | Commits | Visto |
+> |---|---|---|---|
+> | 1 | `L-08b` frecuente del residente · `L-10` personal del conjunto | `8040203`, `4b17b45` | staging entero; producción: la lista de hoy de Lomas y un frecuente creado y revocado |
+> | 2 | `L-32` números de emergencia | `0e2ee02` | staging y producción, en los tres portales |
+> | 3 | `L-14` el comunicado se archiva | `0e2ee02` | staging y producción |
+>
+> **Lo que dejó construirlo, y hay que llevarse:**
+> - **`L-08b` NO estaba cubierto**, al revés de lo que se creía: solo la administración creaba frecuentes.
+>   Y medirlo destapó **tres agujeros del mismo tipo**: cancelar una invitación, borrar una autorización o
+>   cancelarla desde la administración **no tocaban el pase**, así que la portería seguía dejando entrar a
+>   un revocado. Los tres cerrados.
+> - **La lista de hoy de la portería enseñaba un frecuente solo el primer día.** En Lomas de producción
+>   eran **0 y ahora son 6** (medido antes de mirar, y coincidió): la demo tenía una portería vacía sin que
+>   nadie supiera por qué.
+> - **Validar cazó un defecto propio con todo en verde:** `cancelled` era un estado nuevo y el filtro de
+>   la lista de pases —anterior— no lo conocía, así que el revocado **desaparecía** en vez de salir
+>   «Cancelado». Arreglado en `4b17b45` con un guardián que compara la lista contra el tipo.
+> - **El orden de despliegue se rompió una vez:** las reglas del bloque 3 salieron antes que el front en
+>   producción. Sin daño, pero la lección es de método: **el comando de las reglas se da cuando el front
+>   ya sirve, no antes con un «espera mi aviso»**.
+> - **El guardián `tests/clave-de-unidad-guarda.test.ts` avisó tres veces en tres días** porque cita su
+>   excepción por NÚMERO DE LÍNEA de `services.ts`. Las tres veces la línea era la misma, desplazada. Está
+>   en el menú: que cite el símbolo.
+>
+> **Lo que sirve cada ambiente (medido el 21 sep):**
+> - **`master` = `0e2ee02`**; `develop` igual más la documentación de este cierre.
+> - **Front:** producción `build-2026-09-21-001` desde `0e2ee02`; staging `build-2026-09-21-001`, mismo
+>   commit.
+> - **Reglas de Firestore:** `bfc4bf81` en producción y `dc8a30fc` en staging, **las dos idénticas al
+>   repo**. **Storage no se tocó** desde el 18 (`b2d70972` y `2a907817`); no se volvió a medir.
+> - **Functions:** sin cambios en `functions/src` en toda la fase 7.
+>
+> ```bash
+> git ls-remote origin refs/heads/master refs/heads/develop
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
+> node functions/scripts/verificar-reglas-desplegadas.mjs vivaru-staging-02
+> ```
+>
+> **Bancos (contados el 21 sep):** `npm test` **2268** · functions **1084** · reglas **710** (18 ficheros,
+> con Firestore **y** Storage) · typecheck **0**. El emulador de functions no se recontó (sin cambios en
+> `functions/src`; el 17 dio 384 de 386, con los preexistentes `CA12` y `D-B`).
+>
+> **Datos que quedaron en producción, en Lomas de Sayilbedra (demo):**
+> - **Los tres números de emergencia** (portería, bomberos 911 y ascensorista): **se quedan a propósito**,
+>   es donde tienen que estar para la demo.
+> - El comunicado **«Prueba de archivado — 21 sep»**, archivado, dirigido a Encinos.
+> - El pase de **«PRUEBA Validacion 20 sep»**, revocado, en Encinos 03.
+> - Los dos últimos no salen en ninguna pantalla del residente ni en la lista de hoy.
+>
+> **Y en staging, en el ensayo de Lomas:** los frecuentes Rosa Quintero y Nora Salgado (revocados), el
+> personal del conjunto Marcos Rivas (jardinería), tres números de emergencia y el comunicado archivado.
+>
+> **Oportunidad comercial (Ecuador), fuera del producto:** Patricia Gordillo, administradora de 7 edificios;
+> arranca con 2 (106 unidades). Oferta: **USD 1,50 por unidad al mes + USD 200 de implementación**, anual,
+> facturado a la administración, **sin prueba**. Se le debe una **carta de presentación la semana del 22
+> sep**: está escrita en el doc «Vivaru para Torre Tejerez — carta y láminas para Patricia Gordillo»
+> (<https://claude.ai/code/artifact/6edcc529-4215-4eaf-9e6e-36aebb5c465b>). El deck lo rehará ChatGPT con
+> cuatro archivos markdown que están en el scratchpad de la sesión del 20 sep (contexto, reestructura,
+> contenido y prompts). **En la copia del deck de Google quedan dos láminas que hizo Claude (17 y 18) que
+> David va a borrar.**
+>
+> ## LO QUE SIGUE — el menú
+>
+> **A · Construible ya**
+> 1. **Los nueve defectos del lote que quedaron fuera** (§4 de la valoración): la moneda (5 de 10
+>    conjuntos sin ella), `createTicket`/`createPackage` fabricando `unit-<slug>`, la fecha de un
+>    comunicado programado, las firmas del reglamento, `billingResponsiblePersonId` sin escritor, los dos
+>    vocabularios de ocupación, **la invitación de varios días (ARREGLADA en la fase 7: ya no existe)**,
+>    `visitasEsperadasHoy` (**ARREGLADA**), la retención que no cubre las fotos de portería y la PRD de
+>    `FEAT-009` obsoleta.
+> 2. **Que `tests/clave-de-unidad-guarda.test.ts` cite el símbolo `updateUnit`**, no la línea 761.
+> 3. **«Fresnos 11 / Fresnos 11»** en la tarjeta de portería cuando la torre se llama como la unidad.
+> 4. **Traer al repositorio el verificador de reglas de Storage** (sigue en un scratchpad viejo).
+> 5. **El protocolo de paquetería** (la cuarta cosa de `L-20`).
+> 6. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree; mirar `c92ef13` antes.
+>
+> **B · Espera una decisión de David**
+> 1. **Las 8 decisiones que quedan del lote**: `L-17` (el nombre de Encuestas: la más barata), `L-18`,
+>    `L-03`, `L-15`, `L-09`, `L-19`, `L-16` y `L-06`. Y las seis «no ahora».
+> 2. **La moneda de Privada Las Palmas** (`MXN`, un campo) y **el `country`** de Bromelias, Privada Las
+>    Playas y Tenant E2E — medido el 18 sep: 5 de 10 conjuntos sin moneda.
+> 3. **La descripción duplicada del paquete de prueba** de Santa María (T2-503): ¿se corrige?
+> 4. **El canal de correo**: apagado en todas las plantillas; `L-23` quedó cerrada con la app.
+> 5. **Las rarezas del producto** (contrato de la semilla, §H), **App Check** (`D-CONSOLA`), **las fechas
+>    de las reglas de visitas**, **el «vencido» en UTC**, **la puerta de buzones de Las Playas**, `CA1` de
+>    `PLAT-002` y `CA3`/`CA5` de `PLAT-004`, **el TXT del dominio sin `www`**, la reserva de prueba de
+>    staging, `UX-005`, el asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`, las dos categorías de egreso y
+>    **el tope de gasto de la IA**.
+> 6. **La URL de acción de las contraseñas** en la consola: los enlaces de restablecer siguen abriendo la
+>    página de Firebase en inglés.
+>
+> **C · Espera a un tercero o a un dato**
+> 7. **El abogado ecuatoriano** (`FLOW-006`, entrega 3 de `FLOW-007` y de `PLAT-004`), **Albert**, **fase
+>    2 de `FEAT-009`**, **`PH-003` `CA4`**, **Habitanto** y, del lote, **`L-31`** y **`L-32b`**.
+> 8. **Patricia Gordillo**: la respuesta de su directorio a la carta.
+>
+> ## NO REABRIR
+>
+> - **Las de David del 18 sep:** los siete frentes y ninguno más; `L-08b` lo crea el residente **sin
+>   aprobación**; `L-10` es **catálogo del conjunto**; `L-32` es **del conjunto**; `L-14` **se conserva
+>   todo**; `L-23` **ya existe**; `L-06` y `L-30` **fuera de momento**. Y de la oportunidad comercial:
+>   1,50 por unidad, 200 de implementación, facturado a la administradora y **sin prueba**.
+> - **Decididas por Claude por defecto, sin corrección de David** (se cambian en una línea): el horario del
+>   frecuente **avisa y no bloquea**; cinco categorías del personal del conjunto; tope de **12 meses** para
+>   el frecuente del residente; una «visita» del residente **dura un día**; hasta **12** números de
+>   emergencia; el superadministrador **conserva** el borrado de comunicados.
+> - **Las anteriores**, en la cabecera del 18 de septiembre, justo debajo: siguen en pie.
+>
+> **Avisos de esta pasada:**
+> - **Las credenciales caducaron varias veces**: la ADC dos veces y el CLI de firebase dos, además de
+>   gcloud. Se ve al usarlas, no antes.
+> - **`timeout` no existe en macOS.** Una comprobación de credenciales con `timeout` falla siempre y
+>   parece una credencial caducada: así se le hizo renovar a David una que quizá estaba viva.
+> - **El emulador quedó levantado** (Firestore y Storage) desde el 20 sep.
+> - **Chrome cambia de grupo de pestañas a ratos**: si una herramienta dice que la pestaña no está en el
+>   grupo, pedir el contexto y abrir otra; lo que se estaba escribiendo se pierde.
+> - **Las cuentas demo se confunden fácil**: en producción `+lomas-res1` es Raúl (Encinos 03) y Diego
+>   Martínez es Fresnos 11. Antes de validar algo dirigido a una torre, **mirar el nombre de la cabecera**.
+
+---
+
+## EL CORTE DEL 18 DE SEPTIEMBRE (04:30 UTC; noche del 17 en Bogotá) — histórico
 
 > # EL GRUPO A DEL LOTE «ANÁLISIS DE LA PLATAFORMA» ESTÁ CERRADO: CONSTRUIDO, EN PRODUCCIÓN Y VISTO.
 >

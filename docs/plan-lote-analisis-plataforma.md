@@ -615,7 +615,34 @@ formateadores? Si faltan de verdad, es la trampa de `CLAUDE.md` y va antes que T
 3. **Tope de vigencia del frecuente del residente: 12 meses.** Sin tope, un QR vale para siempre.
 4. **Una «visita» del residente dura un día.** Lo de varios días es un frecuente.
 
-> **Estado del bloque 1 (18 sep, mediodía): CONSTRUIDO EN LOCAL, sin commit ni despliegue.**
+> **ESTADO DE LA FASE 7 (21 sep): LOS TRES BLOQUES EN PRODUCCIÓN Y VISTOS.**
+>
+> | Bloque | Commits | En producción | Visto |
+> |---|---|---|---|
+> | 1 · `L-08b` + `L-10` | `8040203`, `4b17b45` | front `build-2026-09-20-001`, reglas `fa90fdeb` | staging entero con residente, portería y administración; producción: la lista de hoy de Lomas (**6 predichos, 6 en pantalla, antes 0**) y un frecuente creado y revocado por el residente |
+> | 2 · `L-32` | `0e2ee02` | front `build-2026-09-21-001` | staging y producción: administración, residente y portería |
+> | 3 · `L-14` | `0e2ee02` | reglas `bfc4bf81` | staging y producción: archivado con quién y cuándo, y el residente de la torre deja de verlo |
+>
+> **Dos defectos que cazó validar, no el banco:**
+> - **El pase revocado desaparecía de la portería** en vez de pintarse «Cancelado». `cancelled` era un
+>   estado nuevo y el filtro de la lista —anterior— solo conocía tres: la píldora y el botón deshabilitado
+>   eran código que nada alcanzaba, y el QR de un revocado leía «no encontrado». Arreglado en `4b17b45`
+>   con un guardián que compara la lista contra el tipo `VisitorPass`.
+> - **Las reglas del bloque 3 se desplegaron antes que el front** en producción, al revés del orden
+>   acordado: durante unos minutos «Eliminar» habría fallado por permisos. Sin daño —el comunicado no se
+>   borraba, que es lo que la regla quiere—, pero **dar el comando antes de tiempo con un «espera mi
+>   aviso» no bastó**: la próxima vez, el comando de las reglas se da cuando el front ya sirve.
+>
+> **Lo que no se vio en pantalla, dicho:** el mensaje al escanear un QR revocado (el escáner pide cámara)
+> y que la regla le niegue el borrado a la administración (la pantalla ya no lo ofrece; lo prueba el banco
+> de reglas, falsado).
+>
+> **Bancos al cerrar (21 sep):** app **2268**, reglas **710** (18 ficheros, con los dos emuladores),
+> functions **1084**, typecheck 0. El emulador de functions no se recontó: no hubo cambios en
+> `functions/src`.
+
+> **Estado del bloque 1 (18 sep, mediodía): CONSTRUIDO EN LOCAL, sin commit ni despliegue.** *(Histórico:
+> ver el estado de la fase arriba.)*
 > - **Lo que salió construyendo, y entra en el bloque porque es del mismo agujero:** borrar una
 >   autorización de la administración (`deleteVisitor`) y cancelarla desde el formulario
 >   (`updateVisitor` con `status: "cancelled"`) **tampoco tocaban el pase**. Los dos revocan ahora, y

@@ -23,45 +23,45 @@
 
 ---
 
-## 0. Estado al 17 de septiembre de 2026 — qué está construido y qué sigue
+## 0. Estado al 21 de septiembre de 2026 — qué está construido y qué sigue
 
-**Las cinco fases del plan (`docs/plan-lote-analisis-plataforma.md`) están EN PRODUCCIÓN y vistas en
+**Las fases 1 a 7 del plan (`docs/plan-lote-analisis-plataforma.md`) están EN PRODUCCIÓN y vistas en
 pantalla.** Esta sección se reescribe; las puntuaciones y las fichas de abajo son del 15 sep y no se
 tocan — son el registro de cómo se decidió.
+
+**El 18 de septiembre David eligió siete frentes de sus decisiones, y son los únicos.** Decidió cinco y
+dejó dos fuera: `L-08b` (el residente crea su frecuente), `L-10` (personal del conjunto), `L-32`
+(números del conjunto), `L-14` (se conserva todo) y `L-23` (ya existía con «Recordar a todos»); `L-06`
+y `L-30`, fuera de momento. **Los cinco están resueltos**: cuatro construidos en la fase 7 y `L-23`
+cerrado sin código.
 
 | Grupo | Cuántas | Estado |
 |---|---|---|
 | Obligatorio (§1.1) | 4 + 1 | **Resueltos**: `D-2b`, `D-2`, `D-3`, `D-1` (iba dentro de `L-23`) y `D-2c`, que apareció construyendo |
-| Freno A (§1.2) | 11 | **4 resueltos** (`L-27`, `L-08a`, `L-21d`, `L-29`) · **7 sin planificar** |
-| Decisión de David (§1.3) | 13 | **1 resuelta** (`L-04`) · **12 esperan** |
-| No ahora (§1.3, las seis últimas) | 6 | Descartadas por ahora; cada ficha dice qué prueba las subiría |
+| Freno A (§1.2) | 11 | **Resueltos todos** en las fases 4 y 6, salvo `L-23`, que pasó a decisión y se cerró el 18 sep |
+| Decisión de David (§1.3) | 13 | **6 resueltas** (`L-04`, `L-08b`, `L-10`, `L-14`, `L-23`, `L-32`) · **7 esperan** |
+| No ahora (§1.3, las seis últimas) | 6 | Descartadas por ahora; `L-30` además fuera por decisión del 18 sep |
 | Terceros (§1.4) | 2 | `L-31` y `L-32b`, sin cambios |
 | Puerta XS (§1.5) | 4 + tildes | **Todas hechas**; `L-17` sigue esperando el nombre |
 
-**De las 36 necesidades del documento, 9 están resueltas** —`L-01a`, `L-02`, `L-11`, `L-12`, `L-04`,
-`L-27`, `L-08a`, `L-21d` y `L-29`, más las tildes— y **27 siguen**. Fuera de la lista se arreglaron los
-cinco defectos de acceso y **los estados que salían en inglés** en las insignias, que David sumó al ver
-«Archived» al archivar un comunicado.
+**De las 36 necesidades del documento, 20 están resueltas** y **16 siguen**: 8 esperan una decisión, 6
+están descartadas por ahora y 2 esperan a un tercero.
 
 **Lo que sigue, por qué lo frena:**
-- **Construidas y vistas en producción el 17 sep (5 más):** `L-22`, `L-24`, `L-20`, `L-07` y `L-21`.
-- **Y `L-13`, vista el 18 sep** con un comunicado de prueba a Torre 2: «1 persona». **El grupo A del lote
-  está cerrado entero.**
-- **Construible ya, sin planificar: ninguna.** El grupo A del lote queda construido entero.
-- **Espera una decisión (13):** `L-17` (el más barato: media hora en cuanto haya nombre), `L-23` (el
-  canal de correo, reclasificada el 17 sep), `L-08b`, `L-18`, `L-03`, `L-06`, `L-32`, `L-15`, `L-09`,
-  `L-19`, `L-14`, `L-10` y `L-16`.
-- **Descartadas por ahora (6):** `L-26`, `L-30`, `L-25`, `L-28`, `L-05` y `L-01b`.
+- **Espera una decisión (8):** `L-17` (el nombre de Encuestas: media hora en cuanto lo haya), `L-18`,
+  `L-03`, `L-15`, `L-09`, `L-19`, `L-16` y `L-06` (fuera de momento por decisión del 18 sep).
+- **Descartadas por ahora (6):** `L-26`, `L-30` (fuera de momento, 18 sep), `L-25`, `L-28`, `L-05` y
+  `L-01b`.
 - **Terceros (2):** `L-31` (la ficha de Google de cada edificio) y `L-32b` (el chatbot, que se parte antes
   de valorarlo).
 
-**Y lo que quedó fuera del lote y no se ha tocado:** los nueve defectos de §4 —entre ellos que **6 de 10
-conjuntos de producción no tienen moneda**, y por eso Privada Las Palmas, que es de México, enseña pesos
-colombianos—, las seis peticiones suyas que nunca tuvieron ficha (los documentos informativos visibles a
-todos, el tiempo estimado de respuesta en PQRS, los colores de los formularios, la app como único canal de
-reservas, los dos «no me queda claro este módulo» y el terracota, que ya estaba) y la fila que sugirió el
-propio análisis: el coeficiente y la cuota en la carga masiva (~1,7 h, sin valorar).
-
+**Y lo que quedó fuera del lote y no se ha tocado:** los nueve defectos de §4 —entre ellos que **5 de 10
+conjuntos de producción no tienen moneda** (eran 6 hasta que Santa María recibió `COP` el 17 sep), y por
+eso Privada Las Palmas, que es de México, enseña pesos colombianos—, las seis peticiones suyas que nunca
+tuvieron ficha (los documentos informativos visibles a todos, el tiempo estimado de respuesta en PQRS, los
+colores de los formularios, la app como único canal de reservas, los dos «no me queda claro este módulo»
+y el terracota, que ya estaba) y la fila que sugirió el propio análisis: el coeficiente y la cuota en la
+carga masiva (~1,7 h, sin valorar).
 
 ### 0.1 El tablero de las 36 — una fila por petición, con su estado
 
@@ -76,10 +76,10 @@ tercero.
 
 | Estado | Cuántas |
 |---|---|
-| ✅ Construidas y cerradas | **15** |
+| ✅ Construidas y cerradas | **20** |
 | 🔵 Construidas, sin desplegar o sin ver | **0** |
 | 🟢 Se puede ya, sin planificar | **0** |
-| 🟡 Espera una decisión | **13** |
+| 🟡 Espera una decisión | **8** |
 | ◇ Descartada por ahora | **6** |
 | ⏸ Espera a un tercero | **2** |
 | **Total del documento** | **36** |
@@ -94,13 +94,13 @@ tercero.
 | **L-06** | Tres figuras: propietario, residente y administrador del apartamento | 3 | 🟡 | ¿Recibe cobros, avisos o acceso? |
 | **L-07** | Ver las unidades de un mismo dueño | 4 | ✅ | Fase 6 bloque 2 (`db9ede9`) y su arreglo (`4c178a4`): visto en producción el 17 sep; el primer panel afirmaba un dueño que eran dos personas con el documento de relleno `65465465` |
 | **L-08a** | Registrar la salida del visitante frecuente *(defecto)* | 4 | ✅ | Fase 4 (`eda51ad`), con la vigencia comprobada en la regla |
-| **L-08b** | Que el residente cree su propio visitante frecuente | 4 | 🟡 | ¿Puede hacerlo él solo? |
+| **L-08b** | Que el residente cree su propio visitante frecuente | 4 | ✅ | Fase 7 bloque 1 (`8040203`, `4b17b45`): **no estaba cubierto** —solo la administración creaba frecuentes—. El residente elige visita o frecuente (hasta 12 meses, días y franja); cancelar la invitación revoca el pase. Visto en producción el 20 sep |
 | **L-09** | Foto del visitante para que el dueño apruebe | 4 | 🟡 | Cómo la lee el residente y cuánto se guarda |
-| **L-10** | Personal de servicios por categoría, con horarios | 4 | 🟡 | ¿Catálogo del conjunto o personal por unidad? |
+| **L-10** | Personal de servicios por categoría, con horarios | 4 | ✅ | Fase 7 bloque 1: decisión del 18 sep, **catálogo del conjunto**. «Personal del conjunto» sin unidad, con categoría y horario que llegan a la portería. Visto en staging el 20 sep |
 | **L-11** | Dos perfiles: administración y equipo de seguridad | 4, 7, 8 | ✅ | Fase 3: «la portería tiene su propio panel», en tres pantallas |
 | **L-12** | La fecha que pone la plataforma al publicar | 4 | ✅ | Fase 3: columna «Publicado» en Comunicaciones |
 | **L-13** | Cuántas personas vieron un comunicado | 5 | ✅ | Fase 6 bloque 3 (`d102f2e`) y su arreglo (`2dddfc2`): «1 persona» visto en producción el 18 sep. El registro empieza en un instante (03:35 UTC del 18), no en un día local |
-| **L-14** | Dejar registro si borran un comunicado | 5 | 🟡 | Qué se conserva (choca con protección de datos) |
+| **L-14** | Dejar registro si borran un comunicado | 5 | ✅ | Fase 7 bloque 3 (`0e2ee02`): decisión del 18 sep, «se conserva todo». Se archiva con quién y cuándo, y la regla le quita el borrado a la administración. Visto en producción el 21 sep |
 | **L-15** | Clase de comunicado: noticia, general, cartera | 5 | 🟡 | La taxonomía |
 | **L-16** | Servicios como clasificados, con la unidad en arriendo o venta | 5 | 🟡 | El nombre y quién publica |
 | **L-17** | Un nombre más cercano para Encuestas | 6 | 🟡 | **El más barato: media hora en cuanto elijas el nombre** |
@@ -110,7 +110,7 @@ tercero.
 | **L-21** | PQRS: evidencia de la solución y descargar en Excel | 9 | ✅ | Fase 6 bloque 3 (`d102f2e`): evidencia subida y enseñada, y el Excel real leído, en producción el 17 sep |
 | **L-21d** | PQRS enseña un id crudo y «Residente» *(defecto)* | 9 | ✅ | Fase 4 (`eda51ad`); en producción salen «T1-403» y los nombres |
 | **L-22** | Subir el informe del contador sobre la cartera | 9 | ✅ | Fase 6 bloque 1 (`3ed097a`): visto en producción el 17 sep, documento en «Informes del contador» con categoría `financiero` |
-| **L-23** | Correo de cobro a todos los deudores | 9 | 🟡 | **Reclasificada el 17 sep:** su defecto `D-1` ya está, pero el canal de correo está cerrado por decisión y en Santa María **12 de 14 direcciones no reciben** |
+| **L-23** | Correo de cobro a todos los deudores | 9 | ✅ | **Cerrada sin código el 18 sep**, por decisión de David: «Recordar a todos», en Cartera, ya lo cubre. El canal de correo sigue apagado |
 | **L-24** | Tendencia de cartera mensual y acumulada | 9 | ✅ | Fase 6 bloque 1 (`3ed097a`): **la mensual ya existía**; la acumulada, vista en producción el 17 sep |
 | **L-25** | Consumo de zonas comunes con tendencia | 9–10 | ◇ | 2,0 h y 1,05 de puntuación |
 | **L-26** | Matriz de mantenimientos para el consejo | 10 | ◇ | 2,6 h y 1,3 |
@@ -119,7 +119,7 @@ tercero.
 | **L-29** | Medir al guarda responsable de cada gestión | 13 | ✅ | Fase 4 (`eda51ad` y `4fc35ca`): `checkInBy`/`checkOutBy` y su regla |
 | **L-30** | Reportes de vigilancia y novedades | 13 | ◇ | 2,8 h y 1,1; subiría si la minuta es diaria y en papel |
 | **L-31** | Calificación del edificio unida a Google | 14 | ⏸ | La ficha de Google de cada edificio y sus términos |
-| **L-32** | Números de emergencia del conjunto | 14 | 🟡 | ¿FAQ del conjunto o de la plataforma? ¿Quién redacta? |
+| **L-32** | Números de emergencia del conjunto | 14 | ✅ | Fase 7 bloque 2 (`0e2ee02`): decisión del 18 sep, **del conjunto**. La administración los escribe en Ajustes; el residente y la portería los ven con enlace para llamar. Visto en producción el 21 sep |
 | **L-32b** | Chatbot 24/7 | 14 | ⏸ | Corpus, tope de gasto; **se parte antes de valorarlo** |
 | **L-01b** | Un tema de color más llamativo en todo el panel | 1 | ◇ | 2,6 h y 0,65 |
 
@@ -174,16 +174,16 @@ en el emulador, sin escribir datos (fase 1 del plan).
 |---|---|---|---|---|---|---|
 | ✅ **L-04** | «Coeficiente de la unidad» en vez de «porcentaje de copropiedad» —así lo pide en la pág. 2, y esta ficha lo decía AL REVÉS hasta el 17 sep—: **Santa María no tenía país** (medido; sin país la pantalla dice «porcentaje de copropiedad» y con `CO` dice «coeficiente de copropiedad») | Poner `country: CO` (punto 4 del menú, permiso uno a uno) | 3,05 | ~0,5 | **6,1** | Relleno |
 | **L-17** | Encuestas: un nombre más cercano. **El editor de formularios ya existe** | El nombre (con él, XS) | 2,2 | 0,5 | 4,4 | Relleno |
-| **L-08b** | El residente crea su propio visitante frecuente | Si puede hacerlo él solo | 5,85 (con L-08a) | 1,5 | 3,9 | **Ganancia rápida** |
+| **L-08b** | Que el residente cree su propio visitante frecuente | 4 | ✅ | Fase 7 bloque 1 (`8040203`, `4b17b45`): **no estaba cubierto** —solo la administración creaba frecuentes—. El residente elige visita o frecuente (hasta 12 meses, días y franja); cancelar la invitación revoca el pase. Visto en producción el 20 sep |
 | **L-18** | **El reglamento pide firmas que en propiedad horizontal nadie da.** El modo sin firmas (`governance: informativo`) ya existe, pero el reglamento no lo consulta, y el panel avisa en rojo de «17 firmas pendientes» | El valor por defecto por país; qué pasa con la firma de acuerdos | 3,25 | 1,1 | 2,95 | Relleno |
 | **L-03** | El alta de unidad pide área y valor del seguro, **que ningún código lee** | ¿Retirar, esconder o por país? Si incluye H.39, cierra el cabo de T3.5 | 2,5 | 0,85 | 2,9 | Relleno |
 | **L-06** | Tercera figura: el administrador del apartamento (inmobiliaria). Es el candidato `A3` | ¿Recibe cobros, avisos o acceso? | 2,85 | 1,0 | 2,85 | Relleno |
-| **L-32** | Números de emergencia y preguntas frecuentes del conjunto | ¿FAQ del conjunto o de la plataforma? ¿Quién redacta? | 3,6 | 1,3 | 2,8 | Relleno |
+| **L-32** | Números de emergencia del conjunto | 14 | ✅ | Fase 7 bloque 2 (`0e2ee02`): decisión del 18 sep, **del conjunto**. La administración los escribe en Ajustes; el residente y la portería los ven con enlace para llamar. Visto en producción el 21 sep |
 | **L-15** | Clase del comunicado (noticia, general, cartera) | La taxonomía | 2,6 | 1,0 | 2,6 | Relleno |
 | **L-09** | Foto del visitante para que el residente apruebe | Cómo lee la foto el residente; cuánto se guarda | 3,35 | 1,3 | 2,6 | Relleno |
 | **L-19** | Reservas con valor de alquiler, depósito, aforo en personas y protocolo | ¿El valor solo se informa o genera un cargo? | 4,5 | 1,9 | 2,4 | **Ganancia rápida** |
-| **L-14** | Registro de comunicados borrados | Qué se conserva (choca con la protección de datos) | 2,35 | 1,1 | 2,1 | Relleno |
-| **L-10** | Personal de servicios del edificio por categoría y con horario (`createVisitor` pierde hoy la categoría y la hora de fin) | ¿Catálogo del conjunto o personal por unidad (`A11`)? Va después de L-08a | 4,15 | 2,0 | 2,1 | **Ganancia rápida** |
+| **L-14** | Dejar registro si borran un comunicado | 5 | ✅ | Fase 7 bloque 3 (`0e2ee02`): decisión del 18 sep, «se conserva todo». Se archiva con quién y cuándo, y la regla le quita el borrado a la administración. Visto en producción el 21 sep |
+| **L-10** | Personal de servicios por categoría, con horarios | 4 | ✅ | Fase 7 bloque 1: decisión del 18 sep, **catálogo del conjunto**. «Personal del conjunto» sin unidad, con categoría y horario que llegan a la portería. Visto en staging el 20 sep |
 | **L-16** | Servicios como clasificados de la copropiedad, incluida la unidad en arriendo o venta | El nombre; quién publica | 2,2 | 1,1 | 2,0 | Relleno |
 | L-26 | Matriz de mantenimientos para el consejo y la copropiedad | Qué activos, qué periodicidad, quién la ve | 3,4 | 2,6 | 1,3 | Relleno |
 | L-30 | Novedades y minuta de vigilancia | La taxonomía de novedades (`J1`/`J3`) | 3,15 | 2,8 | 1,1 | Relleno |
