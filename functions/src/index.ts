@@ -8,6 +8,7 @@ import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { ambienteHabilitado, dependenciasReales, sondearSenales } from "./albert-senal-de-vuelta";
 import { enviarLeadRecienCreado } from "./albert-envio-de-leads";
+import { accionesPorDealGanado, dependenciasDeAcciones } from "./albert-deal-ganado";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
@@ -19,7 +20,7 @@ import { aplicarEventoDeCorreo, resendWebhookSecret, verificarFirmaSvix } from "
 import { buildInformeMensualPdf, buildSummaryPdf } from "./pdf-resumen";
 import { adjuntoEsDelDestinatario, pdfDelEstadoDeCuenta, unidadDelDestinatario } from "./estado-de-cuenta-adjunto";
 import { pasadaDeCalendarioDeCobranza } from "./cobranza-programada";
-import { empujarAvisos, type AvisoParaPush } from "./push";
+import { empujarAvisos, enlaceAbsoluto, type AvisoParaPush } from "./push";
 import {
   addSupportInternalNote,
   closeSupportTicket,
@@ -4840,17 +4841,36 @@ export const trialLifecycleDaily = onSchedule(
 // Cada 10 minutos consulta `vivaruWonSignals` con el token de identidad de la
 // cuenta de servicio y deja una fila por deal ganado. SOLO REGISTRA (decisión de
 // David, 22 sep 2026) y SOLO corre en staging: ver `albert-senal-de-vuelta.ts`.
-export const registrarSenalesDeAlbert = onSchedule({ schedule: "every 10 minutes", timeoutSeconds: 120 }, async () => {
+export const registrarSenalesDeAlbert = onSchedule(
+  { schedule: "every 10 minutes", timeoutSeconds: 120, secrets: [resendApiKey] },
+  async () => {
   if (!ambienteHabilitado()) {
     console.log("[albert-senal] ambiente no habilitado; no se consulta a Albert.");
     return;
   }
-  const resumen = await sondearSenales(dependenciasReales(db));
+  const esProduccion = (process.env.GCLOUD_PROJECT ?? "") === "hogaru-1";
+  const avisar = async (subject: string, body: string) => {
+    await sendNotificationEmail({
+      to: esProduccion ? "comercial@qintilab.com" : "dev@qintilab.com",
+      subject,
+      body,
+      link: enlaceAbsoluto("/superadmin/leads"),
+    });
+  };
+  const acciones = dependenciasDeAcciones(db, avisar);
+  const resumen = await sondearSenales({
+    ...dependenciasReales(db),
+    alVerPorPrimeraVez: async (senal) => {
+      const r = await accionesPorDealGanado(senal, acciones, esProduccion ? "" : "[STAGING] ");
+      console.log("[albert-ganado]", JSON.stringify({ deal: senal.dealId, ...r }));
+    },
+  });
   console.log("[albert-senal]", JSON.stringify(resumen));
-  if (resumen.sinAvance) {
-    console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
-  }
-});
+    if (resumen.sinAvance) {
+      console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
+    }
+  },
+);
 
 // ── Albert CRM · el envío de leads: cada lead que nace se empuja a Albert ─────
 // Trigger y no ruta web porque las rutas corren con la cuenta de App Hosting, que

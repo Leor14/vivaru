@@ -13,7 +13,7 @@ import {
 /**
  * El envío de leads a Albert (`vivaruPushLead`). Lo que se prueba: que un lead real de cada
  * origen se traduce al contrato, que lo que falta se omite con motivo en vez de mandarse roto,
- * que staging nunca escribe de verdad y producción no envía, y que un fallo queda en el lead.
+ * que staging nunca escribe de verdad —producción sí, desde el 22 sep— y que un fallo queda en el lead.
  */
 
 const CONSENT = {
@@ -140,10 +140,12 @@ describe("unidadesEstimadas", () => {
 });
 
 describe("modoDelAmbiente", () => {
-  it("staging solo simula y producción está apagada hasta que lo decida David", () => {
+  it("staging solo simula y producción envía de verdad (decisión de David, 22 sep)", () => {
     expect(modoDelAmbiente("vivaru-staging-02")).toBe("dryRun");
-    expect(modoDelAmbiente("hogaru-1")).toBe("apagado");
+    expect(modoDelAmbiente("hogaru-1")).toBe("real");
+    // Un proyecto que nadie declaró no llama a Albert: el default es no hacer nada.
     expect(modoDelAmbiente("")).toBe("apagado");
+    expect(modoDelAmbiente("otro-proyecto")).toBe("apagado");
   });
 });
 

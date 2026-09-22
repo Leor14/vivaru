@@ -88,7 +88,7 @@ describe("sondearSenales", () => {
     const albert = albertSimulado([]);
     const a = almacen();
     const r = await sondearSenales({ ...a.dep, pedirPagina: albert.pedirPagina });
-    expect(r).toMatchObject({ paginas: 1, recibidas: 0, nuevas: 0, repetidas: 0, sinAvance: false });
+    expect(r).toMatchObject({ paginas: 1, recibidas: 0, nuevas: 0, repetidas: 0, avisosFallidos: 0, sinAvance: false });
     expect(a.filas.size).toBe(0);
     expect(a.cursor).toBeNull();
     expect(albert.pedidas).toEqual([null]);
@@ -169,6 +169,32 @@ describe("sondearSenales", () => {
     const r = await sondearSenales({ ...a.dep, registrar, pedirPagina: albert.pedirPagina });
     expect(a.filas.size).toBe(3);
     expect(r).toMatchObject({ nuevas: 2, repetidas: 1 });
+  });
+});
+
+describe("las acciones del deal ganado", () => {
+  it("corren UNA vez por deal: la segunda vuelta no vuelve a avisar", async () => {
+    const albert = albertSimulado([senal(1), senal(2)]);
+    const a = almacen();
+    const vistos: string[] = [];
+    const dep = { ...a.dep, pedirPagina: albert.pedirPagina, alVerPorPrimeraVez: async (s: SenalGanado) => void vistos.push(s.dealId) };
+    await sondearSenales(dep);
+    expect(vistos).toEqual(["vl_1", "vl_2"]);
+    await sondearSenales(dep);
+    expect(vistos).toEqual(["vl_1", "vl_2"]);
+  });
+
+  it("si el aviso falla, la señal QUEDA registrada y el cursor avanza igual", async () => {
+    const albert = albertSimulado([senal(1)]);
+    const a = almacen();
+    const r = await sondearSenales({
+      ...a.dep,
+      pedirPagina: albert.pedirPagina,
+      alVerPorPrimeraVez: async () => { throw new Error("resend caído"); },
+    });
+    expect(r).toMatchObject({ nuevas: 1, avisosFallidos: 1 });
+    expect(a.filas.has("vl_1")).toBe(true);
+    expect(a.cursor).toBe(senal(1).updatedAt);
   });
 });
 

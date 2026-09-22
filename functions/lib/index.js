@@ -46,6 +46,7 @@ const logger = __importStar(require("firebase-functions/logger"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const albert_senal_de_vuelta_1 = require("./albert-senal-de-vuelta");
 const albert_envio_de_leads_1 = require("./albert-envio-de-leads");
+const albert_deal_ganado_1 = require("./albert-deal-ganado");
 const crypto_1 = require("crypto");
 const XLSX = __importStar(require("xlsx"));
 const datetimeValidation_1 = require("./utils/datetimeValidation");
@@ -3800,12 +3801,28 @@ exports.trialLifecycleDaily = (0, scheduler_1.onSchedule)({ schedule: "0 10 * * 
 // Cada 10 minutos consulta `vivaruWonSignals` con el token de identidad de la
 // cuenta de servicio y deja una fila por deal ganado. SOLO REGISTRA (decisión de
 // David, 22 sep 2026) y SOLO corre en staging: ver `albert-senal-de-vuelta.ts`.
-exports.registrarSenalesDeAlbert = (0, scheduler_1.onSchedule)({ schedule: "every 10 minutes", timeoutSeconds: 120 }, async () => {
+exports.registrarSenalesDeAlbert = (0, scheduler_1.onSchedule)({ schedule: "every 10 minutes", timeoutSeconds: 120, secrets: [email_1.resendApiKey] }, async () => {
     if (!(0, albert_senal_de_vuelta_1.ambienteHabilitado)()) {
         console.log("[albert-senal] ambiente no habilitado; no se consulta a Albert.");
         return;
     }
-    const resumen = await (0, albert_senal_de_vuelta_1.sondearSenales)((0, albert_senal_de_vuelta_1.dependenciasReales)(db));
+    const esProduccion = (process.env.GCLOUD_PROJECT ?? "") === "hogaru-1";
+    const avisar = async (subject, body) => {
+        await (0, email_1.sendNotificationEmail)({
+            to: esProduccion ? "comercial@qintilab.com" : "dev@qintilab.com",
+            subject,
+            body,
+            link: (0, push_1.enlaceAbsoluto)("/superadmin/leads"),
+        });
+    };
+    const acciones = (0, albert_deal_ganado_1.dependenciasDeAcciones)(db, avisar);
+    const resumen = await (0, albert_senal_de_vuelta_1.sondearSenales)({
+        ...(0, albert_senal_de_vuelta_1.dependenciasReales)(db),
+        alVerPorPrimeraVez: async (senal) => {
+            const r = await (0, albert_deal_ganado_1.accionesPorDealGanado)(senal, acciones, esProduccion ? "" : "[STAGING] ");
+            console.log("[albert-ganado]", JSON.stringify({ deal: senal.dealId, ...r }));
+        },
+    });
     console.log("[albert-senal]", JSON.stringify(resumen));
     if (resumen.sinAvance) {
         console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");

@@ -99,10 +99,25 @@
 > que el token entró **firmado** y aceptado. **El `dealId` es determinista a partir del `leadId`**, así
 > que lo guardado hoy en simulado servirá para cruzar el día que ese lead se envíe de verdad.
 >
-> **Dos cosas que quedan vivas:** los leads que YA existían no se envían nunca (el trigger es de
-> creación), así que mandarlos pediría un script aparte; y **encender producción** —`MODO_POR_AMBIENTE`
-> con `hogaru-1: "real"`, más desplegar functions— es decisión de David, y desde ese momento cada lead
-> real nace como deal en el CRM.
+> **PRODUCCIÓN ENCENDIDA en el envío el 22 sep** (decisión de David): `MODO_POR_AMBIENTE` lleva
+> `hogaru-1: "real"`, así que **cada lead que nazca en producción se convierte en contacto y deal**.
+> Staging sigue en `dryRun`. Los 6 leads que ya había en producción **no se envían** (el trigger es de
+> creación, y cinco de los seis son pruebas de David); mandarlos pediría un script aparte y se decidió
+> no hacerlo.
+>
+> **Y qué hace Vivaru con un deal ganado, decidido el mismo día: AVISAR Y MARCAR, no actuar solo.**
+> `functions/src/albert-deal-ganado.ts`, colgado del sondeo por `alVerPorPrimeraVez`, así que corre
+> **una vez por deal**: marca el lead como `convertido` —el estado terminal que REVOPS nunca alcanzaba
+> solo— y manda un correo al buzón del equipo (`comercial@` en producción, `dev@` en staging, con
+> `[STAGING]` en el asunto). **El alta del conjunto NO se automatiza**: sigue siendo
+> `createTenantFromLead` con un humano delante, porque crear un ambiente con su gente y su dinero es
+> demasiado para un cambio de etapa en un CRM ajeno. Todo es best-effort: si el correo falla, el lead se
+> marca igual; y **un fallo del aviso no impide registrar la señal ni avanzar el cursor** (`avisosFallidos`
+> en el resumen). 10 pruebas más, falsadas con cuatro roturas.
+>
+> **Lo que queda vivo:** la LECTURA (`registrarSenalesDeAlbert`) sigue **solo en staging**
+> —`AMBIENTES_HABILITADOS`—, a propósito: se enciende en producción cuando interese que el aviso de
+> «negocio ganado» llegue de verdad. Y los leads anteriores al trigger no se envían nunca.
 >
 > **La condición de reapertura de la herramienta se cumplió y no se usó.** §«La decisión de herramienta»
 > la ponía en «si las dos preguntas tardan más de dos semanas», y tardaron veinte días. **Ya están

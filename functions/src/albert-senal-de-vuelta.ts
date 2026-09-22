@@ -65,6 +65,8 @@ export type Resumen = {
   recibidas: number;
   nuevas: number;
   repetidas: number;
+  /** Señales nuevas cuyas acciones (aviso y marca) fallaron. La señal SÍ quedó registrada. */
+  avisosFallidos: number;
   sinAvance: boolean;
   desde: string | null;
   hasta: string | null;
@@ -76,6 +78,13 @@ export type Dependencias = {
   leerCursor: () => Promise<string | null>;
   /** `true` si la señal es nueva; `false` si ese `dealId` ya estaba registrado. */
   registrar: (senal: SenalGanado) => Promise<boolean>;
+  /**
+   * Qué hace Vivaru con un deal ganado que se ve por PRIMERA vez (avisar y marcar el lead; ver
+   * `albert-deal-ganado.ts`). Va aquí y no dentro de `registrar` a propósito: registrar es la
+   * verdad —y es la que sostiene la idempotencia—, esto es la consecuencia. **Sus fallos no
+   * tumban el sondeo**: la señal ya quedó guardada y el cursor tiene que poder avanzar.
+   */
+  alVerPorPrimeraVez?: (senal: SenalGanado) => Promise<void>;
   guardarCursor: (since: string | null, resumen: Resumen) => Promise<void>;
 };
 
@@ -111,7 +120,7 @@ export function validarRespuesta(cuerpo: unknown): RespuestaSenales {
 export async function sondearSenales(dep: Dependencias): Promise<Resumen> {
   const desde = await dep.leerCursor();
   let cursor = desde;
-  const resumen: Resumen = { paginas: 0, recibidas: 0, nuevas: 0, repetidas: 0, sinAvance: false, desde, hasta: desde };
+  const resumen: Resumen = { paginas: 0, recibidas: 0, nuevas: 0, repetidas: 0, avisosFallidos: 0, sinAvance: false, desde, hasta: desde };
 
   for (let pagina = 0; pagina < PAGINAS_POR_EJECUCION; pagina++) {
     const respuesta = validarRespuesta(await dep.pedirPagina(cursor, LIMITE_POR_PAGINA));
@@ -120,8 +129,17 @@ export async function sondearSenales(dep: Dependencias): Promise<Resumen> {
 
     let maximo = cursor;
     for (const senal of respuesta.signals) {
-      if (await dep.registrar(senal)) resumen.nuevas++;
-      else resumen.repetidas++;
+      if (await dep.registrar(senal)) {
+        resumen.nuevas++;
+        if (dep.alVerPorPrimeraVez) {
+          try {
+            await dep.alVerPorPrimeraVez(senal);
+          } catch (error) {
+            resumen.avisosFallidos++;
+            console.error("[albert-senal] acciones del deal ganado:", (error as Error).message?.slice(0, 200));
+          }
+        }
+      } else resumen.repetidas++;
       if (maximo === null || senal.updatedAt > maximo) maximo = senal.updatedAt;
     }
 

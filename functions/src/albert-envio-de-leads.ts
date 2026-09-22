@@ -33,9 +33,14 @@ export const PUSH_LEAD_URL = "https://vivarupushlead-winvdvwn6q-uc.a.run.app";
 
 export type Modo = "apagado" | "dryRun" | "real";
 
-/** Añadir `"hogaru-1": "real"` es decisión de David, no de una sesión. */
+/**
+ * **Producción ENVÍA DE VERDAD desde el 22 de septiembre de 2026** (decisión de David): cada lead que
+ * nace en `hogaru-1` se convierte en un contacto y un deal en el CRM. Staging sigue en `dryRun` porque
+ * Albert tiene UN solo CRM. Apagar producción es quitar su línea y volver a desplegar.
+ */
 export const MODO_POR_AMBIENTE: Readonly<Record<string, Modo>> = {
   "vivaru-staging-02": "dryRun",
+  "hogaru-1": "real",
 };
 
 export function modoDelAmbiente(proyecto = process.env.GCLOUD_PROJECT ?? ""): Modo {

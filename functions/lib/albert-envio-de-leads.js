@@ -37,9 +37,14 @@ const albert_senal_de_vuelta_1 = require("./albert-senal-de-vuelta");
  *   `crmRef` con `albert:deal:vivaru:<dealId>`, el formato que valida `src/lib/albert/crm-ref.ts`.
  */
 exports.PUSH_LEAD_URL = "https://vivarupushlead-winvdvwn6q-uc.a.run.app";
-/** Añadir `"hogaru-1": "real"` es decisión de David, no de una sesión. */
+/**
+ * **Producción ENVÍA DE VERDAD desde el 22 de septiembre de 2026** (decisión de David): cada lead que
+ * nace en `hogaru-1` se convierte en un contacto y un deal en el CRM. Staging sigue en `dryRun` porque
+ * Albert tiene UN solo CRM. Apagar producción es quitar su línea y volver a desplegar.
+ */
 exports.MODO_POR_AMBIENTE = {
     "vivaru-staging-02": "dryRun",
+    "hogaru-1": "real",
 };
 function modoDelAmbiente(proyecto = process.env.GCLOUD_PROJECT ?? "") {
     return exports.MODO_POR_AMBIENTE[proyecto] ?? "apagado";

@@ -83,15 +83,25 @@ function validarRespuesta(cuerpo) {
 async function sondearSenales(dep) {
     const desde = await dep.leerCursor();
     let cursor = desde;
-    const resumen = { paginas: 0, recibidas: 0, nuevas: 0, repetidas: 0, sinAvance: false, desde, hasta: desde };
+    const resumen = { paginas: 0, recibidas: 0, nuevas: 0, repetidas: 0, avisosFallidos: 0, sinAvance: false, desde, hasta: desde };
     for (let pagina = 0; pagina < exports.PAGINAS_POR_EJECUCION; pagina++) {
         const respuesta = validarRespuesta(await dep.pedirPagina(cursor, exports.LIMITE_POR_PAGINA));
         resumen.paginas++;
         resumen.recibidas += respuesta.signals.length;
         let maximo = cursor;
         for (const senal of respuesta.signals) {
-            if (await dep.registrar(senal))
+            if (await dep.registrar(senal)) {
                 resumen.nuevas++;
+                if (dep.alVerPorPrimeraVez) {
+                    try {
+                        await dep.alVerPorPrimeraVez(senal);
+                    }
+                    catch (error) {
+                        resumen.avisosFallidos++;
+                        console.error("[albert-senal] acciones del deal ganado:", error.message?.slice(0, 200));
+                    }
+                }
+            }
             else
                 resumen.repetidas++;
             if (maximo === null || senal.updatedAt > maximo)
