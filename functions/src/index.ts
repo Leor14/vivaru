@@ -6,6 +6,7 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { ambienteHabilitado, dependenciasReales, sondearSenales } from "./albert-senal-de-vuelta";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
@@ -4833,6 +4834,22 @@ export const trialLifecycleDaily = onSchedule(
     }
   },
 );
+
+// ── Albert CRM · la señal de vuelta: registrar los deals ganados ─────────────
+// Cada 10 minutos consulta `vivaruWonSignals` con el token de identidad de la
+// cuenta de servicio y deja una fila por deal ganado. SOLO REGISTRA (decisión de
+// David, 22 sep 2026) y SOLO corre en staging: ver `albert-senal-de-vuelta.ts`.
+export const registrarSenalesDeAlbert = onSchedule({ schedule: "every 10 minutes", timeoutSeconds: 120 }, async () => {
+  if (!ambienteHabilitado()) {
+    console.log("[albert-senal] ambiente no habilitado; no se consulta a Albert.");
+    return;
+  }
+  const resumen = await sondearSenales(dependenciasReales(db));
+  console.log("[albert-senal]", JSON.stringify(resumen));
+  if (resumen.sinAvance) {
+    console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
+  }
+});
 
 // ── Alta de cliente desde un lead (self-service, ajuste 1) ──────────────────
 // Cuando ya se acordó la suscripción, el superadmin convierte el lead en un

@@ -34,8 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.billConsumptionPeriod = exports.reopenMeterPeriod = exports.closeMeterPeriod = exports.registerMeterReading = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.setTenantAdminAccess = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createMudanzaRequest = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = void 0;
+exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createMudanzaRequest = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.registrarSenalesDeAlbert = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -44,6 +44,7 @@ const https_1 = require("firebase-functions/v2/https");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const logger = __importStar(require("firebase-functions/logger"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
+const albert_senal_de_vuelta_1 = require("./albert-senal-de-vuelta");
 const crypto_1 = require("crypto");
 const XLSX = __importStar(require("xlsx"));
 const datetimeValidation_1 = require("./utils/datetimeValidation");
@@ -3792,6 +3793,21 @@ exports.trialLifecycleDaily = (0, scheduler_1.onSchedule)({ schedule: "0 10 * * 
         // borrar datos de un prospecto es irreversible y se decide con la vista
         // puesta en datos reales, no por defecto.
         console.warn(`[trial-lifecycle] ${report.purgaPendiente.length} ambiente(s) superaron la retención y NO se purgaron:`, report.purgaPendiente.join(", "));
+    }
+});
+// ── Albert CRM · la señal de vuelta: registrar los deals ganados ─────────────
+// Cada 10 minutos consulta `vivaruWonSignals` con el token de identidad de la
+// cuenta de servicio y deja una fila por deal ganado. SOLO REGISTRA (decisión de
+// David, 22 sep 2026) y SOLO corre en staging: ver `albert-senal-de-vuelta.ts`.
+exports.registrarSenalesDeAlbert = (0, scheduler_1.onSchedule)({ schedule: "every 10 minutes", timeoutSeconds: 120 }, async () => {
+    if (!(0, albert_senal_de_vuelta_1.ambienteHabilitado)()) {
+        console.log("[albert-senal] ambiente no habilitado; no se consulta a Albert.");
+        return;
+    }
+    const resumen = await (0, albert_senal_de_vuelta_1.sondearSenales)((0, albert_senal_de_vuelta_1.dependenciasReales)(db));
+    console.log("[albert-senal]", JSON.stringify(resumen));
+    if (resumen.sinAvance) {
+        console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
     }
 });
 // ── Alta de cliente desde un lead (self-service, ajuste 1) ──────────────────

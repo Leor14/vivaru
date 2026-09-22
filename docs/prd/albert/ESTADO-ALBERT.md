@@ -57,13 +57,18 @@
 > |---|---|
 > | **La primera llamada real, desde staging** | David y Vivaru, cuando exista el endpoint |
 > | **La escritura de deals: DECIDIDA por David (21 sep), SEGUNDO ENDPOINT** con la misma autenticación, no Firestore con `sales`. Albert lo diseña; le mandamos nueve requisitos (idempotencia por `vivaruLeadId`, contacto y deal en una transacción, consentimiento obligatorio, `externalRef` siempre, `dryRun` para staging…) y revisamos su contrato **antes** de que lo despliegue | Albert |
-> | **`vivaruPushLead`: CONTRATO CERRADO el 22 sep** (su `b47146a`, sin desplegar). La carrera de dos leads con el mismo email la cerró un índice por email, falsado. **Orden de despliegue: B1 y B3 redesplegados PRIMERO**, luego el endpoint, `run.invoker` y el check de IAM. Staging solo llama con `dryRun`, y **nada sin `dryRun` hasta que Albert confirme que B1 y B3 están redesplegados** | **David** despliega |
+> | **`vivaruPushLead`: DESPLEGADO el 22 sep a las 03:43 UTC**, con B1 y B3 redesplegados antes (03:36 UTC, código `c5cce14`, B3 sigue dormida). Medido por nosotros en solo lectura: 26 functions; en los dos servicios, `run.invoker` solo para nuestras dos cuentas, `invokerIamDisabled: false` y 403 anónimo. **Staging solo con `dryRun=1`**; **producción no escribe sin que lo diga David** | Vivaru llama cuando David decida cómo |
 > | **Revisar que staging lea el tenant real** antes de que entren leads reales | **David** |
 >
-> **Lo que NO se hace todavía: nuestro cliente.** Se construye cuando el endpoint exista, para que la
-> primera prueba sea una llamada real y no contra un contrato supuesto. Será una función programada que
-> consulte con `since` cada pocos minutos, deduplique por `dealId` y active una sola vez. **Hay un primer
-> caso real en perspectiva:** si Patricia Gordillo firma, sería el primer deal ganado.
+> **Nuestro cliente de la señal de vuelta, CONSTRUIDO el 22 sep** (decisión de David: primero la
+> opción B, y **solo registrar**). La función programada `registrarSenalesDeAlbert`
+> (`functions/src/albert-senal-de-vuelta.ts`) consulta `vivaruWonSignals` cada 10 minutos con el token
+> de identidad de la cuenta de servicio y deja una fila por deal ganado en `albertSenalesGanado/{dealId}`
+> (`create`, así que es idempotente). El cursor vive en `integracionAlbert/senalesGanado`. **Solo corre
+> en staging** (`AMBIENTES_HABILITADOS`), y producción la enciende David. Tiene 11 pruebas, falsadas
+> rompiendo el módulo de tres maneras. **Qué se ACTIVA con un deal ganado sigue sin decidir.** La
+> opción A (una llamada suelta suplantando la cuenta de staging) se descartó: el permiso se concedió y
+> se retiró antes de propagarse, y no hubo ninguna llamada.
 >
 > **La condición de reapertura de la herramienta se cumplió y no se usó.** §«La decisión de herramienta»
 > la ponía en «si las dos preguntas tardan más de dos semanas», y tardaron veinte días. **Ya están
