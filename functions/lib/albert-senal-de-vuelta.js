@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DOC_CURSOR = exports.COLECCION_SENALES = exports.PAGINAS_POR_EJECUCION = exports.LIMITE_POR_PAGINA = exports.AMBIENTES_HABILITADOS = exports.WON_SIGNALS_URL = void 0;
 exports.validarRespuesta = validarRespuesta;
 exports.sondearSenales = sondearSenales;
+exports.tokenDeIdentidad = tokenDeIdentidad;
 exports.dependenciasReales = dependenciasReales;
 exports.ambienteHabilitado = ambienteHabilitado;
 const firestore_1 = require("firebase-admin/firestore");
@@ -112,7 +113,10 @@ async function sondearSenales(dep) {
     }
     return resumen;
 }
-/** Token de identidad de la cuenta de servicio con la que corre la función. */
+/**
+ * Token de identidad de la cuenta de servicio con la que corre la función. Lo usan los
+ * dos endpoints de Albert (`vivaruWonSignals` y `vivaruPushLead`), cada uno con su audiencia.
+ */
 async function tokenDeIdentidad(audiencia) {
     const url = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity" +
         `?audience=${encodeURIComponent(audiencia)}&format=full`;

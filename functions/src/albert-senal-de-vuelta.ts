@@ -141,8 +141,11 @@ export async function sondearSenales(dep: Dependencias): Promise<Resumen> {
   return resumen;
 }
 
-/** Token de identidad de la cuenta de servicio con la que corre la función. */
-async function tokenDeIdentidad(audiencia: string): Promise<string> {
+/**
+ * Token de identidad de la cuenta de servicio con la que corre la función. Lo usan los
+ * dos endpoints de Albert (`vivaruWonSignals` y `vivaruPushLead`), cada uno con su audiencia.
+ */
+export async function tokenDeIdentidad(audiencia: string): Promise<string> {
   const url =
     "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity" +
     `?audience=${encodeURIComponent(audiencia)}&format=full`;

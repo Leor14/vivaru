@@ -66,9 +66,27 @@
 > de identidad de la cuenta de servicio y deja una fila por deal ganado en `albertSenalesGanado/{dealId}`
 > (`create`, así que es idempotente). El cursor vive en `integracionAlbert/senalesGanado`. **Solo corre
 > en staging** (`AMBIENTES_HABILITADOS`), y producción la enciende David. Tiene 11 pruebas, falsadas
-> rompiendo el módulo de tres maneras. **Qué se ACTIVA con un deal ganado sigue sin decidir.** La
-> opción A (una llamada suelta suplantando la cuenta de staging) se descartó: el permiso se concedió y
+> rompiendo el módulo de tres maneras. **Qué se ACTIVA con un deal ganado sigue sin decidir.**
+> **FUNCIONANDO en staging desde el 22 sep a las 04:45 UTC**: 200 con 0 señales, y 77 ejecuciones cada 10
+> minutos hasta las 17:25 UTC sin un solo error (medido en sus logs). **Albert confirmó por la traza de su
+> revisión `vivaruwonsignals-00002` que nuestro token llega FIRMADO**: se valida dos veces, por IAM en
+> Cloud Run y por `verifyIdToken` en su código. El camino «sin firma» (y con él la guarda que lee la
+> política de IAM) **no se usa**; ellos decidirán si lo retiran. **Si un día la consulta recibe 403, lo
+> primero es mirar si redesplegaron con una cuenta Owner**, porque Firebase vacía entonces la lista de
+> `run.invoker`. La opción A (una llamada suelta suplantando la cuenta de staging) se descartó: el permiso se concedió y
 > se retiró antes de propagarse, y no hubo ninguna llamada.
+>
+> **Nuestro envío de leads, CONSTRUIDO el 22 sep** (decisión de David: **al crearse el lead**). Es el
+> trigger `enviarLeadAAlbert` sobre `leads/{leadId}` (`functions/src/albert-envio-de-leads.ts`). **Trigger
+> y no ruta web** porque las rutas corren con la cuenta de App Hosting, que Albert no autoriza. Traduce
+> el lead al contrato de `vivaruPushLead`; si falta algo que el contrato exige (consentimiento, nombre,
+> email, origen), el lead se marca `omitido` con su motivo en vez de mandarse roto. El resultado queda en
+> el propio lead (`albertEnvio`), y en modo real también rellena `crmRef`. **Modo por ambiente
+> (`MODO_POR_AMBIENTE`): staging `dryRun`, producción `apagado`** hasta que David ponga `hogaru-1: "real"`.
+> La cuenta de producción es la misma para las 90 functions, así que ese mapa es el único freno de nuestro
+> lado. **Hoy los leads de `trial` nacen sin consentimiento** (`trial-workspace.ts`) y se omitirán. Un
+> error de Albert no se reintenta solo: queda en el lead y se reenvía a mano, lo que es seguro porque el
+> envío es idempotente por `leadId`. Tiene 19 pruebas, falsadas con tres roturas.
 >
 > **La condición de reapertura de la herramienta se cumplió y no se usó.** §«La decisión de herramienta»
 > la ponía en «si las dos preguntas tardan más de dos semanas», y tardaron veinte días. **Ya están

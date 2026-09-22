@@ -7,6 +7,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { ambienteHabilitado, dependenciasReales, sondearSenales } from "./albert-senal-de-vuelta";
+import { enviarLeadRecienCreado } from "./albert-envio-de-leads";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
@@ -4849,6 +4850,26 @@ export const registrarSenalesDeAlbert = onSchedule({ schedule: "every 10 minutes
   if (resumen.sinAvance) {
     console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
   }
+});
+
+// ── Albert CRM · el envío de leads: cada lead que nace se empuja a Albert ─────
+// Trigger y no ruta web porque las rutas corren con la cuenta de App Hosting, que
+// Albert no autoriza. Staging solo simula (dryRun) y producción está APAGADA hasta
+// que David la encienda: ver `MODO_POR_AMBIENTE` en `albert-envio-de-leads.ts`.
+export const enviarLeadAAlbert = onDocumentCreated({ document: "leads/{leadId}", timeoutSeconds: 60 }, async (event) => {
+  const snap = event.data;
+  if (!snap) return;
+  const resultado = await enviarLeadRecienCreado(snap.ref, snap.data() ?? {});
+  // Sin datos personales: el leadId basta para trazarlo.
+  const detalle =
+    resultado.estado === "omitido" ? resultado.motivo
+    : resultado.estado === "error" ? resultado.error
+    : resultado.estado === "simulado" || resultado.estado === "enviado"
+      ? `deal=${resultado.respuesta.dealId} created=${resultado.respuesta.created} duplicateOf=${resultado.respuesta.duplicateOf ?? "-"}`
+      : "";
+  const linea = `[albert-envio] lead=${snap.id} estado=${resultado.estado} ${detalle}`;
+  if (resultado.estado === "error") console.error(linea);
+  else console.log(linea);
 });
 
 // ── Alta de cliente desde un lead (self-service, ajuste 1) ──────────────────

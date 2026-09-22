@@ -334,8 +334,9 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
   dos direcciones van por endpoints PRIVADOS de Albert**, autenticados con el token de identidad
   de nuestra cuenta de servicio de Cloud Functions (sin contraseña ni buzón):
   `vivaruWonSignals` para leer los deals ganados (**desplegado**; la condición es
-  `outcome === "won"`, nunca el texto de la etapa) y `vivaruPushLead` para enviar leads (contrato
-  cerrado, sin desplegar; staging solo con `dryRun`). **La suscripción en vivo con `onSnapshot` y
+  `outcome === "won"`, nunca el texto de la etapa) y `vivaruPushLead` para enviar leads (desplegado;
+  nuestro trigger `enviarLeadAAlbert` lo llama al crearse cada lead, con staging solo en `dryRun`
+  y producción APAGADA hasta que David la encienda en `MODO_POR_AMBIENTE`). **La suscripción en vivo con `onSnapshot` y
   la escritura con el usuario `sales` quedaron descartadas**, aunque documentos de agosto las den
   por la vía buena. `docs/albert-vivaru-integracion.md` es el **registro histórico de cómo se
   decidió**, no el estado: está congelado en el 18 de agosto.
