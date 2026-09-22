@@ -1,51 +1,73 @@
 # Estado de Albert ↔ Vivaru
 
 > Documento **vivo**: se reescribe, no se acumula. Es el sitio donde mirar para retomar
-> sin releer los nueve documentos del intercambio.
-> **Actualizado: 1 de septiembre de 2026** (bloque de abajo) · el 28 de agosto llegó `RESPUESTA-A-005` y **se navegó el tenant
-> `vivaru` con la sesión abierta**. Del contrato **no queda nada abierto del lado de Albert**:
-> A5 ejecutada, A1 publicado, **B1 y B3 desplegados**, y el `displayName` **confirmado en
-> pantalla**. Lo que queda es trabajo nuestro — más **una pregunta nueva que sí condiciona el
-> diseño**: §4.4.
->
-> **Las cinco filas de §4.0 se midieron el 27 de agosto** y siguen vigentes: el código no se
-> ha movido. Lo que cambió el 28 no es código nuestro, es **lo que se supo mirando** — y por
-> eso este documento se reescribe en vez de acumular una nota al pie.
+> sin releer los catorce documentos del intercambio.
+> **Actualizado: 21 de septiembre de 2026.** Llegó `RESPUESTA-A-007` y **el frente vuelve a moverse**
+> después de veinte días parado.
 
-> ### RETOMADO EL 1 DE SEPTIEMBRE DE 2026 — las dos preguntas a Albert se MIDIERON desde su propio proyecto
+> ### 21 DE SEPTIEMBRE DE 2026 — «GANADO» YA TIENE CLAVE ESTABLE, Y `vivaruWonSignals` TIENE CONTRATO PERO NO ESTÁ DESPLEGADO
 >
-> **`dev@qintilab.com` es `roles/owner` de `albert-crm-1-1c162`** —leído de su política de IAM con la
-> ADC, que es esa misma cuenta— junto a `luisEOteroR@gmail.com`. Es la cuenta con la que opera el CLI
-> de Vivaru y la ADC. Con eso se pudo leer su Firestore, sus reglas desplegadas y sus 23 functions
-> sin pedir nada a nadie, y las dos preguntas de `DECISIONES-A-005` cambian de naturaleza:
+> **Quién contestó y por dónde:** la sesión de Claude que analiza el repositorio de Albert
+> (`Leor14/albertcrm`), a petición de David, con un mensaje entre sesiones. No pasó por el canal.
 >
-> 1. **§4.4.1, la clave estable de «ganado»: CONFIRMADO que no existe, medido.** El pipeline vive en
->    `tenants/{tenantId}/config/pipeline` como `stages: string[]` —texto plano, escribible por el
->    `tenant_admin` según sus reglas— y el deal persiste `stage` como esa cadena (`"Propuesta"` en el
->    único deal de `demo`). **Y el propio tenant `demo` ya enseña el fallo:** su lista está editada a
->    `["Ganado", "Perdido"]`, así que su deal en `"Propuesta"` no casa con ninguna etapa configurada y
->    nada lo avisa. `tenants/vivaru/config` está **vacío**: nuestras etapas son las por defecto de su
->    app, no un documento. **La pregunta sigue siendo suya de contestar** —qué cuesta añadir un
->    `stageKey`—, pero ya no hace falta que nos digan cómo lo guardan.
-> 2. **§4.6, la credencial: NO depende de Albert.** Conceder a la cuenta de servicio de nuestras
->    functions (`1047056648517-compute@developer.gserviceaccount.com`, la de `registrarImportacion`)
->    lectura o escritura sobre su Firestore es un cambio de IAM en `albert-crm-1-1c162`, **y el owner
->    somos nosotros**. Hoy esa cuenta **no tiene ningún rol allí** (0 apariciones en la política).
->    Es un acto sobre la seguridad de OTRO producto y lo decide David, no una sesión; pero ya no es una
->    petición a un tercero.
+> **Medido desde su proyecto antes de creérselo** (solo lectura, ADC, 21 sep):
 >
-> **Y esa misma noche llegó `RESPUESTA-A-006`** —una nota operativa por el canal— que **cambia la vía
-> de credencial por una mejor que la pedida**: Albert construye un endpoint, **`vivaruWonSignals`**,
-> que autentica por **token de identidad de nuestra cuenta de servicio**. Piden solo el correo de esa
-> cuenta. Se contestó con `DECISIONES-A-006`: las dos cuentas (producción y staging, medidas sobre
-> las noventa functions de cada ambiente), **el contrato del endpoint que falta** —no está desplegado
-> en su proyecto al 1 sep—, y la observación de que si el endpoint decide «ganado» por su cuenta, la
-> clave estable de §4.4.1 deja de hacer falta. **La concesión de IAM del punto 2 queda en suspenso:
-> con el endpoint no hace falta para la señal de vuelta.**
+> | Qué | Medido |
+> |---|---|
+> | Functions en `albert-crm-1-1c162` | **24**. A las 20:35 UTC eran 23, y la última desplegada databa del 22 ago |
+> | **`stampDealOutcome`** | **ACTIVE** desde las 23:18 UTC del 21 sep |
+> | Índice **`deals(outcome ASC, updatedAt ASC)`** | **READY** |
+> | **`vivaruWonSignals`** | **No existe** |
+> | Nuestro código contra Albert | **Cero**: `vivaruWonSignals`, `submitDemoLead`, `externalRef`, `eraseByExternalRef` y `tenants/vivaru` aparecen 0 veces en `src`, `components`, `features` y `functions/src` |
 >
-> **Sigue vigente §4.0: cero código nuestro contra Albert** (`submitDemoLead`, `externalRef`,
-> `eraseByExternalRef` y `tenants/vivaru` con 0 apariciones el 1 sep). Y en su lista de functions
-> están `eraseByExternalRef` (B1), `vivaruRetentionSweep` (B3) y `submitDemoLead`, todas `ACTIVE`.
+> **Lo que se cerró:**
+> 1. **§4.4.1, la clave estable de «ganado»: RESUELTA por Albert.** Cada deal lleva `outcome` =
+>    `open`/`won`/`lost`, lo pone `stampDealOutcome` a partir de `config/pipeline.wonStage`/`lostStage`
+>    (si no están configurados, «Ganado»/«Perdido») y está rellenado en los 25 deals que ya existían.
+>    **Nuestra condición será `outcome === "won"`, nunca el texto de la etapa.** El fallo del tenant
+>    `demo` (un deal en una etapa que no está en su lista) no desaparece, pero deja de afectar a la señal.
+> 2. **§4.6, la credencial: RESUELTA en el contrato.** Token de identidad OIDC de nuestra cuenta de
+>    servicio, verificado por ellos (firma, `email`, `email_verified`, audiencia). Sin contraseña y
+>    sin buzón.
+>
+> **La segunda respuesta, el mismo día: aceptan los tres ajustes** (detalle en `RESPUESTA-A-007`,
+> segunda parte). Las decisiones las atribuyen a David; conviene que las confirme. Código en su commit
+> `7582896`, **sin desplegar**:
+> - **Valen las dos cuentas**: `VIVARU_SA_EMAIL` pasa a ser una lista.
+> - **Audiencia** `https://vivaruwonsignals-winvdvwn6q-uc.a.run.app`, única y fija.
+> - **Servicio PRIVADO** con `roles/run.invoker` para las dos cuentas. Que siga privado es parte del
+>   contrato: acepta el token con `SIGNATURE_REMOVED_BY_GOOGLE` que reenvía Cloud Run.
+> - **Y el carácter privado se COMPRUEBA** (`e273634`): el endpoint lee su propia política de IAM y falla
+>   cerrado (`401`) si es pública o no puede leerla, y un script posterior al despliegue exige que
+>   `run.invoker` sean exactamente nuestras dos cuentas. **Si la primera llamada da 401, mirar primero si
+>   su cuenta de ejecución puede leer esa política.**
+> - **`since` inclusivo** (deduplicamos por `dealId`); `400 invalid_params` si el parámetro está mal;
+>   los deals sin `externalRef` salen con `leadId: null`.
+> - **Staging lee el tenant `vivaru` real**: aceptado mientras tenga 0 deals, y **se revisa antes de que
+>   entren leads reales**.
+>
+> **DESPLEGADO el 22 sep a las 02:42 UTC, y medido por nosotros en solo lectura:** función ACTIVE; el
+> servicio de Cloud Run `vivaruwonsignals` responde en la audiencia acordada; `invokerIamDisabled: false`;
+> la política tiene **un solo binding**, `roles/run.invoker`, con **exactamente nuestras dos cuentas**; un
+> GET anónimo da **403**. Corre con `1030612300411-compute@…`. El check de Albert dio lo mismo.
+>
+> **Lo que queda abierto:**
+>
+> | Qué | Quién |
+> |---|---|
+> | **La primera llamada real, desde staging** | David y Vivaru, cuando exista el endpoint |
+> | **La escritura de deals: DECIDIDA por David (21 sep), SEGUNDO ENDPOINT** con la misma autenticación, no Firestore con `sales`. Albert lo diseña; le mandamos nueve requisitos (idempotencia por `vivaruLeadId`, contacto y deal en una transacción, consentimiento obligatorio, `externalRef` siempre, `dryRun` para staging…) y revisamos su contrato **antes** de que lo despliegue | Albert |
+> | **`vivaruPushLead`: CONTRATO CERRADO el 22 sep** (su `b47146a`, sin desplegar). La carrera de dos leads con el mismo email la cerró un índice por email, falsado. **Orden de despliegue: B1 y B3 redesplegados PRIMERO**, luego el endpoint, `run.invoker` y el check de IAM. Staging solo llama con `dryRun`, y **nada sin `dryRun` hasta que Albert confirme que B1 y B3 están redesplegados** | **David** despliega |
+> | **Revisar que staging lea el tenant real** antes de que entren leads reales | **David** |
+>
+> **Lo que NO se hace todavía: nuestro cliente.** Se construye cuando el endpoint exista, para que la
+> primera prueba sea una llamada real y no contra un contrato supuesto. Será una función programada que
+> consulte con `since` cada pocos minutos, deduplique por `dealId` y active una sola vez. **Hay un primer
+> caso real en perspectiva:** si Patricia Gordillo firma, sería el primer deal ganado.
+>
+> **La condición de reapertura de la herramienta se cumplió y no se usó.** §«La decisión de herramienta»
+> la ponía en «si las dos preguntas tardan más de dos semanas», y tardaron veinte días. **Ya están
+> contestadas las dos**, así que no hay nada que reabrir.
 
 ---
 
@@ -75,8 +97,9 @@ seguir invirtiendo, y la comparación no estuvo reñida:
 > porque el agente no puede hacer esa entrega ni comprobarla — **el frente pasa a esperar su
 > respuesta, no su envío**.
 
-**Cuándo se reabre**, y ya solo quedan tres de las cuatro condiciones: si Albert dice que no a la
-clave estable de «ganado»; si las dos preguntas tardan más de dos semanas; o si el alcance deja de
+**Cuándo se reabre.** Desde el 21 de septiembre queda **una sola** de las cuatro condiciones. La clave
+estable de «ganado» existe (`outcome`), y las dos preguntas se contestaron a los veinte días: tarde,
+pero contestadas. La que sigue en pie es que el alcance deje de
 ser solo el pipeline —facturar a los conjuntos o llevar suscripciones cambia el partido, y es el
 escenario que más probablemente le dé la vuelta—. **La cuarta —que Albert dejara de ser de la
 casa— se cayó al confirmarse que sí lo es.**
@@ -85,16 +108,15 @@ casa— se cayó al confirmarse que sí lo es.**
 
 ## En una frase
 
-**Del lado de Albert ya no queda nada: ni bloqueo, ni entrega, ni confirmación pendiente.**
-El contrato se cerró en nueve documentos, el tenant `vivaru` existe con su usuario de
-servicio, A1 salió antes de la ventana comprometida, y `RESPUESTA-A-005` añade **B1 y B3
-desplegados**. Lo que queda es trabajo nuestro —el empuje de leads con su freno, y el camino
-de supresión— más **dos preguntas**: una que salió de navegar su producto y condiciona el diseño
-(§4.4.1), y otra sobre **cómo nos dan la credencial** (§4.6).
+**Las dos preguntas que frenaban el frente están contestadas (21 sep), y lo que queda es desplegar
+`vivaruWonSignals` y cerrar los flecos de su contrato.** «Ganado» tiene clave estable (`outcome`) y la
+credencial es un token de identidad de nuestra cuenta de servicio. **Falta que exista el endpoint**,
+que lo publique una cuenta Owner (lo decide David) y que se confirmen la audiencia y los ajustes del
+cursor. Después, lo nuestro: el cliente que consulta el endpoint, el empuje de leads con su freno y el
+camino de supresión. La vía de escritura del empuje sigue sin decidir.
 
-**Y esa pregunta es de otra clase que la que había antes.** La de §4.4 hasta el 28 de agosto
-ya estaba contestada dentro de nuestro propio repositorio. La de ahora **no la contesta ningún
-documento, porque no se ve leyendo: se vio usando su consola.**
+**La lección de las dos preguntas sigue valiendo:** la de «ganado» no la contestaba ningún documento.
+Se vio usando su consola, y Albert la resolvió con una clave, no congelando el texto.
 
 **Y los dos equipos dejaron de ir en paralelo, a propósito** (decisión de David, 22 ago):
 Albert avanza con su roadmap y Vivaru con el lote de Habitanto. No hay nada urgente que
@@ -114,7 +136,7 @@ antiguos, y es el detalle que más veces se ha olvidado al leer documentos viejo
 
 ---
 
-## 2. El intercambio — cerrado en nueve documentos, **reabierto una vez y por buen motivo**
+## 2. El intercambio — cerrado en nueve documentos, **reabierto después por buen motivo**
 
 Todos en `docs/prd/albert/`. **`DECISIONES-A-004` lo declaró cerrado explícitamente**, y esa
 declaración fue parte del trabajo: un intercambio que nadie cierra sigue por inercia.
@@ -139,6 +161,7 @@ tenga nada que decir.**
 | `DECISIONES-A-005` | 28 ago | Cierra el `displayName` **por nuestra cuenta**, acusa B1/B3, y hace **la única pregunta viva**: una clave estable para «ganado» |
 | `RESPUESTA-A-006` | 1 sep | Nota operativa: **piden el correo de nuestra cuenta de servicio** para autenticar contra un endpoint nuevo, `vivaruWonSignals` |
 | `DECISIONES-A-006` | 1 sep | Entrega las dos cuentas (producción y staging), **pide el contrato del endpoint**, y deja de pedir contraseña y exclusión del reset |
+| `RESPUESTA-A-007` | 21 sep | **`outcome` como clave estable de «ganado»**, ya desplegado, y **el contrato de `vivaruWonSignals`**, todavía sin desplegar. Llegó entre sesiones, no por el canal; lleva al final lo que se contestó ese día |
 
 Además, fuera del hilo numerado: su **estado de integración** (22 ago) y la **ronda de dudas**
 contestada por el canal. Ambos recogidos aquí.
@@ -272,6 +295,10 @@ nuestro camino no**.)*
 
 ### 4.4.1 · La pregunta que SÍ hay que hacer: una clave estable para «ganado»
 
+> **CERRADA el 21 de septiembre de 2026** (`RESPUESTA-A-007`): cada deal lleva `outcome` =
+> `open`/`won`/`lost`, calculado por `stampDealOutcome` a partir de `config/pipeline.wonStage`. **Se
+> condiciona `outcome === "won"`.** Lo de abajo se conserva porque explica por qué nunca el texto.
+
 **Salió de navegar su consola el 28 de agosto, y no se ve en ningún documento.** En el pipeline
 del tenant hay un panel, **«Configurar etapas del pipeline»**, que es una **caja de texto libre**
 con su botón de guardar. Contiene hoy:
@@ -331,6 +358,11 @@ agosto: 0 deals, 0 contactos, 0 leads, 0 tareas—; cada deal que se cree estamp
 cuanto entre el primer cliente.**
 
 ### 4.6 · Nuestra mitad — y **el aplazamiento que acaba de caducar**
+
+> **Para la señal de vuelta, RESUELTA el 21 de septiembre de 2026:** token de identidad OIDC de nuestra
+> cuenta de servicio contra `vivaruWonSignals`, sin contraseña ni Secret Manager. **Para el empuje de
+> leads sigue abierta**: si Albert da un segundo endpoint con la misma autenticación, lo de abajo sobre
+> la contraseña deja de aplicar; si la escritura va directa a Firestore con `sales`, sigue en pie.
 
 La **contraseña del usuario de servicio en Secret Manager** y el **reseteo de las dos
 credenciales** se aplazaron el 22 de agosto con este argumento: *no hay prisa porque nada lee
@@ -404,8 +436,11 @@ rastro**: ni commit, ni prueba en rojo. **Una dependencia se cae por dejar de ne
 | **B3** — retención programada 12/12 | ✅ **Desplegado** (`RESPUESTA-A-005`) |
 | **Nombre del receptor único del canal** | ⟨⟨pendiente de su owner⟩⟩. **No bloquea**, y se comprobó por las malas el 28 de agosto: se dio por bloqueante porque el agente no podía mandar el correo, y resultó que **el canal no es el correo** — David descarga el documento y se lo pasa a mano a quien le ayuda con Albert. **La entrega no depende de que exista un buzón único** |
 | **`displayName` del usuario de servicio** | ✅ **Confirmado en pantalla el 28 ago**: `integracion-vivaru` |
-| **Clave estable para «ganado»** | 🟡 **Preguntado en `DECISIONES-A-005` §3.** Bloquea **diseño** |
-| **Credencial de la señal de vuelta** | 🟡 **Preguntado en `DECISIONES-A-005` §4**: cuenta de servicio en vez de contraseña. Bloquea **ejecución** |
+| **Clave estable para «ganado»** | ✅ **`outcome`**, con `stampDealOutcome` ACTIVE y el índice READY (medido el 21 sep) |
+| **Credencial de la señal de vuelta** | ✅ **Token OIDC de nuestra cuenta de servicio**, en el contrato de `RESPUESTA-A-007` |
+| **`vivaruWonSignals` desplegado** | 🟡 **Contrato escrito, sin desplegar.** Esperan la audiencia y una cuenta Owner que lo publique (David) |
+| **Flecos del contrato** | 🟡 Las dos cuentas, el cursor `>=`, `400`/`503` y `leadId` sin `externalRef` |
+| **Vía de escritura de deals** | 🟡 ¿Segundo endpoint o Firestore con `sales`? Abierta desde `DECISIONES-A-006` §3 |
 | **Endurecer su `/leads` público** | Deuda suya. No nos toca: escribimos deals, no leads |
 
 **Un hallazgo suyo que conviene conocer.** El dato personal de su timeline **no está en

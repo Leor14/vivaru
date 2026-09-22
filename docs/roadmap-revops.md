@@ -25,6 +25,14 @@ en `docs/roadmap-producto.md`.
 > deal se ganó, suscribiéndose a `tenants/vivaru/deals`—, y **ya no espera a nadie**: el alta A5
 > está ejecutada desde el 22. Todo lo demás de REVOPS espera el nivel 0, que no es ingeniería.
 >
+> **Aviso de vigencia (22 sep 2026): la señal de vuelta YA NO es `onSnapshot`.** Ninguna de las dos
+> vías de este documento sobrevivió. Leer `tenants/vivaru/deals` en vivo no tiene dónde correr, y
+> escribir con el usuario `sales` dependía de una contraseña en un buzón compartido. **Las dos van ahora
+> por endpoints privados de Albert**, autenticados con el token de identidad de nuestra cuenta de
+> servicio: `vivaruWonSignals` (leer los deals ganados, condición `outcome === "won"`), **desplegado el
+> 22 sep**, y `vivaruPushLead` (enviar leads), con el contrato cerrado y sin desplegar. Estado vivo y
+> contrato: `docs/prd/albert/ESTADO-ALBERT.md` y `RESPUESTA-A-007`.
+>
 > **Aviso de vigencia (22 ago 2026).** El cuerpo de este documento se escribió el 20 de
 > agosto y **describe a Albert como estaba entonces**. Sus inventarios de carencias —«no hay
 > webhooks», «no hay integraciones ni claves de API»— siguen siendo ciertos **como

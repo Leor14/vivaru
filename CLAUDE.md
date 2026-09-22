@@ -330,16 +330,16 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
 - **Wiki del producto:** `wiki-producto/wiki/` — empezar por `index.md` y seguir wikilinks. Páginas clave: `arquitectura/autenticacion-roles.md`, `arquitectura/correos-mensajeria.md`, `decisiones/trampas-conocidas.md`, `patrones-tecnicos/firebase-firestore.md`. Convenciones de la wiki en `wiki-producto/CLAUDE.md` (es-CO, frontmatter de 5 campos, mínimo 8 wikilinks).
 - **Diseño/producto:** `PRODUCT.md`, `DESIGN.md` (raíz del repo).
 - **Integración con Albert CRM:** el estado vivo es **`docs/prd/albert/ESTADO-ALBERT.md`** —
-  ir ahí, no a los nueve documentos del intercambio ni al expediente—. **CERRADO el 22 de
-  agosto de 2026:** el contrato se acabó, el **alta A5 está ejecutada** (tenant `vivaru`
-  activo, usuario de servicio con rol `sales`) y **A1 está publicado en producción de
-  Albert**. Ya no hay nada bloqueado por ellos, y **los dos equipos avanzan por separado a
-  propósito** (decisión de David, 22 ago).
-  Esta línea decía hasta hoy que «recibir de Albert no existe»: **es falso desde que Vivaru
-  es tenant suyo** y puede suscribirse en vivo a `tenants/vivaru/deals`.
-  `docs/albert-vivaru-integracion.md` es el **registro histórico de cómo se decidió**, no
-  el estado — está congelado en el 18 de agosto, antes del intercambio.
-- **Roadmap REVOPS (activación comercial):** `docs/roadmap-revops.md` — base de la épica transversal. Adapta el Documento Rector REVOPS v1.0 con la línea base medida (5 leads, cero convertidos), las cuatro capacidades que ya existían, y el CRM identificado: es **Albert CRM**, producto propio. **Vivaru es TENANT suyo**, y eso cambia la integración entera: se empujan leads hoy, y **la señal de vuelta NO hay que construirla** — siendo tenant, Vivaru se suscribe en vivo (`onSnapshot`) a `tenants/vivaru/deals`, porque sus reglas conceden lectura a todos los roles del tenant. Este archivo decía «no tiene webhooks, así que hay que construirla» y **quedó obsoleto el 19 de agosto de 2026**, al hacernos tenant. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md`.
+  ir ahí, no a los documentos del intercambio ni al expediente—. **Al 22 de septiembre de 2026 las
+  dos direcciones van por endpoints PRIVADOS de Albert**, autenticados con el token de identidad
+  de nuestra cuenta de servicio de Cloud Functions (sin contraseña ni buzón):
+  `vivaruWonSignals` para leer los deals ganados (**desplegado**; la condición es
+  `outcome === "won"`, nunca el texto de la etapa) y `vivaruPushLead` para enviar leads (contrato
+  cerrado, sin desplegar; staging solo con `dryRun`). **La suscripción en vivo con `onSnapshot` y
+  la escritura con el usuario `sales` quedaron descartadas**, aunque documentos de agosto las den
+  por la vía buena. `docs/albert-vivaru-integracion.md` es el **registro histórico de cómo se
+  decidió**, no el estado: está congelado en el 18 de agosto.
+- **Roadmap REVOPS (activación comercial):** `docs/roadmap-revops.md` — base de la épica transversal. Adapta el Documento Rector REVOPS v1.0 con la línea base medida (5 leads, cero convertidos), las cuatro capacidades que ya existían, y el CRM identificado: es **Albert CRM**, producto propio. **Vivaru es TENANT suyo**, y eso cambia la integración entera: se empujan leads hoy, y la señal de vuelta llega por el endpoint privado `vivaruWonSignals` de Albert (desplegado el 22 de septiembre de 2026). La suscripción con `onSnapshot` que este párrafo daba por buena desde el 19 de agosto quedó descartada, porque no tiene dónde correr. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md`.
 - **Roadmap financiero:** `docs/roadmap-finance.md` — **el módulo ya arrancó**: F0 y F0b en producción. Adapta el Documento Rector v2 (Word) con la verificación contra código y ambientes: el mapa de rutas de pago, los cuatro defectos nombrados, y la línea base medida (cero datos propios). Su §5 explica por qué el frente fiscal salió del alcance.
 - **Bitácora de lo construido:** base de Notion **Construido — bitácora de Vivaru**, una fila
   por entrega con frente, ambiente, bandera y commit. **El roadmap dice qué se va a hacer y por

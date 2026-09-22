@@ -75,13 +75,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > personal del conjunto Marcos Rivas (jardinería), tres números de emergencia y el comunicado archivado.
 >
 > **Oportunidad comercial (Ecuador), fuera del producto:** Patricia Gordillo, administradora de 7 edificios;
-> arranca con 2 (106 unidades). Oferta: **USD 1,50 por unidad al mes + USD 200 de implementación**, anual,
-> facturado a la administración, **sin prueba**. Se le debe una **carta de presentación la semana del 22
-> sep**: está escrita en el doc «Vivaru para Torre Tejerez — carta y láminas para Patricia Gordillo»
-> (<https://claude.ai/code/artifact/6edcc529-4215-4eaf-9e6e-36aebb5c465b>). El deck lo rehará ChatGPT con
-> cuatro archivos markdown (contexto, reestructura, contenido y prompts), copiados el 21 sep a la carpeta
-> de documentos: `Hogaru/enfoque comercial/Patricia Gordillo - Ecuador/`. **En la copia del deck de Google
-> quedan dos láminas que hizo Claude (17 y 18) que David va a borrar.**
+> arranca con 2 torres (106 unidades: 68 + 38). Oferta: **USD 1,50 por unidad al mes (USD 159) + USD 200 de
+> implementación**, anual, facturado a la administración, **sin prueba**. **La propuesta quedó CERRADA el
+> 21 sep**: un PDF de 13 láminas que hizo David. No volver a ofrecer la carta. Ahora espera la respuesta
+> de su directorio.
+>
+> **Albert, retomado el 21–22 sep (fuera del lote):** las dos preguntas que lo frenaban se contestaron.
+> **`vivaruWonSignals` está DESPLEGADO y es privado** (medido en solo lectura: `run.invoker` solo para
+> nuestras dos cuentas, 403 anónimo), y «ganado» es `outcome === "won"`. **`vivaruPushLead`** (envío de
+> leads) tiene el contrato cerrado y está sin desplegar: primero se redespliegan B1 y B3 y lo despliega
+> David. Nada sin `dryRun` hasta que Albert lo confirme. **De nuestro lado todavía no hay ni una línea**:
+> el cliente de la señal de vuelta espera a que David decida **qué hace Vivaru cuando llega un deal
+> ganado**. Todo en `docs/prd/albert/ESTADO-ALBERT.md` y `RESPUESTA-A-007`.
 >
 > **Cerrado también el 21 sep, fuera del código:** el tablero de Notion reescrito con la fase 7 (y la
 > moneda corregida a 5 de 10 en sus dos menciones); la bitácora ya tenía sus tres filas. Y un PDF con la
@@ -119,9 +124,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >    página de Firebase en inglés.
 >
 > **C · Espera a un tercero o a un dato**
-> 7. **El abogado ecuatoriano** (`FLOW-006`, entrega 3 de `FLOW-007` y de `PLAT-004`), **Albert**, **fase
+> 7. **El abogado ecuatoriano** (`FLOW-006`, entrega 3 de `FLOW-007` y de `PLAT-004`), **Albert** (que despliegue `vivaruPushLead`), **fase
 >    2 de `FEAT-009`**, **`PH-003` `CA4`**, **Habitanto** y, del lote, **`L-31`** y **`L-32b`**.
-> 8. **Patricia Gordillo**: la respuesta de su directorio a la carta.
+> 8. **Patricia Gordillo**: la respuesta de su directorio a la propuesta.
 >
 > ## NO REABRIR
 >
