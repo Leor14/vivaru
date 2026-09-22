@@ -199,9 +199,11 @@ describe("las acciones del deal ganado", () => {
 });
 
 describe("ambienteHabilitado", () => {
-  it("solo staging consulta a Albert; producción no, hasta que lo decida David", () => {
-    expect(ambienteHabilitado("vivaru-staging-02")).toBe(true);
-    expect(ambienteHabilitado("hogaru-1")).toBe(false);
+  it("la consulta vive en PRODUCCIÓN; staging ya no lee el CRM real (David, 22 sep)", () => {
+    expect(ambienteHabilitado("hogaru-1")).toBe(true);
+    // Albert retira el acceso de staging al tenant real: si esto siguiera en true,
+    // la consulta de staging daría 403 cada 10 minutos.
+    expect(ambienteHabilitado("vivaru-staging-02")).toBe(false);
     expect(ambienteHabilitado("")).toBe(false);
   });
 });

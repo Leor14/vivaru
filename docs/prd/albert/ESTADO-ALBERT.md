@@ -129,9 +129,24 @@
 > referencia del circuito. **No borrarlo** creyendo que es basura, y contarlo aparte al medir el embudo:
 > `tenants/vivaru` tiene 1 deal y 1 contacto que NO son comerciales.
 >
-> **Lo que queda vivo:** la LECTURA (`registrarSenalesDeAlbert`) sigue **solo en staging**
-> —`AMBIENTES_HABILITADOS`—, a propósito: se enciende en producción cuando interese que el aviso de
-> «negocio ganado» llegue de verdad. Y los leads anteriores al trigger no se envían nunca.
+> **LA LECTURA SE MUDA A PRODUCCIÓN el 22 sep, por la tarde** (decisión de David, coordinada con Albert).
+> `AMBIENTES_HABILITADOS` pasa a `["hogaru-1"]`: staging deja de consultar. El motivo no es de diseño
+> sino de higiene: Albert va a **retirar a la cuenta de staging el acceso de lectura** —el tenant ya
+> tiene datos de una persona— y, si la consulta siguiera encendida allí, dejaría **un 403 cada diez
+> minutos para siempre**, que es como se aprende a ignorar los rojos.
+>
+> **El orden acordado, y no se salta:** (1) desplegamos la consulta en `hogaru-1` y la apagamos en
+> staging; (2) confirmamos a Albert una ejecución con 200 y ellos la cruzan con sus logs; (3) **solo
+> entonces** retiran el `run.invoker` de la cuenta de staging. Así no aparece ningún 403.
+>
+> **Un aviso para el futuro:** la primera llamada va **sin cursor**, así que trae TODO lo ganado hasta
+> la fecha y cada señal nueva dispara su aviso. Hoy son **0 deals ganados** —el único deal real está en
+> «Nuevo»—, así que no hay riesgo. Si algún día se apunta a un tenant con historia, hay que fijar el
+> cursor antes de encender, o el equipo recibirá un correo por cada victoria antigua.
+>
+> **Y lo que queda vivo:** los leads anteriores al trigger no se envían nunca, y **Vivaru sigue sin
+> camino de supresión**: nadie llama a `eraseByExternalRef`. Con datos reales ya en el tenant, es
+> trabajo nuestro pendiente.
 >
 > **La condición de reapertura de la herramienta se cumplió y no se usó.** §«La decisión de herramienta»
 > la ponía en «si las dos preguntas tardan más de dos semanas», y tardaron veinte días. **Ya están

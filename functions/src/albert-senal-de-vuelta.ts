@@ -33,8 +33,14 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
 export const WON_SIGNALS_URL = "https://vivaruwonsignals-winvdvwn6q-uc.a.run.app";
 
-/** Dónde corre de verdad. Añadir `hogaru-1` es decisión de David, no de una sesión. */
-export const AMBIENTES_HABILITADOS: readonly string[] = ["vivaru-staging-02"];
+/**
+ * Dónde corre de verdad. **Desde el 22 de septiembre de 2026 (tarde) es PRODUCCIÓN y solo producción**
+ * (decisión de David). Staging leía el tenant `vivaru` REAL de Albert, que se aceptó mientras estuviera
+ * vacío; ya tiene datos de una persona, así que Albert retira ese acceso y la consulta se muda a su
+ * sitio: allí es donde un deal ganado tiene a quién avisar. **Si esto volviera a incluir staging, su
+ * consulta recibiría 403 en cuanto Albert aplique la retirada, y sería un rojo cada 10 minutos.**
+ */
+export const AMBIENTES_HABILITADOS: readonly string[] = ["hogaru-1"];
 
 /** Tope por página que acepta el endpoint (1–500). */
 export const LIMITE_POR_PAGINA = 100;
