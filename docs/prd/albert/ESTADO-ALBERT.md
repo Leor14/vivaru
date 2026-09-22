@@ -115,6 +115,20 @@
 > marca igual; y **un fallo del aviso no impide registrar la señal ni avanzar el cursor** (`avisosFallidos`
 > en el resumen). 10 pruebas más, falsadas con cuatro roturas.
 >
+> **EL CIRCUITO ENTERO FUNCIONA EN PRODUCCIÓN, medido el 22 sep a las 20:33 UTC.**
+> `enviarLeadAAlbert` está ACTIVE en `hogaru-1` con la cuenta `1047056648517-compute@…` y el código de
+> `470d182` (comparado byte a byte con el zip desplegado). Un envío real del formulario de
+> www.grupovivaru.com dejó, cinco segundos después: en Vivaru el lead
+> `a9057e5e-…` con `albertEnvio.estado: "enviado"` y
+> `crmRef: albert:deal:vivaru:vl_1c6e868ab3015ad7d25c7d5e38381aca`; y en el CRM **un deal y un contacto,
+> uno de cada**, con `stage: "Nuevo"`, `amount: 0`, `outcome: "open"`, `externalRef {system, leadId,
+> origin}`, el `consent` guardado y `createdBy` = el usuario de integración. El `contactId` coincidió con
+> el que el ensayo de staging había predicho, porque se deriva del email.
+>
+> **Ese deal se QUEDA a propósito** (decisión de David, 22 sep): es de prueba, pero sirve como caso de
+> referencia del circuito. **No borrarlo** creyendo que es basura, y contarlo aparte al medir el embudo:
+> `tenants/vivaru` tiene 1 deal y 1 contacto que NO son comerciales.
+>
 > **Lo que queda vivo:** la LECTURA (`registrarSenalesDeAlbert`) sigue **solo en staging**
 > —`AMBIENTES_HABILITADOS`—, a propósito: se enciende en producción cuando interese que el aviso de
 > «negocio ganado» llegue de verdad. Y los leads anteriores al trigger no se envían nunca.
