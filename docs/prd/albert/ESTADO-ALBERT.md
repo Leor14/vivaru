@@ -70,8 +70,11 @@
 > **FUNCIONANDO en staging desde el 22 sep a las 04:45 UTC**: 200 con 0 señales, y 77 ejecuciones cada 10
 > minutos hasta las 17:25 UTC sin un solo error (medido en sus logs). **Albert confirmó por la traza de su
 > revisión `vivaruwonsignals-00002` que nuestro token llega FIRMADO**: se valida dos veces, por IAM en
-> Cloud Run y por `verifyIdToken` en su código. El camino «sin firma» (y con él la guarda que lee la
-> política de IAM) **no se usa**; ellos decidirán si lo retiran. **Si un día la consulta recibe 403, lo
+> Cloud Run y por `verifyIdToken` en su código. **El camino «sin firma» se RETIRÓ el 22 sep a las 17:35
+> UTC** (su `eb144bc`, revisiones `-00003`): un token sin firma da 401 siempre, y con él desapareció la
+> guarda que leía la política de IAM, que era la única pieza cuya seguridad dependía de que el servicio
+> siguiera privado. Privado sigue, así que la doble validación se mantiene. **Comprobado desde aquí**:
+> nuestras consultas de las 17:35, 17:45 y 17:55 UTC siguieron en 200. **Si un día la consulta recibe 403, lo
 > primero es mirar si redesplegaron con una cuenta Owner**, porque Firebase vacía entonces la lista de
 > `run.invoker`. La opción A (una llamada suelta suplantando la cuenta de staging) se descartó: el permiso se concedió y
 > se retiró antes de propagarse, y no hubo ninguna llamada.
@@ -87,6 +90,19 @@
 > lado. **Hoy los leads de `trial` nacen sin consentimiento** (`trial-workspace.ts`) y se omitirán. Un
 > error de Albert no se reintenta solo: queda en el lead y se reenvía a mano, lo que es seguro porque el
 > envío es idempotente por `leadId`. Tiene 19 pruebas, falsadas con tres roturas.
+>
+> **PROBADO CONTRA ALBERT DE VERDAD el 22 sep a las 18:43:44 UTC**, con un lead real del formulario de
+> demo de staging: `200` con `dryRun: true`, `created: true`, `dealId vl_8eda576d…`, `contactId
+> vc_073e8532…`. Quedó en el lead (`albertEnvio`) y **no se tocó `crmRef`**, porque en simulado no hay
+> deal al que apuntar. **Cero escrituras en el CRM**, medido por los dos lados: `deals`, `contacts`,
+> `timeline`, `vivaruLeadAliases` y `vivaruContactsByEmail`, todos en 0. Albert confirmó en sus logs
+> que el token entró **firmado** y aceptado. **El `dealId` es determinista a partir del `leadId`**, así
+> que lo guardado hoy en simulado servirá para cruzar el día que ese lead se envíe de verdad.
+>
+> **Dos cosas que quedan vivas:** los leads que YA existían no se envían nunca (el trigger es de
+> creación), así que mandarlos pediría un script aparte; y **encender producción** —`MODO_POR_AMBIENTE`
+> con `hogaru-1: "real"`, más desplegar functions— es decisión de David, y desde ese momento cada lead
+> real nace como deal en el CRM.
 >
 > **La condición de reapertura de la herramienta se cumplió y no se usó.** §«La decisión de herramienta»
 > la ponía en «si las dos preguntas tardan más de dos semanas», y tardaron veinte días. **Ya están
