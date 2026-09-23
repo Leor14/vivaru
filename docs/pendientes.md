@@ -6,68 +6,91 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — corte del 22 de septiembre de 2026 (noche en Ciudad de México)
 
-> # ALBERT ESTÁ CERRADO: VIVARU Y EL CRM YA SE HABLAN EN LAS DOS DIRECCIONES, Y EL ENVÍO DE LEADS CORRE EN PRODUCCIÓN.
+> # ALBERT ESTÁ CERRADO Y EN PRODUCCIÓN. Y EL CAMINO DE SUPRESIÓN (`PLAT-007`) ESTÁ CONSTRUIDO, VISTO EN STAGING Y A FALTA DE UN PASO.
 >
 > **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú está en «LO QUE
-> SIGUE», justo debajo. **La fase 7 del lote sigue en producción y vista** (`L-08b`, `L-10`, `L-32`,
-> `L-14`; `L-23` sin código) y el tablero de las 36 no se movió: **20 ✅ · 8 🟡 · 6 ◇ · 2 ⏸**.
+> SIGUE». El tablero de las 36 del lote no se movió: **20 ✅ · 8 🟡 · 6 ◇ · 2 ⏸**.
 >
-> ## Lo de ayer y hoy: el frente de Albert, de cero líneas a funcionando
+> ## 1. Lo que hay que hacer nada más abrir, y son diez minutos
 >
-> Hasta el 21 de septiembre **no había ni una línea de código de Vivaru contra Albert** y el frente
-> llevaba veinte días esperando respuesta. Hoy las dos direcciones están construidas, probadas contra
-> Albert de verdad y cruzadas con sus logs. **Todo el intercambio llegó por otra sesión de Claude** —la
-> que analiza el repositorio de Albert—, no por el canal, y las decisiones de David venían
-> retransmitidas por ella: **conviene que él las confirme en el chat**.
+> **Falta UN paso para cerrar `PLAT-007`, y es de David:**
+>
+> 1. **Merge de `develop` a `master` y push** → despliega el front de producción (hoy sirve
+>    `build-2026-09-21-001` desde `0e2ee02`, de antes de todo esto).
+> 2. **Pulsar «Probar conexión con el CRM»** en `/superadmin/leads` de producción. Debe responder
+>    **«no existe ese interesado»**: eso estrena el camino de borrado **sin tocar el dato de nadie**.
+> 3. **Pasarle la hora a la sesión de Albert** para que lo cruce con sus logs.
+>
+> Las tres functions de producción **ya están desplegadas y verificadas** contra su commit
+> (`enviarLeadAAlbert`, `registrarSenalesDeAlbert`, `suprimirInteresado`): lo único que falta es el front.
+>
+> ## 2. Albert ↔ Vivaru, CERRADO (22 sep)
 >
 > | Carril | Producción | Staging |
 > |---|---|---|
-> | **Envío de leads** (`enviarLeadAAlbert`, trigger de `leads/{leadId}`) | **ENVÍA DE VERDAD** desde las 20:31 UTC; probado con un envío real del formulario | Solo `dryRun` |
-> | **Señal de vuelta** (`registrarSenalesDeAlbert`, cada 10 min) | **ENCENDIDA** a las 20:47 UTC; primera ejecución 20:57, 200 con 0 señales | **Apagada** («ambiente no habilitado») |
+> | **Envío de leads** (`enviarLeadAAlbert`) | **ENVÍA DE VERDAD**; probado con un envío real del formulario | Solo `dryRun` |
+> | **Señal de vuelta** (`registrarSenalesDeAlbert`, cada 10 min) | **ENCENDIDA**; 200 con 0 señales | Apagada |
+> | **Supresión** (`suprimirInteresado` + `vivaruEraseLead`) | Desplegada, **sin estrenar** | Vista previa sí, borrar no |
 >
-> - **Los dos endpoints de Albert son privados** y solo los llaman nuestras dos cuentas de servicio, con
->   token de identidad: sin contraseñas y sin buzón compartido. Medido por los dos lados.
-> - **«Ganado» es `outcome === "won"`**, una clave que Albert estampa, nunca el texto de la etapa.
-> - **Qué pasa con un deal ganado (decisión de David): avisar y marcar.** Marca el lead `convertido` y
->   manda correo a `comercial@qintilab.com` (a `dev@` fuera de producción, con `[STAGING]`). **El alta
->   del conjunto NO se automatiza**: sigue `createTenantFromLead`, con un humano delante.
-> - **El primer lead real de producción creó su contacto y su deal** en el CRM (`vl_1c6e868a…`,
->   `vc_073e8532…`). **Ese deal se QUEDA a propósito como caso de referencia**: no borrarlo, y contarlo
->   aparte al medir el embudo.
-> - **Del lado de Albert no queda nada**, y se verificó en solo lectura a las 21:00 UTC:
->   `vivaruWonSignals` ya solo admite nuestra cuenta de **producción** —la de staging perdió la lectura,
->   sin dejar un solo 403 porque su consulta ya estaba apagada— y `vivaruPushLead` conserva las **dos**,
->   porque staging sigue enviando en `dryRun`. **Su retención está encendida** (12 meses sin actividad
->   para el deal, 12 para el registro del borrado); hoy no borra nada.
-> - **Lo que quedó fuera a propósito:** los 7 leads anteriores al trigger **no se envían nunca**; y
->   **Vivaru sigue sin camino de supresión** —nadie llama a `eraseByExternalRef`—, que ahora importa más
->   porque ya hay datos de una persona en el CRM.
+> - **Los tres endpoints de Albert son privados.** `vivaruwonsignals` y `vivarueraselead` solo admiten
+>   nuestra cuenta de **producción**; `vivarupushlead` admite las dos, porque staging ensaya en `dryRun`.
+>   Medido en solo lectura por los dos lados.
+> - **«Ganado» es `outcome === "won"`**, clave que estampa Albert, nunca el texto de la etapa.
+> - **Un deal ganado avisa a `comercial@qintilab.com` y marca el lead `convertido`.** El alta del
+>   conjunto **NO se automatiza**: sigue `createTenantFromLead`, con un humano delante.
+> - **El primer lead real de producción creó su contacto y su deal** (`vl_1c6e868a…`). **Ese deal se
+>   QUEDA a propósito como caso de referencia**: no borrarlo, y contarlo aparte al medir el embudo.
+> - **Albert encendió su retención** (12 meses sin actividad / 12 el registro del borrado).
 >
-> **Detalle y contratos: `docs/prd/albert/ESTADO-ALBERT.md` y `RESPUESTA-A-007`. No releer los catorce
-> documentos del intercambio.**
+> ## 3. `PLAT-007` — la supresión de un interesado
 >
-> **Lo que dejó construirlo, y hay que llevarse:**
-> - **La cuenta de servicio depende del RUNTIME.** Las rutas web corren en App Hosting con una cuenta
->   que Albert no autoriza, así que el envío tuvo que ser un trigger de Firestore y no una llamada desde
->   `/api/demo`. **Antes de diseñar algo autenticado por identidad, preguntar con qué cuenta corre cada
->   pieza.**
-> - **Un rojo permanente enseña a ignorar los rojos.** Si Albert retiraba el acceso de staging con la
->   consulta encendida allí, habría dejado un 403 **cada diez minutos para siempre**. Por eso la lectura
->   se mudó a producción el mismo día, en un orden acordado con ellos.
-> - **Revisar un contrato ajeno encontró un defecto real:** su idempotencia por `leadId` no cubría dos
->   leads simultáneos de la misma persona, porque **una consulta no bloquea un documento que aún no
->   existe**. Lo cerraron con un índice por email, y lo falsaron rompiéndolo.
-> - **Un cambio de IAM tarda minutos en propagarse:** conceder y retirar seguido deja el permiso sin
->   efecto nunca, y parece un fallo.
-> - **El ensayo predijo el resultado:** el `contactId` del `dryRun` fue el mismo que el del envío real.
+> Ficha: `docs/prd/funcionales/PRD-V-PLAT-007-supresion-de-un-interesado.md`. **Se diseñó midiendo, no
+> suponiendo:** el barrido buscó los VALORES de cada lead —correo, nombre, teléfono, id— en las **67
+> colecciones raíz** de producción, y encontró dos casos con el mismo aspecto:
 >
-> **Lo que sirve cada ambiente (medido el 22 sep):**
-> - **`master` = `0e2ee02`** (sin tocar hoy); **`develop` = `45e9d72`**.
-> - **Front:** producción `build-2026-09-21-001` desde `0e2ee02`; staging `build-2026-09-22-007` desde
->   `45e9d72`. **Hoy no salió front**: todo el trabajo fue de functions.
-> - **Functions nuevas:** `enviarLeadAAlbert` y `registrarSenalesDeAlbert`, en los **dos** ambientes,
->   verificadas comparando el zip desplegado con `functions/lib` byte a byte.
-> - **Reglas de Firestore:** no se tocaron; el verificador seguía dando idéntico al repo en staging.
+> - **Solo interesado:** su rastro está en **UN documento**, su ficha de `leads` (con el diagnóstico y la
+>   atribución dentro).
+> - **Interesado que ADEMÁS usa el producto:** aparece en `people`, `users`, `tenantUsers`,
+>   `accountInvites`, `auditLogs`, `documentFolders`, `documents`, `visitorPasses`…
+>
+> **Y esos rastros no son del interesado: son del usuario** —los pases que autorizó y la auditoría del
+> conjunto son de la comunidad—, así que **la acción NIEGA suprimir a quien aparece como usuario**. De los
+> cinco correos con ficha en producción, **solo uno se puede suprimir**; los otros cuatro son del equipo.
+>
+> **Lo que está construido:** el botón «Suprimir datos» en `/superadmin/leads`, con **vista previa antes
+> de borrar**; Albert primero y Vivaru después (si él falla, aquí no se borra nada); **un deal ganado no
+> se borra** y queda constancia del intento; la constancia **sin datos personales**; solo superadmin; y
+> **solo producción ejecuta**.
+>
+> **Visto en pantalla en staging (22 sep, noche), con la sesión de Paula Sierra:** la vista previa, la
+> puerta del usuario nombrando `users (1), tenantUsers (1), accountInvites (1)`, la negativa al confirmar
+> y el botón de probar conexión.
+>
+> **Lo que NO entra, por decisión de David:** la ventana automática de retención para `leads`, y mandar a
+> Albert los 7 leads anteriores al trigger.
+>
+> ## 4. Lo que dejó construirlo, y hay que llevarse
+>
+> - **La cuenta de servicio depende del RUNTIME.** Las rutas web corren en App Hosting con una cuenta que
+>   Albert no autoriza: por eso el envío es un trigger de Firestore y no una llamada desde `/api/demo`.
+> - **Un rojo permanente enseña a ignorar los rojos.** Retirar el acceso de staging con la consulta
+>   encendida allí habría dejado un 403 cada diez minutos; por eso la lectura se mudó a producción.
+> - **El SERVIDOR va antes que el FRONT, y aquí se invierte solo:** el front se despliega al empujar y la
+>   function hay que desplegarla a mano. Pasó esta noche —el botón nuevo contra la function vieja
+>   respondía «Falta el correo de la persona»—, y lo cazó **mirar la pantalla**, no una prueba.
+> - **Revisar el contrato ajeno encontró un defecto real:** su idempotencia no cubría dos leads
+>   simultáneos de la misma persona, porque **una consulta no bloquea un documento que aún no existe**.
+> - **Un cambio de IAM tarda minutos en propagarse:** conceder y retirar seguido lo deja sin efecto.
+> - **Me inventé un correo en una medición** y el resultado —«sin rastro»— parecía un hallazgo. Se repitió
+>   leyendo los correos de las fichas. **Un valor que no se leyó de la fuente no es un dato.**
+>
+> ## 5. Lo que sirve cada ambiente (medido el 23 sep, 02:09 UTC)
+>
+> - **`master` = `0e2ee02`** (sin tocar desde el 21) · **`develop` = `3dc9170`**.
+> - **Front:** producción `build-2026-09-21-001`; staging `build-2026-09-23-004`, desde `3dc9170`.
+> - **Functions nuevas de hoy:** `enviarLeadAAlbert`, `registrarSenalesDeAlbert` y `suprimirInteresado`,
+>   en los dos ambientes, verificadas comparando el zip desplegado con `functions/lib`.
+> - **Reglas de Firestore:** no se tocaron.
 >
 > ```bash
 > git ls-remote origin refs/heads/master refs/heads/develop
@@ -75,40 +98,39 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > node functions/scripts/verificar-reglas-desplegadas.mjs hogaru-1
 > ```
 >
-> **Bancos (contados el 22 sep):** `npm test` **2268** · functions **1124** (+40 de Albert) · typecheck
-> **0**. Reglas y emulador **no se recontaron** (no se tocaron ni `firestore.rules` ni su superficie).
+> **Bancos (contados el 22 sep, noche):** `npm test` **2268** · functions **1148** · typecheck **0**.
+> Reglas y emulador **no se recontaron**: no se tocó su superficie.
 >
-> **Las tres credenciales caducaron otra vez hoy** —`gcloud`, la ADC y el CLI de `firebase`— y las
-> renovó David. Se descubren al usarlas, no antes.
+> **Las tres credenciales caducaron hoy** —`gcloud`, la ADC y el CLI de `firebase`— y las renovó David.
 >
-> **Fuera del producto:** la propuesta de **Patricia Gordillo** quedó cerrada el 21 sep (PDF de 13
-> láminas, lo hizo David). **No volver a ofrecer la carta**; espera la respuesta de su directorio.
+> **Fuera del producto:** la propuesta de **Patricia Gordillo** quedó cerrada el 21 sep. **No volver a
+> ofrecer la carta**; espera la respuesta de su directorio.
 >
 > ## LO QUE SIGUE — el menú
 >
 > **A · Construible ya**
-> 1. **El camino de supresión de datos** (`eraseByExternalRef`): borrar a una persona en Vivaru tiene
->    que borrarla también en el CRM, con TODOS sus `leadId`. Antes no urgía porque el CRM estaba vacío.
-> 2. **Los nueve defectos del lote que quedaron fuera** (§4 de la valoración), dos ya arreglados.
-> 3. **Que `tests/clave-de-unidad-guarda.test.ts` cite el símbolo `updateUnit`**, no la línea 761.
-> 4. **«Fresnos 11 / Fresnos 11»** en la tarjeta de portería cuando la torre se llama como la unidad.
-> 5. **Traer al repositorio el verificador de reglas de Storage** (sigue en un scratchpad viejo).
-> 6. **El protocolo de paquetería** (la cuarta cosa de `L-20`).
-> 7. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree; mirar `c92ef13` antes.
+> 1. **Cerrar `PLAT-007`**: los tres pasos del §1.
+> 2. **Que un error del servidor que el front no entiende lo diga**: el botón nuevo contra la function
+>    vieja respondió «Falta el correo de la persona». Cabo pequeño, de esta noche.
+> 3. **Los nueve defectos del lote que quedaron fuera** (§4 de la valoración), dos ya arreglados.
+> 4. **Que `tests/clave-de-unidad-guarda.test.ts` cite el símbolo `updateUnit`**, no la línea 761.
+> 5. **«Fresnos 11 / Fresnos 11»** en la tarjeta de portería cuando la torre se llama como la unidad.
+> 6. **Traer al repositorio el verificador de reglas de Storage**.
+> 7. **El protocolo de paquetería** (la cuarta cosa de `L-20`).
+> 8. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree; mirar `c92ef13` antes.
 >
 > **B · Espera una decisión de David**
-> 1. **Las 8 decisiones que quedan del lote**: `L-17` (el nombre de Encuestas: la más barata), `L-18`,
->    `L-03`, `L-15`, `L-09`, `L-19`, `L-16` y `L-06`. Y las seis «no ahora».
-> 2. **Si se mandan a Albert los 7 leads anteriores al trigger** (cinco son pruebas suyas). Hoy: no.
-> 3. **La moneda de Privada Las Palmas** y **el `country`** de Bromelias, Privada Las Playas y Tenant
->    E2E — 5 de 10 conjuntos sin moneda, medido el 18 sep.
+> 1. **Las 8 decisiones que quedan del lote**: `L-17` (la más barata), `L-18`, `L-03`, `L-15`, `L-09`,
+>    `L-19`, `L-16` y `L-06`. Y las seis «no ahora».
+> 2. **La ventana de retención de `leads`** (hoy: sin ventana, a propósito) y **si se mandan a Albert los
+>    7 leads anteriores al trigger** (cinco son pruebas suyas). Hoy: no.
+> 3. **La moneda de Privada Las Palmas** y el **`country`** de Bromelias, Privada Las Playas y Tenant E2E.
 > 4. **La descripción duplicada del paquete de prueba** de Santa María (T2-503).
 > 5. **El canal de correo**: apagado en todas las plantillas.
 > 6. **Las rarezas del producto** (§H), **App Check** (`D-CONSOLA`), **las fechas de las reglas de
 >    visitas**, **el «vencido» en UTC**, **la puerta de buzones de Las Playas**, `CA1` de `PLAT-002` y
->    `CA3`/`CA5` de `PLAT-004`, **el TXT del dominio sin `www`**, la reserva de prueba de staging,
->    `UX-005`, el asiento `ledgerEntries/tWgE2rhBeztUbCTWKokt`, las dos categorías de egreso y **el tope
->    de gasto de la IA**.
+>    `CA3`/`CA5` de `PLAT-004`, **el TXT del dominio sin `www`**, `UX-005`, el asiento
+>    `ledgerEntries/tWgE2rhBeztUbCTWKokt`, las dos categorías de egreso y **el tope de gasto de la IA**.
 > 7. **La URL de acción de las contraseñas** en la consola.
 >
 > **C · Espera a un tercero o a un dato**
