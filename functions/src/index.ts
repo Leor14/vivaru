@@ -14,6 +14,7 @@ import {
   inventarioDeSupresion,
   normalizarEmail,
   pedirABorrarEnAlbertReal,
+  pruebaDeConexion,
   puedeEjecutar,
   resumenParaConfirmar,
   veredicto,
@@ -4885,10 +4886,22 @@ export const registrarSenalesDeAlbert = onSchedule(
 // Dos pasos a propósito: sin `confirmar` devuelve la VISTA PREVIA —qué se
 // borraría y qué lo impide— y solo con `confirmar: true` borra. El orden es
 // Albert primero y Vivaru después; y si su deal está ganado, no se borra nada.
-export const suprimirInteresado = onCall<{ email?: string; confirmar?: boolean; incluirGanados?: boolean }>(
+export const suprimirInteresado = onCall<{ email?: string; confirmar?: boolean; incluirGanados?: boolean; probarConexion?: boolean }>(
   { cors: callableCorsOrigins },
   async (request) => {
     assertSuperadmin(request.auth);
+
+    // Prueba de conexión: manda un identificador que no puede existir y enseña la respuesta. No
+    // borra nada, y es la única forma de estrenar el camino sin hacerlo sobre una persona real.
+    if (request.data?.probarConexion) {
+      if (!puedeEjecutar()) {
+        throw new HttpsError("failed-precondition", "El CRM solo admite el borrado desde producción, así que aquí no se puede probar.");
+      }
+      const prueba = await pruebaDeConexion((ids) => pedirABorrarEnAlbertReal(ids, false, tokenDeIdentidad));
+      console.log("[supresion/prueba]", JSON.stringify(prueba));
+      return { prueba };
+    }
+
     const email = normalizarEmail(request.data?.email);
     if (!email) throw new HttpsError("invalid-argument", "Falta el correo de la persona.");
 

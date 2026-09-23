@@ -3835,6 +3835,16 @@ exports.registrarSenalesDeAlbert = (0, scheduler_1.onSchedule)({ schedule: "ever
 // Albert primero y Vivaru después; y si su deal está ganado, no se borra nada.
 exports.suprimirInteresado = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     assertSuperadmin(request.auth);
+    // Prueba de conexión: manda un identificador que no puede existir y enseña la respuesta. No
+    // borra nada, y es la única forma de estrenar el camino sin hacerlo sobre una persona real.
+    if (request.data?.probarConexion) {
+        if (!(0, supresion_de_interesado_1.puedeEjecutar)()) {
+            throw new https_1.HttpsError("failed-precondition", "El CRM solo admite el borrado desde producción, así que aquí no se puede probar.");
+        }
+        const prueba = await (0, supresion_de_interesado_1.pruebaDeConexion)((ids) => (0, supresion_de_interesado_1.pedirABorrarEnAlbertReal)(ids, false, albert_senal_de_vuelta_1.tokenDeIdentidad));
+        console.log("[supresion/prueba]", JSON.stringify(prueba));
+        return { prueba };
+    }
     const email = (0, supresion_de_interesado_1.normalizarEmail)(request.data?.email);
     if (!email)
         throw new https_1.HttpsError("invalid-argument", "Falta el correo de la persona.");

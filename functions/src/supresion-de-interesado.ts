@@ -226,3 +226,35 @@ export async function pedirABorrarEnAlbertReal(
   if (cuerpo?.ok !== true || !Array.isArray(cuerpo.results)) throw new Error("erase_lead_respuesta_invalida");
   return cuerpo.results;
 }
+
+/**
+ * El identificador de la prueba de conexión. **No puede existir**: nuestros `leadId` son UUID, y
+ * este no lo es. Albert responde `not_found`, que es exactamente lo que se quiere comprobar — que
+ * el circuito de borrado responde— sin tocar el dato de nadie.
+ */
+export const LEAD_DE_PRUEBA = "vivaru-prueba-de-conexion";
+
+export type PruebaDeConexion = { ok: boolean; reason: string; detalle: string };
+
+/**
+ * Comprueba de punta a punta el camino de supresión sin borrar nada. Existe porque el endpoint de
+ * borrado **solo admite a la cuenta de producción**, así que la primera llamada real no se puede
+ * ensayar en staging; sin esto, el estreno del borrado sería la supresión de una persona de verdad.
+ * Queda además como comprobación permanente: el día que algo se rompa, esto lo dice sin esperar a
+ * que alguien pida que lo borren.
+ */
+export async function pruebaDeConexion(
+  pedir: (leadIds: string[]) => Promise<ResultadoAlbert[]>,
+): Promise<PruebaDeConexion> {
+  try {
+    const [resultado] = await pedir([LEAD_DE_PRUEBA]);
+    if (resultado?.reason === "not_found" && resultado.erased === false) {
+      return { ok: true, reason: "not_found", detalle: "El CRM respondió: no existe ese interesado. El camino de borrado funciona y no se tocó ningún dato." };
+    }
+    // Cualquier otra cosa es una sorpresa y se enseña tal cual: un `deleted` aquí significaría que
+    // el identificador de prueba SÍ existía, que es justo lo que no puede pasar.
+    return { ok: false, reason: resultado?.reason ?? "sin_respuesta", detalle: `Respuesta inesperada del CRM: ${JSON.stringify(resultado ?? null)}` };
+  } catch (error) {
+    return { ok: false, reason: "error", detalle: error instanceof Error ? error.message.slice(0, 300) : String(error) };
+  }
+}

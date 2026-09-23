@@ -3,6 +3,8 @@ import type { Firestore } from "firebase-admin/firestore";
 import {
   ejecutarSupresion,
   inventarioDeSupresion,
+  LEAD_DE_PRUEBA,
+  pruebaDeConexion,
   normalizarEmail,
   puedeEjecutar,
   resumenParaConfirmar,
@@ -276,5 +278,33 @@ describe("la regla del deal ganado", () => {
     const r = await ejecutarSupresion(inventario, "uid", dep);
     expect(r.bloqueadaPorGanado).toEqual([]);
     expect(hecho.leads).toEqual(["lead-1"]);
+  });
+});
+
+describe("pruebaDeConexion", () => {
+  it("usa un identificador que NO puede existir: los leadId reales son UUID", () => {
+    expect(LEAD_DE_PRUEBA).not.toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  });
+
+  it("un not_found es el éxito: el circuito responde y no se tocó nada", async () => {
+    const pedidos: string[][] = [];
+    const r = await pruebaDeConexion(async (ids) => {
+      pedidos.push(ids);
+      return [{ leadId: ids[0], erased: false, reason: "not_found", dealIds: [] }];
+    });
+    expect(pedidos).toEqual([[LEAD_DE_PRUEBA]]);
+    expect(r).toMatchObject({ ok: true, reason: "not_found" });
+  });
+
+  it("un borrado de verdad en la prueba es un FALLO, no un éxito", async () => {
+    const r = await pruebaDeConexion(async (ids) => [{ leadId: ids[0], erased: true, reason: "deleted", dealIds: ["vl_1"] }]);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("deleted");
+  });
+
+  it("un fallo de red se devuelve legible en vez de romper la pantalla", async () => {
+    const r = await pruebaDeConexion(async () => { throw new Error("erase_lead_403:forbidden"); });
+    expect(r).toMatchObject({ ok: false, reason: "error" });
+    expect(r.detalle).toContain("403");
   });
 });

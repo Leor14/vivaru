@@ -94,6 +94,20 @@ export default function SuperadminLeadsPage() {
   const [supTarget, setSupTarget] = useState<Lead | null>(null);
   const [supPrevia, setSupPrevia] = useState<Awaited<ReturnType<typeof suprimirInteresadoCallable>> | null>(null);
   const [supTrabajando, setSupTrabajando] = useState(false);
+  const [probandoCrm, setProbandoCrm] = useState(false);
+
+  async function probarConexionCrm() {
+    setProbandoCrm(true);
+    try {
+      const r = await suprimirInteresadoCallable({ probarConexion: true });
+      if (r.prueba?.ok) toast.success(r.prueba.detalle);
+      else toast.error(r.prueba?.detalle ?? "El CRM no respondió lo esperado.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setProbandoCrm(false);
+    }
+  }
 
   async function abrirSupresion(lead: Lead) {
     setSupTarget(lead);
@@ -190,6 +204,15 @@ export default function SuperadminLeadsPage() {
       <CardDescription className="mt-1">
         {loading ? "Cargando…" : `${leads.length} lead(s) · ${conTrial} levantaron un ambiente de prueba`}
       </CardDescription>
+
+      {/* `PLAT-007` · comprueba el camino de borrado contra el CRM sin tocar datos de nadie.
+          Existe porque el CRM solo admite borrar desde producción: sin esto, estrenar el borrado
+          sería hacerlo sobre una persona real. */}
+      <div className="mt-2">
+        <Button size="sm" variant="ghost" onClick={() => void probarConexionCrm()} disabled={probandoCrm}>
+          {probandoCrm ? "Probando…" : "Probar conexión con el CRM"}
+        </Button>
+      </div>
 
       <div className="mt-4">
         <MobileFiltersPanel
@@ -419,13 +442,13 @@ export default function SuperadminLeadsPage() {
               <strong>{supTarget.nombre ?? supTarget.email}</strong> ({supTarget.email})
             </p>
 
-            {supPrevia === null ? (
+            {supPrevia === null || !supPrevia.veredicto ? (
               <p className="text-[var(--slate-500)]">Revisando qué hay de esta persona…</p>
             ) : supPrevia.veredicto === "se_puede" ? (
               <>
                 <p>Se borrará, sin vuelta atrás:</p>
                 <ul className="list-disc space-y-1 rounded-xl bg-[var(--surface-soft)] p-3 pl-7 text-xs text-[var(--slate-600)]">
-                  {supPrevia.resumen.map((linea) => (
+                  {(supPrevia.resumen ?? []).map((linea) => (
                     <li key={linea}>{linea}</li>
                   ))}
                 </ul>
