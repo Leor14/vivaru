@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Firestore } from "firebase-admin/firestore";
 import {
+  ejecutarSupresion,
   inventarioDeSupresion,
   normalizarEmail,
+  puedeEjecutar,
   resumenParaConfirmar,
   veredicto,
+  type EjecutarDeps,
   type Inventario,
 } from "../src/supresion-de-interesado";
 
@@ -142,5 +145,136 @@ describe("resumenParaConfirmar", () => {
     const lineas = resumenParaConfirmar(vacio);
     expect(lineas[1]).toContain("nada en el CRM");
     expect(lineas[2]).toContain("ningún registro");
+  });
+});
+
+describe("ejecutarSupresion", () => {
+  const inventario: Inventario = {
+    email: "victoria@ejemplo.com",
+    leadIds: ["lead-1", "lead-2"],
+    leadIdsEnAlbert: ["lead-1"],
+    entregasDeCorreo: ["env-1"],
+    comoUsuario: [],
+  };
+
+  function deps(over: Partial<EjecutarDeps> = {}) {
+    const hecho = { albert: [] as string[][], leads: [] as string[], correos: [] as string[], registros: [] as Record<string, unknown>[] };
+    const base: EjecutarDeps = {
+      pedirABorrarEnAlbert: async (ids) => {
+        hecho.albert.push(ids);
+        return ids.map((leadId) => ({ leadId, erased: true, reason: "deleted", dealIds: ["vl_1"] }));
+      },
+      borrarLead: async (id) => void hecho.leads.push(id),
+      borrarEntregaDeCorreo: async (id) => void hecho.correos.push(id),
+      registrar: async (r) => void hecho.registros.push(r),
+      ...over,
+    };
+    return { dep: base, hecho };
+  }
+
+  it("borra las dos mitades y deja constancia", async () => {
+    const d = deps();
+    const r = await ejecutarSupresion(inventario, "uid-superadmin", d.dep);
+    expect(d.hecho.albert).toEqual([["lead-1"]]);
+    expect(d.hecho.leads).toEqual(["lead-1", "lead-2"]);
+    expect(d.hecho.correos).toEqual(["env-1"]);
+    expect(r.albert[0]).toMatchObject({ leadId: "lead-1", erased: true, reason: "deleted" });
+  });
+
+  it("si Albert falla NO se borra nada de Vivaru, para no dejar el dato sin hilo (CA5)", async () => {
+    const d = deps({ pedirABorrarEnAlbert: async () => { throw new Error("push_lead_503"); } });
+    await expect(ejecutarSupresion(inventario, "uid", d.dep)).rejects.toThrow("push_lead_503");
+    expect(d.hecho.leads).toEqual([]);
+    expect(d.hecho.correos).toEqual([]);
+    expect(d.hecho.registros).toEqual([]);
+  });
+
+  it("no llama a Albert si esa persona nunca llegó al CRM", async () => {
+    const d = deps();
+    const sinCrm: Inventario = { ...inventario, leadIdsEnAlbert: [] };
+    const r = await ejecutarSupresion(sinCrm, "uid", d.dep);
+    expect(d.hecho.albert).toEqual([]);
+    expect(r.albert).toEqual([]);
+    expect(d.hecho.leads).toEqual(["lead-1", "lead-2"]);
+  });
+
+  it("la constancia NO lleva datos personales: ni correo ni nombre (CA6)", async () => {
+    const d = deps();
+    await ejecutarSupresion(inventario, "uid-superadmin", d.dep);
+    const registro = JSON.stringify(d.hecho.registros[0]);
+    expect(registro).not.toContain("victoria");
+    expect(registro).not.toContain("@ejemplo.com");
+    expect(d.hecho.registros[0]).toMatchObject({ dominio: "ejemplo.com", ejecutadaPor: "uid-superadmin" });
+    expect(registro).toContain("lead-1");
+  });
+
+  it("recoge el reason de Albert tal cual, incluido alias_removed y not_found", async () => {
+    const d = deps({
+      pedirABorrarEnAlbert: async () => [
+        { leadId: "lead-1", erased: false, reason: "alias_removed" },
+        { leadId: "lead-9", erased: false, reason: "not_found" },
+      ],
+    });
+    const r = await ejecutarSupresion(inventario, "uid", d.dep);
+    expect(r.albert.map((x) => x.reason)).toEqual(["alias_removed", "not_found"]);
+    expect(d.hecho.leads).toEqual(["lead-1", "lead-2"]);
+  });
+});
+
+describe("puedeEjecutar", () => {
+  it("solo producción borra: staging se queda en vista previa", () => {
+    expect(puedeEjecutar("hogaru-1")).toBe(true);
+    expect(puedeEjecutar("vivaru-staging-02")).toBe(false);
+    expect(puedeEjecutar("")).toBe(false);
+  });
+});
+
+describe("la regla del deal ganado", () => {
+  const inventario: Inventario = {
+    email: "cliente@ejemplo.com",
+    leadIds: ["lead-1"],
+    leadIdsEnAlbert: ["lead-1"],
+    entregasDeCorreo: ["env-1"],
+    comoUsuario: [],
+  };
+
+  function depsConGanado() {
+    const hecho = { leads: [] as string[], correos: [] as string[], registros: [] as Record<string, unknown>[] };
+    const dep: EjecutarDeps = {
+      pedirABorrarEnAlbert: async (ids) => ids.map((leadId) => ({ leadId, erased: false, reason: "won_not_deleted", dealIds: ["vl_ganado"] })),
+      borrarLead: async (id) => void hecho.leads.push(id),
+      borrarEntregaDeCorreo: async (id) => void hecho.correos.push(id),
+      registrar: async (r) => void hecho.registros.push(r),
+    };
+    return { dep, hecho };
+  }
+
+  it("si Albert no borra por estar GANADO, aquí tampoco se borra nada", async () => {
+    const d = depsConGanado();
+    const r = await ejecutarSupresion(inventario, "uid", d.dep);
+    expect(r.bloqueadaPorGanado.map((x) => x.leadId)).toEqual(["lead-1"]);
+    expect(r.leadsBorrados).toEqual([]);
+    expect(d.hecho.leads).toEqual([]);
+    expect(d.hecho.correos).toEqual([]);
+  });
+
+  it("deja constancia del intento bloqueado, con el deal y sin datos personales", async () => {
+    const d = depsConGanado();
+    await ejecutarSupresion(inventario, "uid", d.dep);
+    expect(d.hecho.registros[0]).toMatchObject({ resultado: "bloqueada_por_ganado", dealsGanados: ["vl_ganado"], dominio: "ejemplo.com" });
+    expect(JSON.stringify(d.hecho.registros[0])).not.toContain("cliente@");
+  });
+
+  it("un not_found NO bloquea: allí ya no había nada que borrar", async () => {
+    const hecho = { leads: [] as string[] };
+    const dep: EjecutarDeps = {
+      pedirABorrarEnAlbert: async (ids) => ids.map((leadId) => ({ leadId, erased: false, reason: "not_found", dealIds: [] })),
+      borrarLead: async (id) => void hecho.leads.push(id),
+      borrarEntregaDeCorreo: async () => {},
+      registrar: async () => {},
+    };
+    const r = await ejecutarSupresion(inventario, "uid", dep);
+    expect(r.bloqueadaPorGanado).toEqual([]);
+    expect(hecho.leads).toEqual(["lead-1"]);
   });
 });

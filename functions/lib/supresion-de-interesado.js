@@ -1,9 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ERASE_LEAD_URL = void 0;
 exports.normalizarEmail = normalizarEmail;
 exports.inventarioDeSupresion = inventarioDeSupresion;
 exports.veredicto = veredicto;
 exports.resumenParaConfirmar = resumenParaConfirmar;
+exports.puedeEjecutar = puedeEjecutar;
+exports.ejecutarSupresion = ejecutarSupresion;
 /**
  * `PRD-V-PLAT-007` — el barrido que decide si a una persona se la puede suprimir como INTERESADO.
  *
@@ -93,4 +96,62 @@ function resumenParaConfirmar(inventario) {
             ? `${inventario.entregasDeCorreo.length} registro(s) de correos enviados`
             : "ningún registro de correo",
     ];
+}
+/* ────────────────────────────────────────────────────────────────────────────
+ * La ejecución. Todo lo de arriba solo mide; de aquí abajo se borra.
+ * ──────────────────────────────────────────────────────────────────────────── */
+exports.ERASE_LEAD_URL = "https://vivarueraselead-winvdvwn6q-uc.a.run.app";
+/**
+ * **Solo producción borra.** El endpoint de Albert responde 403 a la cuenta de staging —borrar es
+ * destructivo y su tenant tiene datos reales—, así que allí la acción se queda en vista previa.
+ */
+function puedeEjecutar(proyecto = process.env.GCLOUD_PROJECT ?? "") {
+    return proyecto === "hogaru-1";
+}
+/**
+ * Orden deliberado: **Albert primero, Vivaru después** (`CA5`).
+ *
+ * Si Albert falla, aquí no se borra nada y se puede reintentar. Al revés —borrar la ficha y que
+ * falle el CRM— deja el dato vivo allí y **sin hilo para encontrarlo**, que es el peor estado
+ * posible: nadie sabría ya a quién pertenece ese deal.
+ *
+ * Y reintentar es seguro porque las dos mitades son idempotentes: Albert responde `not_found` y
+ * borrar un documento que ya no está no falla.
+ */
+async function ejecutarSupresion(inventario, quien, dep) {
+    const albert = inventario.leadIdsEnAlbert.length > 0 ? await dep.pedirABorrarEnAlbert(inventario.leadIdsEnAlbert) : [];
+    // Regla de Albert (22 sep): un deal ganado no se borra sin decirlo explícitamente. Si aparece,
+    // esta operación NO sigue: se deja constancia del intento y se devuelve para que lo decida quien
+    // pueda decidirlo. `not_found` no bloquea: significa que allí ya no había nada.
+    const bloqueadaPorGanado = albert.filter((r) => r.reason === "won_not_deleted");
+    if (bloqueadaPorGanado.length > 0) {
+        await dep.registrar({
+            dominio: inventario.email.split("@")[1] ?? "",
+            resultado: "bloqueada_por_ganado",
+            leads: bloqueadaPorGanado.map((r) => r.leadId),
+            dealsGanados: bloqueadaPorGanado.flatMap((r) => r.dealIds ?? []),
+            ejecutadaPor: quien,
+        });
+        return { albert, leadsBorrados: [], correosBorrados: [], bloqueadaPorGanado };
+    }
+    const leadsBorrados = [];
+    for (const leadId of inventario.leadIds) {
+        await dep.borrarLead(leadId);
+        leadsBorrados.push(leadId);
+    }
+    const correosBorrados = [];
+    for (const id of inventario.entregasDeCorreo) {
+        await dep.borrarEntregaDeCorreo(id);
+        correosBorrados.push(id);
+    }
+    await dep.registrar({
+        // Ni el correo ni el nombre: el dominio basta para entender el caso sin reidentificar.
+        dominio: inventario.email.split("@")[1] ?? "",
+        leadsBorrados,
+        correosBorrados,
+        resultado: "suprimida",
+        albert: albert.map((r) => ({ leadId: r.leadId, erased: r.erased, reason: r.reason, dealIds: r.dealIds ?? [] })),
+        ejecutadaPor: quien,
+    });
+    return { albert, leadsBorrados, correosBorrados, bloqueadaPorGanado: [] };
 }

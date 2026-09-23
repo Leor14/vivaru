@@ -60,6 +60,7 @@ de por dónde llegó. Todo eso es suyo y todo se va.
 | `CA5` | Si Albert falla, **Vivaru no borra su ficha**: se informa y se puede reintentar. Una ficha borrada aquí y un deal vivo allá es el peor de los estados, porque deja de existir el hilo para encontrarlo |
 | `CA6` | El registro de la supresión **no contiene datos personales** |
 | `CA7` | La acción es **solo del superadmin** |
+| `CA8` | Si el deal está **GANADO**, Albert no lo borra (`won_not_deleted`) y **Vivaru tampoco borra su ficha**: queda constancia del intento y se decide aparte. Un ganado es un cliente |
 
 ## 5. Lo que depende de Albert, y está pedido (22 sep)
 
@@ -68,9 +69,20 @@ espera el token de un usuario de Firebase Auth suyo, y su servicio está abierto
 control dentro. Nuestras functions solo tienen **identidad de máquina**, y la contraseña del usuario
 `sales` es justo lo que dejamos de pedir en `DECISIONES-A-006`.
 
-**Pedido:** un tercer endpoint privado, `vivaruEraseLead`, con la misma autenticación que
-`vivaruWonSignals` y `vivaruPushLead`, que acepte varios `leadId` y responda por cada uno si se borró y
-por qué. Su contrato se revisa **antes** de que lo desplieguen, como se hizo con `vivaruPushLead`.
+**Entregado y revisado el 22 sep** (su commit `9ecaf6d`, **sin desplegar**): `vivaruEraseLead`, privado,
+`POST` con `{ leadIds: [...] }` (hasta 25) o `{ leadId }`, misma autenticación que los otros dos, y una
+respuesta por lead con `erased`, `reason` y los `dealIds` afectados. Por dentro usa **el mismo núcleo**
+que la callable, así que no hay dos implementaciones que puedan divergir.
+
+**Dos límites que salieron de revisarlo:**
+- **La cuenta de staging no puede borrar ni simular**: recibe 403. Borrar es destructivo y su tenant
+  tiene datos reales, así que **la primera prueba se hace en producción con un `leadId` inexistente**,
+  que responde `not_found` y no escribe nada.
+- **Un deal ganado no se borra por defecto** (`CA8`). Lo propuso Vivaru al revisar el contrato: entre
+  «firmó» y «ya opera» hay un hueco en el que la persona todavía no es usuario y su deal ya es una
+  venta. Albert devuelve `won_not_deleted` sin tocar nada, y hace falta un `includeWon: true` explícito.
+  Si un lead tiene varios deals y alguno está ganado, **no se borra ninguno**: mejor eso que una persona
+  a medio borrar.
 
 ## 6. Lo que queda fuera, y por qué
 

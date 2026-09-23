@@ -114,3 +114,97 @@ export function resumenParaConfirmar(inventario: Inventario): string[] {
       : "ningún registro de correo",
   ];
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * La ejecución. Todo lo de arriba solo mide; de aquí abajo se borra.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export const ERASE_LEAD_URL = "https://vivarueraselead-winvdvwn6q-uc.a.run.app";
+
+/**
+ * **Solo producción borra.** El endpoint de Albert responde 403 a la cuenta de staging —borrar es
+ * destructivo y su tenant tiene datos reales—, así que allí la acción se queda en vista previa.
+ */
+export function puedeEjecutar(proyecto = process.env.GCLOUD_PROJECT ?? ""): boolean {
+  return proyecto === "hogaru-1";
+}
+
+export type ResultadoAlbert = { leadId: string; erased: boolean; reason: string; dealIds?: string[] };
+
+export type Supresion = {
+  /** Lo que devolvió Albert por cada lead. Vacío si no había nada que pedirle. */
+  albert: ResultadoAlbert[];
+  leadsBorrados: string[];
+  correosBorrados: string[];
+  /**
+   * Los leads que Albert NO borró porque su deal está GANADO. Cuando esto trae algo, **aquí tampoco
+   * se borra nada**: un ganado es un cliente, y su rastro comercial sostiene una relación con
+   * contrato. Borrar nuestra ficha dejaría el deal vivo allí y sin hilo para encontrarlo.
+   */
+  bloqueadaPorGanado: ResultadoAlbert[];
+};
+
+export type EjecutarDeps = {
+  /** Pide a Albert la supresión. Debe LANZAR si algo va mal: un fallo suyo detiene el borrado local. */
+  pedirABorrarEnAlbert: (leadIds: string[]) => Promise<ResultadoAlbert[]>;
+  borrarLead: (leadId: string) => Promise<void>;
+  borrarEntregaDeCorreo: (id: string) => Promise<void>;
+  /** Constancia de lo hecho. Sin datos personales: ids y nada más (`CA6`). */
+  registrar: (registro: Record<string, unknown>) => Promise<void>;
+};
+
+/**
+ * Orden deliberado: **Albert primero, Vivaru después** (`CA5`).
+ *
+ * Si Albert falla, aquí no se borra nada y se puede reintentar. Al revés —borrar la ficha y que
+ * falle el CRM— deja el dato vivo allí y **sin hilo para encontrarlo**, que es el peor estado
+ * posible: nadie sabría ya a quién pertenece ese deal.
+ *
+ * Y reintentar es seguro porque las dos mitades son idempotentes: Albert responde `not_found` y
+ * borrar un documento que ya no está no falla.
+ */
+export async function ejecutarSupresion(
+  inventario: Inventario,
+  quien: string,
+  dep: EjecutarDeps,
+): Promise<Supresion> {
+  const albert = inventario.leadIdsEnAlbert.length > 0 ? await dep.pedirABorrarEnAlbert(inventario.leadIdsEnAlbert) : [];
+
+  // Regla de Albert (22 sep): un deal ganado no se borra sin decirlo explícitamente. Si aparece,
+  // esta operación NO sigue: se deja constancia del intento y se devuelve para que lo decida quien
+  // pueda decidirlo. `not_found` no bloquea: significa que allí ya no había nada.
+  const bloqueadaPorGanado = albert.filter((r) => r.reason === "won_not_deleted");
+  if (bloqueadaPorGanado.length > 0) {
+    await dep.registrar({
+      dominio: inventario.email.split("@")[1] ?? "",
+      resultado: "bloqueada_por_ganado",
+      leads: bloqueadaPorGanado.map((r) => r.leadId),
+      dealsGanados: bloqueadaPorGanado.flatMap((r) => r.dealIds ?? []),
+      ejecutadaPor: quien,
+    });
+    return { albert, leadsBorrados: [], correosBorrados: [], bloqueadaPorGanado };
+  }
+
+  const leadsBorrados: string[] = [];
+  for (const leadId of inventario.leadIds) {
+    await dep.borrarLead(leadId);
+    leadsBorrados.push(leadId);
+  }
+  const correosBorrados: string[] = [];
+  for (const id of inventario.entregasDeCorreo) {
+    await dep.borrarEntregaDeCorreo(id);
+    correosBorrados.push(id);
+  }
+
+  await dep.registrar({
+    // Ni el correo ni el nombre: el dominio basta para entender el caso sin reidentificar.
+    dominio: inventario.email.split("@")[1] ?? "",
+    leadsBorrados,
+    correosBorrados,
+    resultado: "suprimida",
+    albert: albert.map((r) => ({ leadId: r.leadId, erased: r.erased, reason: r.reason, dealIds: r.dealIds ?? [] })),
+    ejecutadaPor: quien,
+  });
+
+  return { albert, leadsBorrados, correosBorrados, bloqueadaPorGanado: [] };
+}
