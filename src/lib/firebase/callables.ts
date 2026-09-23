@@ -411,6 +411,35 @@ export async function createTrialWorkspaceCallable(input: {
  * Para leads que ya tienen ambiente de prueba, se usa "Convertir a cliente"
  * en la consola de ambientes, que no crea nada nuevo.
  */
+/**
+ * `PLAT-007` · suprime a un interesado en Vivaru y en el CRM.
+ *
+ * **Dos pasos a propósito.** Sin `confirmar` devuelve la VISTA PREVIA —qué se borraría y qué lo
+ * impide— y no toca nada. Con `confirmar: true` borra, y ya no hay vuelta atrás.
+ */
+export async function suprimirInteresadoCallable(input: {
+  email: string;
+  confirmar?: boolean;
+  /** Solo cuando alguien decide, a mano, borrar también un negocio GANADO. */
+  incluirGanados?: boolean;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  type Respuesta = {
+    veredicto: "se_puede" | "es_usuario_del_producto" | "sin_rastro";
+    detalle: string;
+    resumen: string[];
+    ejecutada: boolean;
+    inventario: { leadIds: string[]; leadIdsEnAlbert: string[]; entregasDeCorreo: string[]; comoUsuario: Array<{ coleccion: string; documentos: number }> };
+    supresion?: { leadsBorrados: string[]; correosBorrados: string[]; bloqueadaPorGanado: Array<{ leadId: string; dealIds?: string[] }> };
+  };
+
+  const callable = httpsCallable<typeof input, Respuesta>(functions, "suprimirInteresado");
+  return executeCallable(callable, input, "No fue posible suprimir los datos de esta persona.");
+}
+
 export async function createTenantFromLeadCallable(input: {
   leadId: string;
   planId?: string;

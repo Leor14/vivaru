@@ -34,8 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.billConsumptionPeriod = exports.reopenMeterPeriod = exports.closeMeterPeriod = exports.registerMeterReading = exports.setCommitteeMembership = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.setTenantAdminAccess = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createMudanzaRequest = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.enviarLeadAAlbert = exports.registrarSenalesDeAlbert = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = void 0;
+exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.saveExpensePlan = exports.voidExpenseWithInstallments = exports.voidExpenseInstallment = exports.payExpenseInstallment = exports.voidMonthlyReport = exports.signMonthlyReport = exports.issueMonthlyReport = exports.regenerateMonthlyReport = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createMudanzaRequest = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.enviarLeadAAlbert = exports.suprimirInteresado = exports.registrarSenalesDeAlbert = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -47,6 +47,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const albert_senal_de_vuelta_1 = require("./albert-senal-de-vuelta");
 const albert_envio_de_leads_1 = require("./albert-envio-de-leads");
 const albert_deal_ganado_1 = require("./albert-deal-ganado");
+const supresion_de_interesado_1 = require("./supresion-de-interesado");
 const crypto_1 = require("crypto");
 const XLSX = __importStar(require("xlsx"));
 const datetimeValidation_1 = require("./utils/datetimeValidation");
@@ -3827,6 +3828,41 @@ exports.registrarSenalesDeAlbert = (0, scheduler_1.onSchedule)({ schedule: "ever
     if (resumen.sinAvance) {
         console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
     }
+});
+// ── PLAT-007 · suprimir a un interesado, en Vivaru y en el CRM ───────────────
+// Dos pasos a propósito: sin `confirmar` devuelve la VISTA PREVIA —qué se
+// borraría y qué lo impide— y solo con `confirmar: true` borra. El orden es
+// Albert primero y Vivaru después; y si su deal está ganado, no se borra nada.
+exports.suprimirInteresado = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    assertSuperadmin(request.auth);
+    const email = (0, supresion_de_interesado_1.normalizarEmail)(request.data?.email);
+    if (!email)
+        throw new https_1.HttpsError("invalid-argument", "Falta el correo de la persona.");
+    const inventario = await (0, supresion_de_interesado_1.inventarioDeSupresion)(db, email);
+    const v = (0, supresion_de_interesado_1.veredicto)(inventario);
+    const vistaPrevia = { veredicto: v.sePuede ? "se_puede" : v.motivo, detalle: v.sePuede ? "" : v.detalle, resumen: (0, supresion_de_interesado_1.resumenParaConfirmar)(inventario), inventario };
+    if (!request.data?.confirmar)
+        return { ...vistaPrevia, ejecutada: false };
+    if (!v.sePuede)
+        throw new https_1.HttpsError("failed-precondition", v.detalle);
+    if (!(0, supresion_de_interesado_1.puedeEjecutar)()) {
+        throw new https_1.HttpsError("failed-precondition", "La supresión solo se ejecuta en producción: Albert no admite borrar desde staging.");
+    }
+    const supresion = await (0, supresion_de_interesado_1.ejecutarSupresion)(inventario, request.auth?.uid ?? "desconocido", {
+        pedirABorrarEnAlbert: (ids) => (0, supresion_de_interesado_1.pedirABorrarEnAlbertReal)(ids, request.data?.incluirGanados === true, albert_senal_de_vuelta_1.tokenDeIdentidad),
+        borrarLead: async (id) => void (await db.collection("leads").doc(id).delete()),
+        borrarEntregaDeCorreo: async (id) => void (await db.collection("emailDeliveries").doc(id).delete()),
+        registrar: async (registro) => void (await db.collection("supresionesDeInteresado").add({ ...registro, en: firestore_1.FieldValue.serverTimestamp() })),
+    });
+    // Sin datos personales: el dominio y los ids bastan para seguir el rastro de la operación.
+    console.log("[supresion]", JSON.stringify({
+        dominio: email.split("@")[1] ?? "",
+        leads: supresion.leadsBorrados.length,
+        correos: supresion.correosBorrados.length,
+        bloqueadaPorGanado: supresion.bloqueadaPorGanado.length,
+        albert: supresion.albert.map((r) => r.reason),
+    }));
+    return { ...vistaPrevia, ejecutada: supresion.bloqueadaPorGanado.length === 0, supresion };
 });
 // ── Albert CRM · el envío de leads: cada lead que nace se empuja a Albert ─────
 // Trigger y no ruta web porque las rutas corren con la cuenta de App Hosting, que

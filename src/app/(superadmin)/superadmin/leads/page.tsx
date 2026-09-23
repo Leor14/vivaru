@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase/client";
-import { createTenantFromLeadCallable } from "@/lib/firebase/callables";
+import { createTenantFromLeadCallable, suprimirInteresadoCallable } from "@/lib/firebase/callables";
 import {
   assignLeadOwner,
   setLeadCrmRef,
@@ -90,6 +90,43 @@ export default function SuperadminLeadsPage() {
   const [altaVendedor, setAltaVendedor] = useState("");
   const [creando, setCreando] = useState(false);
   const [reps, setReps] = useState<SalesRep[]>([]);
+  // `PLAT-007` · supresión: primero se MIRA qué se borraría, y solo después se borra.
+  const [supTarget, setSupTarget] = useState<Lead | null>(null);
+  const [supPrevia, setSupPrevia] = useState<Awaited<ReturnType<typeof suprimirInteresadoCallable>> | null>(null);
+  const [supTrabajando, setSupTrabajando] = useState(false);
+
+  async function abrirSupresion(lead: Lead) {
+    setSupTarget(lead);
+    setSupPrevia(null);
+    setSupTrabajando(true);
+    try {
+      setSupPrevia(await suprimirInteresadoCallable({ email: lead.email ?? "" }));
+    } catch (error) {
+      toastFirebaseError(error);
+      setSupTarget(null);
+    } finally {
+      setSupTrabajando(false);
+    }
+  }
+
+  async function confirmarSupresion() {
+    if (!supTarget) return;
+    setSupTrabajando(true);
+    try {
+      const r = await suprimirInteresadoCallable({ email: supTarget.email ?? "", confirmar: true });
+      if (r.supresion?.bloqueadaPorGanado.length) {
+        // Albert protege un negocio ganado: aquí tampoco se borró nada.
+        toast.warning("No se borró nada: su negocio en el CRM está ganado. Se registró el intento.");
+      } else {
+        toast.success(`Datos suprimidos: ${r.supresion?.leadsBorrados.length ?? 0} ficha(s) y su rastro en el CRM.`);
+      }
+      setSupTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSupTrabajando(false);
+    }
+  }
 
   async function handleAlta() {
     if (!altaTarget) return;
@@ -292,21 +329,26 @@ export default function SuperadminLeadsPage() {
                     </td>
                     <td className="px-3 py-2 text-[var(--slate-600)]">{formatDate(lead.createdAt)}</td>
                     <td className="px-3 py-2 text-right">
-                      {lead.tenantId ? (
-                        <span className="text-[11px] text-[var(--slate-500)]">Ya tiene ambiente</span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setAltaSeed(false);
-                            setAltaVendedor(lead.ownerId ?? "");
-                            setAltaTarget(lead);
-                          }}
-                        >
-                          Dar de alta
+                      <div className="flex justify-end gap-2">
+                        {lead.tenantId ? (
+                          <span className="self-center text-[11px] text-[var(--slate-500)]">Ya tiene ambiente</span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAltaSeed(false);
+                              setAltaVendedor(lead.ownerId ?? "");
+                              setAltaTarget(lead);
+                            }}
+                          >
+                            Dar de alta
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => void abrirSupresion(lead)}>
+                          Suprimir datos
                         </Button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -359,6 +401,54 @@ export default function SuperadminLeadsPage() {
               <Button onClick={() => void handleAlta()} disabled={creando}>
                 {creando ? "Creando…" : "Crear ambiente"}
               </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      {/* `PLAT-007` · supresión de un interesado. Se enseña SIEMPRE qué se va a borrar antes de
+          preguntar, porque confirmar sin ver es firmar a ciegas. */}
+      <Modal
+        open={supTarget !== null}
+        title="Suprimir los datos de esta persona"
+        onClose={() => (supTrabajando ? undefined : setSupTarget(null))}
+      >
+        {supTarget ? (
+          <div className="space-y-3 text-sm text-[var(--slate-700)]">
+            <p>
+              <strong>{supTarget.nombre ?? supTarget.email}</strong> ({supTarget.email})
+            </p>
+
+            {supPrevia === null ? (
+              <p className="text-[var(--slate-500)]">Revisando qué hay de esta persona…</p>
+            ) : supPrevia.veredicto === "se_puede" ? (
+              <>
+                <p>Se borrará, sin vuelta atrás:</p>
+                <ul className="list-disc space-y-1 rounded-xl bg-[var(--surface-soft)] p-3 pl-7 text-xs text-[var(--slate-600)]">
+                  {supPrevia.resumen.map((linea) => (
+                    <li key={linea}>{linea}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-[var(--slate-500)]">
+                  Si su negocio en el CRM está ganado, no se borrará nada y quedará registrado el intento.
+                </p>
+              </>
+            ) : (
+              <div className="rounded-xl border border-[var(--amber-200,#fde68a)] bg-[var(--amber-50,#fffbeb)] p-3 text-xs text-[var(--slate-700)]">
+                <p className="font-semibold">No se puede suprimir desde aquí.</p>
+                <p className="mt-1">{supPrevia.detalle}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setSupTarget(null)} disabled={supTrabajando}>
+                Cancelar
+              </Button>
+              {supPrevia?.veredicto === "se_puede" ? (
+                <Button variant="danger" onClick={() => void confirmarSupresion()} disabled={supTrabajando}>
+                  {supTrabajando ? "Suprimiendo…" : "Suprimir definitivamente"}
+                </Button>
+              ) : null}
             </div>
           </div>
         ) : null}

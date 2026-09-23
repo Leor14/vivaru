@@ -7,6 +7,7 @@ exports.veredicto = veredicto;
 exports.resumenParaConfirmar = resumenParaConfirmar;
 exports.puedeEjecutar = puedeEjecutar;
 exports.ejecutarSupresion = ejecutarSupresion;
+exports.pedirABorrarEnAlbertReal = pedirABorrarEnAlbertReal;
 /**
  * `PRD-V-PLAT-007` — el barrido que decide si a una persona se la puede suprimir como INTERESADO.
  *
@@ -154,4 +155,19 @@ async function ejecutarSupresion(inventario, quien, dep) {
         ejecutadaPor: quien,
     });
     return { albert, leadsBorrados, correosBorrados, bloqueadaPorGanado: [] };
+}
+/** La llamada real a Albert. `incluirGanados` solo se manda cuando alguien lo decide a mano. */
+async function pedirABorrarEnAlbertReal(leadIds, incluirGanados, token) {
+    const t = await token(exports.ERASE_LEAD_URL);
+    const r = await fetch(exports.ERASE_LEAD_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+        body: JSON.stringify(incluirGanados ? { leadIds, includeWon: true } : { leadIds }),
+    });
+    if (!r.ok)
+        throw new Error(`erase_lead_${r.status}:${(await r.text()).slice(0, 200)}`);
+    const cuerpo = (await r.json());
+    if (cuerpo?.ok !== true || !Array.isArray(cuerpo.results))
+        throw new Error("erase_lead_respuesta_invalida");
+    return cuerpo.results;
 }

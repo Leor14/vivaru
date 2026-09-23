@@ -6,9 +6,18 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { ambienteHabilitado, dependenciasReales, sondearSenales } from "./albert-senal-de-vuelta";
+import { ambienteHabilitado, dependenciasReales, sondearSenales, tokenDeIdentidad } from "./albert-senal-de-vuelta";
 import { enviarLeadRecienCreado } from "./albert-envio-de-leads";
 import { accionesPorDealGanado, dependenciasDeAcciones } from "./albert-deal-ganado";
+import {
+  ejecutarSupresion,
+  inventarioDeSupresion,
+  normalizarEmail,
+  pedirABorrarEnAlbertReal,
+  puedeEjecutar,
+  resumenParaConfirmar,
+  veredicto,
+} from "./supresion-de-interesado";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
@@ -4869,6 +4878,46 @@ export const registrarSenalesDeAlbert = onSchedule(
     if (resumen.sinAvance) {
       console.warn("[albert-senal] página llena sin avanzar el cursor: revisar deals con el mismo updatedAt.");
     }
+  },
+);
+
+// ── PLAT-007 · suprimir a un interesado, en Vivaru y en el CRM ───────────────
+// Dos pasos a propósito: sin `confirmar` devuelve la VISTA PREVIA —qué se
+// borraría y qué lo impide— y solo con `confirmar: true` borra. El orden es
+// Albert primero y Vivaru después; y si su deal está ganado, no se borra nada.
+export const suprimirInteresado = onCall<{ email?: string; confirmar?: boolean; incluirGanados?: boolean }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    assertSuperadmin(request.auth);
+    const email = normalizarEmail(request.data?.email);
+    if (!email) throw new HttpsError("invalid-argument", "Falta el correo de la persona.");
+
+    const inventario = await inventarioDeSupresion(db, email);
+    const v = veredicto(inventario);
+    const vistaPrevia = { veredicto: v.sePuede ? "se_puede" : v.motivo, detalle: v.sePuede ? "" : v.detalle, resumen: resumenParaConfirmar(inventario), inventario };
+
+    if (!request.data?.confirmar) return { ...vistaPrevia, ejecutada: false };
+    if (!v.sePuede) throw new HttpsError("failed-precondition", v.detalle);
+    if (!puedeEjecutar()) {
+      throw new HttpsError("failed-precondition", "La supresión solo se ejecuta en producción: Albert no admite borrar desde staging.");
+    }
+
+    const supresion = await ejecutarSupresion(inventario, request.auth?.uid ?? "desconocido", {
+      pedirABorrarEnAlbert: (ids) => pedirABorrarEnAlbertReal(ids, request.data?.incluirGanados === true, tokenDeIdentidad),
+      borrarLead: async (id) => void (await db.collection("leads").doc(id).delete()),
+      borrarEntregaDeCorreo: async (id) => void (await db.collection("emailDeliveries").doc(id).delete()),
+      registrar: async (registro) => void (await db.collection("supresionesDeInteresado").add({ ...registro, en: FieldValue.serverTimestamp() })),
+    });
+
+    // Sin datos personales: el dominio y los ids bastan para seguir el rastro de la operación.
+    console.log("[supresion]", JSON.stringify({
+      dominio: email.split("@")[1] ?? "",
+      leads: supresion.leadsBorrados.length,
+      correos: supresion.correosBorrados.length,
+      bloqueadaPorGanado: supresion.bloqueadaPorGanado.length,
+      albert: supresion.albert.map((r) => r.reason),
+    }));
+    return { ...vistaPrevia, ejecutada: supresion.bloqueadaPorGanado.length === 0, supresion };
   },
 );
 
