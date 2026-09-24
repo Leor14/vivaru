@@ -1,7 +1,14 @@
 # `PRD-V-PLAT-007` — La supresión de un interesado
 
-> **Estado:** en construcción (22 sep 2026). **Decidida por David** el mismo día, al cerrar el frente de
-> Albert: con datos de una persona real ya en el CRM, borrar a alguien dejó de ser teórico.
+> **Estado: EN PRODUCCIÓN y ESTRENADA** (24 sep 2026, 02:22 UTC). **Decidida por David** el 22, al cerrar
+> el frente de Albert: con datos de una persona real ya en el CRM, borrar a alguien dejó de ser teórico.
+>
+> **El estreno se hizo sin borrar nada.** El endpoint de Albert solo admite a la cuenta de producción, así
+> que el camino no se podía ensayar en staging y su primer uso real habría sido la supresión de una
+> persona. Por eso se construyó **«Probar conexión con el CRM»**, que manda un `leadId` que no puede
+> existir: respondió `not_found` —el éxito— y `tenants/vivaru` siguió con su deal y su contacto de
+> referencia intactos, medido por nuestro lado. **Nadie ha sido suprimido todavía**, y la primera vez que
+> ocurra será con David delante.
 >
 > **Qué NO es:** no es una ventana de retención automática para `leads`. Se dejó fuera a propósito —ver
 > §6—: la supresión a petición es una obligación; borrar solo a quien lleva un año callado es una
@@ -91,9 +98,20 @@ que la callable, así que no hay dos implementaciones que puedan divergir.
 - **Los leads anteriores al trigger de envío**, que nunca llegaron a Albert: su supresión es solo local,
   y el propio contrato lo cubre (`not_found` no es un error).
 
+## 6.bis Visto en pantalla
+
+- **Staging (22 sep, noche):** la vista previa con lo que se borraría; la puerta del usuario nombrando
+  `users (1), tenantUsers (1), accountInvites (1)` y **sin botón de confirmar**; y la negativa al
+  confirmar, porque allí no se ejecuta.
+- **Producción (24 sep, 02:22 UTC):** el botón de probar conexión, con su respuesta en verde.
+- **Un defecto que cazó mirar la pantalla**, y no una prueba: el botón nuevo contra la function vieja
+  respondía «Falta el correo de la persona». **El servidor va antes que el front**, y aquí se invierte
+  solo, porque el front se despliega al empujar y la function hay que desplegarla a mano.
+
 ## 7. Efecto sobre la política de retención
 
 `docs/politica-retencion-datos.md` deja escrita una condición: el número 2 —12 meses para el registro
 del borrado— se mantiene **mientras no exista un camino de supresión que borre el lead e invoque
-`eraseByExternalRef` en la misma operación**. **Cuando esta ficha esté construida, esa condición se
-cumple** y el número 2 se revisa al alza. Es una decisión de David, y la ficha solo la habilita.
+`eraseByExternalRef` en la misma operación**. **Esa condición YA SE CUMPLE** desde el 24 de septiembre de
+2026: el camino existe, está desplegado y se estrenó. Queda por tanto **una decisión de David: subir el
+número 2** —hoy 12 meses— a los 24–36 que Albert recomendaba, ahora que el puntero cuelga de verdad.

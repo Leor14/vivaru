@@ -4,25 +4,24 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — corte del 22 de septiembre de 2026 (noche en Ciudad de México)
+## LO PRIMERO AL ABRIR SESIÓN — corte del 23 de septiembre de 2026 (noche en Ciudad de México)
 
-> # ALBERT ESTÁ CERRADO Y EN PRODUCCIÓN. Y EL CAMINO DE SUPRESIÓN (`PLAT-007`) ESTÁ CONSTRUIDO, VISTO EN STAGING Y A FALTA DE UN PASO.
+> # ALBERT Y `PLAT-007`, CERRADOS Y EN PRODUCCIÓN. NO QUEDA NADA A MEDIAS.
 >
 > **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú está en «LO QUE
 > SIGUE». El tablero de las 36 del lote no se movió: **20 ✅ · 8 🟡 · 6 ◇ · 2 ⏸**.
 >
-> ## 1. Lo que hay que hacer nada más abrir, y son diez minutos
+> ## 1. Lo que se cerró en la madrugada del 24
 >
-> **Falta UN paso para cerrar `PLAT-007`, y es de David:**
+> **`master` = `develop` = `7425d0d`**, y producción sirve `build-2026-09-24-001` desde ese commit. Con
+> el front arriba, David pulsó **«Probar conexión con el CRM»** y el camino de borrado quedó **estrenado
+> sin tocar el dato de nadie**: `not_found` a las **02:22:45 UTC**, y `tenants/vivaru` siguió con su deal
+> y su contacto de referencia intactos (medido por nuestro lado, en solo lectura).
 >
-> 1. **Merge de `develop` a `master` y push** → despliega el front de producción (hoy sirve
->    `build-2026-09-21-001` desde `0e2ee02`, de antes de todo esto).
-> 2. **Pulsar «Probar conexión con el CRM»** en `/superadmin/leads` de producción. Debe responder
->    **«no existe ese interesado»**: eso estrena el camino de borrado **sin tocar el dato de nadie**.
-> 3. **Pasarle la hora a la sesión de Albert** para que lo cruce con sus logs.
+> **Nadie ha sido suprimido todavía.** La primera supresión real será con David delante.
 >
-> Las tres functions de producción **ya están desplegadas y verificadas** contra su commit
-> (`enviarLeadAAlbert`, `registrarSenalesDeAlbert`, `suprimirInteresado`): lo único que falta es el front.
+> **Quedó sin avisar la sesión de Albert**, que ya estaba cerrada: si se retoma, lo que les toca cruzar
+> es esa llamada de las 02:22:45 UTC desde la cuenta de producción.
 >
 > ## 2. Albert ↔ Vivaru, CERRADO (22 sep)
 >
@@ -30,7 +29,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > |---|---|---|
 > | **Envío de leads** (`enviarLeadAAlbert`) | **ENVÍA DE VERDAD**; probado con un envío real del formulario | Solo `dryRun` |
 > | **Señal de vuelta** (`registrarSenalesDeAlbert`, cada 10 min) | **ENCENDIDA**; 200 con 0 señales | Apagada |
-> | **Supresión** (`suprimirInteresado` + `vivaruEraseLead`) | Desplegada, **sin estrenar** | Vista previa sí, borrar no |
+> | **Supresión** (`suprimirInteresado` + `vivaruEraseLead`) | **Desplegada y ESTRENADA** (24 sep, sin borrar nada) | Vista previa sí, borrar no |
 >
 > - **Los tres endpoints de Albert son privados.** `vivaruwonsignals` y `vivarueraselead` solo admiten
 >   nuestra cuenta de **producción**; `vivarupushlead` admite las dos, porque staging ensaya en `dryRun`.
@@ -84,10 +83,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > - **Me inventé un correo en una medición** y el resultado —«sin rastro»— parecía un hallazgo. Se repitió
 >   leyendo los correos de las fichas. **Un valor que no se leyó de la fuente no es un dato.**
 >
-> ## 5. Lo que sirve cada ambiente (medido el 23 sep, 02:09 UTC)
+> ## 5. Lo que sirve cada ambiente (medido el 24 sep, 02:30 UTC)
 >
-> - **`master` = `0e2ee02`** (sin tocar desde el 21) · **`develop` = `3dc9170`**.
-> - **Front:** producción `build-2026-09-21-001`; staging `build-2026-09-23-004`, desde `3dc9170`.
+> - **`master` = `develop` = `7425d0d`.** Los dos ambientes sirven el mismo commit.
+> - **Front:** producción `build-2026-09-24-001`; staging `build-2026-09-23-005`.
 > - **Functions nuevas de hoy:** `enviarLeadAAlbert`, `registrarSenalesDeAlbert` y `suprimirInteresado`,
 >   en los dos ambientes, verificadas comparando el zip desplegado con `functions/lib`.
 > - **Reglas de Firestore:** no se tocaron.
@@ -101,7 +100,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **Bancos (contados el 22 sep, noche):** `npm test` **2268** · functions **1148** · typecheck **0**.
 > Reglas y emulador **no se recontaron**: no se tocó su superficie.
 >
-> **Las tres credenciales caducaron hoy** —`gcloud`, la ADC y el CLI de `firebase`— y las renovó David.
+> **Las credenciales volvieron a caducar** —la ADC y `gcloud`, otra vez— y las renovó David. Van por
+> separado y no se ve hasta usarlas.
 >
 > **Fuera del producto:** la propuesta de **Patricia Gordillo** quedó cerrada el 21 sep. **No volver a
 > ofrecer la carta**; espera la respuesta de su directorio.
@@ -109,34 +109,37 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > ## LO QUE SIGUE — el menú
 >
 > **A · Construible ya**
-> 1. **Cerrar `PLAT-007`**: los tres pasos del §1.
-> 2. **Que un error del servidor que el front no entiende lo diga**: el botón nuevo contra la function
+> 1. **Que un error del servidor que el front no entiende lo diga**: el botón nuevo contra la function
 >    vieja respondió «Falta el correo de la persona». Cabo pequeño, de esta noche.
-> 3. **Los nueve defectos del lote que quedaron fuera** (§4 de la valoración), dos ya arreglados.
-> 4. **Que `tests/clave-de-unidad-guarda.test.ts` cite el símbolo `updateUnit`**, no la línea 761.
-> 5. **«Fresnos 11 / Fresnos 11»** en la tarjeta de portería cuando la torre se llama como la unidad.
-> 6. **Traer al repositorio el verificador de reglas de Storage**.
-> 7. **El protocolo de paquetería** (la cuarta cosa de `L-20`).
-> 8. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree; mirar `c92ef13` antes.
+> 2. **Los nueve defectos del lote que quedaron fuera** (§4 de la valoración), dos ya arreglados.
+> 3. **Que `tests/clave-de-unidad-guarda.test.ts` cite el símbolo `updateUnit`**, no la línea 761.
+> 4. **«Fresnos 11 / Fresnos 11»** en la tarjeta de portería cuando la torre se llama como la unidad.
+> 5. **Traer al repositorio el verificador de reglas de Storage**.
+> 6. **El protocolo de paquetería** (la cuarta cosa de `L-20`).
+> 7. **Cabo de casa:** la rama `claude/nifty-bell-c733cd` y su worktree; mirar `c92ef13` antes.
 >
 > **B · Espera una decisión de David**
 > 1. **Las 8 decisiones que quedan del lote**: `L-17` (la más barata), `L-18`, `L-03`, `L-15`, `L-09`,
 >    `L-19`, `L-16` y `L-06`. Y las seis «no ahora».
-> 2. **La ventana de retención de `leads`** (hoy: sin ventana, a propósito) y **si se mandan a Albert los
+> 2. **SUBIR EL NÚMERO 2 DE LA POLÍTICA DE RETENCIÓN.** `docs/politica-retencion-datos.md` decía que los
+>    12 meses del registro de borrado se mantenían **mientras no existiera un camino de supresión**. Ya
+>    existe y está estrenado, así que **la condición se cumple** y toca decidir si sube a los 24–36 que
+>    Albert recomendaba.
+> 3. **La ventana de retención de `leads`** (hoy: sin ventana, a propósito) y **si se mandan a Albert los
 >    7 leads anteriores al trigger** (cinco son pruebas suyas). Hoy: no.
-> 3. **La moneda de Privada Las Palmas** y el **`country`** de Bromelias, Privada Las Playas y Tenant E2E.
-> 4. **La descripción duplicada del paquete de prueba** de Santa María (T2-503).
-> 5. **El canal de correo**: apagado en todas las plantillas.
-> 6. **Las rarezas del producto** (§H), **App Check** (`D-CONSOLA`), **las fechas de las reglas de
+> 4. **La moneda de Privada Las Palmas** y el **`country`** de Bromelias, Privada Las Playas y Tenant E2E.
+> 5. **La descripción duplicada del paquete de prueba** de Santa María (T2-503).
+> 6. **El canal de correo**: apagado en todas las plantillas.
+> 7. **Las rarezas del producto** (§H), **App Check** (`D-CONSOLA`), **las fechas de las reglas de
 >    visitas**, **el «vencido» en UTC**, **la puerta de buzones de Las Playas**, `CA1` de `PLAT-002` y
 >    `CA3`/`CA5` de `PLAT-004`, **el TXT del dominio sin `www`**, `UX-005`, el asiento
 >    `ledgerEntries/tWgE2rhBeztUbCTWKokt`, las dos categorías de egreso y **el tope de gasto de la IA**.
-> 7. **La URL de acción de las contraseñas** en la consola.
+> 8. **La URL de acción de las contraseñas** en la consola.
 >
 > **C · Espera a un tercero o a un dato**
-> 8. **El abogado ecuatoriano** (`FLOW-006`, entrega 3 de `FLOW-007` y de `PLAT-004`), **fase 2 de
+> 9. **El abogado ecuatoriano** (`FLOW-006`, entrega 3 de `FLOW-007` y de `PLAT-004`), **fase 2 de
 >    `FEAT-009`**, **`PH-003` `CA4`**, **Habitanto** y, del lote, **`L-31`** y **`L-32b`**.
-> 9. **Patricia Gordillo**: la respuesta de su directorio.
+> 10. **Patricia Gordillo**: la respuesta de su directorio.
 >
 > ## NO REABRIR
 >
