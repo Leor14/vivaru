@@ -4,12 +4,42 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — corte del 23 de septiembre de 2026 (noche en Ciudad de México)
+## LO PRIMERO AL ABRIR SESIÓN — corte del 25 de septiembre de 2026 (noche en Ciudad de México)
 
 > # ALBERT Y `PLAT-007`, CERRADOS Y EN PRODUCCIÓN. NO QUEDA NADA A MEDIAS.
 >
 > **La sesión siguiente NO elige frente sola: espera a que David lo elija.** El menú está en «LO QUE
 > SIGUE». El tablero de las 36 del lote no se movió: **20 ✅ · 8 🟡 · 6 ◇ · 2 ⏸**.
+>
+> ## 0. LO QUE ESTÁ EN EL TINTERO — construido y todavía SIN USAR
+>
+> **Esto es lo que la sesión siguiente tiene que entender antes de proponer nada.** El frente de Albert
+> está terminado como ingeniería, pero **casi nada de lo que abre se está usando todavía**, y ninguna de
+> esas decisiones es de una sesión: son de David.
+>
+> | Lo construido | Qué abre, y qué falta para que sirva |
+> |---|---|
+> | **El envío de leads al CRM** | Cada interesado nuevo de la web real entra solo en Albert. **Hoy el CRM tiene 1 deal y 1 contacto, y son la PRUEBA del 22** (se dejan a propósito como referencia). Lo que falta no es código: **que entren interesados de verdad** y que alguien los trabaje allí |
+> | **La señal de negocio ganado** | Corre cada 10 minutos y **solo registra**: si se gana un deal, avisa a `comercial@qintilab.com` y marca el lead `convertido`. **0 señales registradas** hasta hoy, porque no hay ningún deal ganado. **El alta del conjunto NO se automatiza**, y automatizarla es una decisión abierta |
+> | **La supresión de un interesado** | Está en producción y **estrenada sin borrar nada**. **0 supresiones ejecutadas.** La primera real será con David delante |
+> | **La política de retención** | Su condición —que existiera un camino de supresión— **ya se cumple**, así que el número 2 (12 meses del registro de borrado) **se puede subir a 24–36**. Decisión pendiente |
+> | **Los 8 leads anteriores** al trigger | **No se enviaron ni se enviarán solos.** Cinco son pruebas de David. Mandarlos es decisión suya, y pediría un script aparte |
+> | **La ventana de retención de `leads`** | Se dejó **fuera a propósito**: hoy un interesado se guarda para siempre |
+>
+> **El cabo del cruce con Albert, CERRADO el 26 sep**, y dejó una lección. Su sesión preguntó por el
+> estado y afirmó que **su endpoint de borrado no había recibido NINGUNA llamada**. Se midió antes de
+> contestar y **era falso: la llamada está en sus propios logs** —POST 200 a las 02:22:43 UTC del 24,
+> token aceptado, y `{count 1, notFound 1, deleted 0}`—, encajando al segundo con nuestro
+> `[supresion/prueba]`. **«Cero entradas» parecía un hallazgo y era una consulta mal hecha.**
+>
+> **La causa aún NO está cerrada, y por eso se escribe como pendiente.** Ellos la atribuyen a que
+> `entries:list` recorta a 24 horas sin rango; **eso no puede ser**: nuestra consulta, sin filtro de
+> fecha, devolvió entradas de hace dos y tres días. La hipótesis que encaja es que usaran
+> `gcloud logging read`, cuyo `--freshness` vale **1 día por defecto**. **Sin comprobar**: la credencial
+> de `gcloud` caducó al intentarlo. Regla mientras tanto: **rango o `--freshness` explícito siempre**.
+>
+> **Y dos sondas anónimas** contra `vivarueraselead` el 23 sep (01:45 y 01:48), sin cabecera de
+> autorización, que Cloud Run cortó. Es lo que debe pasar con un servicio privado; no es un incidente.
 >
 > ## 1. Lo que se cerró en la madrugada del 24
 >
@@ -83,10 +113,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > - **Me inventé un correo en una medición** y el resultado —«sin rastro»— parecía un hallazgo. Se repitió
 >   leyendo los correos de las fichas. **Un valor que no se leyó de la fuente no es un dato.**
 >
-> ## 5. Lo que sirve cada ambiente (medido el 24 sep, 02:30 UTC)
+> ## 5. Lo que sirve cada ambiente (medido el 26 sep, 03:20 UTC)
 >
-> - **`master` = `develop` = `7425d0d`.** Los dos ambientes sirven el mismo commit.
-> - **Front:** producción `build-2026-09-24-001`; staging `build-2026-09-23-005`.
+> - **`master` = `7425d0d`** (lo que sirve producción) · **`develop` = `f38450a`**, que va por delante
+>   **solo en documentación**: no hay código sin desplegar.
+> - **Front:** los dos ambientes sirven `build-2026-09-24-001`, cada uno de su rama.
+> - **Salud, medida el 26 sep a las 03:20 UTC:** la señal de vuelta lleva **dos días corriendo cada diez
+>   minutos en producción con CERO errores** (última: 03:17 UTC, 0 señales). El último envío de lead es
+>   el del 22. Reglas de producción, idénticas al repo.
 > - **Functions nuevas de hoy:** `enviarLeadAAlbert`, `registrarSenalesDeAlbert` y `suprimirInteresado`,
 >   en los dos ambientes, verificadas comparando el zip desplegado con `functions/lib`.
 > - **Reglas de Firestore:** no se tocaron.
