@@ -32,11 +32,21 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > token aceptado, y `{count 1, notFound 1, deleted 0}`—, encajando al segundo con nuestro
 > `[supresion/prueba]`. **«Cero entradas» parecía un hallazgo y era una consulta mal hecha.**
 >
-> **La causa aún NO está cerrada, y por eso se escribe como pendiente.** Ellos la atribuyen a que
-> `entries:list` recorta a 24 horas sin rango; **eso no puede ser**: nuestra consulta, sin filtro de
-> fecha, devolvió entradas de hace dos y tres días. La hipótesis que encaja es que usaran
-> `gcloud logging read`, cuyo `--freshness` vale **1 día por defecto**. **Sin comprobar**: la credencial
-> de `gcloud` caducó al intentarlo. Regla mientras tanto: **rango o `--freshness` explícito siempre**.
+> **La causa quedó CERRADA con un experimento controlado** (26 sep, 03:32 UTC), y no era la ventana de
+> 24 horas: **es el `orderBy`**. Mismo proyecto, misma API, misma credencial, cambiando solo esa
+> variable, con `pageSize 10` y sin filtro de fecha:
+>
+> | Consulta | Resultado |
+> |---|---|
+> | sin `timestamp`, `orderBy: "timestamp desc"` | **10 entradas**, del 23 y el 24 sep |
+> | sin `timestamp`, **sin `orderBy`** | **0 entradas** |
+> | sin `timestamp`, con `resource.type` y `desc` | 10 entradas |
+> | con `timestamp>="2026-09-22…"` | 10 entradas |
+>
+> Las dos mediciones eran correctas: ellos consultaron sin `orderBy` —el caso que da cero— y nosotros
+> con `desc`. **Reglas que deja:** rango de tiempo **explícito siempre** (y `--freshness` en el CLI, que
+> vale 1 día por defecto); y **un cero de Cloud Logging no prueba que no haya nada** — antes de concluir
+> «no pasó», repetir con rango y orden explícitos.
 >
 > **Y dos sondas anónimas** contra `vivarueraselead` el 23 sep (01:45 y 01:48), sin cabecera de
 > autorización, que Cloud Run cortó. Es lo que debe pasar con un servicio privado; no es un incidente.
